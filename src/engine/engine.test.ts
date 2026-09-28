@@ -285,3 +285,15 @@ describe('10- and 12-hour days', () => {
     expect(topSheet(setDayHours(raw, 12)).cashBudget).toBeCloseTo(topSheet(seed).cashBudget, 2);
   });
 });
+
+describe('crew on a different scale than cast', () => {
+  it('prices crew and producers at the chosen 8-hour rate while cast stay at the tier', () => {
+    const p = everyoneAtScale(seed, 'LBA', { premiums: 'points', crewDayRate: 449 });
+    const dp = p.lines.find(l => l.accountId === '2601' && l.description === 'Shoot')!;
+    expect(dp.rate).toBe(56.13);
+    const lena = p.lines.find(l => l.accountId === '1401' && l.unit === 'DAY' && l.amount === 12)!;
+    expect(lena.rate).toBe(104.25);   // 834 / 8
+    const prod = p.lines.find(l => l.accountId === '1201' && isPayrollLine(l))!;
+    expect(prod.rate).toBe(56.13);
+  });
+});

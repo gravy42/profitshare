@@ -12,6 +12,11 @@ export function SagView({ project, setProject }: { project: Project; setProject:
   const setSag = (patch: Partial<Project['sag']>) => setProject(p => ({ ...p, sag: { ...p.sag, ...patch } }));
   const [premiums, setPremiums] = useState<'points' | 'deferred' | 'delete'>('points');
   const [producerDays, setProducerDays] = useState(project.shootDays + 40);
+  const [crewBasis, setCrewBasis] = useState<SagTierId | 'custom'>(project.sag.targetTier);
+  const [crewCustom, setCrewCustom] = useState(400);
+  const crewDayRate = crewBasis === 'custom' ? crewCustom : sagTier(crewBasis).dayRate;
+  const hrsNow = PAID_HOURS[dayHoursOf(project)];
+  const perDay = (base: number, h: number) => Math.round(base / 8 * 100) / 100 * h;
   const [groups, setGroups] = useState<Record<PresetGroup, boolean>>({ producers: true, script: true, allowances: true });
   const picked = (l: Project['lines'][number]) => (Object.keys(PRESET_GROUPS) as PresetGroup[]).some(g => groups[g] && PRESET_GROUPS[g].match(l));
   const setPicked = (payType: 'points' | 'cash' | 'deferred') => setProject(p => ({ ...p, lines: p.lines.map(l => picked(l) ? { ...l, payType } : l) }));
@@ -67,19 +72,26 @@ export function SagView({ project, setProject }: { project: Project; setProject:
 
       <div className="panel">
         <h2>Everyone at scale</h2>
-        <p className="help">The <i>Sing Sing</i> deal: one rate for everyone, above and below the line, and the upside split by points. SAG scale covers an 8-hour day, so this prices everyone hourly at {project.sag.targetTier} scale ÷ 8 (${sagTier(project.sag.targetTier).dayRate} → ${(sagTier(project.sag.targetTier).dayRate / 8).toFixed(2)}/hr) with overtime on top: crew at 1.5× after 8 and 2× after 12, cast at 1.5× for hours 9 and 10 and 2× after. A 10-hour day is scale plus two hours; a 12-hour day scale plus four. Weekly cast lines take the tier's weekly scale. Each producer gets a wage line at that hourly for the days they work, and the premiums (producer fees, the script purchase, star and cast allowances) go to the back end. Nobody works for free; nobody works for a flat fee either.</p>
+        <p className="help">The <i>Sing Sing</i> deal: one rate for everyone, above and below the line, and the upside split by points. SAG scale covers an 8-hour day, so this prices everyone hourly at a scale rate ÷ 8 with overtime on top: crew at 1.5× after 8 and 2× after 12, cast at 1.5× for hours 9 and 10 and 2× after. A 10-hour day is scale plus two hours; a 12-hour day scale plus four. Cast are priced at the target tier (SAG requires it); crew and producers can share that rate or a lower tier's, which is the knob that decides the budget. Weekly cast lines take the tier's weekly scale. Each producer gets a wage line at the crew hourly for the days they work, and the premiums (producer fees, the script purchase, star and cast allowances) go to the back end. Nobody works for free; nobody works for a flat fee either.</p>
         <div className="row" style={{ alignItems: 'flex-end' }}>
           <div className="ctl"><label>Shooting day</label>
             <div className="row" style={{ gap: 4 }}>
               {([10, 12] as const).map(h => <button key={h} className={`btn small ${dayHoursOf(project) === h ? 'primary' : ''}`} onClick={() => setProject(p => setDayHours(p, h))}>{h} hr</button>)}
             </div>
             <span className="hint">crew {PAID_HOURS[dayHoursOf(project)].day} paid hrs · cast {PAID_HOURS[dayHoursOf(project)].sag} · long days {PAID_HOURS[dayHoursOf(project)].long}</span></div>
+          <div className="ctl"><label>Crew &amp; producers' 8-hour rate</label>
+            <select value={crewBasis} onChange={e => setCrewBasis(e.target.value as any)}>
+              {SAG_TIERS.map(t => <option key={t.id} value={t.id}>{t.id} scale · ${t.dayRate}</option>)}
+              <option value="custom">custom…</option>
+            </select>
+            {crewBasis === 'custom' && <input type="number" value={crewCustom} onChange={e => setCrewCustom(+e.target.value || 0)} style={{ width: 110 }} />}
+            <span className="hint">${(crewDayRate / 8).toFixed(2)}/hr → ${money(perDay(crewDayRate, hrsNow.day)).slice(1)} per {dayHoursOf(project)}-hr day · cast at {project.sag.targetTier}: ${money(perDay(sagTier(project.sag.targetTier).dayRate, hrsNow.sag)).slice(1)}</span></div>
           <div className="ctl"><label>Premiums become</label>
             <select value={premiums} onChange={e => setPremiums(e.target.value as any)}>
               <option value="points">points (contingent)</option><option value="deferred">deferred (fixed IOU, counts for SAG)</option><option value="delete">nothing, delete the lines</option>
             </select></div>
           <div className="ctl"><label>Producer days (if no wage line yet)</label><input type="number" value={producerDays} onChange={e => setProducerDays(+e.target.value || 0)} style={{ width: 110 }} /><span className="hint">shoot days + prep / wrap / post</span></div>
-          <button className="btn primary" onClick={() => setProject(p => everyoneAtScale(p, p.sag.targetTier, { premiums, producerDays }))}>Pay everyone {project.sag.targetTier} scale</button>
+          <button className="btn primary" onClick={() => setProject(p => everyoneAtScale(p, p.sag.targetTier, { premiums, producerDays, crewDayRate }))}>Pay everyone scale</button>
         </div>
         <p className="help small" style={{ marginTop: 8 }}>Undo reverses it. Adjust anyone's days afterwards on the Top Sheet; the points schedule follows days worked.</p>
       </div>

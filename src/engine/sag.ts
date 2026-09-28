@@ -110,6 +110,9 @@ export interface EveryoneAtScaleOptions {
   premiums: 'points' | 'deferred' | 'delete';
   /** days a producer works when no wage line exists for them yet (default: shoot days + 40 of prep/wrap/post) */
   producerDays?: number;
+  /** the 8-hour day rate everyone who is not a SAG performer gets (default: the tier's day rate). Cast are always
+   *  at the tier's scale; crew and producers can share a different, usually lower, tier's rate. */
+  crewDayRate?: number;
 }
 
 /** Pay everyone, above and below the line, SAG scale the way SAG pays it: the day rate covers 8 hours and overtime
@@ -120,7 +123,7 @@ export interface EveryoneAtScaleOptions {
 export function everyoneAtScale(p: Project, tierId: SagTierId, opts: EveryoneAtScaleOptions): Project {
   const t = sagTier(tierId);
   const hours = PAID_HOURS[dayHoursOf(p)];
-  const hourly = scaleHourly(t.dayRate);
+  const hourly = scaleHourly(opts.crewDayRate ?? t.dayRate);
   const fr = payrollFringeSet(p);
   // cast DAY lines become hourly with SAG overtime hours; then rerateCast prices them (and pins agent fees)
   let out = rerateCast({ ...p, lines: p.lines.map(l => isSagPerformerLine(l) && l.unit === 'DAY' ? { ...l, multiplier: hours.sag } : l) }, tierId);
