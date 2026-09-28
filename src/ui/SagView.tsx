@@ -1,6 +1,8 @@
 import type { Project, SagTierId } from '../engine/types';
 import { SAG_TIERS, rerateCast, sagReport, tierCap } from '../engine/sag';
-import { PROFIT_SHARE_PRESET_MATCH } from '../data/seed';
+import { useState } from 'react';
+import { PRESET_GROUPS, type PresetGroup } from '../data/seed';
+import { lineSubtotal } from '../engine/budget';
 import { money } from './format';
 
 type Set = (f: (p: Project) => Project) => void;
@@ -8,8 +10,14 @@ type Set = (f: (p: Project) => Project) => void;
 export function SagView({ project, setProject }: { project: Project; setProject: Set }) {
   const r = sagReport(project);
   const setSag = (patch: Partial<Project['sag']>) => setProject(p => ({ ...p, sag: { ...p.sag, ...patch } }));
-  const applyPreset = () => setProject(p => ({ ...p, lines: p.lines.map(l => PROFIT_SHARE_PRESET_MATCH(l) ? { ...l, payType: 'points' } : l) }));
-  const undoPreset = () => setProject(p => ({ ...p, lines: p.lines.map(l => PROFIT_SHARE_PRESET_MATCH(l) ? { ...l, payType: 'cash' } : l) }));
+  const [groups, setGroups] = useState<Record<PresetGroup, boolean>>({ producers: true, script: true, allowances: true });
+  const picked = (l: Project['lines'][number]) => (Object.keys(PRESET_GROUPS) as PresetGroup[]).some(g => groups[g] && PRESET_GROUPS[g].match(l));
+  const setPicked = (payType: 'points' | 'cash' | 'deferred') => setProject(p => ({ ...p, lines: p.lines.map(l => picked(l) ? { ...l, payType } : l) }));
+  const deletePicked = () => setProject(p => ({ ...p, lines: p.lines.filter(l => !picked(l)) }));
+  const groupTotals = (Object.keys(PRESET_GROUPS) as PresetGroup[]).map(g => {
+    const ls = project.lines.filter(PRESET_GROUPS[g].match);
+    return { g, count: ls.length, total: ls.reduce((t, l) => t + lineSubtotal(l), 0), pay: [...new Set(ls.map(l => l.payType))].join(' / ') || '—' };
+  });
 
   return (
     <div>
@@ -56,11 +64,24 @@ export function SagView({ project, setProject }: { project: Project; setProject:
       </div>
 
       <div className="panel">
-        <h2>Profit-share preset</h2>
-        <p className="help">Converts the above-scale above-the-line money to points in one click: producer fees, the script purchase, and any STAR / CAST ALLOWANCE lines. Everyone still gets paid scale in cash. Look at the Top Sheet afterwards; the cash budget drops and the points value rises by the same amount.</p>
-        <div className="row">
-          <button className="btn primary" onClick={applyPreset}>Convert above-scale ATL to points</button>
-          <button className="btn" onClick={undoPreset}>Put it back to cash</button>
+        <h2>Above-scale ATL money</h2>
+        <p className="help">The three places above-scale above-the-line money usually sits. Tick the ones your deal puts on the back end and press <b>to points</b>; leave unticked what stays as cash pay (a writer or producer who needs rent money). <b>Delete</b> removes the lines entirely, for money nobody is getting in any form. Any single line can also be changed on the Top Sheet with its Pay dropdown or its ×.</p>
+        <table style={{ maxWidth: 720 }}>
+          <thead><tr><th className="l" /><th className="l">Group</th><th>Lines</th><th>Cash value</th><th className="l">Currently</th></tr></thead>
+          <tbody>
+            {groupTotals.map(({ g, count, total, pay }) => (
+              <tr key={g}>
+                <td><input type="checkbox" checked={groups[g]} onChange={e => setGroups(x => ({ ...x, [g]: e.target.checked }))} /></td>
+                <td className="l">{PRESET_GROUPS[g].label}</td><td>{count}</td><td>{money(total)}</td><td className="l"><span className="small muted">{pay}</span></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div className="row" style={{ marginTop: 10 }}>
+          <button className="btn primary" onClick={() => setPicked('points')}>Ticked lines → to points</button>
+          <button className="btn" onClick={() => setPicked('deferred')}>→ to deferred</button>
+          <button className="btn" onClick={() => setPicked('cash')}>→ back to cash</button>
+          <button className="btn danger" style={{ padding: '6px 11px' }} onClick={() => { const n = project.lines.filter(picked).length; if (n && confirm(`Delete ${n} line${n > 1 ? 's' : ''}? They come off the budget entirely (Undo brings them back).`)) deletePicked(); }}>Delete ticked lines</button>
         </div>
       </div>
     </div>

@@ -20,7 +20,7 @@ The live demo is at **https://gravy42.github.io/profitshare/**. It opens on a st
 
 Then:
 
-1. **Set the deal.** On the SAG tab, pick a tier and press *Convert above-scale ATL to points* to see the cash budget drop. On the Points tab, pick a waterfall and set tier multipliers.
+1. **Set the deal.** On the SAG tab, pick a tier and press *Re-rate cast* to put every performer on that scale. In *Above-scale ATL money*, tick which of producer fees, the script purchase and star allowances your deal moves to points (or deletes) and watch the cash budget drop. On the Points tab, pick a waterfall and set tier multipliers.
 2. **Place day breaks** on the stripboard, then *Push cast days → budget* so cast lines and the points schedule match the schedule.
 3. **Save.** Your project is one `.json` file. Nothing leaves your browser unless you send it somewhere.
 

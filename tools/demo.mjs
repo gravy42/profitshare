@@ -80,7 +80,7 @@ await cap(null);
 // 3. SAG tab
 await click(page.getByRole('button', { name: 'SAG tier', exact: true }), 800);
 await cap('SAG measures total production cost. Deferred pay counts; points do not.', 2600);
-await click(page.getByRole('button', { name: 'Convert above-scale ATL to points' }), 900);
+await click(page.getByRole('button', { name: /Ticked lines/ }), 900);
 await cap('Producer fees and the script go to points: $105,000 off the top, and the film drops from Low Budget to Moderate Low Budget scale.', 3600);
 await cap(null);
 

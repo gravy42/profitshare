@@ -16,7 +16,7 @@ for (const scheme of ['light', 'dark']) {
   for (const [name, label] of [['board', 'Stripboard'], ['points', 'Points & waterfall'], ['sag', 'SAG tier']]) {
     await page.getByRole('button', { name: label, exact: true }).click(); await page.waitForTimeout(300);
     if (name === 'board') { await page.getByRole('button', { name: 'Auto day breaks' }).click(); await page.waitForTimeout(300); }
-    if (name === 'sag') { await page.getByRole('button', { name: 'Convert above-scale ATL to points' }).click(); await page.waitForTimeout(300); }
+    if (name === 'sag') { await page.getByRole('button', { name: /Ticked lines/ }).click(); await page.waitForTimeout(300); }
     await page.screenshot({ path: `${out}${scheme}-${name}.png` });
   }
   console.log(scheme, 'KPI after preset:', (await page.locator('.kpi').innerText()).replace(/\n/g, ' | '));
