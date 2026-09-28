@@ -67,13 +67,13 @@ export function SagView({ project, setProject }: { project: Project; setProject:
 
       <div className="panel">
         <h2>Everyone at scale</h2>
-        <p className="help">The <i>Sing Sing</i> deal: one day rate for everyone, above and below the line, and the upside split by points. This puts every wage line in the budget on the {project.sag.targetTier} rate (${sagTier(project.sag.targetTier).dayRate}/day, weekly at the tier's weekly scale; hourly crew keep their hours so a day still adds up to one day's scale; the 10 / 12 hr toggle sets those hours), gives each producer a wage line at scale for the days they work, and moves the premiums (producer fees, the script purchase, star and cast allowances) to the back end. Nobody works for free; nobody works for a flat fee either.</p>
+        <p className="help">The <i>Sing Sing</i> deal: one rate for everyone, above and below the line, and the upside split by points. SAG scale covers an 8-hour day, so this prices everyone hourly at {project.sag.targetTier} scale ÷ 8 (${sagTier(project.sag.targetTier).dayRate} → ${(sagTier(project.sag.targetTier).dayRate / 8).toFixed(2)}/hr) with overtime on top: crew at 1.5× after 8 and 2× after 12, cast at 1.5× for hours 9 and 10 and 2× after. A 10-hour day is scale plus two hours; a 12-hour day scale plus four. Weekly cast lines take the tier's weekly scale. Each producer gets a wage line at that hourly for the days they work, and the premiums (producer fees, the script purchase, star and cast allowances) go to the back end. Nobody works for free; nobody works for a flat fee either.</p>
         <div className="row" style={{ alignItems: 'flex-end' }}>
           <div className="ctl"><label>Shooting day</label>
             <div className="row" style={{ gap: 4 }}>
-              {([10, 12] as const).map(h => <button key={h} className={`btn small ${dayHoursOf(project) === h ? 'primary' : ''}`} onClick={() => setProject(p => setDayHours(p, h, sagTier(p.sag.targetTier).dayRate))}>{h} hr</button>)}
+              {([10, 12] as const).map(h => <button key={h} className={`btn small ${dayHoursOf(project) === h ? 'primary' : ''}`} onClick={() => setProject(p => setDayHours(p, h))}>{h} hr</button>)}
             </div>
-            <span className="hint">{PAID_HOURS[dayHoursOf(project)].day} paid hours (8 + {PAID_HOURS[dayHoursOf(project)].day - 8 > 3 ? '4' : '2'} × 1.5); long days {PAID_HOURS[dayHoursOf(project)].long}</span></div>
+            <span className="hint">crew {PAID_HOURS[dayHoursOf(project)].day} paid hrs · cast {PAID_HOURS[dayHoursOf(project)].sag} · long days {PAID_HOURS[dayHoursOf(project)].long}</span></div>
           <div className="ctl"><label>Premiums become</label>
             <select value={premiums} onChange={e => setPremiums(e.target.value as any)}>
               <option value="points">points (contingent)</option><option value="deferred">deferred (fixed IOU, counts for SAG)</option><option value="delete">nothing, delete the lines</option>

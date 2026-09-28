@@ -240,21 +240,25 @@ describe('fit day breaks', () => {
 
 import { everyoneAtScale, isPayrollLine, isSagPerformerLine } from './sag';
 describe('everyone at scale (the Sing Sing model)', () => {
-  it('puts every wage line on the tier day rate, gives producers wage lines, and moves premiums to points', () => {
-    const p = everyoneAtScale(seed, 'MLB', { premiums: 'points' });
-    for (const l of p.lines.filter(isPayrollLine)) {
-      const perDay = lineSubtotal(l) / (l.unit === 'WEEK' ? l.amount * 5 : l.amount);
-      expect(perDay).toBeCloseTo(l.unit === 'WEEK' ? 1560 / 5 : 449, 0);
+  it('prices every wage line hourly off the 8-hour scale with overtime, gives producers wage lines, moves premiums to points', () => {
+    const p = everyoneAtScale(seed, 'MLB', { premiums: 'points' });   // 12-hour days: crew 14 paid hours, cast 15
+    const hourly = 56.13;                                               // 449 / 8
+    for (const l of p.lines.filter(l => isPayrollLine(l) && l.unit === 'DAY')) {
+      expect(l.rate).toBe(hourly);
+      expect([14, 15, 18]).toContain(l.multiplier);
     }
+    const dp = p.lines.find(l => l.accountId === '2601' && l.description === 'Shoot')!;
+    expect(lineSubtotal(dp) / dp.amount).toBeCloseTo(785.82, 1);       // a 12-hour crew day
+    const lena = p.lines.find(l => l.accountId === '1401' && l.unit === 'DAY' && l.amount === 12)!;
+    expect(lena.multiplier).toBe(15); expect(lineSubtotal(lena) / 12).toBeCloseTo(841.95, 1);   // a 12-hour SAG day
+    const agent = p.lines.find(l => l.accountId === '1401' && /agent fee/i.test(l.description))!;
+    expect(agent.rate).toBeCloseTo(lineSubtotal(lena), 2);
     const prod = p.lines.filter(l => l.accountId === '1201' && isPayrollLine(l));
     expect(prod).toHaveLength(2);
-    expect(prod[0].amount).toBe(52); expect(prod[0].rate).toBe(449);
+    expect(prod[0].amount).toBe(52); expect(prod[0].rate).toBe(hourly); expect(prod[0].multiplier).toBe(14);
     expect(p.participants.find(x => x.id === 'p_producer_1')!.days).toBe(52);
     expect(p.lines.filter(l => /^Fee$/.test(l.description)).every(l => l.payType === 'points')).toBe(true);
-    expect(p.lines.filter(isSagPerformerLine).every(l => l.rate === 449)).toBe(true);
-    const ts = topSheet(p);
-    expect(ts.pointsValue).toBe(105_000);
-    expect(ts.cashBudget).toBeLessThan(topSheet(seed).cashBudget);   // crew were above scale; producers' scale is cheaper than fees
+    expect(topSheet(p).pointsValue).toBe(105_000);
   });
   it('can delete the premiums instead', () => {
     const p = everyoneAtScale(seed, 'MLB', { premiums: 'delete' });
@@ -265,20 +269,19 @@ describe('everyone at scale (the Sing Sing model)', () => {
 
 import { setDayHours, PAID_HOURS } from './budget';
 describe('10- and 12-hour days', () => {
-  it('rewrites hourly crew multipliers and keeps at-scale lines on the day rate', () => {
+  it('swaps paid-hours multipliers for crew and cast and round-trips', () => {
     const scale = everyoneAtScale(seed, 'MLB', { premiums: 'points' });
-    const ten = setDayHours(scale, 10, 449);
+    const ten = setDayHours(scale, 10);
     const dp = ten.lines.find(l => l.accountId === '2601' && l.description === 'Shoot')!;
     expect(dp.multiplier).toBe(PAID_HOURS[10].day);
-    expect(lineSubtotal(dp) / dp.amount).toBeCloseTo(449, 0);        // still one day's scale
-    // an hourly line NOT at scale gets cheaper with fewer hours
-    const raw = setDayHours(seed, 10, 449);
-    const dp0 = seed.lines.find(l => l.accountId === '2601' && l.description === 'Shoot')!;
-    const dp1 = raw.lines.find(l => l.accountId === '2601' && l.description === 'Shoot')!;
-    expect(dp1.rate).toBe(dp0.rate); expect(dp1.multiplier).toBe(11);
+    expect(lineSubtotal(dp) / dp.amount).toBeCloseTo(617.43, 1);      // 449 + 2 hours at 1.5x
+    const lena = ten.lines.find(l => l.accountId === '1401' && l.unit === 'DAY' && l.amount === 12)!;
+    expect(lena.multiplier).toBe(11);
+    expect(topSheet(ten).cashBudget).toBeLessThan(topSheet(scale).cashBudget);
+    // a raw hourly budget gets cheaper with fewer hours and comes back exactly
+    const raw = setDayHours(seed, 10);
+    expect(raw.lines.find(l => l.accountId === '2601' && l.description === 'Shoot')!.multiplier).toBe(11);
     expect(topSheet(raw).cashBudget).toBeLessThan(topSheet(seed).cashBudget);
-    // and back
-    const back = setDayHours(raw, 12, 449);
-    expect(topSheet(back).cashBudget).toBeCloseTo(topSheet(seed).cashBudget, 0);
+    expect(topSheet(setDayHours(raw, 12)).cashBudget).toBeCloseTo(topSheet(seed).cashBudget, 2);
   });
 });

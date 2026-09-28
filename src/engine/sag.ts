@@ -1,5 +1,8 @@
 import type { LineItem, Project, SagTier, SagTierId } from './types';
-import { lineSubtotal, topSheet } from './budget';
+import { lineSubtotal, topSheet, PAID_HOURS, dayHoursOf } from './budget';
+
+/** Scale covers an 8-hour day; this is the hourly it implies. */
+export const scaleHourly = (dayRate: number) => Math.round((dayRate / 8) * 100) / 100;
 
 /** SAG-AFTRA theatrical minimums. Low-budget rates effective 7/1/2026 (3 %/yr through 2030).
  *  Caps: ULB ≤ $300K, MLB ≤ $700K (DIC → $1.05M), LBA ≤ $2M (DIC → $3.75M). Basic Agreement above that.
@@ -58,9 +61,10 @@ export function sagReport(p: Project): SagReport {
   const notes: string[] = [];
   if (ts.deferredTotal > 0) notes.push(`$${ts.deferredTotal.toLocaleString()} of deferred pay counts toward total production cost. Convert fixed deferments to points if you need to get under a cap.`);
   if (ts.pointsValue > 0) notes.push(`$${ts.pointsValue.toLocaleString()} of cash value has been converted to points and is outside the budget.`);
-  const scaleWages = p.lines.filter(isSagPerformerLine).reduce((n, l) => n + lineSubtotal(l), 0);
-  if (scaleWages > 0 && Math.abs(scaleWages / Math.max(1, performerDays) - target.dayRate) > 1)
-    notes.push(`Cast lines average $${Math.round(scaleWages / Math.max(1, performerDays))}/day but the target tier scale is $${target.dayRate}/day. Use "Re-rate cast" to reprice.`);
+  // base (8-hour) day rate the cast lines are priced at, ignoring overtime hours on lines that carry them
+  const baseWages = p.lines.filter(isSagPerformerLine).reduce((n, l) => n + (l.unit === 'WEEK' ? l.amount * 5 * (l.multiplier > 1 ? l.rate * 8 / 5 : l.rate / 5) : l.amount * (l.multiplier > 1 ? l.rate * 8 : l.rate)), 0);
+  if (baseWages > 0 && Math.abs(baseWages / Math.max(1, performerDays) - target.dayRate) > 1)
+    notes.push(`Cast lines are priced at about $${Math.round(baseWages / Math.max(1, performerDays))}/day base but the target tier scale is $${target.dayRate}/day. Use "Re-rate cast" to reprice.`);
   return {
     totalProductionCost: tpc, cashBudget: ts.cashBudget, deferredTotal: ts.deferredTotal, dic: p.sag.dic,
     target, targetCap: cap, fits: cap === null || tpc <= cap, headroom: cap === null ? Infinity : cap - tpc,
@@ -74,7 +78,8 @@ export function rerateCast(p: Project, tierId: SagTierId): Project {
   let lastPerformerWages = 0;
   const lines = p.lines.map(l => {
     if (isSagPerformerLine(l)) {
-      const rate = l.unit === 'WEEK' ? (t.weeklyRate ?? t.dayRate * 5) : t.dayRate;
+      // a line with an hours multiplier is priced hourly off the 8-hour scale; a plain line is the flat day/week rate
+      const rate = l.unit === 'WEEK' ? (t.weeklyRate ?? t.dayRate * 5) : l.multiplier > 1 ? scaleHourly(t.dayRate) : t.dayRate;
       const nl = { ...l, rate };
       lastPerformerWages = lineSubtotal(nl);
       return nl;
@@ -107,14 +112,18 @@ export interface EveryoneAtScaleOptions {
   producerDays?: number;
 }
 
-/** Pay everyone, above and below the line, the SAG day rate of a tier (weekly = the tier's weekly scale), keep the
- *  hours multiplier so a 12-hour crew day still totals one day's scale, move the above-scale premiums to points
- *  (or defer / delete them), and give producers and a writer a wage line at scale for their days if they have none. */
+/** Pay everyone, above and below the line, SAG scale the way SAG pays it: the day rate covers 8 hours and overtime
+ *  runs on top (1.5x then 2x), so a 10-hour day is scale + 2 hours and a 12-hour day scale + 4. Crew hourly
+ *  becomes scale ÷ 8 with the project's paid-hours multiplier; cast day lines get the same hourly with SAG's
+ *  overtime hours; weekly cast lines take the tier's weekly scale. Producers and a writer get a wage line at the
+ *  same hourly for their days if they have none. The above-scale premiums go to points, deferred, or away. */
 export function everyoneAtScale(p: Project, tierId: SagTierId, opts: EveryoneAtScaleOptions): Project {
   const t = sagTier(tierId);
-  const weekly = t.weeklyRate ?? t.dayRate * 5;
+  const hours = PAID_HOURS[dayHoursOf(p)];
+  const hourly = scaleHourly(t.dayRate);
   const fr = payrollFringeSet(p);
-  let out = rerateCast(p, tierId);
+  // cast DAY lines become hourly with SAG overtime hours; then rerateCast prices them (and pins agent fees)
+  let out = rerateCast({ ...p, lines: p.lines.map(l => isSagPerformerLine(l) && l.unit === 'DAY' ? { ...l, multiplier: hours.sag } : l) }, tierId);
   const premiums = (l: LineItem) =>
     (l.accountId === '1201' && /^Fee$/i.test(l.description)) ||
     (l.accountId === '1102' && /script purchase/i.test(l.description)) ||
@@ -123,8 +132,9 @@ export function everyoneAtScale(p: Project, tierId: SagTierId, opts: EveryoneAtS
   let lines = out.lines.flatMap(l => {
     if (premiums(l)) return opts.premiums === 'delete' ? [] : [{ ...l, payType: opts.premiums }];
     if (isPayrollLine(l) && !isSagPerformerLine(l)) {
-      const m = l.multiplier || 1;
-      return [{ ...l, rate: Math.round(((l.unit === 'WEEK' ? weekly : t.dayRate) / m) * 100) / 100 }];
+      if (l.unit === 'WEEK') return [{ ...l, rate: Math.round(hourly * hours.day * 5 * 100) / 100, multiplier: 1 }]; // five crew days
+      const m = l.multiplier === hours.long ? hours.long : hours.day;
+      return [{ ...l, rate: hourly, multiplier: m }];
     }
     return [l];
   });
@@ -140,14 +150,14 @@ export function everyoneAtScale(p: Project, tierId: SagTierId, opts: EveryoneAtS
   producers.forEach((pt, i) => {
     if (hasWage(pt.id)) return;
     addAfter('1201', { id: `L_scale_prod_${i + 1}`, accountId: '1201', description: `${pt.name}: scale, prep / shoot / post`, amount: pt.days || producerDays,
-      unit: 'DAY', rate: t.dayRate, multiplier: 1, fringes: fr, tags: ['ATL'], payType: 'cash', participantId: pt.id });
+      unit: 'DAY', rate: hourly, multiplier: hours.day, fringes: fr, tags: ['ATL'], payType: 'cash', participantId: pt.id });
   });
   // A writer who is not already paid as director gets a wage line too.
   const director = p.participants.find(x => x.id.startsWith('p_1301'));
   const scriptLine = p.lines.find(l => l.accountId === '1102' && /script purchase/i.test(l.description));
   if (scriptLine && !(director && hasWage(director.id)) && !lines.some(l => l.accountId === '1102' && isPayrollLine(l))) {
-    addAfter('1102', { id: 'L_scale_writer', accountId: '1102', description: 'Writer: scale, prep', amount: 10, unit: 'DAY', rate: t.dayRate,
-      multiplier: 1, fringes: fr, tags: ['ATL'], payType: 'cash', participantId: scriptLine.participantId });
+    addAfter('1102', { id: 'L_scale_writer', accountId: '1102', description: 'Writer: scale, prep', amount: 10, unit: 'DAY', rate: hourly,
+      multiplier: hours.day, fringes: fr, tags: ['ATL'], payType: 'cash', participantId: scriptLine.participantId });
   }
   const participants = p.participants.map(pt => {
     const days = lines.filter(l => l.participantId === pt.id && isPayrollLine(l)).reduce((n, l) => n + (l.unit === 'WEEK' ? l.amount * 5 : l.amount), 0);

@@ -199,27 +199,27 @@ export function toggleLineFringe(p: Project, lineId: string, fringeId: string): 
 
 // ---------- shooting-day length ----------
 
-/** Paid hours per day for hourly crew under a California-style 8 + 1.5x + 2x day.
- *  day  = the standard crew day; long = the transport / early-call day two hours longer than that. */
-export const PAID_HOURS: Record<10 | 12, { day: number; long: number }> = {
-  10: { day: 11, long: 14 },   // 8 + 2 × 1.5;  12-hr long day = 8 + 4 × 1.5
-  12: { day: 14, long: 18 },   // 8 + 4 × 1.5;  14-hr long day = 8 + 4 × 1.5 + 2 × 2
+/** Paid hours per day under overtime rules, for a scale rate that covers 8 hours.
+ *  day  = non-union crew, California style: 1.5x after 8, 2x after 12.
+ *  long = the transport / early-call day two hours longer than that.
+ *  sag  = a SAG day performer: 1.5x for hours 9 and 10, 2x after 10. */
+export const PAID_HOURS: Record<10 | 12, { day: number; long: number; sag: number }> = {
+  10: { day: 11, long: 14, sag: 11 },   // 8 + 2 × 1.5;  long 12 hr = 8 + 4 × 1.5;  SAG 8 + 2 × 1.5
+  12: { day: 14, long: 18, sag: 15 },   // 8 + 4 × 1.5;  long 14 hr = 8 + 4 × 1.5 + 2 × 2;  SAG 8 + 2 × 1.5 + 2 × 2
 };
 export const dayHoursOf = (p: Project): 10 | 12 => p.dayHours ?? 12;
 
-/** Switch the project between 10- and 12-hour shooting days. Hourly DAY lines carrying the old paid-hours
- *  multiplier get the new one. A line that was priced to land exactly on a day rate (rate × hours = scale) keeps
- *  that day total; an hourly crew rate stays hourly and the day gets cheaper or dearer with the hours. */
-export function setDayHours(p: Project, hours: 10 | 12, dayRateToKeep?: number): Project {
+/** Switch the project between 10- and 12-hour shooting days: every hourly DAY line carrying one of the old
+ *  paid-hours multipliers gets the matching new one. Hourly rates stay; the day gets cheaper or dearer with the hours. */
+export function setDayHours(p: Project, hours: 10 | 12): Project {
   const from = PAID_HOURS[dayHoursOf(p)], to = PAID_HOURS[hours];
   if (dayHoursOf(p) === hours) return { ...p, dayHours: hours };
   const lines = p.lines.map(l => {
     if (l.unit !== 'DAY') return l;
-    const m = l.multiplier === from.day ? to.day : l.multiplier === from.long ? to.long : null;
-    if (m === null) return l;
-    const perDay = round2(l.rate * l.multiplier);
-    const atScale = dayRateToKeep !== undefined && Math.abs(perDay - dayRateToKeep) < 0.05; // priced to the cent from the day rate
-    return { ...l, multiplier: m, rate: atScale ? Math.round((dayRateToKeep! / m) * 100) / 100 : l.rate };
+    const sag = l.fringes.some(f => /SAG/i.test(f) && !/BG/i.test(f));   // performer lines follow SAG overtime, crew follow California
+    const m = sag ? (l.multiplier === from.sag ? to.sag : null)
+      : l.multiplier === from.day ? to.day : l.multiplier === from.long ? to.long : null;
+    return m === null ? l : { ...l, multiplier: m };
   });
   return { ...p, dayHours: hours, lines };
 }
