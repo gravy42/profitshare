@@ -1,5 +1,5 @@
 import type { Project, SagTierId } from '../engine/types';
-import { SAG_TIERS, rerateCast, sagReport, tierCap } from '../engine/sag';
+import { SAG_TIERS, everyoneAtScale, rerateCast, sagReport, sagTier, tierCap } from '../engine/sag';
 import { useState } from 'react';
 import { PRESET_GROUPS, type PresetGroup } from '../data/seed';
 import { lineSubtotal } from '../engine/budget';
@@ -10,6 +10,8 @@ type Set = (f: (p: Project) => Project) => void;
 export function SagView({ project, setProject }: { project: Project; setProject: Set }) {
   const r = sagReport(project);
   const setSag = (patch: Partial<Project['sag']>) => setProject(p => ({ ...p, sag: { ...p.sag, ...patch } }));
+  const [premiums, setPremiums] = useState<'points' | 'deferred' | 'delete'>('points');
+  const [producerDays, setProducerDays] = useState(project.shootDays + 40);
   const [groups, setGroups] = useState<Record<PresetGroup, boolean>>({ producers: true, script: true, allowances: true });
   const picked = (l: Project['lines'][number]) => (Object.keys(PRESET_GROUPS) as PresetGroup[]).some(g => groups[g] && PRESET_GROUPS[g].match(l));
   const setPicked = (payType: 'points' | 'cash' | 'deferred') => setProject(p => ({ ...p, lines: p.lines.map(l => picked(l) ? { ...l, payType } : l) }));
@@ -61,6 +63,20 @@ export function SagView({ project, setProject }: { project: Project; setProject:
         <p className="help" style={{ marginTop: 10 }}>
           Rates effective 7/1/2026 (SAG-AFTRA low-budget agreements rise 3% every July through 2030; P&amp;H 22% from 9/6/2026). SAG defines total production cost as all above- and below-the-line costs <b>including deferred compensation</b>, so a fixed deferment does not help you get under a cap. Contingent points have no fixed value and are not a budget line. Confirm with your SAG signatory rep and attorney before you sign; this tool is not legal advice.
         </p>
+      </div>
+
+      <div className="panel">
+        <h2>Everyone at scale</h2>
+        <p className="help">The <i>Sing Sing</i> deal: one day rate for everyone, above and below the line, and the upside split by points. This puts every wage line in the budget on the {project.sag.targetTier} rate (${sagTier(project.sag.targetTier).dayRate}/day, weekly at the tier's weekly scale; hourly crew keep their hours so a day still adds up to one day's scale), gives each producer a wage line at scale for the days they work, and moves the premiums (producer fees, the script purchase, star and cast allowances) to the back end. Nobody works for free; nobody works for a flat fee either.</p>
+        <div className="row" style={{ alignItems: 'flex-end' }}>
+          <div className="ctl"><label>Premiums become</label>
+            <select value={premiums} onChange={e => setPremiums(e.target.value as any)}>
+              <option value="points">points (contingent)</option><option value="deferred">deferred (fixed IOU, counts for SAG)</option><option value="delete">nothing, delete the lines</option>
+            </select></div>
+          <div className="ctl"><label>Producer days (if no wage line yet)</label><input type="number" value={producerDays} onChange={e => setProducerDays(+e.target.value || 0)} style={{ width: 110 }} /><span className="hint">shoot days + prep / wrap / post</span></div>
+          <button className="btn primary" onClick={() => setProject(p => everyoneAtScale(p, p.sag.targetTier, { premiums, producerDays }))}>Pay everyone {project.sag.targetTier} scale</button>
+        </div>
+        <p className="help small" style={{ marginTop: 8 }}>Undo reverses it. Adjust anyone's days afterwards on the Top Sheet; the points schedule follows days worked.</p>
       </div>
 
       <div className="panel">

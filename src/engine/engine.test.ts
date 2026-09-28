@@ -237,3 +237,28 @@ describe('fit day breaks', () => {
     expect(b.strips.filter(s => s.type === 'scene').map(s => (s as any).sceneId)).toEqual(seed.board.strips.map(s => (s as any).sceneId));
   });
 });
+
+import { everyoneAtScale, isPayrollLine, isSagPerformerLine } from './sag';
+describe('everyone at scale (the Sing Sing model)', () => {
+  it('puts every wage line on the tier day rate, gives producers wage lines, and moves premiums to points', () => {
+    const p = everyoneAtScale(seed, 'MLB', { premiums: 'points' });
+    for (const l of p.lines.filter(isPayrollLine)) {
+      const perDay = lineSubtotal(l) / (l.unit === 'WEEK' ? l.amount * 5 : l.amount);
+      expect(perDay).toBeCloseTo(l.unit === 'WEEK' ? 1560 / 5 : 449, 0);
+    }
+    const prod = p.lines.filter(l => l.accountId === '1201' && isPayrollLine(l));
+    expect(prod).toHaveLength(2);
+    expect(prod[0].amount).toBe(52); expect(prod[0].rate).toBe(449);
+    expect(p.participants.find(x => x.id === 'p_producer_1')!.days).toBe(52);
+    expect(p.lines.filter(l => /^Fee$/.test(l.description)).every(l => l.payType === 'points')).toBe(true);
+    expect(p.lines.filter(isSagPerformerLine).every(l => l.rate === 449)).toBe(true);
+    const ts = topSheet(p);
+    expect(ts.pointsValue).toBe(105_000);
+    expect(ts.cashBudget).toBeLessThan(topSheet(seed).cashBudget);   // crew were above scale; producers' scale is cheaper than fees
+  });
+  it('can delete the premiums instead', () => {
+    const p = everyoneAtScale(seed, 'MLB', { premiums: 'delete' });
+    expect(p.lines.some(l => /ALLOWANCE$/.test(l.description))).toBe(false);
+    expect(topSheet(p).pointsValue).toBe(0);
+  });
+});

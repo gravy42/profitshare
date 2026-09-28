@@ -85,3 +85,73 @@ export function rerateCast(p: Project, tierId: SagTierId): Project {
   });
   return { ...p, sag: { ...p.sag, targetTier: tierId }, lines };
 }
+
+// ---------- the Sing Sing model: everyone on the same day rate ----------
+
+/** A wage line: paid per day or week and carrying payroll fringes. */
+export const isPayrollLine = (l: LineItem) =>
+  (l.unit === 'DAY' || l.unit === 'WEEK') && l.amount > 0 && l.fringes.some(f => /FICA/i.test(f));
+
+/** The fringe set the budget already uses on ordinary (non-SAG) payroll lines, so new wage lines match it. */
+export function payrollFringeSet(p: Project): string[] {
+  const counts = new Map<string, number>();
+  for (const l of p.lines) if (isPayrollLine(l) && !isSagPerformerLine(l)) { const k = l.fringes.join('|'); counts.set(k, (counts.get(k) ?? 0) + 1); }
+  const best = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+  return best ? best.split('|') : p.fringes.filter(f => !/SAG/i.test(f.id)).map(f => f.id);
+}
+
+export interface EveryoneAtScaleOptions {
+  /** what happens to producer fees, the script purchase and star/cast allowances */
+  premiums: 'points' | 'deferred' | 'delete';
+  /** days a producer works when no wage line exists for them yet (default: shoot days + 40 of prep/wrap/post) */
+  producerDays?: number;
+}
+
+/** Pay everyone, above and below the line, the SAG day rate of a tier (weekly = the tier's weekly scale), keep the
+ *  hours multiplier so a 12-hour crew day still totals one day's scale, move the above-scale premiums to points
+ *  (or defer / delete them), and give producers and a writer a wage line at scale for their days if they have none. */
+export function everyoneAtScale(p: Project, tierId: SagTierId, opts: EveryoneAtScaleOptions): Project {
+  const t = sagTier(tierId);
+  const weekly = t.weeklyRate ?? t.dayRate * 5;
+  const fr = payrollFringeSet(p);
+  let out = rerateCast(p, tierId);
+  const premiums = (l: LineItem) =>
+    (l.accountId === '1201' && /^Fee$/i.test(l.description)) ||
+    (l.accountId === '1102' && /script purchase/i.test(l.description)) ||
+    /^(STAR|CAST) ALLOWANCE$/i.test(l.description);
+
+  let lines = out.lines.flatMap(l => {
+    if (premiums(l)) return opts.premiums === 'delete' ? [] : [{ ...l, payType: opts.premiums }];
+    if (isPayrollLine(l) && !isSagPerformerLine(l)) {
+      const m = l.multiplier || 1;
+      return [{ ...l, rate: Math.round(((l.unit === 'WEEK' ? weekly : t.dayRate) / m) * 100) / 100 }];
+    }
+    return [l];
+  });
+
+  // Producers: a wage line at scale for their days, linked to their participant, if they have no wage line yet.
+  const producerDays = opts.producerDays ?? p.shootDays + 40;
+  const producers = p.participants.filter(x => x.group === 'producer' && x.id.startsWith('p_producer'));
+  const hasWage = (pid: string) => lines.some(l => l.participantId === pid && isPayrollLine(l));
+  const addAfter = (accountId: string, line: LineItem) => {
+    let at = -1; lines.forEach((l, i) => { if (l.accountId === accountId) at = i; });
+    lines = [...lines.slice(0, at + 1), line, ...lines.slice(at + 1)];
+  };
+  producers.forEach((pt, i) => {
+    if (hasWage(pt.id)) return;
+    addAfter('1201', { id: `L_scale_prod_${i + 1}`, accountId: '1201', description: `${pt.name}: scale, prep / shoot / post`, amount: pt.days || producerDays,
+      unit: 'DAY', rate: t.dayRate, multiplier: 1, fringes: fr, tags: ['ATL'], payType: 'cash', participantId: pt.id });
+  });
+  // A writer who is not already paid as director gets a wage line too.
+  const director = p.participants.find(x => x.id.startsWith('p_1301'));
+  const scriptLine = p.lines.find(l => l.accountId === '1102' && /script purchase/i.test(l.description));
+  if (scriptLine && !(director && hasWage(director.id)) && !lines.some(l => l.accountId === '1102' && isPayrollLine(l))) {
+    addAfter('1102', { id: 'L_scale_writer', accountId: '1102', description: 'Writer: scale, prep', amount: 10, unit: 'DAY', rate: t.dayRate,
+      multiplier: 1, fringes: fr, tags: ['ATL'], payType: 'cash', participantId: scriptLine.participantId });
+  }
+  const participants = p.participants.map(pt => {
+    const days = lines.filter(l => l.participantId === pt.id && isPayrollLine(l)).reduce((n, l) => n + (l.unit === 'WEEK' ? l.amount * 5 : l.amount), 0);
+    return days > 0 ? { ...pt, days } : pt;
+  });
+  return { ...out, lines, participants };
+}
