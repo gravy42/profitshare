@@ -196,3 +196,30 @@ export function removeFringe(p: Project, id: string): Project {
 export function toggleLineFringe(p: Project, lineId: string, fringeId: string): Project {
   return { ...p, lines: p.lines.map(l => l.id !== lineId ? l : { ...l, fringes: l.fringes.includes(fringeId) ? l.fringes.filter(x => x !== fringeId) : [...l.fringes, fringeId] }) };
 }
+
+// ---------- shooting-day length ----------
+
+/** Paid hours per day for hourly crew under a California-style 8 + 1.5x + 2x day.
+ *  day  = the standard crew day; long = the transport / early-call day two hours longer than that. */
+export const PAID_HOURS: Record<10 | 12, { day: number; long: number }> = {
+  10: { day: 11, long: 14 },   // 8 + 2 × 1.5;  12-hr long day = 8 + 4 × 1.5
+  12: { day: 14, long: 18 },   // 8 + 4 × 1.5;  14-hr long day = 8 + 4 × 1.5 + 2 × 2
+};
+export const dayHoursOf = (p: Project): 10 | 12 => p.dayHours ?? 12;
+
+/** Switch the project between 10- and 12-hour shooting days. Hourly DAY lines carrying the old paid-hours
+ *  multiplier get the new one. A line that was priced to land exactly on a day rate (rate × hours = scale) keeps
+ *  that day total; an hourly crew rate stays hourly and the day gets cheaper or dearer with the hours. */
+export function setDayHours(p: Project, hours: 10 | 12, dayRateToKeep?: number): Project {
+  const from = PAID_HOURS[dayHoursOf(p)], to = PAID_HOURS[hours];
+  if (dayHoursOf(p) === hours) return { ...p, dayHours: hours };
+  const lines = p.lines.map(l => {
+    if (l.unit !== 'DAY') return l;
+    const m = l.multiplier === from.day ? to.day : l.multiplier === from.long ? to.long : null;
+    if (m === null) return l;
+    const perDay = round2(l.rate * l.multiplier);
+    const atScale = dayRateToKeep !== undefined && Math.abs(perDay - dayRateToKeep) < 0.05; // priced to the cent from the day rate
+    return { ...l, multiplier: m, rate: atScale ? Math.round((dayRateToKeep! / m) * 100) / 100 : l.rate };
+  });
+  return { ...p, dayHours: hours, lines };
+}

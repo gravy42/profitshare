@@ -262,3 +262,23 @@ describe('everyone at scale (the Sing Sing model)', () => {
     expect(topSheet(p).pointsValue).toBe(0);
   });
 });
+
+import { setDayHours, PAID_HOURS } from './budget';
+describe('10- and 12-hour days', () => {
+  it('rewrites hourly crew multipliers and keeps at-scale lines on the day rate', () => {
+    const scale = everyoneAtScale(seed, 'MLB', { premiums: 'points' });
+    const ten = setDayHours(scale, 10, 449);
+    const dp = ten.lines.find(l => l.accountId === '2601' && l.description === 'Shoot')!;
+    expect(dp.multiplier).toBe(PAID_HOURS[10].day);
+    expect(lineSubtotal(dp) / dp.amount).toBeCloseTo(449, 0);        // still one day's scale
+    // an hourly line NOT at scale gets cheaper with fewer hours
+    const raw = setDayHours(seed, 10, 449);
+    const dp0 = seed.lines.find(l => l.accountId === '2601' && l.description === 'Shoot')!;
+    const dp1 = raw.lines.find(l => l.accountId === '2601' && l.description === 'Shoot')!;
+    expect(dp1.rate).toBe(dp0.rate); expect(dp1.multiplier).toBe(11);
+    expect(topSheet(raw).cashBudget).toBeLessThan(topSheet(seed).cashBudget);
+    // and back
+    const back = setDayHours(raw, 12, 449);
+    expect(topSheet(back).cashBudget).toBeCloseTo(topSheet(seed).cashBudget, 0);
+  });
+});

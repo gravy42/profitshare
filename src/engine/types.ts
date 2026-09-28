@@ -120,6 +120,7 @@ export interface Project {
   version: string;
   currency: string;
   shootDays: number;
+  dayHours?: 10 | 12;       // length of a shooting day for hourly crew (default 12: 8 straight + 4 at 1.5x = 14 paid hours)
   contingencyPct: number;
   categories: Category[];
   accounts: Account[];
