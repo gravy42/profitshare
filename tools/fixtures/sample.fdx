@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<FinalDraft DocumentType="Script" Template="No" Version="4">
+  <Content>
+    <Paragraph Type="Transition"><Text>OVER BLACK:</Text></Paragraph>
+    <Paragraph Type="Scene Heading">
+      <SceneProperties Length="2/8" Page="1" Title=""><SceneArcBeats/></SceneProperties>
+      <Text Style="AllCaps" TagNumber="1233">EXt. </Text>
+      <Text Style="AllCaps" TagNumber="1234">DESERT HIGHWAY</Text>
+      <Text Style="AllCaps" TagNumber="1235"> - DAWN</Text>
+      <Text></Text>
+    </Paragraph>
+    <Paragraph Type="Action"><Text TagNumber="144">LENA</Text><Text> and JUNE push a dead station wagon onto the shoulder.</Text></Paragraph>
+    <Paragraph Type="Scene Heading">
+      <SceneProperties Length="2/8" Page="1" Title=""><SceneArcBeats/></SceneProperties>
+      <Text Style="AllCaps">INT. STATION WAGON - conTINUOUS</Text><Text></Text>
+    </Paragraph>
+    <Paragraph Type="Action"><Text>June finds a letter in the glovebox.</Text></Paragraph>
+    <Paragraph Type="Scene Heading">
+      <SceneProperties Length="3 3/8" Page="2" Title=""><SceneArcBeats/></SceneProperties>
+      <Text Style="AllCaps">Int. GAS STATION - Diner - DAY</Text><Text></Text>
+    </Paragraph>
+    <Paragraph Type="Action"><Text>Pie, coffee, and the first real fight.</Text></Paragraph>
+    <Paragraph Type="Character"><Text Style="AllCaps">WAITRESS</Text><Text> </Text></Paragraph>
+    <Paragraph Type="Parenthetical"><Text>(refilling)</Text></Paragraph>
+    <Paragraph Type="Dialogue"><Text>You two sisters?</Text></Paragraph>
+    <Paragraph Type="Character"><Text Style="AllCaps">LENA</Text><Text></Text></Paragraph>
+    <Paragraph Type="Dialogue"><Text>Depends who's asking.</Text></Paragraph>
+    <Paragraph Type="Character"><Text>June </Text></Paragraph>
+    <Paragraph Type="Parenthetical"><Text>(to the waitress)</Text></Paragraph>
+    <Paragraph Type="Dialogue"><Text>Yes.</Text></Paragraph>
+    <Paragraph Type="Character"><Text>LENA</Text></Paragraph>
+    <Paragraph Type="Dialogue"><Text>Half.</Text></Paragraph>
+  </Content>
+</FinalDraft>

@@ -1,0 +1,1526 @@
+{
+ "categories": [
+  {
+   "number": "1100",
+   "name": "STORY & SCREENPLAY",
+   "section": "ATL"
+  },
+  {
+   "number": "1200",
+   "name": "PRODUCERS",
+   "section": "ATL"
+  },
+  {
+   "number": "1300",
+   "name": "DIRECTOR",
+   "section": "ATL"
+  },
+  {
+   "number": "1400",
+   "name": "CAST",
+   "section": "ATL"
+  },
+  {
+   "number": "1500",
+   "name": "STUNTS",
+   "section": "ATL"
+  },
+  {
+   "number": "1600",
+   "name": "ATL TRAVEL & LIVING",
+   "section": "ATL"
+  },
+  {
+   "number": "2000",
+   "name": "BACKGROUND TALENT",
+   "section": "PRODUCTION"
+  },
+  {
+   "number": "2100",
+   "name": "PRODUCTION STAFF",
+   "section": "PRODUCTION"
+  },
+  {
+   "number": "2200",
+   "name": "ART DEPARTMENT",
+   "section": "PRODUCTION"
+  },
+  {
+   "number": "2300",
+   "name": "SET DRESSING",
+   "section": "PRODUCTION"
+  },
+  {
+   "number": "2400",
+   "name": "PROPERTY",
+   "section": "PRODUCTION"
+  },
+  {
+   "number": "2500",
+   "name": "SET CONSTRUCTION",
+   "section": "PRODUCTION"
+  },
+  {
+   "number": "2600",
+   "name": "CAMERA",
+   "section": "PRODUCTION"
+  },
+  {
+   "number": "2700",
+   "name": "LIGHTING",
+   "section": "PRODUCTION"
+  },
+  {
+   "number": "2800",
+   "name": "SET OPERATIONS",
+   "section": "PRODUCTION"
+  },
+  {
+   "number": "2900",
+   "name": "PRODUCTION SOUND",
+   "section": "PRODUCTION"
+  },
+  {
+   "number": "3000",
+   "name": "WARDROBE",
+   "section": "PRODUCTION"
+  },
+  {
+   "number": "3100",
+   "name": "MAKEUP & HAIRDRESSING",
+   "section": "PRODUCTION"
+  },
+  {
+   "number": "3200",
+   "name": "SPECIAL EFFECTS",
+   "section": "PRODUCTION"
+  },
+  {
+   "number": "3300",
+   "name": "TRANSPORTATION",
+   "section": "PRODUCTION"
+  },
+  {
+   "number": "3400",
+   "name": "LOCATIONS",
+   "section": "PRODUCTION"
+  },
+  {
+   "number": "3500",
+   "name": "HEALTH & SAFETY",
+   "section": "PRODUCTION"
+  },
+  {
+   "number": "3600",
+   "name": "BTL TRAVEL & LIVING",
+   "section": "PRODUCTION"
+  },
+  {
+   "number": "3700",
+   "name": "SPECIAL UNITS",
+   "section": "PRODUCTION"
+  },
+  {
+   "number": "4000",
+   "name": "EDITORIAL",
+   "section": "POST"
+  },
+  {
+   "number": "4100",
+   "name": "SCORE & MUSIC",
+   "section": "POST"
+  },
+  {
+   "number": "4200",
+   "name": "VISUAL EFFECTS",
+   "section": "POST"
+  },
+  {
+   "number": "4300",
+   "name": "POST PRODUCTION SOUND",
+   "section": "POST"
+  },
+  {
+   "number": "4400",
+   "name": "POST PRODUCTION LAB & TITLES",
+   "section": "POST"
+  },
+  {
+   "number": "5000",
+   "name": "PUBLICITY",
+   "section": "OTHER"
+  },
+  {
+   "number": "5100",
+   "name": "INSURANCE",
+   "section": "OTHER"
+  },
+  {
+   "number": "5200",
+   "name": "GENERAL EXPENSES",
+   "section": "OTHER"
+  }
+ ],
+ "accounts": [
+  {
+   "number": "1101",
+   "name": "STORY RIGHTS",
+   "categoryNumber": "1100"
+  },
+  {
+   "number": "1102",
+   "name": "SCREENPLAY",
+   "categoryNumber": "1100"
+  },
+  {
+   "number": "1103",
+   "name": "RESEARCH & CLEARANCES",
+   "categoryNumber": "1100"
+  },
+  {
+   "number": "1120",
+   "name": "MISC EXPENSES",
+   "categoryNumber": "1100"
+  },
+  {
+   "number": "1201",
+   "name": "PRODUCERS",
+   "categoryNumber": "1200"
+  },
+  {
+   "number": "1202",
+   "name": "EXECUTIVE PRODUCERS",
+   "categoryNumber": "1200"
+  },
+  {
+   "number": "1203",
+   "name": "CO-PRODUCERS",
+   "categoryNumber": "1200"
+  },
+  {
+   "number": "1204",
+   "name": "PRODUCER STAFF",
+   "categoryNumber": "1200"
+  },
+  {
+   "number": "1205",
+   "name": "PRODUCER OVERHEAD",
+   "categoryNumber": "1200"
+  },
+  {
+   "number": "1285",
+   "name": "MISC EXPENSES",
+   "categoryNumber": "1200"
+  },
+  {
+   "number": "1301",
+   "name": "DIRECTOR",
+   "categoryNumber": "1300"
+  },
+  {
+   "number": "1302",
+   "name": "DIRECTOR STAFF",
+   "categoryNumber": "1300"
+  },
+  {
+   "number": "1303",
+   "name": "DIRECTOR ENTERTAINMENT",
+   "categoryNumber": "1300"
+  },
+  {
+   "number": "1385",
+   "name": "MISC EXPENSES",
+   "categoryNumber": "1300"
+  },
+  {
+   "number": "1401",
+   "name": "PRINCIPAL CAST",
+   "categoryNumber": "1400"
+  },
+  {
+   "number": "1402",
+   "name": "SUPPORTING CAST",
+   "categoryNumber": "1400"
+  },
+  {
+   "number": "1403",
+   "name": "DAY PLAYERS",
+   "categoryNumber": "1400"
+  },
+  {
+   "number": "1404",
+   "name": "CASTING DIRECTOR",
+   "categoryNumber": "1400"
+  },
+  {
+   "number": "1405",
+   "name": "CASTING ASSISTANT",
+   "categoryNumber": "1400"
+  },
+  {
+   "number": "1406",
+   "name": "CASTING EXPENSES",
+   "categoryNumber": "1400"
+  },
+  {
+   "number": "1407",
+   "name": "DIALOGUE COACH",
+   "categoryNumber": "1400"
+  },
+  {
+   "number": "1408",
+   "name": "CHOREOGRAPHER",
+   "categoryNumber": "1400"
+  },
+  {
+   "number": "1409",
+   "name": "LOOPING/ADR",
+   "categoryNumber": "1400"
+  },
+  {
+   "number": "1501",
+   "name": "STUNT COORDINATOR",
+   "categoryNumber": "1500"
+  },
+  {
+   "number": "1502",
+   "name": "STUNT PERFORMERS",
+   "categoryNumber": "1500"
+  },
+  {
+   "number": "1510",
+   "name": "STUNT PURCHASES",
+   "categoryNumber": "1500"
+  },
+  {
+   "number": "1511",
+   "name": "STUNT RENTALS",
+   "categoryNumber": "1500"
+  },
+  {
+   "number": "1550",
+   "name": "CAR & BOX RENTAL",
+   "categoryNumber": "1500"
+  },
+  {
+   "number": "1601",
+   "name": "TRAVEL",
+   "categoryNumber": "1600"
+  },
+  {
+   "number": "1602",
+   "name": "HOUSING",
+   "categoryNumber": "1600"
+  },
+  {
+   "number": "1603",
+   "name": "TRANSPORTATION",
+   "categoryNumber": "1600"
+  },
+  {
+   "number": "1604",
+   "name": "PER DIEM",
+   "categoryNumber": "1600"
+  },
+  {
+   "number": "2001",
+   "name": "UNION BACKGROUND",
+   "categoryNumber": "2000"
+  },
+  {
+   "number": "2002",
+   "name": "NON-UNION BACKGROUND",
+   "categoryNumber": "2000"
+  },
+  {
+   "number": "2003",
+   "name": "STAND-INS",
+   "categoryNumber": "2000"
+  },
+  {
+   "number": "2004",
+   "name": "BACKGROUND CASTING",
+   "categoryNumber": "2000"
+  },
+  {
+   "number": "2005",
+   "name": "STUDIO TEACHER",
+   "categoryNumber": "2000"
+  },
+  {
+   "number": "2101",
+   "name": "UNIT PRODUCTION MANAGER",
+   "categoryNumber": "2100"
+  },
+  {
+   "number": "2102",
+   "name": "1ST ASSISTANT DIRECTOR",
+   "categoryNumber": "2100"
+  },
+  {
+   "number": "2103",
+   "name": "2ND ASSISTANT DIRECTOR",
+   "categoryNumber": "2100"
+  },
+  {
+   "number": "2104",
+   "name": "2ND 2ND ASSISTANT DIRECTOR",
+   "categoryNumber": "2100"
+  },
+  {
+   "number": "2105",
+   "name": "PRODUCTION ACCOUNTANT",
+   "categoryNumber": "2100"
+  },
+  {
+   "number": "2106",
+   "name": "ASSISTANT PRODUCTION ACCOUNTANT",
+   "categoryNumber": "2100"
+  },
+  {
+   "number": "2107",
+   "name": "SCRIPT SUPERVISOR",
+   "categoryNumber": "2100"
+  },
+  {
+   "number": "2108",
+   "name": "PRODUCTION SUPERVISOR",
+   "categoryNumber": "2100"
+  },
+  {
+   "number": "2109",
+   "name": "PRODUCTION COORDINATOR",
+   "categoryNumber": "2100"
+  },
+  {
+   "number": "2110",
+   "name": "PRODUCTION SECRETARY",
+   "categoryNumber": "2100"
+  },
+  {
+   "number": "2111",
+   "name": "PRODUCTION ASSISTANTS",
+   "categoryNumber": "2100"
+  },
+  {
+   "number": "2120",
+   "name": "PRODUCTION SUPPLIES",
+   "categoryNumber": "2100"
+  },
+  {
+   "number": "2150",
+   "name": "CAR & BOX RENTAL",
+   "categoryNumber": "2100"
+  },
+  {
+   "number": "2160",
+   "name": "LOSS & DAMAGE",
+   "categoryNumber": "2100"
+  },
+  {
+   "number": "2201",
+   "name": "PRODUCTION DESIGNER",
+   "categoryNumber": "2200"
+  },
+  {
+   "number": "2202",
+   "name": "ART DIRECTOR",
+   "categoryNumber": "2200"
+  },
+  {
+   "number": "2203",
+   "name": "ART DEPARTMENT COORDINATOR",
+   "categoryNumber": "2200"
+  },
+  {
+   "number": "2204",
+   "name": "SET DESIGNERS",
+   "categoryNumber": "2200"
+  },
+  {
+   "number": "2205",
+   "name": "GRAPHIC DESIGNERS",
+   "categoryNumber": "2200"
+  },
+  {
+   "number": "2206",
+   "name": "ILLUSTRATORS",
+   "categoryNumber": "2200"
+  },
+  {
+   "number": "2207",
+   "name": "ART PRODUCTION ASSISTANTS",
+   "categoryNumber": "2200"
+  },
+  {
+   "number": "2210",
+   "name": "ART DEPARTMENT PURCHASES",
+   "categoryNumber": "2200"
+  },
+  {
+   "number": "2211",
+   "name": "ART DEPARTMENT RENTALS",
+   "categoryNumber": "2200"
+  },
+  {
+   "number": "2215",
+   "name": "MEALS",
+   "categoryNumber": "2200"
+  },
+  {
+   "number": "2250",
+   "name": "CAR & BOX RENTAL",
+   "categoryNumber": "2200"
+  },
+  {
+   "number": "2301",
+   "name": "SET DECORATOR",
+   "categoryNumber": "2300"
+  },
+  {
+   "number": "2302",
+   "name": "LEADPERSON",
+   "categoryNumber": "2300"
+  },
+  {
+   "number": "2303",
+   "name": "SET DRESSERS",
+   "categoryNumber": "2300"
+  },
+  {
+   "number": "2304",
+   "name": "ADDITIONAL LABOR",
+   "categoryNumber": "2300"
+  },
+  {
+   "number": "2310",
+   "name": "SET DEC PURCHASES",
+   "categoryNumber": "2300"
+  },
+  {
+   "number": "2311",
+   "name": "SET DEC RENTALS",
+   "categoryNumber": "2300"
+  },
+  {
+   "number": "2350",
+   "name": "CAR & BOX RENTAL",
+   "categoryNumber": "2300"
+  },
+  {
+   "number": "2360",
+   "name": "LOSS & DAMAGE",
+   "categoryNumber": "2300"
+  },
+  {
+   "number": "2401",
+   "name": "PROPERTY MASTER",
+   "categoryNumber": "2400"
+  },
+  {
+   "number": "2402",
+   "name": "ASSISTANT PROPERTY MASTER",
+   "categoryNumber": "2400"
+  },
+  {
+   "number": "2403",
+   "name": "WEAPON WRANGLER",
+   "categoryNumber": "2400"
+  },
+  {
+   "number": "2404",
+   "name": "WEAPON PURCHASES / RENTALS",
+   "categoryNumber": "2400"
+  },
+  {
+   "number": "2405",
+   "name": "ANIMAL WRANGLER",
+   "categoryNumber": "2400"
+  },
+  {
+   "number": "2406",
+   "name": "ANIMALS",
+   "categoryNumber": "2400"
+  },
+  {
+   "number": "2407",
+   "name": "PICTURE VEHICLE COORDINATOR",
+   "categoryNumber": "2400"
+  },
+  {
+   "number": "2408",
+   "name": "PICTURE VEHICLES",
+   "categoryNumber": "2400"
+  },
+  {
+   "number": "2409",
+   "name": "ADDITIONAL LABOR",
+   "categoryNumber": "2400"
+  },
+  {
+   "number": "2410",
+   "name": "PROP PURCHASES",
+   "categoryNumber": "2400"
+  },
+  {
+   "number": "2411",
+   "name": "PROP RENTALS",
+   "categoryNumber": "2400"
+  },
+  {
+   "number": "2450",
+   "name": "CAR & BOX RENTAL",
+   "categoryNumber": "2400"
+  },
+  {
+   "number": "2460",
+   "name": "LOSS & DAMAGE",
+   "categoryNumber": "2400"
+  },
+  {
+   "number": "2501",
+   "name": "CONSTRUCTION COORDINATOR",
+   "categoryNumber": "2500"
+  },
+  {
+   "number": "2502",
+   "name": "CONSTRUCTION FOREMAN",
+   "categoryNumber": "2500"
+  },
+  {
+   "number": "2503",
+   "name": "CONSTRUCTION LABOR",
+   "categoryNumber": "2500"
+  },
+  {
+   "number": "2505",
+   "name": "GREENS",
+   "categoryNumber": "2500"
+  },
+  {
+   "number": "2507",
+   "name": "WAREHOUSE RENTAL",
+   "categoryNumber": "2500"
+  },
+  {
+   "number": "2510",
+   "name": "CONSTRUCTION PURCHASES",
+   "categoryNumber": "2500"
+  },
+  {
+   "number": "2511",
+   "name": "CONSTRUCTION RENTALS",
+   "categoryNumber": "2500"
+  },
+  {
+   "number": "2515",
+   "name": "MEALS",
+   "categoryNumber": "2500"
+  },
+  {
+   "number": "2550",
+   "name": "CAR & BOX RENTAL",
+   "categoryNumber": "2500"
+  },
+  {
+   "number": "2560",
+   "name": "LOSS & DAMAGE",
+   "categoryNumber": "2500"
+  },
+  {
+   "number": "2601",
+   "name": "DIRECTOR OF PHOTOGRAPHY",
+   "categoryNumber": "2600"
+  },
+  {
+   "number": "2602",
+   "name": "CAMERA OPERATOR",
+   "categoryNumber": "2600"
+  },
+  {
+   "number": "2603",
+   "name": "1ST ASSISTANT CAMERA",
+   "categoryNumber": "2600"
+  },
+  {
+   "number": "2604",
+   "name": "2ND ASSISTANT CAMERA",
+   "categoryNumber": "2600"
+  },
+  {
+   "number": "2605",
+   "name": "DIGITAL UTILITY",
+   "categoryNumber": "2600"
+  },
+  {
+   "number": "2609",
+   "name": "STEADICAM OPERATOR",
+   "categoryNumber": "2600"
+  },
+  {
+   "number": "2610",
+   "name": "CAMERA PURCHASES",
+   "categoryNumber": "2600"
+  },
+  {
+   "number": "2611",
+   "name": "CAMERA RENTALS",
+   "categoryNumber": "2600"
+  },
+  {
+   "number": "2612",
+   "name": "SPECIAL EQUIPMENT RENTAL",
+   "categoryNumber": "2600"
+  },
+  {
+   "number": "2650",
+   "name": "CAR & BOX RENTAL",
+   "categoryNumber": "2600"
+  },
+  {
+   "number": "2660",
+   "name": "LOSS & DAMAGE",
+   "categoryNumber": "2600"
+  },
+  {
+   "number": "2701",
+   "name": "GAFFER",
+   "categoryNumber": "2700"
+  },
+  {
+   "number": "2702",
+   "name": "BEST BOY ELECTRIC",
+   "categoryNumber": "2700"
+  },
+  {
+   "number": "2703",
+   "name": "ELECTRICIANS",
+   "categoryNumber": "2700"
+  },
+  {
+   "number": "2704",
+   "name": "ADDITIONAL LABOR",
+   "categoryNumber": "2700"
+  },
+  {
+   "number": "2705",
+   "name": "GENERATOR OPERATOR",
+   "categoryNumber": "2700"
+  },
+  {
+   "number": "2706",
+   "name": "GENERATOR RENTAL",
+   "categoryNumber": "2700"
+  },
+  {
+   "number": "2707",
+   "name": "GENERATOR FUEL",
+   "categoryNumber": "2700"
+  },
+  {
+   "number": "2710",
+   "name": "LIGHTING PURCHASES",
+   "categoryNumber": "2700"
+  },
+  {
+   "number": "2711",
+   "name": "LIGHTING RENTALS",
+   "categoryNumber": "2700"
+  },
+  {
+   "number": "2750",
+   "name": "CAR & BOX RENTAL",
+   "categoryNumber": "2700"
+  },
+  {
+   "number": "2760",
+   "name": "LOSS & DAMAGE",
+   "categoryNumber": "2700"
+  },
+  {
+   "number": "2801",
+   "name": "KEY GRIP",
+   "categoryNumber": "2800"
+  },
+  {
+   "number": "2802",
+   "name": "BEST BOY GRIP",
+   "categoryNumber": "2800"
+  },
+  {
+   "number": "2803",
+   "name": "DOLLY GRIP",
+   "categoryNumber": "2800"
+  },
+  {
+   "number": "2804",
+   "name": "COMPANY GRIPS",
+   "categoryNumber": "2800"
+  },
+  {
+   "number": "2805",
+   "name": "ADDITIONAL LABOR",
+   "categoryNumber": "2800"
+  },
+  {
+   "number": "2806",
+   "name": "SET MEDIC",
+   "categoryNumber": "2800"
+  },
+  {
+   "number": "2807",
+   "name": "CRAFT UTILITY",
+   "categoryNumber": "2800"
+  },
+  {
+   "number": "2808",
+   "name": "CRAFT SERVICE PURCHASES",
+   "categoryNumber": "2800"
+  },
+  {
+   "number": "2810",
+   "name": "GRIP PURCHASES",
+   "categoryNumber": "2800"
+  },
+  {
+   "number": "2811",
+   "name": "GRIP RENTALS",
+   "categoryNumber": "2800"
+  },
+  {
+   "number": "2812",
+   "name": "DOLLY RENTALS",
+   "categoryNumber": "2800"
+  },
+  {
+   "number": "2813",
+   "name": "SPECIAL EQUIPMENT RENTALS",
+   "categoryNumber": "2800"
+  },
+  {
+   "number": "2850",
+   "name": "CAR & BOX RENTAL",
+   "categoryNumber": "2800"
+  },
+  {
+   "number": "2860",
+   "name": "LOSS & DAMAGE",
+   "categoryNumber": "2800"
+  },
+  {
+   "number": "2901",
+   "name": "PRODUCTION SOUND MIXER",
+   "categoryNumber": "2900"
+  },
+  {
+   "number": "2902",
+   "name": "BOOM OPERATOR",
+   "categoryNumber": "2900"
+  },
+  {
+   "number": "2903",
+   "name": "SOUND UTILITY",
+   "categoryNumber": "2900"
+  },
+  {
+   "number": "2904",
+   "name": "PLAYBACK VIDEO ASSIST",
+   "categoryNumber": "2900"
+  },
+  {
+   "number": "2910",
+   "name": "SOUND PURCHASES",
+   "categoryNumber": "2900"
+  },
+  {
+   "number": "2911",
+   "name": "SOUND RENTALS",
+   "categoryNumber": "2900"
+  },
+  {
+   "number": "2950",
+   "name": "CAR & BOX RENTAL",
+   "categoryNumber": "2900"
+  },
+  {
+   "number": "2960",
+   "name": "LOSS & DAMAGE",
+   "categoryNumber": "2900"
+  },
+  {
+   "number": "3001",
+   "name": "COSTUME DESIGNER",
+   "categoryNumber": "3000"
+  },
+  {
+   "number": "3002",
+   "name": "ASSISTANT COSTUME DESIGNER",
+   "categoryNumber": "3000"
+  },
+  {
+   "number": "3003",
+   "name": "COSTUME SUPERVISOR",
+   "categoryNumber": "3000"
+  },
+  {
+   "number": "3004",
+   "name": "KEY COSTUMER",
+   "categoryNumber": "3000"
+  },
+  {
+   "number": "3005",
+   "name": "SET COSTUMERS",
+   "categoryNumber": "3000"
+  },
+  {
+   "number": "3006",
+   "name": "COSTUME PA",
+   "categoryNumber": "3000"
+  },
+  {
+   "number": "3010",
+   "name": "WARDROBE PURCHASE",
+   "categoryNumber": "3000"
+  },
+  {
+   "number": "3011",
+   "name": "WARDROBE RENTALS",
+   "categoryNumber": "3000"
+  },
+  {
+   "number": "3012",
+   "name": "ALTERATIONS & REPAIRS",
+   "categoryNumber": "3000"
+  },
+  {
+   "number": "3013",
+   "name": "MANUFACTURING",
+   "categoryNumber": "3000"
+  },
+  {
+   "number": "3015",
+   "name": "MEALS",
+   "categoryNumber": "3000"
+  },
+  {
+   "number": "3050",
+   "name": "CAR & BOX RENTAL",
+   "categoryNumber": "3000"
+  },
+  {
+   "number": "3060",
+   "name": "LOSS & DAMAGE",
+   "categoryNumber": "3000"
+  },
+  {
+   "number": "3101",
+   "name": "KEY MAKEUP & HAIR ARTIST",
+   "categoryNumber": "3100"
+  },
+  {
+   "number": "3102",
+   "name": "MAKEUP & HAIR ARTIST",
+   "categoryNumber": "3100"
+  },
+  {
+   "number": "3103",
+   "name": "ASSISTANT MAKEUP & HAIR",
+   "categoryNumber": "3100"
+  },
+  {
+   "number": "3104",
+   "name": "ASSISTANT HAIR STYLIST",
+   "categoryNumber": "3100"
+  },
+  {
+   "number": "3105",
+   "name": "ADDITIONAL LABOR",
+   "categoryNumber": "3100"
+  },
+  {
+   "number": "3106",
+   "name": "SPECIAL EFFECTS MAKEUP ARTIST",
+   "categoryNumber": "3100"
+  },
+  {
+   "number": "3107",
+   "name": "SFX PURCHASES / RENTALS",
+   "categoryNumber": "3100"
+  },
+  {
+   "number": "3110",
+   "name": "MAKEUP & HAIR PURCHASES",
+   "categoryNumber": "3100"
+  },
+  {
+   "number": "3111",
+   "name": "MAKEUP & HAIR RENTALS",
+   "categoryNumber": "3100"
+  },
+  {
+   "number": "3150",
+   "name": "CAR & BOX RENTAL",
+   "categoryNumber": "3100"
+  },
+  {
+   "number": "3160",
+   "name": "LOSS & DAMAGE",
+   "categoryNumber": "3100"
+  },
+  {
+   "number": "3201",
+   "name": "SPECIAL EFFECTS COORDINATOR",
+   "categoryNumber": "3200"
+  },
+  {
+   "number": "3202",
+   "name": "SPFX FOREMAN",
+   "categoryNumber": "3200"
+  },
+  {
+   "number": "3203",
+   "name": "SPFX LABOR",
+   "categoryNumber": "3200"
+  },
+  {
+   "number": "3204",
+   "name": "SPFX PYROTECHNICIANS",
+   "categoryNumber": "3200"
+  },
+  {
+   "number": "3209",
+   "name": "SPFX PERMITS",
+   "categoryNumber": "3200"
+  },
+  {
+   "number": "3210",
+   "name": "SPFX PURCHASES",
+   "categoryNumber": "3200"
+  },
+  {
+   "number": "3211",
+   "name": "SPFX RENTALS",
+   "categoryNumber": "3200"
+  },
+  {
+   "number": "3212",
+   "name": "SPFX MANUFACTURING",
+   "categoryNumber": "3200"
+  },
+  {
+   "number": "3250",
+   "name": "CAR & BOX RENTAL",
+   "categoryNumber": "3200"
+  },
+  {
+   "number": "3260",
+   "name": "LOSS & DAMAGE",
+   "categoryNumber": "3200"
+  },
+  {
+   "number": "3301",
+   "name": "TRANSPORTATION COORDINATOR",
+   "categoryNumber": "3300"
+  },
+  {
+   "number": "3302",
+   "name": "TRANSPORTATION CAPTAIN",
+   "categoryNumber": "3300"
+  },
+  {
+   "number": "3303",
+   "name": "DRIVERS",
+   "categoryNumber": "3300"
+  },
+  {
+   "number": "3306",
+   "name": "TRUCK RENTALS",
+   "categoryNumber": "3300"
+  },
+  {
+   "number": "3307",
+   "name": "GAS & FUEL",
+   "categoryNumber": "3300"
+  },
+  {
+   "number": "3308",
+   "name": "TRAILER RENTALS",
+   "categoryNumber": "3300"
+  },
+  {
+   "number": "3309",
+   "name": "TRAILER SUPPLIES",
+   "categoryNumber": "3300"
+  },
+  {
+   "number": "3310",
+   "name": "TRANSPORTATION PURCHASES",
+   "categoryNumber": "3300"
+  },
+  {
+   "number": "3311",
+   "name": "SPECIAL EQUIPMENT RENTALS",
+   "categoryNumber": "3300"
+  },
+  {
+   "number": "3312",
+   "name": "MILEAGE, PARKING, TOLLS",
+   "categoryNumber": "3300"
+  },
+  {
+   "number": "3313",
+   "name": "REPAIRS & MAINTENANCE",
+   "categoryNumber": "3300"
+  },
+  {
+   "number": "3315",
+   "name": "MEALS",
+   "categoryNumber": "3300"
+  },
+  {
+   "number": "3350",
+   "name": "CAR & BOX RENTAL",
+   "categoryNumber": "3300"
+  },
+  {
+   "number": "3360",
+   "name": "LOSS & DAMAGE",
+   "categoryNumber": "3300"
+  },
+  {
+   "number": "3401",
+   "name": "LOCATION MANAGER",
+   "categoryNumber": "3400"
+  },
+  {
+   "number": "3402",
+   "name": "ASSISTANT LOCATION MANAGER",
+   "categoryNumber": "3400"
+  },
+  {
+   "number": "3403",
+   "name": "LOCATION SCOUTS",
+   "categoryNumber": "3400"
+  },
+  {
+   "number": "3404",
+   "name": "POLICE & FIREMEN",
+   "categoryNumber": "3400"
+  },
+  {
+   "number": "3405",
+   "name": "SECURITY",
+   "categoryNumber": "3400"
+  },
+  {
+   "number": "3406",
+   "name": "SITE RENTALS",
+   "categoryNumber": "3400"
+  },
+  {
+   "number": "3407",
+   "name": "PERMITS",
+   "categoryNumber": "3400"
+  },
+  {
+   "number": "3408",
+   "name": "SURVEY COSTS",
+   "categoryNumber": "3400"
+  },
+  {
+   "number": "3409",
+   "name": "LOCATION PARKING",
+   "categoryNumber": "3400"
+  },
+  {
+   "number": "3410",
+   "name": "LOCATION / PRODUCTION PURCHASES",
+   "categoryNumber": "3400"
+  },
+  {
+   "number": "3411",
+   "name": "LOCATION / PRODUCTION RENTALS",
+   "categoryNumber": "3400"
+  },
+  {
+   "number": "3412",
+   "name": "LOCATION CLEANING & RESTORATION",
+   "categoryNumber": "3400"
+  },
+  {
+   "number": "3413",
+   "name": "BATHROOMS",
+   "categoryNumber": "3400"
+  },
+  {
+   "number": "3414",
+   "name": "TRASH REMOVAL",
+   "categoryNumber": "3400"
+  },
+  {
+   "number": "3415",
+   "name": "WORKING MEALS",
+   "categoryNumber": "3400"
+  },
+  {
+   "number": "3416",
+   "name": "CATERED MEALS",
+   "categoryNumber": "3400"
+  },
+  {
+   "number": "3450",
+   "name": "CAR & BOX RENTAL",
+   "categoryNumber": "3400"
+  },
+  {
+   "number": "3460",
+   "name": "LOSS & DAMAGE",
+   "categoryNumber": "3400"
+  },
+  {
+   "number": "3501",
+   "name": "HEALTH & SAFETY SUPERVISOR",
+   "categoryNumber": "3500"
+  },
+  {
+   "number": "3502",
+   "name": "HEALTH & SAFETY COORDINATOR",
+   "categoryNumber": "3500"
+  },
+  {
+   "number": "3503",
+   "name": "HEALTH & SAFETY STAFF",
+   "categoryNumber": "3500"
+  },
+  {
+   "number": "3504",
+   "name": "COVID TESTS",
+   "categoryNumber": "3500"
+  },
+  {
+   "number": "3505",
+   "name": "PPE",
+   "categoryNumber": "3500"
+  },
+  {
+   "number": "3550",
+   "name": "CAR & BOX RENTAL",
+   "categoryNumber": "3500"
+  },
+  {
+   "number": "3560",
+   "name": "LOSS & DAMAGE",
+   "categoryNumber": "3500"
+  },
+  {
+   "number": "3601",
+   "name": "TRAVEL",
+   "categoryNumber": "3600"
+  },
+  {
+   "number": "3602",
+   "name": "HOUSING",
+   "categoryNumber": "3600"
+  },
+  {
+   "number": "3603",
+   "name": "TRANSPORTATION",
+   "categoryNumber": "3600"
+  },
+  {
+   "number": "3604",
+   "name": "PER DIEM",
+   "categoryNumber": "3600"
+  },
+  {
+   "number": "3701",
+   "name": "PRODUCTION STAFF",
+   "categoryNumber": "3700"
+  },
+  {
+   "number": "3702",
+   "name": "ART DEPARTMENT",
+   "categoryNumber": "3700"
+  },
+  {
+   "number": "3703",
+   "name": "CAMERA",
+   "categoryNumber": "3700"
+  },
+  {
+   "number": "3704",
+   "name": "LIGHTING",
+   "categoryNumber": "3700"
+  },
+  {
+   "number": "3705",
+   "name": "SET OPERATIONS",
+   "categoryNumber": "3700"
+  },
+  {
+   "number": "3706",
+   "name": "SOUND",
+   "categoryNumber": "3700"
+  },
+  {
+   "number": "3707",
+   "name": "WARDROBE",
+   "categoryNumber": "3700"
+  },
+  {
+   "number": "3708",
+   "name": "MAKEUP & HAIRDRESSING",
+   "categoryNumber": "3700"
+  },
+  {
+   "number": "3712",
+   "name": "TRANSPORTATION",
+   "categoryNumber": "3700"
+  },
+  {
+   "number": "3713",
+   "name": "LOCATION",
+   "categoryNumber": "3700"
+  },
+  {
+   "number": "3720",
+   "name": "FILM, MEDIA & LAB",
+   "categoryNumber": "3700"
+  },
+  {
+   "number": "3750",
+   "name": "CAR & BOX RENTAL",
+   "categoryNumber": "3700"
+  },
+  {
+   "number": "3785",
+   "name": "MISC EXPENSES",
+   "categoryNumber": "3700"
+  },
+  {
+   "number": "4001",
+   "name": "EDITOR",
+   "categoryNumber": "4000"
+  },
+  {
+   "number": "4002",
+   "name": "ASSISTANT EDITORS",
+   "categoryNumber": "4000"
+  },
+  {
+   "number": "4004",
+   "name": "POST PRODUCTION SUPERVISOR",
+   "categoryNumber": "4000"
+  },
+  {
+   "number": "4010",
+   "name": "EDITORIAL PURCHASES",
+   "categoryNumber": "4000"
+  },
+  {
+   "number": "4011",
+   "name": "EDITORIAL RENTALS",
+   "categoryNumber": "4000"
+  },
+  {
+   "number": "4012",
+   "name": "DAILIES SERVICE",
+   "categoryNumber": "4000"
+  },
+  {
+   "number": "4050",
+   "name": "CAR & BOX RENTAL",
+   "categoryNumber": "4000"
+  },
+  {
+   "number": "4101",
+   "name": "COMPOSER",
+   "categoryNumber": "4100"
+  },
+  {
+   "number": "4102",
+   "name": "MUSIC SUPERVISOR",
+   "categoryNumber": "4100"
+  },
+  {
+   "number": "4105",
+   "name": "MUSIC LICENSING",
+   "categoryNumber": "4100"
+  },
+  {
+   "number": "4201",
+   "name": "VISUAL EFFECT SUPERVISOR",
+   "categoryNumber": "4200"
+  },
+  {
+   "number": "4202",
+   "name": "VISUAL EFFECTS LABOR",
+   "categoryNumber": "4200"
+  },
+  {
+   "number": "4203",
+   "name": "VISUAL EFFECTS CONTRACT",
+   "categoryNumber": "4200"
+  },
+  {
+   "number": "4204",
+   "name": "VISUAL EFFECTS PURCHASES",
+   "categoryNumber": "4200"
+  },
+  {
+   "number": "4205",
+   "name": "VISUAL EFFECTS RENTALS",
+   "categoryNumber": "4200"
+  },
+  {
+   "number": "4206",
+   "name": "VISUAL EFFECTS STOCK FOOTAGE",
+   "categoryNumber": "4200"
+  },
+  {
+   "number": "4250",
+   "name": "CAR & BOX RENTAL",
+   "categoryNumber": "4200"
+  },
+  {
+   "number": "4260",
+   "name": "LOSS & DAMAGE",
+   "categoryNumber": "4200"
+  },
+  {
+   "number": "4301",
+   "name": "SUPERVISING SOUND EDITOR",
+   "categoryNumber": "4300"
+  },
+  {
+   "number": "4303",
+   "name": "SOUND PACKAGE",
+   "categoryNumber": "4300"
+  },
+  {
+   "number": "4311",
+   "name": "STAGE RENTALS",
+   "categoryNumber": "4300"
+  },
+  {
+   "number": "4312",
+   "name": "OTHER COSTS",
+   "categoryNumber": "4300"
+  },
+  {
+   "number": "4401",
+   "name": "DIGITAL ASSEMBLY",
+   "categoryNumber": "4400"
+  },
+  {
+   "number": "4402",
+   "name": "COLOR CORRECTION",
+   "categoryNumber": "4400"
+  },
+  {
+   "number": "4403",
+   "name": "DIGITAL ARCHIVE",
+   "categoryNumber": "4400"
+  },
+  {
+   "number": "4404",
+   "name": "STOCK FOOTAGE",
+   "categoryNumber": "4400"
+  },
+  {
+   "number": "4405",
+   "name": "MAIN & END TITLES",
+   "categoryNumber": "4400"
+  },
+  {
+   "number": "4406",
+   "name": "DELIVERABLES",
+   "categoryNumber": "4400"
+  },
+  {
+   "number": "5001",
+   "name": "PUBLICIST",
+   "categoryNumber": "5000"
+  },
+  {
+   "number": "5002",
+   "name": "EPK & STILLS",
+   "categoryNumber": "5000"
+  },
+  {
+   "number": "5003",
+   "name": "FILM FESTIVALS",
+   "categoryNumber": "5000"
+  },
+  {
+   "number": "5101",
+   "name": "PRODUCTION PACKAGE INSURANCE",
+   "categoryNumber": "5100"
+  },
+  {
+   "number": "5102",
+   "name": "ERRORS & OMISSIONS",
+   "categoryNumber": "5100"
+  },
+  {
+   "number": "5201",
+   "name": "LEGAL FEES",
+   "categoryNumber": "5200"
+  },
+  {
+   "number": "5202",
+   "name": "BUSINESS TAXES",
+   "categoryNumber": "5200"
+  },
+  {
+   "number": "5203",
+   "name": "ACCOUNTING FEES",
+   "categoryNumber": "5200"
+  },
+  {
+   "number": "5204",
+   "name": "FINANCE FEES",
+   "categoryNumber": "5200"
+  },
+  {
+   "number": "5205",
+   "name": "BANK FEES",
+   "categoryNumber": "5200"
+  },
+  {
+   "number": "5206",
+   "name": "OFFICE RENTALS",
+   "categoryNumber": "5200"
+  },
+  {
+   "number": "5207",
+   "name": "OFFICE SUPPLIES",
+   "categoryNumber": "5200"
+  },
+  {
+   "number": "5208",
+   "name": "SHIPPING & COURIERS",
+   "categoryNumber": "5200"
+  },
+  {
+   "number": "5209",
+   "name": "SCREENINGS",
+   "categoryNumber": "5200"
+  },
+  {
+   "number": "5210",
+   "name": "GIFTS",
+   "categoryNumber": "5200"
+  },
+  {
+   "number": "5211",
+   "name": "WRAP PARTY",
+   "categoryNumber": "5200"
+  },
+  {
+   "number": "5212",
+   "name": "OTHER COSTS",
+   "categoryNumber": "5200"
+  }
+ ]
+}

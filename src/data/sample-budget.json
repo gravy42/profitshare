@@ -1,0 +1,3145 @@
+{
+ "name": "SALT FLAT",
+ "version": "Draft 3",
+ "currency": "USD",
+ "shootDays": 12,
+ "contingencyPct": 10,
+ "categories": [
+  {
+   "number": "1100",
+   "name": "STORY & SCREENPLAY",
+   "section": "ATL"
+  },
+  {
+   "number": "1200",
+   "name": "PRODUCERS",
+   "section": "ATL"
+  },
+  {
+   "number": "1300",
+   "name": "DIRECTOR",
+   "section": "ATL"
+  },
+  {
+   "number": "1400",
+   "name": "CAST",
+   "section": "ATL"
+  },
+  {
+   "number": "1600",
+   "name": "ATL TRAVEL & LIVING",
+   "section": "ATL"
+  },
+  {
+   "number": "2000",
+   "name": "BACKGROUND TALENT",
+   "section": "PRODUCTION"
+  },
+  {
+   "number": "2100",
+   "name": "PRODUCTION STAFF",
+   "section": "PRODUCTION"
+  },
+  {
+   "number": "2200",
+   "name": "ART DEPARTMENT",
+   "section": "PRODUCTION"
+  },
+  {
+   "number": "2300",
+   "name": "SET DRESSING",
+   "section": "PRODUCTION"
+  },
+  {
+   "number": "2400",
+   "name": "PROPERTY",
+   "section": "PRODUCTION"
+  },
+  {
+   "number": "2600",
+   "name": "CAMERA",
+   "section": "PRODUCTION"
+  },
+  {
+   "number": "2700",
+   "name": "LIGHTING",
+   "section": "PRODUCTION"
+  },
+  {
+   "number": "2800",
+   "name": "SET OPERATIONS",
+   "section": "PRODUCTION"
+  },
+  {
+   "number": "2900",
+   "name": "PRODUCTION SOUND",
+   "section": "PRODUCTION"
+  },
+  {
+   "number": "3000",
+   "name": "WARDROBE",
+   "section": "PRODUCTION"
+  },
+  {
+   "number": "3100",
+   "name": "MAKEUP & HAIRDRESSING",
+   "section": "PRODUCTION"
+  },
+  {
+   "number": "3300",
+   "name": "TRANSPORTATION",
+   "section": "PRODUCTION"
+  },
+  {
+   "number": "3400",
+   "name": "LOCATIONS",
+   "section": "PRODUCTION"
+  },
+  {
+   "number": "3500",
+   "name": "HEALTH & SAFETY",
+   "section": "PRODUCTION"
+  },
+  {
+   "number": "3600",
+   "name": "BTL TRAVEL & LIVING",
+   "section": "PRODUCTION"
+  },
+  {
+   "number": "4000",
+   "name": "EDITORIAL",
+   "section": "POST"
+  },
+  {
+   "number": "4100",
+   "name": "SCORE & MUSIC",
+   "section": "POST"
+  },
+  {
+   "number": "4200",
+   "name": "VISUAL EFFECTS",
+   "section": "POST"
+  },
+  {
+   "number": "4300",
+   "name": "POST PRODUCTION SOUND",
+   "section": "POST"
+  },
+  {
+   "number": "4400",
+   "name": "POST PRODUCTION LAB & TITLES",
+   "section": "POST"
+  },
+  {
+   "number": "5000",
+   "name": "PUBLICITY",
+   "section": "OTHER"
+  },
+  {
+   "number": "5100",
+   "name": "INSURANCE",
+   "section": "OTHER"
+  },
+  {
+   "number": "5200",
+   "name": "GENERAL EXPENSES",
+   "section": "OTHER"
+  }
+ ],
+ "accounts": [
+  {
+   "number": "1102",
+   "name": "SCREENPLAY",
+   "categoryNumber": "1100"
+  },
+  {
+   "number": "1103",
+   "name": "RESEARCH & CLEARANCES",
+   "categoryNumber": "1100"
+  },
+  {
+   "number": "1201",
+   "name": "PRODUCERS",
+   "categoryNumber": "1200"
+  },
+  {
+   "number": "1301",
+   "name": "DIRECTOR",
+   "categoryNumber": "1300"
+  },
+  {
+   "number": "1401",
+   "name": "PRINCIPAL CAST",
+   "categoryNumber": "1400"
+  },
+  {
+   "number": "1402",
+   "name": "SUPPORTING CAST",
+   "categoryNumber": "1400"
+  },
+  {
+   "number": "1403",
+   "name": "DAY PLAYERS",
+   "categoryNumber": "1400"
+  },
+  {
+   "number": "1404",
+   "name": "CASTING DIRECTOR",
+   "categoryNumber": "1400"
+  },
+  {
+   "number": "1601",
+   "name": "TRAVEL",
+   "categoryNumber": "1600"
+  },
+  {
+   "number": "1602",
+   "name": "HOUSING",
+   "categoryNumber": "1600"
+  },
+  {
+   "number": "1604",
+   "name": "PER DIEM",
+   "categoryNumber": "1600"
+  },
+  {
+   "number": "2002",
+   "name": "NON-UNION BACKGROUND",
+   "categoryNumber": "2000"
+  },
+  {
+   "number": "2101",
+   "name": "UNIT PRODUCTION MANAGER",
+   "categoryNumber": "2100"
+  },
+  {
+   "number": "2102",
+   "name": "1ST ASSISTANT DIRECTOR",
+   "categoryNumber": "2100"
+  },
+  {
+   "number": "2103",
+   "name": "2ND ASSISTANT DIRECTOR",
+   "categoryNumber": "2100"
+  },
+  {
+   "number": "2107",
+   "name": "SCRIPT SUPERVISOR",
+   "categoryNumber": "2100"
+  },
+  {
+   "number": "2109",
+   "name": "PRODUCTION COORDINATOR",
+   "categoryNumber": "2100"
+  },
+  {
+   "number": "2111",
+   "name": "PRODUCTION ASSISTANTS",
+   "categoryNumber": "2100"
+  },
+  {
+   "number": "2201",
+   "name": "PRODUCTION DESIGNER",
+   "categoryNumber": "2200"
+  },
+  {
+   "number": "2202",
+   "name": "ART DIRECTOR",
+   "categoryNumber": "2200"
+  },
+  {
+   "number": "2210",
+   "name": "ART DEPARTMENT PURCHASES",
+   "categoryNumber": "2200"
+  },
+  {
+   "number": "2301",
+   "name": "SET DECORATOR",
+   "categoryNumber": "2300"
+  },
+  {
+   "number": "2310",
+   "name": "SET DEC PURCHASES",
+   "categoryNumber": "2300"
+  },
+  {
+   "number": "2311",
+   "name": "SET DEC RENTALS",
+   "categoryNumber": "2300"
+  },
+  {
+   "number": "2401",
+   "name": "PROPERTY MASTER",
+   "categoryNumber": "2400"
+  },
+  {
+   "number": "2408",
+   "name": "PICTURE VEHICLES",
+   "categoryNumber": "2400"
+  },
+  {
+   "number": "2410",
+   "name": "PROP PURCHASES",
+   "categoryNumber": "2400"
+  },
+  {
+   "number": "2411",
+   "name": "PROP RENTALS",
+   "categoryNumber": "2400"
+  },
+  {
+   "number": "2601",
+   "name": "DIRECTOR OF PHOTOGRAPHY",
+   "categoryNumber": "2600"
+  },
+  {
+   "number": "2603",
+   "name": "1ST ASSISTANT CAMERA",
+   "categoryNumber": "2600"
+  },
+  {
+   "number": "2604",
+   "name": "2ND ASSISTANT CAMERA",
+   "categoryNumber": "2600"
+  },
+  {
+   "number": "2610",
+   "name": "CAMERA PURCHASES",
+   "categoryNumber": "2600"
+  },
+  {
+   "number": "2611",
+   "name": "CAMERA RENTALS",
+   "categoryNumber": "2600"
+  },
+  {
+   "number": "2701",
+   "name": "GAFFER",
+   "categoryNumber": "2700"
+  },
+  {
+   "number": "2702",
+   "name": "BEST BOY ELECTRIC",
+   "categoryNumber": "2700"
+  },
+  {
+   "number": "2706",
+   "name": "GENERATOR RENTAL",
+   "categoryNumber": "2700"
+  },
+  {
+   "number": "2707",
+   "name": "GENERATOR FUEL",
+   "categoryNumber": "2700"
+  },
+  {
+   "number": "2711",
+   "name": "LIGHTING RENTALS",
+   "categoryNumber": "2700"
+  },
+  {
+   "number": "2801",
+   "name": "KEY GRIP",
+   "categoryNumber": "2800"
+  },
+  {
+   "number": "2802",
+   "name": "BEST BOY GRIP",
+   "categoryNumber": "2800"
+  },
+  {
+   "number": "2806",
+   "name": "SET MEDIC",
+   "categoryNumber": "2800"
+  },
+  {
+   "number": "2808",
+   "name": "CRAFT SERVICE PURCHASES",
+   "categoryNumber": "2800"
+  },
+  {
+   "number": "2811",
+   "name": "GRIP RENTALS",
+   "categoryNumber": "2800"
+  },
+  {
+   "number": "2901",
+   "name": "PRODUCTION SOUND MIXER",
+   "categoryNumber": "2900"
+  },
+  {
+   "number": "2902",
+   "name": "BOOM OPERATOR",
+   "categoryNumber": "2900"
+  },
+  {
+   "number": "2911",
+   "name": "SOUND RENTALS",
+   "categoryNumber": "2900"
+  },
+  {
+   "number": "3001",
+   "name": "COSTUME DESIGNER",
+   "categoryNumber": "3000"
+  },
+  {
+   "number": "3010",
+   "name": "WARDROBE PURCHASE",
+   "categoryNumber": "3000"
+  },
+  {
+   "number": "3011",
+   "name": "WARDROBE RENTALS",
+   "categoryNumber": "3000"
+  },
+  {
+   "number": "3101",
+   "name": "KEY MAKEUP & HAIR ARTIST",
+   "categoryNumber": "3100"
+  },
+  {
+   "number": "3110",
+   "name": "MAKEUP & HAIR PURCHASES",
+   "categoryNumber": "3100"
+  },
+  {
+   "number": "3306",
+   "name": "TRUCK RENTALS",
+   "categoryNumber": "3300"
+  },
+  {
+   "number": "3307",
+   "name": "GAS & FUEL",
+   "categoryNumber": "3300"
+  },
+  {
+   "number": "3401",
+   "name": "LOCATION MANAGER",
+   "categoryNumber": "3400"
+  },
+  {
+   "number": "3406",
+   "name": "SITE RENTALS",
+   "categoryNumber": "3400"
+  },
+  {
+   "number": "3407",
+   "name": "PERMITS",
+   "categoryNumber": "3400"
+  },
+  {
+   "number": "3416",
+   "name": "CATERED MEALS",
+   "categoryNumber": "3400"
+  },
+  {
+   "number": "3505",
+   "name": "PPE",
+   "categoryNumber": "3500"
+  },
+  {
+   "number": "3602",
+   "name": "HOUSING",
+   "categoryNumber": "3600"
+  },
+  {
+   "number": "3603",
+   "name": "TRANSPORTATION",
+   "categoryNumber": "3600"
+  },
+  {
+   "number": "3604",
+   "name": "PER DIEM",
+   "categoryNumber": "3600"
+  },
+  {
+   "number": "4001",
+   "name": "EDITOR",
+   "categoryNumber": "4000"
+  },
+  {
+   "number": "4002",
+   "name": "ASSISTANT EDITORS",
+   "categoryNumber": "4000"
+  },
+  {
+   "number": "4011",
+   "name": "EDITORIAL RENTALS",
+   "categoryNumber": "4000"
+  },
+  {
+   "number": "4101",
+   "name": "COMPOSER",
+   "categoryNumber": "4100"
+  },
+  {
+   "number": "4105",
+   "name": "MUSIC LICENSING",
+   "categoryNumber": "4100"
+  },
+  {
+   "number": "4203",
+   "name": "VISUAL EFFECTS CONTRACT",
+   "categoryNumber": "4200"
+  },
+  {
+   "number": "4303",
+   "name": "SOUND PACKAGE",
+   "categoryNumber": "4300"
+  },
+  {
+   "number": "4311",
+   "name": "STAGE RENTALS",
+   "categoryNumber": "4300"
+  },
+  {
+   "number": "4402",
+   "name": "COLOR CORRECTION",
+   "categoryNumber": "4400"
+  },
+  {
+   "number": "4405",
+   "name": "MAIN & END TITLES",
+   "categoryNumber": "4400"
+  },
+  {
+   "number": "4406",
+   "name": "DELIVERABLES",
+   "categoryNumber": "4400"
+  },
+  {
+   "number": "5002",
+   "name": "EPK & STILLS",
+   "categoryNumber": "5000"
+  },
+  {
+   "number": "5003",
+   "name": "FILM FESTIVALS",
+   "categoryNumber": "5000"
+  },
+  {
+   "number": "5101",
+   "name": "PRODUCTION PACKAGE INSURANCE",
+   "categoryNumber": "5100"
+  },
+  {
+   "number": "5102",
+   "name": "ERRORS & OMISSIONS",
+   "categoryNumber": "5100"
+  },
+  {
+   "number": "5201",
+   "name": "LEGAL FEES",
+   "categoryNumber": "5200"
+  },
+  {
+   "number": "5203",
+   "name": "ACCOUNTING FEES",
+   "categoryNumber": "5200"
+  },
+  {
+   "number": "5207",
+   "name": "OFFICE SUPPLIES",
+   "categoryNumber": "5200"
+  }
+ ],
+ "lines": [
+  {
+   "id": "L1",
+   "accountId": "1102",
+   "description": "Script purchase",
+   "amount": 1,
+   "unit": "ALLOW",
+   "rate": 25000,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L2",
+   "accountId": "1103",
+   "description": "Title & copyright report",
+   "amount": 1,
+   "unit": "ALLOW",
+   "rate": 900,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L3",
+   "accountId": "1201",
+   "description": "Fee",
+   "amount": 1,
+   "unit": "ALLOW",
+   "rate": 40000,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [
+    "ATL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L4",
+   "accountId": "1201",
+   "description": "Fee",
+   "amount": 1,
+   "unit": "ALLOW",
+   "rate": 25000,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [
+    "ATL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L5",
+   "accountId": "1301",
+   "description": "#1: Writer / Director",
+   "amount": 0,
+   "unit": "-",
+   "rate": 0,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L6",
+   "accountId": "1301",
+   "description": "Prep",
+   "amount": 8,
+   "unit": "WEEK",
+   "rate": 1500,
+   "multiplier": 1,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "ATL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L7",
+   "accountId": "1301",
+   "description": "Shoot",
+   "amount": 3,
+   "unit": "WEEK",
+   "rate": 1500,
+   "multiplier": 1,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "ATL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L8",
+   "accountId": "1301",
+   "description": "Post",
+   "amount": 10,
+   "unit": "WEEK",
+   "rate": 750,
+   "multiplier": 1,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "ATL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L9",
+   "accountId": "1401",
+   "description": "CAST #1: LENA",
+   "amount": 0,
+   "unit": "-",
+   "rate": 0,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L10",
+   "accountId": "1401",
+   "description": "Shoot",
+   "amount": 12,
+   "unit": "DAY",
+   "rate": 449,
+   "multiplier": 1,
+   "fringes": [
+    "SAG AFTRA",
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "SAG"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L11",
+   "accountId": "1401",
+   "description": "STAR ALLOWANCE",
+   "amount": 1,
+   "unit": "ALLOW",
+   "rate": 15000,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L12",
+   "accountId": "1401",
+   "description": "Agent fee (10%)",
+   "amount": 1,
+   "unit": "ALLOW",
+   "rate": 5388,
+   "multiplier": 0.1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L13",
+   "accountId": "1401",
+   "description": "CAST #2: JUNE",
+   "amount": 0,
+   "unit": "-",
+   "rate": 0,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L14",
+   "accountId": "1401",
+   "description": "Shoot",
+   "amount": 12,
+   "unit": "DAY",
+   "rate": 449,
+   "multiplier": 1,
+   "fringes": [
+    "SAG AFTRA",
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "SAG"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L15",
+   "accountId": "1401",
+   "description": "Agent fee (10%)",
+   "amount": 1,
+   "unit": "ALLOW",
+   "rate": 5388,
+   "multiplier": 0.1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L16",
+   "accountId": "1402",
+   "description": "CAST #4: WALT",
+   "amount": 0,
+   "unit": "-",
+   "rate": 0,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L17",
+   "accountId": "1402",
+   "description": "Shoot",
+   "amount": 6,
+   "unit": "DAY",
+   "rate": 449,
+   "multiplier": 1,
+   "fringes": [
+    "SAG AFTRA",
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "SAG"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L18",
+   "accountId": "1402",
+   "description": "CAST #6: RANGER PRICE",
+   "amount": 0,
+   "unit": "-",
+   "rate": 0,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L19",
+   "accountId": "1402",
+   "description": "Shoot",
+   "amount": 5,
+   "unit": "DAY",
+   "rate": 449,
+   "multiplier": 1,
+   "fringes": [
+    "SAG AFTRA",
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "SAG"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L20",
+   "accountId": "1402",
+   "description": "CAST #5: THE MECHANIC",
+   "amount": 0,
+   "unit": "-",
+   "rate": 0,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L21",
+   "accountId": "1402",
+   "description": "Shoot",
+   "amount": 3,
+   "unit": "DAY",
+   "rate": 449,
+   "multiplier": 1,
+   "fringes": [
+    "SAG AFTRA",
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "SAG"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L22",
+   "accountId": "1403",
+   "description": "CAST #7: KID",
+   "amount": 0,
+   "unit": "-",
+   "rate": 0,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L23",
+   "accountId": "1403",
+   "description": "Shoot",
+   "amount": 2,
+   "unit": "DAY",
+   "rate": 449,
+   "multiplier": 1,
+   "fringes": [
+    "SAG AFTRA",
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "SAG"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L24",
+   "accountId": "1403",
+   "description": "CAST #8: WAITRESS",
+   "amount": 0,
+   "unit": "-",
+   "rate": 0,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L25",
+   "accountId": "1403",
+   "description": "Shoot",
+   "amount": 2,
+   "unit": "DAY",
+   "rate": 449,
+   "multiplier": 1,
+   "fringes": [
+    "SAG AFTRA",
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "SAG"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L26",
+   "accountId": "1404",
+   "description": "Casting director",
+   "amount": 1,
+   "unit": "ALLOW",
+   "rate": 6000,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L27",
+   "accountId": "1601",
+   "description": "Airfare (2 cast)",
+   "amount": 4,
+   "unit": "ITEM",
+   "rate": 320,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L28",
+   "accountId": "1602",
+   "description": "Hotel (cast, 14 nights)",
+   "amount": 28,
+   "unit": "DAY",
+   "rate": 95,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L29",
+   "accountId": "1604",
+   "description": "Per diem (cast)",
+   "amount": 28,
+   "unit": "DAY",
+   "rate": 60,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L30",
+   "accountId": "2002",
+   "description": "Background (non-union)",
+   "amount": 30,
+   "unit": "DAY",
+   "rate": 150,
+   "multiplier": 1,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L31",
+   "accountId": "2101",
+   "description": "#1: Dana Okafor (Line producer / UPM)",
+   "amount": 0,
+   "unit": "-",
+   "rate": 0,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L32",
+   "accountId": "2101",
+   "description": "Prep",
+   "amount": 20,
+   "unit": "DAY",
+   "rate": 35.71,
+   "multiplier": 14,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "W BTL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L33",
+   "accountId": "2101",
+   "description": "Shoot",
+   "amount": 12,
+   "unit": "DAY",
+   "rate": 35.71,
+   "multiplier": 14,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "W BTL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L34",
+   "accountId": "2101",
+   "description": "Wrap",
+   "amount": 10,
+   "unit": "DAY",
+   "rate": 35.71,
+   "multiplier": 14,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "W BTL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L35",
+   "accountId": "2102",
+   "description": "#1: Marcus Bell (1st AD)",
+   "amount": 0,
+   "unit": "-",
+   "rate": 0,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L36",
+   "accountId": "2102",
+   "description": "Prep",
+   "amount": 10,
+   "unit": "DAY",
+   "rate": 33.93,
+   "multiplier": 14,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "W BTL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L37",
+   "accountId": "2102",
+   "description": "Shoot",
+   "amount": 12,
+   "unit": "DAY",
+   "rate": 33.93,
+   "multiplier": 14,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "W BTL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L38",
+   "accountId": "2103",
+   "description": "#1: Priya Nair (2nd AD)",
+   "amount": 0,
+   "unit": "-",
+   "rate": 0,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L39",
+   "accountId": "2103",
+   "description": "Prep",
+   "amount": 3,
+   "unit": "DAY",
+   "rate": 26.79,
+   "multiplier": 14,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "W BTL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L40",
+   "accountId": "2103",
+   "description": "Shoot",
+   "amount": 12,
+   "unit": "DAY",
+   "rate": 26.79,
+   "multiplier": 14,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "W BTL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L41",
+   "accountId": "2109",
+   "description": "#1: Sam Reyes (Production coordinator)",
+   "amount": 0,
+   "unit": "-",
+   "rate": 0,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L42",
+   "accountId": "2109",
+   "description": "Prep",
+   "amount": 15,
+   "unit": "DAY",
+   "rate": 22.32,
+   "multiplier": 14,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "W BTL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L43",
+   "accountId": "2109",
+   "description": "Shoot",
+   "amount": 12,
+   "unit": "DAY",
+   "rate": 22.32,
+   "multiplier": 14,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "W BTL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L44",
+   "accountId": "2109",
+   "description": "Wrap",
+   "amount": 5,
+   "unit": "DAY",
+   "rate": 22.32,
+   "multiplier": 14,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "W BTL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L45",
+   "accountId": "2107",
+   "description": "#1: Script supervisor",
+   "amount": 0,
+   "unit": "-",
+   "rate": 0,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L46",
+   "accountId": "2107",
+   "description": "Prep",
+   "amount": 2,
+   "unit": "DAY",
+   "rate": 26.79,
+   "multiplier": 14,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "W BTL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L47",
+   "accountId": "2107",
+   "description": "Shoot",
+   "amount": 12,
+   "unit": "DAY",
+   "rate": 26.79,
+   "multiplier": 14,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "W BTL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L48",
+   "accountId": "2111",
+   "description": "KEY SET PA",
+   "amount": 0,
+   "unit": "-",
+   "rate": 0,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L49",
+   "accountId": "2111",
+   "description": "Shoot",
+   "amount": 12,
+   "unit": "DAY",
+   "rate": 17.86,
+   "multiplier": 14,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "W BTL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L50",
+   "accountId": "2111",
+   "description": "SET PA",
+   "amount": 0,
+   "unit": "-",
+   "rate": 0,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L51",
+   "accountId": "2111",
+   "description": "Shoot",
+   "amount": 12,
+   "unit": "DAY",
+   "rate": 17.86,
+   "multiplier": 14,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "W BTL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L52",
+   "accountId": "2111",
+   "description": "SET PA",
+   "amount": 0,
+   "unit": "-",
+   "rate": 0,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L53",
+   "accountId": "2111",
+   "description": "Shoot",
+   "amount": 12,
+   "unit": "DAY",
+   "rate": 17.86,
+   "multiplier": 14,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "W BTL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L54",
+   "accountId": "2201",
+   "description": "#1: Theo Lindqvist (Production designer)",
+   "amount": 0,
+   "unit": "-",
+   "rate": 0,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L55",
+   "accountId": "2201",
+   "description": "Prep",
+   "amount": 10,
+   "unit": "DAY",
+   "rate": 32.14,
+   "multiplier": 14,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "W BTL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L56",
+   "accountId": "2201",
+   "description": "Shoot",
+   "amount": 12,
+   "unit": "DAY",
+   "rate": 32.14,
+   "multiplier": 14,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "W BTL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L57",
+   "accountId": "2201",
+   "description": "Wrap",
+   "amount": 2,
+   "unit": "DAY",
+   "rate": 32.14,
+   "multiplier": 14,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "W BTL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L58",
+   "accountId": "2202",
+   "description": "#1: Art director",
+   "amount": 0,
+   "unit": "-",
+   "rate": 0,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L59",
+   "accountId": "2202",
+   "description": "Prep",
+   "amount": 5,
+   "unit": "DAY",
+   "rate": 26.79,
+   "multiplier": 14,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "W BTL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L60",
+   "accountId": "2202",
+   "description": "Shoot",
+   "amount": 12,
+   "unit": "DAY",
+   "rate": 26.79,
+   "multiplier": 14,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "W BTL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L61",
+   "accountId": "2202",
+   "description": "Wrap",
+   "amount": 2,
+   "unit": "DAY",
+   "rate": 26.79,
+   "multiplier": 14,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "W BTL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L62",
+   "accountId": "2210",
+   "description": "Art supplies & materials",
+   "amount": 1,
+   "unit": "ALLOW",
+   "rate": 4500,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L63",
+   "accountId": "2301",
+   "description": "#1: Set decorator",
+   "amount": 0,
+   "unit": "-",
+   "rate": 0,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L64",
+   "accountId": "2301",
+   "description": "Prep",
+   "amount": 5,
+   "unit": "DAY",
+   "rate": 26.79,
+   "multiplier": 14,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "W BTL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L65",
+   "accountId": "2301",
+   "description": "Shoot",
+   "amount": 12,
+   "unit": "DAY",
+   "rate": 26.79,
+   "multiplier": 14,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "W BTL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L66",
+   "accountId": "2301",
+   "description": "Wrap",
+   "amount": 1,
+   "unit": "DAY",
+   "rate": 26.79,
+   "multiplier": 14,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "W BTL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L67",
+   "accountId": "2310",
+   "description": "Set dressing purchases",
+   "amount": 1,
+   "unit": "ALLOW",
+   "rate": 6000,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L68",
+   "accountId": "2311",
+   "description": "Set dressing rentals",
+   "amount": 1,
+   "unit": "ALLOW",
+   "rate": 3500,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L69",
+   "accountId": "2401",
+   "description": "#1: Property master",
+   "amount": 0,
+   "unit": "-",
+   "rate": 0,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L70",
+   "accountId": "2401",
+   "description": "Prep",
+   "amount": 5,
+   "unit": "DAY",
+   "rate": 26.79,
+   "multiplier": 14,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "W BTL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L71",
+   "accountId": "2401",
+   "description": "Shoot",
+   "amount": 12,
+   "unit": "DAY",
+   "rate": 26.79,
+   "multiplier": 14,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "W BTL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L72",
+   "accountId": "2401",
+   "description": "Wrap",
+   "amount": 1,
+   "unit": "DAY",
+   "rate": 26.79,
+   "multiplier": 14,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "W BTL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L73",
+   "accountId": "2410",
+   "description": "Prop purchases",
+   "amount": 1,
+   "unit": "ALLOW",
+   "rate": 2500,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L74",
+   "accountId": "2411",
+   "description": "Prop rentals",
+   "amount": 1,
+   "unit": "ALLOW",
+   "rate": 1800,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L75",
+   "accountId": "2408",
+   "description": "Picture vehicles (station wagon, pickup, tow truck)",
+   "amount": 1,
+   "unit": "ALLOW",
+   "rate": 7500,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L76",
+   "accountId": "2601",
+   "description": "#1: Ines Calderón (Director of photography)",
+   "amount": 0,
+   "unit": "-",
+   "rate": 0,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L77",
+   "accountId": "2601",
+   "description": "Prep",
+   "amount": 8,
+   "unit": "DAY",
+   "rate": 35.71,
+   "multiplier": 14,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "W BTL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L78",
+   "accountId": "2601",
+   "description": "Shoot",
+   "amount": 12,
+   "unit": "DAY",
+   "rate": 35.71,
+   "multiplier": 14,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "W BTL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L79",
+   "accountId": "2603",
+   "description": "#1: 1st AC",
+   "amount": 0,
+   "unit": "-",
+   "rate": 0,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L80",
+   "accountId": "2603",
+   "description": "Prep",
+   "amount": 1,
+   "unit": "DAY",
+   "rate": 30.36,
+   "multiplier": 14,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "W BTL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L81",
+   "accountId": "2603",
+   "description": "Shoot",
+   "amount": 12,
+   "unit": "DAY",
+   "rate": 30.36,
+   "multiplier": 14,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "W BTL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L82",
+   "accountId": "2604",
+   "description": "#1: 2nd AC",
+   "amount": 0,
+   "unit": "-",
+   "rate": 0,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L83",
+   "accountId": "2604",
+   "description": "Prep",
+   "amount": 1,
+   "unit": "DAY",
+   "rate": 26.79,
+   "multiplier": 14,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "W BTL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L84",
+   "accountId": "2604",
+   "description": "Shoot",
+   "amount": 12,
+   "unit": "DAY",
+   "rate": 26.79,
+   "multiplier": 14,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "W BTL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L85",
+   "accountId": "2611",
+   "description": "Camera package (2 bodies)",
+   "amount": 3,
+   "unit": "WEEK",
+   "rate": 6500,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L86",
+   "accountId": "2611",
+   "description": "Lens set",
+   "amount": 3,
+   "unit": "WEEK",
+   "rate": 2800,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L87",
+   "accountId": "2610",
+   "description": "Camera expendables",
+   "amount": 1,
+   "unit": "ALLOW",
+   "rate": 1200,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L88",
+   "accountId": "2701",
+   "description": "#1: Gaffer",
+   "amount": 0,
+   "unit": "-",
+   "rate": 0,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L89",
+   "accountId": "2701",
+   "description": "Prep",
+   "amount": 2,
+   "unit": "DAY",
+   "rate": 30.36,
+   "multiplier": 14,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "W BTL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L90",
+   "accountId": "2701",
+   "description": "Shoot",
+   "amount": 12,
+   "unit": "DAY",
+   "rate": 30.36,
+   "multiplier": 14,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "W BTL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L91",
+   "accountId": "2702",
+   "description": "#1: Best boy electric",
+   "amount": 0,
+   "unit": "-",
+   "rate": 0,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L92",
+   "accountId": "2702",
+   "description": "Prep",
+   "amount": 1,
+   "unit": "DAY",
+   "rate": 26.79,
+   "multiplier": 14,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "W BTL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L93",
+   "accountId": "2702",
+   "description": "Shoot",
+   "amount": 12,
+   "unit": "DAY",
+   "rate": 26.79,
+   "multiplier": 14,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "W BTL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L94",
+   "accountId": "2711",
+   "description": "Lighting package",
+   "amount": 3,
+   "unit": "WEEK",
+   "rate": 4200,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L95",
+   "accountId": "2706",
+   "description": "Generator (tow plant)",
+   "amount": 12,
+   "unit": "DAY",
+   "rate": 350,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L96",
+   "accountId": "2707",
+   "description": "Generator fuel",
+   "amount": 12,
+   "unit": "DAY",
+   "rate": 100,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L97",
+   "accountId": "2801",
+   "description": "#1: Key grip",
+   "amount": 0,
+   "unit": "-",
+   "rate": 0,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L98",
+   "accountId": "2801",
+   "description": "Prep",
+   "amount": 2,
+   "unit": "DAY",
+   "rate": 30.36,
+   "multiplier": 14,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "W BTL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L99",
+   "accountId": "2801",
+   "description": "Shoot",
+   "amount": 12,
+   "unit": "DAY",
+   "rate": 30.36,
+   "multiplier": 14,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "W BTL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L100",
+   "accountId": "2802",
+   "description": "#1: Best boy grip",
+   "amount": 0,
+   "unit": "-",
+   "rate": 0,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L101",
+   "accountId": "2802",
+   "description": "Prep",
+   "amount": 1,
+   "unit": "DAY",
+   "rate": 26.79,
+   "multiplier": 14,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "W BTL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L102",
+   "accountId": "2802",
+   "description": "Shoot",
+   "amount": 12,
+   "unit": "DAY",
+   "rate": 26.79,
+   "multiplier": 14,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "W BTL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L103",
+   "accountId": "2811",
+   "description": "Grip package + truck",
+   "amount": 3,
+   "unit": "WEEK",
+   "rate": 3800,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L104",
+   "accountId": "2806",
+   "description": "Set medic (12 days)",
+   "amount": 1,
+   "unit": "ALLOW",
+   "rate": 4200,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L105",
+   "accountId": "2808",
+   "description": "Craft service",
+   "amount": 1,
+   "unit": "ALLOW",
+   "rate": 3600,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L106",
+   "accountId": "2901",
+   "description": "#1: Production sound mixer",
+   "amount": 0,
+   "unit": "-",
+   "rate": 0,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L107",
+   "accountId": "2901",
+   "description": "Prep",
+   "amount": 1,
+   "unit": "DAY",
+   "rate": 33.93,
+   "multiplier": 14,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "W BTL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L108",
+   "accountId": "2901",
+   "description": "Shoot",
+   "amount": 12,
+   "unit": "DAY",
+   "rate": 33.93,
+   "multiplier": 14,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "W BTL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L109",
+   "accountId": "2902",
+   "description": "#1: Boom operator",
+   "amount": 0,
+   "unit": "-",
+   "rate": 0,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L110",
+   "accountId": "2902",
+   "description": "Shoot",
+   "amount": 12,
+   "unit": "DAY",
+   "rate": 26.79,
+   "multiplier": 14,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "W BTL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L111",
+   "accountId": "2911",
+   "description": "Sound package",
+   "amount": 3,
+   "unit": "WEEK",
+   "rate": 1500,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L112",
+   "accountId": "3001",
+   "description": "#1: Costume designer",
+   "amount": 0,
+   "unit": "-",
+   "rate": 0,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L113",
+   "accountId": "3001",
+   "description": "Prep",
+   "amount": 8,
+   "unit": "DAY",
+   "rate": 30.36,
+   "multiplier": 14,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "W BTL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L114",
+   "accountId": "3001",
+   "description": "Shoot",
+   "amount": 12,
+   "unit": "DAY",
+   "rate": 30.36,
+   "multiplier": 14,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "W BTL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L115",
+   "accountId": "3001",
+   "description": "Wrap",
+   "amount": 2,
+   "unit": "DAY",
+   "rate": 30.36,
+   "multiplier": 14,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "W BTL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L116",
+   "accountId": "3010",
+   "description": "Wardrobe purchases",
+   "amount": 1,
+   "unit": "ALLOW",
+   "rate": 5000,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L117",
+   "accountId": "3011",
+   "description": "Wardrobe rentals",
+   "amount": 1,
+   "unit": "ALLOW",
+   "rate": 1500,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L118",
+   "accountId": "3101",
+   "description": "#1: Key makeup & hair",
+   "amount": 0,
+   "unit": "-",
+   "rate": 0,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L119",
+   "accountId": "3101",
+   "description": "Prep",
+   "amount": 1,
+   "unit": "DAY",
+   "rate": 30.36,
+   "multiplier": 14,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "W BTL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L120",
+   "accountId": "3101",
+   "description": "Shoot",
+   "amount": 12,
+   "unit": "DAY",
+   "rate": 30.36,
+   "multiplier": 14,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "W BTL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L121",
+   "accountId": "3110",
+   "description": "Makeup & hair supplies",
+   "amount": 1,
+   "unit": "ALLOW",
+   "rate": 1200,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L122",
+   "accountId": "3306",
+   "description": "Cube truck + cargo van",
+   "amount": 3,
+   "unit": "WEEK",
+   "rate": 2400,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L123",
+   "accountId": "3307",
+   "description": "Fuel",
+   "amount": 12,
+   "unit": "DAY",
+   "rate": 180,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L124",
+   "accountId": "3401",
+   "description": "#1: Location manager",
+   "amount": 0,
+   "unit": "-",
+   "rate": 0,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L125",
+   "accountId": "3401",
+   "description": "Prep",
+   "amount": 15,
+   "unit": "DAY",
+   "rate": 26.79,
+   "multiplier": 14,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "W BTL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L126",
+   "accountId": "3401",
+   "description": "Shoot",
+   "amount": 12,
+   "unit": "DAY",
+   "rate": 26.79,
+   "multiplier": 14,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "W BTL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L127",
+   "accountId": "3401",
+   "description": "Wrap",
+   "amount": 2,
+   "unit": "DAY",
+   "rate": 26.79,
+   "multiplier": 14,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [
+    "W BTL"
+   ],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L128",
+   "accountId": "3406",
+   "description": "Motel (all rooms, 14 nights)",
+   "amount": 1,
+   "unit": "ALLOW",
+   "rate": 18000,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L129",
+   "accountId": "3406",
+   "description": "Gas station & diner (6 days)",
+   "amount": 6,
+   "unit": "DAY",
+   "rate": 1500,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L130",
+   "accountId": "3407",
+   "description": "Salt flats BLM permit + ranger station",
+   "amount": 1,
+   "unit": "ALLOW",
+   "rate": 3200,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L131",
+   "accountId": "3416",
+   "description": "Catered meals (38 heads x 12 days)",
+   "amount": 456,
+   "unit": "ITEM",
+   "rate": 22,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L132",
+   "accountId": "3505",
+   "description": "PPE & safety supplies",
+   "amount": 1,
+   "unit": "ALLOW",
+   "rate": 800,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L133",
+   "accountId": "3602",
+   "description": "Crew hotel (28 rooms, 14 nights)",
+   "amount": 392,
+   "unit": "DAY",
+   "rate": 79,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L134",
+   "accountId": "3604",
+   "description": "Crew per diem",
+   "amount": 532,
+   "unit": "DAY",
+   "rate": 45,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L135",
+   "accountId": "3603",
+   "description": "Crew travel (LA to Wendover, vans)",
+   "amount": 1,
+   "unit": "ALLOW",
+   "rate": 4200,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L136",
+   "accountId": "4001",
+   "description": "#1: Editor",
+   "amount": 0,
+   "unit": "-",
+   "rate": 0,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L137",
+   "accountId": "4001",
+   "description": "Edit",
+   "amount": 10,
+   "unit": "WEEK",
+   "rate": 1800,
+   "multiplier": 1,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L138",
+   "accountId": "4002",
+   "description": "Assistant editor",
+   "amount": 4,
+   "unit": "WEEK",
+   "rate": 1100,
+   "multiplier": 1,
+   "fringes": [
+    "FICA1",
+    "FICA2",
+    "FUI",
+    "SUI (CA)",
+    "WC (CA)",
+    "PAYROLL FEE"
+   ],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L139",
+   "accountId": "4011",
+   "description": "Edit suite / storage",
+   "amount": 1,
+   "unit": "ALLOW",
+   "rate": 3500,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L140",
+   "accountId": "4101",
+   "description": "Composer (package)",
+   "amount": 1,
+   "unit": "ALLOW",
+   "rate": 12000,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L141",
+   "accountId": "4105",
+   "description": "Licensed songs (2)",
+   "amount": 1,
+   "unit": "ALLOW",
+   "rate": 8000,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L142",
+   "accountId": "4203",
+   "description": "VFX cleanup (30 shots)",
+   "amount": 1,
+   "unit": "ALLOW",
+   "rate": 9000,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L143",
+   "accountId": "4303",
+   "description": "Sound design & mix",
+   "amount": 1,
+   "unit": "ALLOW",
+   "rate": 22000,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L144",
+   "accountId": "4311",
+   "description": "ADR stage (2 days)",
+   "amount": 1,
+   "unit": "ALLOW",
+   "rate": 2400,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L145",
+   "accountId": "4402",
+   "description": "Color grade",
+   "amount": 1,
+   "unit": "ALLOW",
+   "rate": 12000,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L146",
+   "accountId": "4405",
+   "description": "Main & end titles",
+   "amount": 1,
+   "unit": "ALLOW",
+   "rate": 1500,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L147",
+   "accountId": "4406",
+   "description": "Deliverables",
+   "amount": 1,
+   "unit": "ALLOW",
+   "rate": 3000,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L148",
+   "accountId": "5002",
+   "description": "Stills photographer (4 days)",
+   "amount": 1,
+   "unit": "ALLOW",
+   "rate": 2000,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L149",
+   "accountId": "5003",
+   "description": "Festival submissions",
+   "amount": 1,
+   "unit": "ALLOW",
+   "rate": 4000,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L150",
+   "accountId": "5101",
+   "description": "Production package insurance",
+   "amount": 1,
+   "unit": "ALLOW",
+   "rate": 14000,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L151",
+   "accountId": "5102",
+   "description": "E&O insurance",
+   "amount": 1,
+   "unit": "ALLOW",
+   "rate": 2500,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L152",
+   "accountId": "5201",
+   "description": "Legal (SAG signatory, contracts)",
+   "amount": 1,
+   "unit": "ALLOW",
+   "rate": 9500,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L153",
+   "accountId": "5203",
+   "description": "Accounting & payroll setup",
+   "amount": 1,
+   "unit": "ALLOW",
+   "rate": 4500,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  },
+  {
+   "id": "L154",
+   "accountId": "5207",
+   "description": "Office, software, phones",
+   "amount": 1,
+   "unit": "ALLOW",
+   "rate": 2200,
+   "multiplier": 1,
+   "fringes": [],
+   "tags": [],
+   "payType": "cash",
+   "notes": ""
+  }
+ ],
+ "totals": {
+  "subtotal": 737961.86,
+  "contingency": 73796.19,
+  "grandTotal": 811758.05
+ }
+}

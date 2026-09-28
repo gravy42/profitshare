@@ -1,0 +1,835 @@
+{
+ "castList": [
+  {
+   "id": 1,
+   "name": "LENA"
+  },
+  {
+   "id": 2,
+   "name": "JUNE"
+  },
+  {
+   "id": 3,
+   "name": "DEL"
+  },
+  {
+   "id": 4,
+   "name": "WALT"
+  },
+  {
+   "id": 5,
+   "name": "THE MECHANIC"
+  },
+  {
+   "id": 6,
+   "name": "RANGER PRICE"
+  },
+  {
+   "id": 7,
+   "name": "KID"
+  },
+  {
+   "id": 8,
+   "name": "WAITRESS"
+  }
+ ],
+ "scenes": [
+  {
+   "id": "sc1",
+   "number": "1",
+   "ie": "EXT",
+   "set": "DESERT HIGHWAY",
+   "tod": "DAWN",
+   "pages": "2 2/8",
+   "eighths": 18,
+   "synopsis": "Two sisters push a dead station wagon onto the shoulder.",
+   "location": "Wendover, UT",
+   "scriptDay": "",
+   "cast": [
+    {
+     "id": 1,
+     "name": "LENA"
+    },
+    {
+     "id": 2,
+     "name": "JUNE"
+    }
+   ],
+   "elements": {
+    "Vehicles": [
+     "station wagon"
+    ]
+   }
+  },
+  {
+   "id": "sc2",
+   "number": "2",
+   "ie": "INT",
+   "set": "STATION WAGON",
+   "tod": "DAWN",
+   "pages": "1 4/8",
+   "eighths": 12,
+   "synopsis": "June finds the letter in the glovebox. Lena pretends not to see.",
+   "location": "Motel & gas station, Wendover, UT",
+   "scriptDay": "",
+   "cast": [
+    {
+     "id": 1,
+     "name": "LENA"
+    },
+    {
+     "id": 2,
+     "name": "JUNE"
+    }
+   ],
+   "elements": {
+    "Props": [
+     "the letter"
+    ]
+   }
+  },
+  {
+   "id": "sc3",
+   "number": "3",
+   "ie": "EXT",
+   "set": "GAS STATION",
+   "tod": "DAY",
+   "pages": "3 3/8",
+   "eighths": 27,
+   "synopsis": "The Mechanic quotes a price neither of them has.",
+   "location": "Motel & gas station, Wendover, UT",
+   "scriptDay": "",
+   "cast": [
+    {
+     "id": 1,
+     "name": "LENA"
+    },
+    {
+     "id": 2,
+     "name": "JUNE"
+    },
+    {
+     "id": 5,
+     "name": "THE MECHANIC"
+    }
+   ],
+   "elements": {
+    "Vehicles": [
+     "station wagon",
+     "tow truck"
+    ]
+   }
+  },
+  {
+   "id": "sc4",
+   "number": "4",
+   "ie": "INT",
+   "set": "GAS STATION DINER",
+   "tod": "DAY",
+   "pages": "4 4/8",
+   "eighths": 36,
+   "synopsis": "Pie, coffee, and the first real fight.",
+   "location": "Motel & gas station, Wendover, UT",
+   "scriptDay": "",
+   "cast": [
+    {
+     "id": 1,
+     "name": "LENA"
+    },
+    {
+     "id": 2,
+     "name": "JUNE"
+    },
+    {
+     "id": 8,
+     "name": "WAITRESS"
+    }
+   ],
+   "elements": {
+    "Props": [
+     "pie",
+     "coffee pot"
+    ]
+   }
+  },
+  {
+   "id": "sc5",
+   "number": "5",
+   "ie": "EXT",
+   "set": "GAS STATION",
+   "tod": "DUSK",
+   "pages": "1 1/8",
+   "eighths": 9,
+   "synopsis": "A kid on a bike sells June a map for a dollar.",
+   "location": "Motel & gas station, Wendover, UT",
+   "scriptDay": "",
+   "cast": [
+    {
+     "id": 2,
+     "name": "JUNE"
+    },
+    {
+     "id": 7,
+     "name": "KID"
+    }
+   ],
+   "elements": {
+    "Props": [
+     "folded map"
+    ],
+    "Vehicles": [
+     "bmx bike"
+    ]
+   }
+  },
+  {
+   "id": "sc6",
+   "number": "6",
+   "ie": "INT",
+   "set": "MOTEL ROOM",
+   "tod": "NIGHT",
+   "pages": "3 6/8",
+   "eighths": 30,
+   "synopsis": "Two beds, one lamp. Lena reads the letter out loud.",
+   "location": "Motel & gas station, Wendover, UT",
+   "scriptDay": "",
+   "cast": [
+    {
+     "id": 1,
+     "name": "LENA"
+    },
+    {
+     "id": 2,
+     "name": "JUNE"
+    }
+   ],
+   "elements": {}
+  },
+  {
+   "id": "sc7",
+   "number": "7",
+   "ie": "EXT",
+   "set": "MOTEL POOL",
+   "tod": "NIGHT",
+   "pages": "1 7/8",
+   "eighths": 15,
+   "synopsis": "Lena floats on her back in the empty pool.",
+   "location": "Motel & gas station, Wendover, UT",
+   "scriptDay": "",
+   "cast": [
+    {
+     "id": 1,
+     "name": "LENA"
+    }
+   ],
+   "elements": {}
+  },
+  {
+   "id": "sc8",
+   "number": "8",
+   "ie": "INT",
+   "set": "MOTEL OFFICE",
+   "tod": "MORNING",
+   "pages": "1 4/8",
+   "eighths": 12,
+   "synopsis": "Walt, the owner, offers a trade: a car for a week of work.",
+   "location": "Motel & gas station, Wendover, UT",
+   "scriptDay": "",
+   "cast": [
+    {
+     "id": 2,
+     "name": "JUNE"
+    },
+    {
+     "id": 4,
+     "name": "WALT"
+    }
+   ],
+   "elements": {}
+  },
+  {
+   "id": "sc9",
+   "number": "9",
+   "ie": "EXT",
+   "set": "MOTEL PARKING LOT",
+   "tod": "MORNING",
+   "pages": "2 2/8",
+   "eighths": 18,
+   "synopsis": "Lena says no. June says yes.",
+   "location": "Motel & gas station, Wendover, UT",
+   "scriptDay": "",
+   "cast": [
+    {
+     "id": 1,
+     "name": "LENA"
+    },
+    {
+     "id": 2,
+     "name": "JUNE"
+    },
+    {
+     "id": 4,
+     "name": "WALT"
+    }
+   ],
+   "elements": {
+    "Vehicles": [
+     "pickup"
+    ]
+   }
+  },
+  {
+   "id": "sc10",
+   "number": "10",
+   "ie": "INT",
+   "set": "MOTEL LAUNDRY",
+   "tod": "DAY",
+   "pages": "2 5/8",
+   "eighths": 21,
+   "synopsis": "Folding sheets, Walt tells the story of the flats.",
+   "location": "Motel & gas station, Wendover, UT",
+   "scriptDay": "",
+   "cast": [
+    {
+     "id": 2,
+     "name": "JUNE"
+    },
+    {
+     "id": 4,
+     "name": "WALT"
+    }
+   ],
+   "elements": {}
+  },
+  {
+   "id": "sc11",
+   "number": "11",
+   "ie": "EXT",
+   "set": "DESERT ROAD",
+   "tod": "DAY",
+   "pages": "1 7/8",
+   "eighths": 15,
+   "synopsis": "Lena walks. A truck slows, then keeps going.",
+   "location": "Wendover, UT",
+   "scriptDay": "",
+   "cast": [
+    {
+     "id": 1,
+     "name": "LENA"
+    }
+   ],
+   "elements": {
+    "Vehicles": [
+     "semi (picture)"
+    ]
+   }
+  },
+  {
+   "id": "sc12",
+   "number": "12",
+   "ie": "EXT",
+   "set": "RANGER STATION",
+   "tod": "DAY",
+   "pages": "3",
+   "eighths": 24,
+   "synopsis": "Ranger Price gives Lena water and a warning.",
+   "location": "Wendover, UT",
+   "scriptDay": "",
+   "cast": [
+    {
+     "id": 1,
+     "name": "LENA"
+    },
+    {
+     "id": 6,
+     "name": "RANGER PRICE"
+    }
+   ],
+   "elements": {}
+  },
+  {
+   "id": "sc13",
+   "number": "13",
+   "ie": "INT",
+   "set": "RANGER STATION",
+   "tod": "DAY",
+   "pages": "2 2/8",
+   "eighths": 18,
+   "synopsis": "A map on the wall with a red pin where the letter says to go.",
+   "location": "Wendover, UT",
+   "scriptDay": "",
+   "cast": [
+    {
+     "id": 1,
+     "name": "LENA"
+    },
+    {
+     "id": 6,
+     "name": "RANGER PRICE"
+    }
+   ],
+   "elements": {
+    "Props": [
+     "wall map",
+     "red pin"
+    ]
+   }
+  },
+  {
+   "id": "sc14",
+   "number": "14",
+   "ie": "INT",
+   "set": "MOTEL ROOM",
+   "tod": "NIGHT",
+   "pages": "3",
+   "eighths": 24,
+   "synopsis": "June alone, calling a number that rings out.",
+   "location": "Motel & gas station, Wendover, UT",
+   "scriptDay": "",
+   "cast": [
+    {
+     "id": 2,
+     "name": "JUNE"
+    }
+   ],
+   "elements": {
+    "Props": [
+     "flip phone"
+    ]
+   }
+  },
+  {
+   "id": "sc15",
+   "number": "15",
+   "ie": "EXT",
+   "set": "MOTEL POOL",
+   "tod": "DAWN",
+   "pages": "1 4/8",
+   "eighths": 12,
+   "synopsis": "Walt drains the pool. June helps without being asked.",
+   "location": "Motel & gas station, Wendover, UT",
+   "scriptDay": "",
+   "cast": [
+    {
+     "id": 2,
+     "name": "JUNE"
+    },
+    {
+     "id": 4,
+     "name": "WALT"
+    }
+   ],
+   "elements": {}
+  },
+  {
+   "id": "sc16",
+   "number": "16",
+   "ie": "EXT",
+   "set": "SALT FLATS",
+   "tod": "DAY",
+   "pages": "5 2/8",
+   "eighths": 42,
+   "synopsis": "White to the horizon. Lena finds the marker.",
+   "location": "Wendover, UT",
+   "scriptDay": "",
+   "cast": [
+    {
+     "id": 1,
+     "name": "LENA"
+    }
+   ],
+   "elements": {
+    "Props": [
+     "stone marker"
+    ]
+   }
+  },
+  {
+   "id": "sc17",
+   "number": "17",
+   "ie": "EXT",
+   "set": "SALT FLATS",
+   "tod": "DUSK",
+   "pages": "3 3/8",
+   "eighths": 27,
+   "synopsis": "Price finds her before the dark does.",
+   "location": "Wendover, UT",
+   "scriptDay": "",
+   "cast": [
+    {
+     "id": 1,
+     "name": "LENA"
+    },
+    {
+     "id": 6,
+     "name": "RANGER PRICE"
+    }
+   ],
+   "elements": {
+    "Vehicles": [
+     "ranger truck"
+    ]
+   }
+  },
+  {
+   "id": "sc18",
+   "number": "18",
+   "ie": "INT",
+   "set": "RANGER TRUCK",
+   "tod": "NIGHT",
+   "pages": "2 2/8",
+   "eighths": 18,
+   "synopsis": "Driving back. Price admits she knew their mother.",
+   "location": "Wendover, UT",
+   "scriptDay": "",
+   "cast": [
+    {
+     "id": 1,
+     "name": "LENA"
+    },
+    {
+     "id": 6,
+     "name": "RANGER PRICE"
+    }
+   ],
+   "elements": {}
+  },
+  {
+   "id": "sc19",
+   "number": "19",
+   "ie": "INT",
+   "set": "GAS STATION DINER",
+   "tod": "NIGHT",
+   "pages": "3 6/8",
+   "eighths": 30,
+   "synopsis": "June learns the car was never broken.",
+   "location": "Motel & gas station, Wendover, UT",
+   "scriptDay": "",
+   "cast": [
+    {
+     "id": 2,
+     "name": "JUNE"
+    },
+    {
+     "id": 8,
+     "name": "WAITRESS"
+    },
+    {
+     "id": 5,
+     "name": "THE MECHANIC"
+    }
+   ],
+   "elements": {
+    "Props": [
+     "pie"
+    ]
+   }
+  },
+  {
+   "id": "sc20",
+   "number": "20",
+   "ie": "EXT",
+   "set": "GAS STATION",
+   "tod": "NIGHT",
+   "pages": "1 7/8",
+   "eighths": 15,
+   "synopsis": "The Mechanic hands over the keys and the real bill: nothing.",
+   "location": "Motel & gas station, Wendover, UT",
+   "scriptDay": "",
+   "cast": [
+    {
+     "id": 2,
+     "name": "JUNE"
+    },
+    {
+     "id": 5,
+     "name": "THE MECHANIC"
+    }
+   ],
+   "elements": {
+    "Vehicles": [
+     "station wagon"
+    ],
+    "Props": [
+     "car keys"
+    ]
+   }
+  },
+  {
+   "id": "sc21",
+   "number": "21",
+   "ie": "EXT",
+   "set": "MOTEL PARKING LOT",
+   "tod": "NIGHT",
+   "pages": "2 5/8",
+   "eighths": 21,
+   "synopsis": "The sisters see each other across the lot.",
+   "location": "Motel & gas station, Wendover, UT",
+   "scriptDay": "",
+   "cast": [
+    {
+     "id": 1,
+     "name": "LENA"
+    },
+    {
+     "id": 2,
+     "name": "JUNE"
+    },
+    {
+     "id": 6,
+     "name": "RANGER PRICE"
+    }
+   ],
+   "elements": {}
+  },
+  {
+   "id": "sc22",
+   "number": "22",
+   "ie": "INT",
+   "set": "MOTEL ROOM",
+   "tod": "NIGHT",
+   "pages": "4 4/8",
+   "eighths": 36,
+   "synopsis": "The whole letter, finally, both of them.",
+   "location": "Motel & gas station, Wendover, UT",
+   "scriptDay": "",
+   "cast": [
+    {
+     "id": 1,
+     "name": "LENA"
+    },
+    {
+     "id": 2,
+     "name": "JUNE"
+    }
+   ],
+   "elements": {}
+  },
+  {
+   "id": "sc23",
+   "number": "23",
+   "ie": "EXT",
+   "set": "MOTEL POOL",
+   "tod": "MORNING",
+   "pages": "2 2/8",
+   "eighths": 18,
+   "synopsis": "The pool fills. The kid cannonballs.",
+   "location": "Motel & gas station, Wendover, UT",
+   "scriptDay": "",
+   "cast": [
+    {
+     "id": 1,
+     "name": "LENA"
+    },
+    {
+     "id": 2,
+     "name": "JUNE"
+    },
+    {
+     "id": 4,
+     "name": "WALT"
+    },
+    {
+     "id": 7,
+     "name": "KID"
+    }
+   ],
+   "elements": {
+    "Vehicles": [
+     "bmx bike"
+    ]
+   }
+  },
+  {
+   "id": "sc24",
+   "number": "24",
+   "ie": "INT",
+   "set": "STATION WAGON",
+   "tod": "DAY",
+   "pages": "1 7/8",
+   "eighths": 15,
+   "synopsis": "Driving. The map goes out the window.",
+   "location": "Motel & gas station, Wendover, UT",
+   "scriptDay": "",
+   "cast": [
+    {
+     "id": 1,
+     "name": "LENA"
+    },
+    {
+     "id": 2,
+     "name": "JUNE"
+    }
+   ],
+   "elements": {
+    "Props": [
+     "folded map"
+    ],
+    "Vehicles": [
+     "station wagon"
+    ]
+   }
+  },
+  {
+   "id": "sc25",
+   "number": "25",
+   "ie": "EXT",
+   "set": "SALT FLATS",
+   "tod": "DAY",
+   "pages": "4 1/8",
+   "eighths": 33,
+   "synopsis": "They reach the marker together and leave the letter under it.",
+   "location": "Wendover, UT",
+   "scriptDay": "",
+   "cast": [
+    {
+     "id": 1,
+     "name": "LENA"
+    },
+    {
+     "id": 2,
+     "name": "JUNE"
+    }
+   ],
+   "elements": {
+    "Props": [
+     "the letter",
+     "stone marker"
+    ]
+   }
+  },
+  {
+   "id": "sc26",
+   "number": "26",
+   "ie": "EXT",
+   "set": "DESERT HIGHWAY",
+   "tod": "DUSK",
+   "pages": "1 4/8",
+   "eighths": 12,
+   "synopsis": "The wagon, running, small against the sky.",
+   "location": "Wendover, UT",
+   "scriptDay": "",
+   "cast": [
+    {
+     "id": 1,
+     "name": "LENA"
+    },
+    {
+     "id": 2,
+     "name": "JUNE"
+    }
+   ],
+   "elements": {
+    "Vehicles": [
+     "station wagon"
+    ]
+   }
+  }
+ ],
+ "strips": [
+  {
+   "type": "scene",
+   "sceneId": "sc3"
+  },
+  {
+   "type": "scene",
+   "sceneId": "sc5"
+  },
+  {
+   "type": "scene",
+   "sceneId": "sc20"
+  },
+  {
+   "type": "scene",
+   "sceneId": "sc4"
+  },
+  {
+   "type": "scene",
+   "sceneId": "sc19"
+  },
+  {
+   "type": "scene",
+   "sceneId": "sc1"
+  },
+  {
+   "type": "scene",
+   "sceneId": "sc26"
+  },
+  {
+   "type": "scene",
+   "sceneId": "sc11"
+  },
+  {
+   "type": "scene",
+   "sceneId": "sc2"
+  },
+  {
+   "type": "scene",
+   "sceneId": "sc24"
+  },
+  {
+   "type": "scene",
+   "sceneId": "sc8"
+  },
+  {
+   "type": "scene",
+   "sceneId": "sc10"
+  },
+  {
+   "type": "scene",
+   "sceneId": "sc9"
+  },
+  {
+   "type": "scene",
+   "sceneId": "sc21"
+  },
+  {
+   "type": "scene",
+   "sceneId": "sc6"
+  },
+  {
+   "type": "scene",
+   "sceneId": "sc22"
+  },
+  {
+   "type": "scene",
+   "sceneId": "sc14"
+  },
+  {
+   "type": "scene",
+   "sceneId": "sc7"
+  },
+  {
+   "type": "scene",
+   "sceneId": "sc15"
+  },
+  {
+   "type": "scene",
+   "sceneId": "sc23"
+  },
+  {
+   "type": "scene",
+   "sceneId": "sc12"
+  },
+  {
+   "type": "scene",
+   "sceneId": "sc13"
+  },
+  {
+   "type": "scene",
+   "sceneId": "sc18"
+  },
+  {
+   "type": "scene",
+   "sceneId": "sc16"
+  },
+  {
+   "type": "scene",
+   "sceneId": "sc25"
+  },
+  {
+   "type": "scene",
+   "sceneId": "sc17"
+  }
+ ]
+}

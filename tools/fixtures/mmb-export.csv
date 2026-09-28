@@ -1,0 +1,19 @@
+Acct#,Description,Amount,Units,X,Rate,Subtotal,Fringes,Total
+1100,STORY & SCREENPLAY,,,,,,,
+1102,SCREENPLAY,,,,,,,
+,Script purchase,1,Allow,1,"$50,000.00","$50,000.00",,"$50,000.00"
+,WGA option,1,Allow,1,"2,500",2500,,2500
+1200,PRODUCERS,,,,,,,
+1201,PRODUCERS,,,,,,,
+,Producer fee,1,Flat,1,100000,100000,,100000
+2100,PRODUCTION STAFF,,,,,,,
+2101,LINE PRODUCER / UPM,,,,,,,
+,Line producer,6,Week,1,"3,500","21,000","2,142.00","23,142.00"
+2102,1ST ASSISTANT DIRECTOR,,,,,,,
+,1st AD,25,Day,14,35.29,12351.5,1259.85,13611.35
+,2nd AD,22,Day,14,30.29,9329.32,951.59,10280.91
+4000,EDITORIAL,,,,,,,
+4001,EDITOR,,,,,,,
+,Editor,10,Week,1,2500,25000,,25000
+,,,,,,,,
+,Total,,,,,"220,180.82","4,353.44","224,534.26"

@@ -1,0 +1,36 @@
+{
+  "name": "profitshare",
+  "version": "0.1.0",
+  "description": "Open-source budgeting, scheduling and profit-share modelling for independent films.",
+  "license": "MIT",
+  "private": false,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "build:single": "SINGLEFILE=1 vite build --outDir dist-single",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "smoke": "npm run build:single && node tools/smoke.mjs",
+    "demo": "npm run build:single && node tools/demo.mjs && ffmpeg -y -loglevel error -i demo/profitshare-demo.webm -c:v libx264 -preset slow -crf 20 -pix_fmt yuv420p -movflags +faststart demo/profitshare-demo.mp4 && rm demo/profitshare-demo.webm",
+    "sample": "node tools/make-sample.mjs"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.3",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "jsdom": "^25.0.1",
+    "playwright": "^1.63.0",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11",
+    "vite-plugin-singlefile": "^2.0.3",
+    "vitest": "^2.1.8"
+  }
+}
