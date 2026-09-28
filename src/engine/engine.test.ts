@@ -297,3 +297,22 @@ describe('crew on a different scale than cast', () => {
     expect(prod.rate).toBe(56.13);
   });
 });
+
+import { floorNonShootDays } from './sag';
+describe('prep / wrap / post days at a cash floor', () => {
+  it('splits non-shoot days into a floor line and a back-end balance, keeps days and points, lowers cash', () => {
+    const scale = everyoneAtScale(seed, 'LBA', { premiums: 'points' });
+    const p = floorNonShootDays(scale, { cashHourly: 16.9, rest: 'points' });
+    const prep = p.lines.find(l => l.accountId === '2601' && /^Prep \(cash floor\)/.test(l.description))!;
+    expect(prep.rate).toBe(16.9); expect(prep.amount).toBe(8); expect(prep.participantId).toBeTruthy();
+    const bal = p.lines.find(l => l.accountId === '2601' && /Prep balance/.test(l.description))!;
+    expect(bal.rate).toBeCloseTo(104.25 - 16.9, 2); expect(bal.payType).toBe('points'); expect(bal.participantId).toBeUndefined();
+    const shoot = p.lines.find(l => l.accountId === '2601' && l.description === 'Shoot')!;
+    expect(shoot.rate).toBe(104.25);                                            // shoot days untouched
+    const prod = p.lines.filter(l => l.accountId === '1201' && isPayrollLine(l) && l.payType === 'cash');
+    expect(prod.map(l => l.amount)).toEqual([12, 40, 12, 40]);                  // shoot at scale, 40 prep/post at the floor
+    expect(topSheet(p).cashBudget).toBeLessThan(topSheet(scale).cashBudget);
+    expect(syncDaysFromBudget(p).participants.find(x => x.id === 'p_producer_1')!.days).toBe(52);   // days unchanged
+    expect(floorNonShootDays(p, { cashHourly: 16.9, rest: 'points' }).lines.length).toBe(p.lines.length); // idempotent
+  });
+});

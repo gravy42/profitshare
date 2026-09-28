@@ -168,3 +168,33 @@ export function everyoneAtScale(p: Project, tierId: SagTierId, opts: EveryoneAtS
   });
   return { ...out, lines, participants };
 }
+
+// ---------- prep, wrap and post days at a cash floor ----------
+
+export const NON_SHOOT = /prep|wrap|post|edit|scout|rehears/i;
+
+/** Pay the non-shoot days (prep, wrap, post, and the non-shoot part of a producer's scale line) at a cash floor
+ *  per hour and move the balance of each person's rate to the back end. The cash line keeps the person link, so
+ *  days worked (and points) are unchanged; the balance line carries the dollars only.
+ *  A worked day paid at $0 is a wage-law problem for a W-2 crew member, which is why this is a floor, not zero. */
+export function floorNonShootDays(p: Project, opts: { cashHourly: number; rest: 'points' | 'deferred' }): Project {
+  const lines: LineItem[] = [];
+  for (const l of p.lines) {
+    const wage = isPayrollLine(l) && !isSagPerformerLine(l) && l.unit === 'DAY' && l.multiplier > 1 && !/^SPLIT:/.test(l.id);
+    const producerScale = wage && l.accountId === '1201' && /scale/i.test(l.description);
+    if (!wage || l.rate <= opts.cashHourly || !(NON_SHOOT.test(l.description) || producerScale)) { lines.push(l); continue; }
+    // a producer's scale line covers shoot days too; only the days beyond the shoot get floored
+    const days = producerScale ? Math.max(0, l.amount - p.shootDays) : l.amount;
+    if (days <= 0) { lines.push(l); continue; }
+    const balance = Math.round((l.rate - opts.cashHourly) * 100) / 100;
+    if (producerScale) {
+      lines.push({ ...l, amount: p.shootDays, description: l.description.replace(/,?\s*prep \/ shoot \/ post/i, ', shoot') });
+      lines.push({ ...l, id: `SPLIT:${l.id}:cash`, amount: days, rate: opts.cashHourly, description: l.description.replace(/,?\s*prep \/ shoot \/ post/i, ', prep / post (cash floor)') });
+    } else {
+      lines.push({ ...l, rate: opts.cashHourly, description: `${l.description} (cash floor)` });
+    }
+    lines.push({ ...l, id: `SPLIT:${l.id}:rest`, amount: days, rate: balance, payType: opts.rest, participantId: undefined,
+      description: `${l.description.replace(/,?\s*prep \/ shoot \/ post/i, '')} balance to back end`, tags: [...l.tags, 'SPLIT'] });
+  }
+  return { ...p, lines };
+}

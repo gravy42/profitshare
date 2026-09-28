@@ -1,5 +1,5 @@
 import type { Project, SagTierId } from '../engine/types';
-import { SAG_TIERS, everyoneAtScale, rerateCast, sagReport, sagTier, tierCap } from '../engine/sag';
+import { SAG_TIERS, everyoneAtScale, floorNonShootDays, rerateCast, sagReport, sagTier, tierCap, NON_SHOOT, isPayrollLine, isSagPerformerLine } from '../engine/sag';
 import { useState } from 'react';
 import { PRESET_GROUPS, type PresetGroup } from '../data/seed';
 import { lineSubtotal, dayHoursOf, setDayHours, PAID_HOURS } from '../engine/budget';
@@ -12,6 +12,11 @@ export function SagView({ project, setProject }: { project: Project; setProject:
   const setSag = (patch: Partial<Project['sag']>) => setProject(p => ({ ...p, sag: { ...p.sag, ...patch } }));
   const [premiums, setPremiums] = useState<'points' | 'deferred' | 'delete'>('points');
   const [producerDays, setProducerDays] = useState(project.shootDays + 40);
+  const [floorHourly, setFloorHourly] = useState(16.9);
+  const [floorRest, setFloorRest] = useState<'points' | 'deferred'>('points');
+  const nonShoot = project.lines.filter(l => isPayrollLine(l) && !isSagPerformerLine(l) && l.unit === 'DAY' && l.multiplier > 1 && !/^SPLIT:/.test(l.id) && l.rate > floorHourly && (NON_SHOOT.test(l.description) || (l.accountId === '1201' && /scale/i.test(l.description))));
+  const nonShootDays = nonShoot.reduce((n, l) => n + (l.accountId === '1201' && /scale/i.test(l.description) ? Math.max(0, l.amount - project.shootDays) : l.amount), 0);
+  const nonShootCash = nonShoot.reduce((n, l) => n + (l.accountId === '1201' && /scale/i.test(l.description) ? Math.max(0, l.amount - project.shootDays) : l.amount) * l.rate * l.multiplier, 0);
   const [crewBasis, setCrewBasis] = useState<SagTierId | 'custom'>(project.sag.targetTier);
   const [crewCustom, setCrewCustom] = useState(400);
   const crewDayRate = crewBasis === 'custom' ? crewCustom : sagTier(crewBasis).dayRate;
@@ -94,6 +99,18 @@ export function SagView({ project, setProject }: { project: Project; setProject:
           <button className="btn primary" onClick={() => setProject(p => everyoneAtScale(p, p.sag.targetTier, { premiums, producerDays, crewDayRate }))}>Pay everyone scale</button>
         </div>
         <p className="help small" style={{ marginTop: 8 }}>Undo reverses it. Adjust anyone's days afterwards on the Top Sheet; the points schedule follows days worked.</p>
+      </div>
+
+      <div className="panel">
+        <h2>Prep, wrap and post days</h2>
+        <p className="help">Shoot days are where the money has to be. Prep, wrap and post days can be paid at a cash floor per hour with the balance of the person's rate going to the back end; the days still count as worked, so their points don't change. The floor is not zero because a worked day at $0 is a wage-law problem for a W-2 crew member (California's 2026 state minimum is $16.90; Los Angeles city is higher). Talk to your payroll company and attorney before you sign anyone to this.</p>
+        <p className="help">Above the floor right now: <b>{nonShootDays}</b> non-shoot crew and producer days, <b>{money(nonShootCash)}</b> of wages before fringes.</p>
+        <div className="row" style={{ alignItems: 'flex-end' }}>
+          <div className="ctl"><label>Cash floor, $/hour</label><input type="number" step="0.05" value={floorHourly} onChange={e => setFloorHourly(+e.target.value || 0)} style={{ width: 100 }} /></div>
+          <div className="ctl"><label>Balance becomes</label>
+            <select value={floorRest} onChange={e => setFloorRest(e.target.value as any)}><option value="points">points (contingent)</option><option value="deferred">deferred (fixed IOU, counts for SAG)</option></select></div>
+          <button className="btn primary" disabled={!nonShootDays} onClick={() => setProject(p => floorNonShootDays(p, { cashHourly: floorHourly, rest: floorRest }))}>Floor the non-shoot days</button>
+        </div>
       </div>
 
       <div className="panel">
