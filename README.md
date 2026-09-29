@@ -8,7 +8,7 @@ Written by a director budgeting her first feature, because none of the tools wou
 
 ## Demo
 
-[▶ 74-second walkthrough](demo/profitshare-demo.mp4): the sample budget, flipping a line to points, the SAG tier dropping, the waterfall, day breaks, and a drag-and-drop import. `npm run demo` re-records it from `tools/demo.mjs`.
+[▶ 90-second walkthrough](demo/profitshare-demo.mp4): the Deal tab repricing the sample live, the top sheet showing what the deal set, the SAG check, the waterfall, day breaks, and a drag-and-drop import. `npm run demo` re-records it from `tools/demo.mjs`.
 
 ## Try it
 
@@ -20,16 +20,17 @@ The live demo is at **https://gravy42.github.io/profitshare/**. It opens on a st
 
 Then:
 
-1. **Set the deal.** On the SAG tab, pick a tier and press *Re-rate cast* to put every performer on that scale. In *Above-scale ATL money*, tick which of producer fees, the script purchase and star allowances your deal moves to points (or deletes) and watch the cash budget drop. On the Points tab, pick a waterfall and set tier multipliers.
-2. **Place day breaks** on the stripboard, then *Push cast days → budget* so cast lines and the points schedule match the schedule.
-3. **Save.** Your project is one `.json` file. Nothing leaves your browser unless you send it somewhere.
+1. **Set the terms on the Deal tab.** Shoot days and a 10- or 12-hour day; the SAG tier and DIC; how people are paid (as budgeted, or everyone at scale, the *Sing Sing* deal, with the crew rate you choose); what happens to producer fees, the script purchase and star allowances (cash, points, deferred, or gone); prep, wrap and post days at a cash floor with the balance to the back end; grants that investors never recoup; and the waterfall. The budget you imported is never rewritten. The terms sit on top of it, every tab recomputes live, and you can change any term at any time.
+2. **Place day breaks** on the stripboard (*Fit to N days* keeps your order and balances the pages), then *Push cast days → budget* so cast lines and the points schedule match the schedule.
+3. **Save.** Your project is one `.json` file, terms included. Nothing leaves your browser unless you send it somewhere.
 
 ## What it does
 
+- **Deal tab.** Every term in one place, applied as a layer over the raw budget: day length, SAG tier, pay model (as budgeted or everyone at scale with overtime priced off the 8-hour rate), premiums, non-shoot-day cash floor, producers' headcount and days, grants, waterfall. Lines the deal sets are marked on the top sheet; days and descriptions stay editable.
 - **Top sheet and budget.** Movie-Magic-style chart of accounts with per-line fringes (a rate plus a wage-base cap per line; the model was fitted against a real Shamel Studio export and reproduces its math to the cent). Add, edit and remove lines, accounts, categories and fringes in place. Shows cash budget, deferred total and points value side by side.
 - **Stripboard.** Drag to reorder, insert day breaks, or auto-break at a pages-per-day target without changing your scene order. Day summaries, day-out-of-days with work and hold days, and a one-click sync of cast work days into the cast budget lines and the points schedule.
 - **Points and waterfall.** Two waterfalls: recoup-first, and off-the-gross where the pool takes a share from dollar one. Tiers are multipliers on days worked, with a per-person bonus multiplier. Payouts at three revenue scenarios, investor multiples, and each person's cash pay next to their points.
-- **SAG tier.** Total production cost the way SAG measures it (deferred pay counts, points do not). Ultra Low, Moderate Low, Low Budget and Basic caps, with and without the Diversity in Casting incentive. Re-rate every performer line at a tier's scale in one click, or press *Pay everyone scale* for the *Sing Sing* deal: one day rate for everyone above and below the line, producers included, with the premiums (fees, script, star allowances) moved to points, deferred, or deleted.
+- **SAG tier.** Total production cost the way SAG measures it (deferred pay counts, points do not). Ultra Low, Moderate Low, Low Budget and Basic caps, with and without the Diversity in Casting incentive, checked against the effective budget.
 - **Local-first.** No accounts, no server, no telemetry. Autosaves to your browser; Save and Open a `.json` project file to keep it or hand it to a collaborator.
 
 ## Run it locally
@@ -50,7 +51,7 @@ Needs Node 20 or newer. The Pages workflow in `.github/workflows/pages.yml` buil
 ## How it's built
 
 ```
-src/engine/            pure TypeScript, no React: budget math, SAG tiers, waterfall, board, importers
+src/engine/            pure TypeScript, no React: budget math, the deal layer (deal.ts), SAG tiers, waterfall, board, importers
 src/engine/*.test.ts   vitest
 src/data/              the sample project, the standard chart of accounts, and the seed builder
 src/ui/                React views

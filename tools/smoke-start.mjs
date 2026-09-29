@@ -14,6 +14,7 @@ console.log('first tab:', await page.locator('nav.tabs button.on').innerText());
 // from scratch
 await page.getByPlaceholder('Working title').fill('Test Film');
 await page.getByRole('button', { name: 'Start from scratch' }).click(); await page.waitForTimeout(300);
+await page.getByRole('button', { name: 'Top sheet & budget', exact: true }).click(); await page.waitForTimeout(200);
 console.log('KPI blank:', (await page.locator('.kpi').innerText()).replace(/\n/g,' | '));
 await page.getByText('2600 CAMERA').click();
 await page.getByText('2601 DIRECTOR OF PHOTOGRAPHY').click().catch(async()=>{ const t = await page.locator('tr.acct').first().innerText(); console.log('first acct:', t); await page.locator('tr.acct td').first().click(); });
@@ -43,7 +44,8 @@ console.log('armed label:', await page.getByRole('button', { name: /Import \.xls
 const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.getByRole('button', { name: /Import \.xlsx/ }).click()]);
 await chooser.setFiles(fileURLToPath(new URL('./fixtures/mmb-export.csv', import.meta.url)));
 await page.waitForTimeout(600);
-console.log('notice:', await page.locator('.notice').innerText());
+console.log('notice:', await page.locator('.notice').first().innerText());
+await page.getByRole('button', { name: 'Top sheet & budget', exact: true }).click(); await page.waitForTimeout(200);
 console.log('KPI after import:', (await page.locator('.kpi').innerText()).replace(/\n/g,' | '));
 await page.getByText('2100 PRODUCTION STAFF').click(); await page.getByText('2102 1ST ASSISTANT DIRECTOR').click(); await page.waitForTimeout(200);
 await page.screenshot({ path: out + 'imported.png' });

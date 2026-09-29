@@ -124,15 +124,7 @@ export function sampleProject(): Project {
   };
 }
 
-/** The above-scale above-the-line money, in three groups, so a deal can treat each one differently
- *  (Sing Sing put all of it on the back end; a writer or producer who needs rent money keeps theirs in cash). */
-export const PRESET_GROUPS = {
-  producers: { label: 'Producer fees (1201 Fee lines)', match: (l: LineItem) => l.accountId === '1201' && /^Fee$/i.test(l.description) },
-  script: { label: 'Script purchase (1102)', match: (l: LineItem) => l.accountId === '1102' && /script purchase/i.test(l.description) },
-  allowances: { label: 'STAR / CAST ALLOWANCE lines (above-scale cast money)', match: (l: LineItem) => /^(STAR|CAST) ALLOWANCE$/i.test(l.description) },
-} as const;
-export type PresetGroup = keyof typeof PRESET_GROUPS;
-export const PROFIT_SHARE_PRESET_MATCH = (l: LineItem) => Object.values(PRESET_GROUPS).some(g => g.match(l));
+export { PRESET_GROUPS, PROFIT_SHARE_PRESET_MATCH, type PresetGroup } from '../engine/deal';
 
 /** A standard feature chart of accounts (Movie Magic style numbering: 1100 Story & Screenplay … 5200 General Expenses), no lines. */
 export function standardChartOfAccounts(): { categories: Category[]; accounts: Account[] } {

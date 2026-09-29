@@ -113,6 +113,24 @@ export interface Board {
   targetEighthsPerDay: number; // used by auto day-breaks
 }
 
+// ---------- the deal ----------
+
+export type PremiumGroup = 'producers' | 'script' | 'allowances';
+export type PremiumChoice = 'cash' | 'points' | 'deferred' | 'delete';
+
+/** Terms applied on top of the raw budget. The raw lines are never rewritten; applyDeal() derives the effective budget. */
+export interface Deal {
+  pay: {
+    model: 'as-budgeted' | 'everyone-at-scale';
+    rerateCast: boolean;                  // as-budgeted only: put SAG performer lines on the target tier's scale
+    crewBasis: SagTierId | 'custom';      // everyone-at-scale: the 8-hour rate crew and producers share
+    crewCustomRate: number;
+    premiums: Record<PremiumGroup, PremiumChoice>;   // producer fees, script purchase, star / cast allowances
+  };
+  producers: { count: number | null; days: number };   // count null = as many as the budget has Fee lines for
+  nonShoot: { enabled: boolean; cashHourly: number; rest: 'points' | 'deferred' };
+}
+
 // ---------- the whole project ----------
 
 export interface Project {
@@ -132,5 +150,6 @@ export interface Project {
   waterfall: Waterfall;
   sag: SagSettings;
   board: Board;
+  deal?: Deal;
   notes?: string;
 }

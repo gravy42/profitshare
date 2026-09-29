@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Project } from './engine/types';
 import { sampleProject } from './data/seed';
+import { withDeal } from './engine/deal';
 
 const KEY = 'profitshare.project';
 const HISTORY = 30;
@@ -8,7 +9,7 @@ const HISTORY = 30;
 function loadSaved(): Project | null {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) { const p = JSON.parse(raw); if (p && p.schemaVersion === 1) return p; }
+    if (raw) { const p = JSON.parse(raw); if (p && p.schemaVersion === 1) return withDeal(p); }
   } catch { /* private mode, blocked storage, corrupt json – fall through */ }
   return null;
 }
@@ -40,7 +41,7 @@ export function useProject() {
     if (prev) setProjectState(prev);
   }, []);
 
-  const replace = useCallback((p: Project) => { past.current = []; setProjectState(p); setDirty(false); }, []);
+  const replace = useCallback((p: Project) => { past.current = []; setProjectState(withDeal(p)); setDirty(false); }, []);
 
   return { project, setProject, undo, replace, dirty, setDirty, canUndo: past.current.length > 0 };
 }

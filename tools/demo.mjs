@@ -62,37 +62,44 @@ await wait(300);
 // 1. start screen
 await cap('Three ways in: start from scratch, drop a file, or load the sample.', 2600);
 await click(page.getByRole('button', { name: 'Load the sample' }), 900);
-await cap('Salt Flat: an invented 12-day SAG feature. $811,758 in cash, every line with a pay type.', 2600);
 
-// 2. open cast, flip a line to points
-await click(page.getByText('1400 CAST'), 500);
-await click(page.getByText('1401 PRINCIPAL CAST'), 800);
-await cap('Cash is what you raise. Deferred is an IOU. Points live in the back end.', 2400);
-const starIdx = await page.locator('tr.line input.l').evaluateAll(els => els.findIndex(e => e.value === 'STAR ALLOWANCE'));
-const star = page.locator('tr.line').nth(starIdx);
-const paySel = star.locator('select.tag');
-await moveTo(paySel, 300);
-await paySel.selectOption('points');
-await wait(400);
-await cap('Move the star allowance to points and the cash budget drops by $15,000, live.', 2800);
+// 2. the deal tab
+await cap('Every term of the deal lives on one page. The budget you imported is never rewritten; the terms sit on top of it.', 3200);
+await cap('Salt Flat: an invented 12-day SAG feature. $811,758 in cash as budgeted.', 2400);
+await scrollTo(560, 1000);
+await click(page.getByText('Everyone at scale (the'), 900);
+await cap('Flip to the Sing Sing deal: one hourly for everyone, above and below the line, overtime on top. The budget reprices live.', 3400);
+await scrollTo(1000, 900);
+const sels = await page.locator('table select').all();
+for (const sel of sels) { await moveTo(sel, 150); await sel.selectOption('points'); await wait(350); }
+await cap('Producer fees, the script purchase and the star allowance move to the back end. The cash figure drops with each one.', 3200);
+await scrollTo(1250, 900);
+await click(page.getByLabel(/Pay non-shoot days/), 700);
+await cap('Prep, wrap and post days at a cash floor, balance to the back end. Days worked and points don\'t change; cash does.', 3200);
+await scrollTo(0, 600);
 await cap(null);
 
-// 3. SAG tab
+// 3. top sheet shows what the deal set
+await click(page.getByRole('button', { name: 'Top sheet & budget', exact: true }), 800);
+await cap('The top sheet shows the result. Lines the deal set are marked; days and descriptions stay yours.', 2600);
+await click(page.getByText('1200 PRODUCERS'), 500);
+await click(page.getByText('1201 PRODUCERS'), 1600);
+await cap(null);
+
+// 4. SAG tab
 await click(page.getByRole('button', { name: 'SAG tier', exact: true }), 800);
-await cap('SAG measures total production cost. Deferred pay counts; points do not.', 2600);
-await click(page.getByRole('button', { name: /Ticked lines/ }), 900);
-await cap('Producer fees and the script go to points: $105,000 off the top, and the film drops from Low Budget to Moderate Low Budget scale.', 3600);
+await cap('SAG measures total production cost. Deferred pay counts; points do not. This page checks the budget against every tier.', 3200);
 await cap(null);
 
-// 4. points tab
+// 5. points tab
 await click(page.getByRole('button', { name: 'Points & waterfall', exact: true }), 800);
-await cap('The back end is split by days worked times a tier multiplier, at three revenue scenarios.', 2800);
+await cap('The back end is split by days worked times a tier multiplier, at three revenue scenarios. Grants are never recouped.', 3000);
 await scrollTo(420, 1600);
 await cap('Everyone on the schedule is here, cast and crew, with cash pay next to their points.', 2600);
 await scrollTo(0, 600);
 await cap(null);
 
-// 5. stripboard
+// 5b. stripboard
 await click(page.getByRole('button', { name: 'Stripboard', exact: true }), 800);
 await cap('The stripboard: drag to reorder, or let it place the day breaks.', 2200);
 await click(page.getByRole('button', { name: /^Fit to \d+ days$/ }), 900);
@@ -120,6 +127,7 @@ await page.evaluate(text => {
 }, csv);
 await wait(1200);
 await cap('It works out what it got and imports it: accounts, lines, fringes.', 2600);
+await click(page.getByRole('button', { name: 'Top sheet & budget', exact: true }), 600);
 await click(page.getByText('2100 PRODUCTION STAFF'), 500);
 await click(page.getByText('2102 1ST ASSISTANT DIRECTOR'), 1800);
 await cap(null);

@@ -11,13 +11,18 @@ for (const scheme of ['light', 'dark']) {
   page.on('console', m => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
   await page.goto(file); await page.waitForTimeout(500);
   await page.getByRole('button', { name: 'Load the sample' }).click(); await page.waitForTimeout(400);
+  await page.getByRole('button', { name: 'Top sheet & budget', exact: true }).click(); await page.waitForTimeout(200);
   await page.getByText('1400 CAST').click(); await page.getByText('1401 PRINCIPAL CAST').click(); await page.waitForTimeout(200);
   await page.screenshot({ path: `${out}${scheme}-top.png` });
-  for (const [name, label] of [['board', 'Stripboard'], ['points', 'Points & waterfall'], ['sag', 'SAG tier']]) {
+  for (const [name, label] of [['deal', 'Deal'], ['board', 'Stripboard'], ['points', 'Points & waterfall'], ['sag', 'SAG tier']]) {
     await page.getByRole('button', { name: label, exact: true }).click(); await page.waitForTimeout(300);
     if (name === 'board') { await page.getByRole('button', { name: 'Auto day breaks' }).click(); await page.waitForTimeout(300); }
-    if (name === 'sag') { await page.getByRole('button', { name: /Ticked lines/ }).click(); await page.waitForTimeout(300); }
-    await page.screenshot({ path: `${out}${scheme}-${name}.png` });
+    if (name === 'deal') {
+      // premiums to points via the Deal tab selects (producer fees, script, allowances)
+      for (const sel of await page.locator('table select').all()) await sel.selectOption('points');
+      await page.waitForTimeout(300);
+    }
+    await page.screenshot({ path: `${out}${scheme}-${name}.png`, fullPage: name === 'deal' });
   }
   console.log(scheme, 'KPI after preset:', (await page.locator('.kpi').innerText()).replace(/\n/g, ' | '));
   // drag-and-drop intake: drop a budget and a board together

@@ -326,3 +326,35 @@ describe('non-recoupable financing', () => {
     expect(b.pools[1]).toBeGreaterThan(a.pools[1]);       // at $3M, more reaches the crew when less has to be recouped
   });
 });
+
+import { applyDeal, withDeal, dealControlledIds } from './deal';
+describe('the deal layer', () => {
+  it('is the identity for a project with default terms', () => {
+    const p = withDeal(seed);
+    const e = applyDeal(p);
+    expect(topSheet(e).cashBudget).toBeCloseTo(topSheet(seed).cashBudget, 2);
+    expect(dealControlledIds(p, e).size).toBe(0);
+  });
+  it('reproduces everyone-at-scale + premiums + floor from terms, and never touches the raw lines', () => {
+    const p = withDeal(seed);
+    const terms = { ...p, dayHours: 10 as const, deal: { ...p.deal!, pay: { ...p.deal!.pay, model: 'everyone-at-scale' as const, crewBasis: 'MLB' as const, premiums: { producers: 'points' as const, script: 'points' as const, allowances: 'delete' as const } }, producers: { count: 1, days: 30 }, nonShoot: { enabled: true, cashHourly: 16.9, rest: 'points' as const } } };
+    const e = applyDeal(terms);
+    // by hand, in the same order
+    let h = setDayHours({ ...p, dayHours: 12 }, 10);
+    const prods = h.participants.filter(x => x.id.startsWith('p_producer'));
+    h = { ...h, participants: [...h.participants.filter(x => !x.id.startsWith('p_producer')), { ...prods[0], days: 30 }] };
+    h = everyoneAtScale(h, 'MLB', { premiums: 'keep', producerDays: 30, crewDayRate: 449 });
+    h = { ...h, lines: h.lines.flatMap(l => /ALLOWANCE$/.test(l.description) ? [] : (l.accountId === '1201' && /^Fee$/.test(l.description)) || (l.accountId === '1102' && /script purchase/i.test(l.description)) ? [{ ...l, payType: 'points' as const }] : [l]) };
+    h = floorNonShootDays(h, { cashHourly: 16.9, rest: 'points' });
+    expect(topSheet(e).cashBudget).toBeCloseTo(topSheet(h).cashBudget, 2);
+    expect(e.lines.filter(l => l.accountId === '1201' && isPayrollLine(l) && l.payType === 'cash').map(l => l.amount)).toEqual([12, 18]);  // one producer: 12 shoot + 18 floored
+    expect(terms.lines).toEqual(seed.lines);                                   // raw untouched
+    expect(dealControlledIds(terms, e).size).toBeGreaterThan(20);
+  });
+  it('fills missing terms on an old project file', () => {
+    const { deal, ...old } = withDeal(seed);
+    const p = withDeal(old as any);
+    expect(p.deal!.pay.model).toBe('as-budgeted');
+    expect(p.deal!.producers.days).toBe(seed.shootDays + 40);
+  });
+});

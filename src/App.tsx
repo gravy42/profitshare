@@ -11,18 +11,22 @@ import { TopSheetView } from './ui/TopSheetView';
 import { PointsView } from './ui/PointsView';
 import { SagView } from './ui/SagView';
 import { BoardView } from './ui/BoardView';
+import { DealView } from './ui/DealView';
+import { applyDeal, dealControlledIds, withDeal } from './engine/deal';
 import { StartView } from './ui/StartView';
 import { money } from './ui/format';
 
-type Tab = 'start' | 'topsheet' | 'board' | 'points' | 'sag' | 'about';
+type Tab = 'start' | 'deal' | 'topsheet' | 'board' | 'points' | 'sag' | 'about';
 
 export default function App() {
   const { project, setProject, undo, replace, canUndo } = useProject();
   const [hadSaved] = useState(hadSavedProject);
   const [tab, setTab] = useState<Tab>(hadSaved ? 'topsheet' : 'start');
   const [msg, setMsg] = useState<string | null>(null);
-  const ts = topSheet(project);
-  const sag = sagReport(project);
+  const eff = applyDeal(project);                 // the budget with the deal terms applied; every view reads this
+  const controlled = dealControlledIds(project, eff);
+  const ts = topSheet(eff);
+  const sag = sagReport(eff);
 
   const flash = (m: string) => { setMsg(m); setTimeout(() => setMsg(null), 6000); };
 
@@ -32,11 +36,11 @@ export default function App() {
 
   const [pendingProject, setPendingProject] = useState<{ project: Project; name: string } | null>(null);
   const loadProjectFile = async (f: File) => {
-    const p = JSON.parse(await f.text());
+    const p = withDeal(JSON.parse(await f.text()));
     if (p?.schemaVersion !== 1) throw new Error(`${f.name} is not a ProfitShare project`);
     const current = project;
     const empty = current.lines.length === 0 && current.board.scenes.length === 0;
-    if (fresh || empty) { replace(p); setFresh(false); setTab('topsheet'); return `Opened ${f.name}`; }
+    if (fresh || empty) { replace(p); setFresh(false); setTab('deal'); return `Opened ${f.name}`; }
     setPendingProject({ project: p, name: f.name });
     return `${f.name} is ready; it will replace the project you have open.`;
   };
@@ -49,7 +53,7 @@ export default function App() {
     });
     setFresh(false);
     const via = imp.source === 'shamel' ? 'Shamel Studio' : 'spreadsheet';
-    setTab('topsheet');
+    setTab('deal');
     return `${imp.lines.length} budget lines from ${f.name} (${via}${imp.reportedTotal ? `, file total ${money(imp.reportedTotal)}` : ''})${imp.warnings.length ? `. ${imp.warnings.length} note${imp.warnings.length > 1 ? 's' : ''}: ${imp.warnings.slice(0, 3).join('; ')}` : ''}`;
   };
   const loadBoardFile = async (f: File) => {
@@ -106,8 +110,8 @@ export default function App() {
     if (fresh || armed) { setArmed(false); setFresh(false); go(); }
     else { setArmed(true); flash('Press the button again to replace the current project (Save first if you want to keep it).'); }
   };
-  const startBlank = (o: BlankOptions) => guard(() => { replace(blankProject(o)); setTab('topsheet'); flash('Blank budget ready. Open a category, then an account, and press + line.'); });
-  const startSample = () => guard(() => { replace(sampleProject()); setTab('topsheet'); flash('Sample project loaded: SALT FLAT, an invented 12-day feature'); });
+  const startBlank = (o: BlankOptions) => guard(() => { replace(blankProject(o)); setTab('deal'); flash('Blank budget ready. Set the terms here, then build lines on the Top sheet.'); });
+  const startSample = () => guard(() => { replace(sampleProject()); setTab('deal'); flash('Sample project loaded: SALT FLAT, an invented 12-day feature. These are its terms; change any of them.'); });
   const startImport = () => guard(() => { replace(blankProject({ chartOfAccounts: 'empty' })); void importBudget(); });
   const startOpen = () => guard(() => void openJson());
   const copyJson = async () => {
@@ -128,6 +132,7 @@ export default function App() {
         <span className="spacer" />
         <span className="kpi">
           <span>Cash budget<b>{money(ts.cashBudget)}</b></span>
+          <span>Deal<b>{project.deal?.pay.model === 'everyone-at-scale' ? 'everyone at scale' : 'as budgeted'}</b></span>
           <span>Points value<b>{money(ts.pointsValue)}</b></span>
           <span>SAG<b>{sag.qualifying.id}{sag.dic ? '+DIC' : ''}</b></span>
         </span>
@@ -142,7 +147,7 @@ export default function App() {
         </span>
       </header>
       <nav className="tabs">
-        {([['start', 'Start'], ['topsheet', 'Top sheet & budget'], ['board', 'Stripboard'], ['points', 'Points & waterfall'], ['sag', 'SAG tier'], ['about', 'About']] as [Tab, string][]).map(([k, label]) =>
+        {([['start', 'Start'], ['deal', 'Deal'], ['topsheet', 'Top sheet & budget'], ['board', 'Stripboard'], ['points', 'Points & waterfall'], ['sag', 'SAG tier'], ['about', 'About']] as [Tab, string][]).map(([k, label]) =>
           <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{label}</button>)}
       </nav>
       <main>
@@ -155,10 +160,14 @@ export default function App() {
           </div>
         )}
         {tab === 'start' && <StartView onBlank={startBlank} onImportBudget={startImport} onOpen={startOpen} onSample={startSample} armed={armed} />}
-        {tab === 'topsheet' && <TopSheetView project={project} setProject={setProject} />}
-        {tab === 'board' && <BoardView project={project} setProject={setProject} />}
-        {tab === 'points' && <PointsView project={project} setProject={setProject} />}
-        {tab === 'sag' && <SagView project={project} setProject={setProject} />}
+        {tab === 'deal' && <DealView raw={project} eff={eff} setProject={setProject} fresh={!hadSaved} />}
+        {tab === 'topsheet' && <>
+          {controlled.size > 0 && <div className="notice">{controlled.size} line{controlled.size > 1 ? 's are' : ' is'} set by the deal (marked <span className="tag points">deal</span>): rates, hours or pay type come from the Deal tab. Days and descriptions are still yours to edit.</div>}
+          <TopSheetView project={eff} raw={project} controlled={controlled} setProject={setProject} />
+        </>}
+        {tab === 'board' && <BoardView project={eff} setProject={setProject} />}
+        {tab === 'points' && <PointsView project={eff} setProject={setProject} />}
+        {tab === 'sag' && <SagView project={eff} />}
         {tab === 'about' && <About onStart={() => setTab('start')} />}
         <footer>ProfitShare · open source, MIT · your data stays in this browser until you press Save · not legal, tax or financial advice</footer>
       </main>
@@ -172,6 +181,7 @@ function About({ onStart }: { onStart: () => void }) {
       <h2>About ProfitShare</h2>
       <div className="help">
         <p>Budgeting and scheduling software stops at the cash column. ProfitShare is built for films where part of everyone's pay is a share of the back end. Every budget line carries a pay type: <span className="tag cash">cash</span> is what you raise, <span className="tag deferred">deferred</span> is a fixed IOU, <span className="tag points">points</span> is contingent participation. The top sheet, the SAG tier check and the points schedule all update from the same lines.</p>
+        <p><b>The Deal tab</b> holds every term (day length, SAG tier, pay model, premiums, cash floor, grants, waterfall) as a layer over the raw budget. Nothing you imported is rewritten; every tab recomputes from budget plus terms, live, and any term can change at any time.</p>
         <p>The stripboard feeds the same model: place day breaks, and the day-out-of-days tells you each actor's work days, which you can push straight into the cast lines and the points schedule.</p>
         <p><b>Local-first.</b> Nothing leaves your browser. Autosave keeps your work in this browser; press Save to download a .json you can open anywhere or share with a collaborator, and Open to load one.</p>
         <p><b>Imports.</b> Budgets from Shamel Studio (.xlsx) and Movie Magic Budgeting (Excel or CSV export), or any spreadsheet with account, description, amount, rate and total columns. Boards from Movie Magic Scheduling (.sex, which Shamel also exports) and Final Draft scripts (.fdx).</p>

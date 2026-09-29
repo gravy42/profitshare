@@ -107,7 +107,7 @@ export function payrollFringeSet(p: Project): string[] {
 
 export interface EveryoneAtScaleOptions {
   /** what happens to producer fees, the script purchase and star/cast allowances */
-  premiums: 'points' | 'deferred' | 'delete';
+  premiums: 'points' | 'deferred' | 'delete' | 'keep';
   /** days a producer works when no wage line exists for them yet (default: shoot days + 40 of prep/wrap/post) */
   producerDays?: number;
   /** the 8-hour day rate everyone who is not a SAG performer gets (default: the tier's day rate). Cast are always
@@ -133,7 +133,7 @@ export function everyoneAtScale(p: Project, tierId: SagTierId, opts: EveryoneAtS
     /^(STAR|CAST) ALLOWANCE$/i.test(l.description);
 
   let lines = out.lines.flatMap(l => {
-    if (premiums(l)) return opts.premiums === 'delete' ? [] : [{ ...l, payType: opts.premiums }];
+    if (premiums(l)) return opts.premiums === 'keep' ? [l] : opts.premiums === 'delete' ? [] : [{ ...l, payType: opts.premiums }];
     if (isPayrollLine(l) && !isSagPerformerLine(l)) {
       if (l.unit === 'WEEK') return [{ ...l, rate: Math.round(hourly * hours.day * 5 * 100) / 100, multiplier: 1 }]; // five crew days
       const m = l.multiplier === hours.long ? hours.long : hours.day;

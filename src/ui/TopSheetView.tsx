@@ -10,9 +10,11 @@ const PAY: PayType[] = ['cash', 'deferred', 'points'];
 const UNITS = ['-', 'DAY', 'WEEK', 'HOUR', 'ALLOW', 'ITEM', 'MONTH', 'FLAT', 'FEET', 'MILE'];
 const SECTION_LABEL: Record<Section, string> = { ATL: 'above the line', PRODUCTION: 'production', POST: 'post production', OTHER: 'other' };
 
-type Set = (f: (p: Project) => Project) => void;
+type Setter = (f: (p: Project) => Project) => void;
 
-export function TopSheetView({ project, setProject }: { project: Project; setProject: Set }) {
+export function TopSheetView({ project, raw, controlled, setProject }: { project: Project; raw?: Project; controlled?: Set<string>; setProject: Setter }) {
+  const rawP = raw ?? project;
+  const locked = controlled ?? new Set<string>();
   const ts = topSheet(project);
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const [openAcct, setOpenAcct] = useState<Record<string, boolean>>({});
@@ -78,7 +80,7 @@ export function TopSheetView({ project, setProject }: { project: Project; setPro
               </tr>
               {show && (
                 <tr key={ak + '_lines'}><td colSpan={5} style={{ padding: 0 }}>
-                  <LineTable lines={lines} project={project} patch={patch} setProject={setProject} onAdd={() => onAddLine(ak)} />
+                  <LineTable lines={lines} project={project} locked={locked} patch={patch} setProject={setProject} onAdd={() => onAddLine(ak)} />
                 </td></tr>
               )}
             </>
@@ -135,12 +137,12 @@ export function TopSheetView({ project, setProject }: { project: Project; setPro
           </tbody>
         </table>
       </div>
-      <FringesPanel project={project} setProject={setProject} />
+      <FringesPanel project={rawP} setProject={setProject} />
     </div>
   );
 }
 
-function NewCategoryRow({ section, project, setProject }: { section: Section; project: Project; setProject: Set }) {
+function NewCategoryRow({ section, project, setProject }: { section: Section; project: Project; setProject: Setter }) {
   const [num, setNum] = useState(''); const [name, setName] = useState('');
   const taken = project.categories.some(c => c.number === num.trim());
   const add = () => { if (!num.trim() || taken) return; setProject(p => addCategory(p, num, name, section)); setNum(''); setName(''); };
@@ -154,7 +156,7 @@ function NewCategoryRow({ section, project, setProject }: { section: Section; pr
   );
 }
 
-function NewAccountRow({ category, project, setProject }: { category: string; project: Project; setProject: Set }) {
+function NewAccountRow({ category, project, setProject }: { category: string; project: Project; setProject: Setter }) {
   const [num, setNum] = useState(''); const [name, setName] = useState('');
   const taken = project.accounts.some(a => a.number === num.trim());
   const add = () => { if (!num.trim() || taken) return; setProject(p => addAccount(p, category, num, name)); setNum(''); setName(''); };
@@ -168,7 +170,7 @@ function NewAccountRow({ category, project, setProject }: { category: string; pr
   );
 }
 
-function LineTable({ lines, project, patch, setProject, onAdd }: { lines: LineItem[]; project: Project; patch: (id: string, p: Partial<LineItem>) => void; setProject: Set; onAdd: () => void }) {
+function LineTable({ lines, project, locked, patch, setProject, onAdd }: { lines: LineItem[]; project: Project; locked: Set<string>; patch: (id: string, p: Partial<LineItem>) => void; setProject: Setter; onAdd: () => void }) {
   return (
     <table>
       {lines.length > 0 && <thead><tr><th className="l">Description</th><th>Amt</th><th>Unit</th><th>×</th><th>Rate</th><th>Subtotal</th><th>Fringes</th><th>Total</th><th>Fringes</th><th>Pay</th><th /></tr></thead>}
@@ -176,19 +178,21 @@ function LineTable({ lines, project, patch, setProject, onAdd }: { lines: LineIt
         {lines.map(l => {
           const sub = lineSubtotal(l), fr = lineFringes(l, project.fringes);
           const dim = l.amount === 0 || l.rate === 0;
+          const byDeal = locked.has(l.id);
+          const derived = /^(SPLIT:|L_scale_)/.test(l.id);   // a line the deal created; it has no raw line to edit
           return (
-            <tr key={l.id} className={`line${dim ? ' dim' : ''}`}>
-              <td><input className="l" value={l.description} placeholder="description" onChange={e => patch(l.id, { description: e.target.value })} /></td>
-              <td className="num"><input type="number" step="any" value={l.amount} onChange={e => patch(l.id, { amount: +e.target.value })} /></td>
-              <td><select value={l.unit} onChange={e => patch(l.id, { unit: e.target.value })}>{(UNITS.includes(l.unit) ? UNITS : [...UNITS, l.unit]).map(u => <option key={u}>{u}</option>)}</select></td>
-              <td className="num"><input type="number" step="any" value={l.multiplier} onChange={e => patch(l.id, { multiplier: +e.target.value })} /></td>
-              <td className="num"><input type="number" step="any" value={l.rate} onChange={e => patch(l.id, { rate: +e.target.value })} /></td>
+            <tr key={l.id} className={`line${dim ? ' dim' : ''}`} title={byDeal ? 'Set by the deal (Deal tab)' : undefined}>
+              <td>{derived ? <span style={{ paddingLeft: 4 }}>{l.description} <span className="tag points">deal</span></span> : <><input className="l" value={l.description} placeholder="description" onChange={e => patch(l.id, { description: e.target.value })} />{byDeal && <span className="tag points" style={{ marginLeft: 4 }}>deal</span>}</>}</td>
+              <td className="num">{derived ? l.amount : <input type="number" step="any" value={l.amount} onChange={e => patch(l.id, { amount: +e.target.value })} />}</td>
+              <td>{byDeal ? l.unit : <select value={l.unit} onChange={e => patch(l.id, { unit: e.target.value })}>{(UNITS.includes(l.unit) ? UNITS : [...UNITS, l.unit]).map(u => <option key={u}>{u}</option>)}</select>}</td>
+              <td className="num">{byDeal ? l.multiplier : <input type="number" step="any" value={l.multiplier} onChange={e => patch(l.id, { multiplier: +e.target.value })} />}</td>
+              <td className="num">{byDeal ? l.rate : <input type="number" step="any" value={l.rate} onChange={e => patch(l.id, { rate: +e.target.value })} />}</td>
               <td>{money(sub, 2)}</td>
               <td className="muted">{fr ? money(fr, 2) : ''}</td>
               <td><b>{money(sub + fr, 2)}</b></td>
-              <td><FringePicker line={l} fringes={project.fringes} onToggle={id => setProject(p => toggleLineFringe(p, l.id, id))} /></td>
-              <td><select value={l.payType} onChange={e => patch(l.id, { payType: e.target.value as PayType })} className={`tag ${l.payType}`}>{PAY.map(p => <option key={p} value={p}>{p}</option>)}</select></td>
-              <td><button className="btn small danger" title="Remove line" onClick={() => setProject(p => removeLine(p, l.id))}>×</button></td>
+              <td>{derived ? <span className="muted small">{l.fringes.length ? `${l.fringes.length} fr.` : 'none'}</span> : <FringePicker line={l} fringes={project.fringes} onToggle={id => setProject(p => toggleLineFringe(p, l.id, id))} />}</td>
+              <td>{byDeal ? <span className={`tag ${l.payType}`}>{l.payType}</span> : <select value={l.payType} onChange={e => patch(l.id, { payType: e.target.value as PayType })} className={`tag ${l.payType}`}>{PAY.map(p => <option key={p} value={p}>{p}</option>)}</select>}</td>
+              <td>{!derived && <button className="btn small danger" title="Remove line" onClick={() => setProject(p => removeLine(p, l.id))}>×</button>}</td>
             </tr>
           );
         })}
@@ -222,7 +226,7 @@ function FringePicker({ line, fringes, onToggle }: { line: LineItem; fringes: Fr
   );
 }
 
-function FringesPanel({ project, setProject }: { project: Project; setProject: Set }) {
+function FringesPanel({ project, setProject }: { project: Project; setProject: Setter }) {
   const [id, setId] = useState(''); const [rate, setRate] = useState(''); const [cap, setCap] = useState('');
   const used = (fid: string) => project.lines.filter(l => l.fringes.includes(fid)).length;
   const add = () => {
