@@ -49,7 +49,7 @@ The back end splits by days worked times a tier multiplier, at three revenue sce
 [PAUSE: 1.5s]
 
 // CUE 10: stripboard
-The stripboard. Drag to reorder, or fit to twelve days and let it balance the pages. Push cast days into the budget and the points schedule follows.
+The stripboard offers ease, flexibility and integration with your budget. Drag and reorder your days, adjust the number of shoot days, adjust the number of pages per day, then push cast days into the budget and the points schedule follows.
 
 [PAUSE: 1.5s]
 

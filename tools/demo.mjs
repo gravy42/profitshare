@@ -120,8 +120,10 @@ await cap(null);
 
 // 10. stripboard
 await click(page.getByRole('button', { name: 'Stripboard', exact: true }), 500);
-const c10 = cue('The stripboard: drag to reorder, or fit to 12 days and let it balance the pages. Push cast days into the budget and the points schedule follows.', 6200);
-await wait(1500); await click(page.getByRole('button', { name: /^Fit to \d+ days$/ }), 900);
+const c10 = cue('The stripboard: ease, flexibility, and integration with your budget. Drag and reorder, set the shoot days and pages per day, then push cast days into the budget and the points schedule follows.', 8000);
+await wait(1200);
+const daysBox = page.locator('.ctl', { hasText: 'Shoot days' }).locator('input').first(); await moveTo(daysBox, 200); await daysBox.fill('11'); await wait(500); await daysBox.fill('12'); await wait(400);
+await click(page.getByRole('button', { name: /^Fit to \d+ days$/ }), 900);
 await scrollTo(500, 900); await scrollTo(0, 400);
 await click(page.getByRole('button', { name: /Push cast days/ }), 400); await c10;
 await cap(null);
