@@ -1,0 +1,62 @@
+// PROFITSHARE DEMO VOICE-OVER
+// Paste into Chadwick's Pawd Studio > Script tab. Pick a plain narrator voice (not Chadwick), model Multilingual v2, stability 0.5.
+// Each cue is separated by a 1.5s pause so the cue boundaries can be found in the mix and the video re-timed to the read.
+// Keep the cues in this order. Don't add or remove cues; do rewrite any wording you like.
+
+// CUE 1: title card
+ProfitShare. Open-source budgeting and profit-share modelling for independent film. Nothing leaves your browser.
+
+[PAUSE: 1.5s]
+
+// CUE 2: start screen
+Three ways in. Start from scratch, drop in a budget you already have, or load the sample.
+
+[PAUSE: 1.5s]
+
+// CUE 3: deal tab
+Everything about the deal lives on one page, and it sits on top of your budget instead of rewriting it. Salt Flat, our sample, is a twelve-day SAG feature at eight hundred and twelve thousand dollars as budgeted.
+
+[PAUSE: 1.5s]
+
+// CUE 4: everyone at scale
+Flip to the Sing Sing deal. One hourly rate for everyone, above and below the line, overtime on top. The budget reprices while you watch.
+
+[PAUSE: 1.5s]
+
+// CUE 5: premiums
+Producer fees, the script, the star allowance. Each one can stay cash, move to points, or come off the budget entirely.
+
+[PAUSE: 1.5s]
+
+// CUE 6: cash floor
+Prep, wrap and post days at a cash floor, with the balance on the back end. Days worked don't change, so nobody's points change. Cash does.
+
+[PAUSE: 1.5s]
+
+// CUE 7: top sheet
+The top sheet shows the result. Lines the deal set are marked. Days and descriptions are still yours.
+
+[PAUSE: 1.5s]
+
+// CUE 8: SAG
+SAG measures total production cost. Deferred pay counts. Points don't. This page checks the budget against every tier.
+
+[PAUSE: 1.5s]
+
+// CUE 9: points
+The back end splits by days worked times a tier multiplier, at three revenue scenarios. Grants are never recouped. Everyone on the schedule is here, cash pay next to their points.
+
+[PAUSE: 1.5s]
+
+// CUE 10: stripboard
+The stripboard. Drag to reorder, or fit to twelve days and let it balance the pages. Push cast days into the budget and the points schedule follows.
+
+[PAUSE: 1.5s]
+
+// CUE 11: drop import
+Bring your own. Drop a Shamel export, a Movie Magic export, a Movie Magic board or a Final Draft script anywhere on the page. It works out what it got.
+
+[PAUSE: 1.5s]
+
+// CUE 12: end card
+ProfitShare. Free, open source, and yours. github dot com slash gravy four two slash profitshare.

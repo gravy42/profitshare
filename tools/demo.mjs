@@ -1,7 +1,7 @@
 // Records the demo video: drives the single-file build in Chromium with a visible cursor and on-screen captions.
 // Output: demo/profitshare-demo.webm (convert with ffmpeg; see package.json "demo").
 import { chromium } from 'playwright';
-import { readFileSync, mkdirSync, renameSync, readdirSync } from 'node:fs';
+import { readFileSync, mkdirSync, renameSync, readdirSync, existsSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
@@ -9,10 +9,18 @@ const file = 'file://' + root + 'dist-single/index.html';
 const outDir = root + 'demo/';
 mkdirSync(outDir, { recursive: true });
 const W = 1280, H = 800;
+// Optional voice-over timing: demo/vo-timing.json = { cues: [seconds, ...] } from tools/vo-mux.mjs analyze.
+// When present, each cue's on-screen hold stretches to cover the read, and the moment each cue starts is written to
+// demo/cue-times.json so the narration can be laid onto the video.
+const timing = existsSync(outDir + 'vo-timing.json') ? JSON.parse(readFileSync(outDir + 'vo-timing.json', 'utf8')).cues : null;
+const cueTimes = [];
+let t0 = 0;
+let cueIdx = 0;
 
 const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' }).catch(() => chromium.launch());
 const ctx = await browser.newContext({ viewport: { width: W, height: H }, recordVideo: { dir: outDir, size: { width: W, height: H } }, colorScheme: 'light' });
 const page = await ctx.newPage();
+t0 = Date.now();
 await page.addInitScript(() => {
   window.addEventListener('DOMContentLoaded', () => {
     const c = document.createElement('div'); c.id = '__cursor';
@@ -39,6 +47,13 @@ await page.addInitScript(() => {
 const wait = ms => page.waitForTimeout(ms);
 const cap = async (t, ms = 0) => { await page.evaluate(t => window.__caption(t), t); if (ms) await wait(ms); };
 const card = async (title, sub, ms = 0) => { await page.evaluate(([a, b]) => window.__card(a, b), [title, sub]); if (ms) await wait(ms); };
+// a cue = one narration line. `after` is the on-screen action that happens while it plays (runs after `lead` ms).
+const holdFor = (ms) => timing && timing[cueIdx] !== undefined ? Math.max(ms, Math.round(timing[cueIdx] * 1000) + 700) : ms;
+const cue = async (text, ms, { isCard = false, sub = '' } = {}) => {
+  cueTimes.push(Math.round((Date.now() - t0)) / 1000);
+  const hold = holdFor(ms); cueIdx++;
+  if (isCard) await card(text, sub, hold); else await cap(text, hold);
+};
 let cur = { x: W / 2, y: H / 2 };
 const moveTo = async (loc, dwell = 250) => {
   await loc.scrollIntoViewIfNeeded();
@@ -55,89 +70,86 @@ const scrollTo = async (px, ms = 700) => { await page.evaluate(y => window.scrol
 await page.goto(file);
 await page.mouse.move(cur.x, cur.y);
 await wait(400);
-await card('ProfitShare', 'Open-source budgeting, scheduling and profit-share modelling for independent films.<br>Local-first. No accounts. MIT.', 3200);
+await cue('ProfitShare', 3200, { isCard: true, sub: 'Open-source budgeting, scheduling and profit-share modelling for independent films.<br>Local-first. No accounts. MIT.' });
 await card(null);
 await wait(300);
 
-// 1. start screen
-await cap('Three ways in: start from scratch, drop a file, or load the sample.', 2600);
+// 2. start screen
+await cue('Three ways in: start from scratch, drop in a budget you already have, or load the sample.', 3000);
 await click(page.getByRole('button', { name: 'Load the sample' }), 900);
 
-// 2. the deal tab
-await cap('Every term of the deal lives on one page. The budget you imported is never rewritten; the terms sit on top of it.', 3200);
-await cap('Salt Flat: an invented 12-day SAG feature. $811,758 in cash as budgeted.', 2400);
-await scrollTo(560, 1000);
-await click(page.getByText('Everyone at scale (the'), 900);
-await cap('Flip to the Sing Sing deal: one hourly for everyone, above and below the line, overtime on top. The budget reprices live.', 3400);
-await scrollTo(1000, 900);
-const sels = await page.locator('table select').all();
-for (const sel of sels) { await moveTo(sel, 150); await sel.selectOption('points'); await wait(350); }
-await cap('Producer fees, the script purchase and the star allowance move to the back end. The cash figure drops with each one.', 3200);
-await scrollTo(1250, 900);
-await click(page.getByLabel(/Pay non-shoot days/), 700);
-await cap('Prep, wrap and post days at a cash floor, balance to the back end. Days worked and points don\'t change; cash does.', 3200);
-await scrollTo(0, 600);
+// 3. the deal tab
+await cue('One page for every term of the deal, on top of the budget, never rewriting it. Salt Flat: an invented 12-day SAG feature, $811,758 as budgeted.', 6000);
+await scrollTo(560, 900);
+
+// 4. everyone at scale
+const c4 = cue('Flip to the Sing Sing deal: one hourly for everyone, above and below the line, overtime on top. The budget reprices while you watch.', 4200);
+await wait(1200); await click(page.getByText('Everyone at scale (the'), 300); await c4;
+await scrollTo(1000, 800);
+
+// 5. premiums
+const c5 = cue('Producer fees, the script, the star allowance: each can stay cash, move to points, or come off the budget entirely.', 4800);
+await wait(600);
+for (const sel of await page.locator('table select').all()) { await moveTo(sel, 150); await sel.selectOption('points'); await wait(500); }
+await c5;
+await scrollTo(1250, 800);
+
+// 6. cash floor
+const c6 = cue('Prep, wrap and post days at a cash floor, balance on the back end. Days worked don\'t change, so nobody\'s points change. Cash does.', 4600);
+await wait(800); await click(page.getByLabel(/Pay non-shoot days/), 300); await c6;
+await scrollTo(0, 500);
 await cap(null);
 
-// 3. top sheet shows what the deal set
-await click(page.getByRole('button', { name: 'Top sheet & budget', exact: true }), 800);
-await cap('The top sheet shows the result. Lines the deal set are marked; days and descriptions stay yours.', 2600);
-await click(page.getByText('1200 PRODUCERS'), 500);
-await click(page.getByText('1201 PRODUCERS'), 1600);
+// 7. top sheet
+await click(page.getByRole('button', { name: 'Top sheet & budget', exact: true }), 500);
+const c7 = cue('The top sheet shows the result. Lines the deal set are marked; days and descriptions are still yours.', 3600);
+await click(page.getByText('1200 PRODUCERS'), 400); await click(page.getByText('1201 PRODUCERS'), 400); await c7;
 await cap(null);
 
-// 4. SAG tab
-await click(page.getByRole('button', { name: 'SAG tier', exact: true }), 800);
-await cap('SAG measures total production cost. Deferred pay counts; points do not. This page checks the budget against every tier.', 3200);
+// 8. SAG tab
+await click(page.getByRole('button', { name: 'SAG tier', exact: true }), 500);
+await cue('SAG measures total production cost. Deferred pay counts; points don\'t. This page checks the budget against every tier.', 4200);
 await cap(null);
 
-// 5. points tab
-await click(page.getByRole('button', { name: 'Points & waterfall', exact: true }), 800);
-await cap('The back end is split by days worked times a tier multiplier, at three revenue scenarios. Grants are never recouped.', 3000);
-await scrollTo(420, 1600);
-await cap('Everyone on the schedule is here, cast and crew, with cash pay next to their points.', 2600);
-await scrollTo(0, 600);
+// 9. points tab
+await click(page.getByRole('button', { name: 'Points & waterfall', exact: true }), 500);
+const c9 = cue('The back end splits by days worked times a tier multiplier, at three revenue scenarios. Grants are never recouped. Everyone on the schedule is here, cash pay next to their points.', 6500);
+await wait(2600); await scrollTo(420, 1200); await c9;
+await scrollTo(0, 400);
 await cap(null);
 
-// 5b. stripboard
-await click(page.getByRole('button', { name: 'Stripboard', exact: true }), 800);
-await cap('The stripboard: drag to reorder, or let it place the day breaks.', 2200);
-await click(page.getByRole('button', { name: /^Fit to \d+ days$/ }), 900);
-await cap('Fit to 12 days keeps your shooting order and balances the pages.', 2400);
-await scrollTo(500, 1400);
-await scrollTo(0, 600);
-await click(page.getByRole('button', { name: /Push cast days/ }), 800);
-await cap('Push cast days to the budget: the day-out-of-days sets each actor\'s days on the cast lines and in the points schedule.', 3200);
+// 10. stripboard
+await click(page.getByRole('button', { name: 'Stripboard', exact: true }), 500);
+const c10 = cue('The stripboard: drag to reorder, or fit to 12 days and let it balance the pages. Push cast days into the budget and the points schedule follows.', 6200);
+await wait(1500); await click(page.getByRole('button', { name: /^Fit to \d+ days$/ }), 900);
+await scrollTo(500, 900); await scrollTo(0, 400);
+await click(page.getByRole('button', { name: /Push cast days/ }), 400); await c10;
 await cap(null);
 
-// 6. drag and drop
-await click(page.getByRole('button', { name: 'New…' }), 700);
-await cap('Bring your own: drop a Shamel export, a Movie Magic Budgeting export, a .sex board or a Final Draft script anywhere on the page.', 1200);
+// 11. drag and drop
+await click(page.getByRole('button', { name: 'New…' }), 500);
+const c11 = cue('Bring your own: drop a Shamel export, a Movie Magic export, a Movie Magic board or a Final Draft script anywhere on the page. It works out what it got.', 5800);
 const csv = readFileSync(root + 'tools/fixtures/mmb-export.csv', 'utf8');
 await page.evaluate(() => { const ev = new DragEvent('dragenter', { bubbles: true, dataTransfer: new DataTransfer() }); ev.dataTransfer.items.add(new File(['x'], 'x.csv')); window.dispatchEvent(ev); });
-await moveTo(page.locator('.dropzone > div'), 1800);
+await moveTo(page.locator('.dropzone > div'), 1400);
 await page.evaluate(() => { const ev = new DragEvent('dragleave', { bubbles: true, dataTransfer: new DataTransfer() }); ev.dataTransfer.items.add(new File(['x'], 'x.csv')); window.dispatchEvent(ev); });
-// the start screen guards against replacing a project: arm it, then drop for real
-await click(page.getByRole('button', { name: /Import \.xlsx/ }), 300);
+await click(page.getByRole('button', { name: /Import \.xlsx/ }), 200);   // arms the replace guard
 await page.evaluate(() => { const ev = new DragEvent('dragenter', { bubbles: true, dataTransfer: new DataTransfer() }); ev.dataTransfer.items.add(new File(['x'], 'x.csv')); window.dispatchEvent(ev); });
 await wait(300);
-await page.evaluate(text => {
-  const dt = new DataTransfer(); dt.items.add(new File([text], 'movie-magic-export.csv', { type: 'text/csv' }));
-  window.dispatchEvent(new DragEvent('drop', { bubbles: true, dataTransfer: dt }));
-}, csv);
-await wait(1200);
-await cap('It works out what it got and imports it: accounts, lines, fringes.', 2600);
-await click(page.getByRole('button', { name: 'Top sheet & budget', exact: true }), 600);
-await click(page.getByText('2100 PRODUCTION STAFF'), 500);
-await click(page.getByText('2102 1ST ASSISTANT DIRECTOR'), 1800);
+await page.evaluate(text => { const dt = new DataTransfer(); dt.items.add(new File([text], 'movie-magic-export.csv', { type: 'text/csv' })); window.dispatchEvent(new DragEvent('drop', { bubbles: true, dataTransfer: dt })); }, csv);
+await wait(800);
+await click(page.getByRole('button', { name: 'Top sheet & budget', exact: true }), 400);
+await click(page.getByText('2100 PRODUCTION STAFF'), 400); await click(page.getByText('2102 1ST ASSISTANT DIRECTOR'), 400);
+await c11;
 await cap(null);
 
-// 7. end card
-await card('ProfitShare', 'github.com/gravy42/profitshare<br><span style="font-size:18px;opacity:.85">Budget, stripboard, SAG tier and profit-share waterfall in one file. Yours stays in your browser.</span>', 3600);
+// 12. end card
+await cue('ProfitShare', 4200, { isCard: true, sub: 'github.com/gravy42/profitshare<br><span style="font-size:18px;opacity:.85">Free, open source, and yours. Budget, stripboard, SAG tier and profit-share waterfall in one file.</span>' });
 
+writeFileSync(outDir + 'cue-times.json', JSON.stringify({ cues: cueTimes }, null, 1));
 await page.close();
 await ctx.close();
 await browser.close();
 const webm = readdirSync(outDir).find(f => f.endsWith('.webm'));
 renameSync(outDir + webm, outDir + 'profitshare-demo.webm');
-console.log('wrote demo/profitshare-demo.webm');
+console.log('wrote demo/profitshare-demo.webm; cue starts (s):', cueTimes.map(t => t.toFixed(1)).join(' '));

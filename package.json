@@ -13,8 +13,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "smoke": "npm run build:single && node tools/smoke.mjs",
-    "demo": "npm run build:single && node tools/demo.mjs && ffmpeg -y -loglevel error -i demo/profitshare-demo.webm -c:v libx264 -preset slow -crf 20 -pix_fmt yuv420p -movflags +faststart demo/profitshare-demo.mp4 && rm demo/profitshare-demo.webm",
-    "sample": "node tools/make-sample.mjs"
+    "demo": "npm run build:single && node tools/demo.mjs && ffmpeg -y -loglevel error -i demo/profitshare-demo.webm -c:v libx264 -preset slow -crf 20 -pix_fmt yuv420p -movflags +faststart demo/profitshare-demo.mp4",
+    "sample": "node tools/make-sample.mjs",
+    "demo:vo": "node tools/vo-mux.mjs analyze demo/vo.mp3 && node tools/demo.mjs && node tools/vo-mux.mjs mux demo/vo.mp3"
   },
   "dependencies": {
     "react": "^18.3.1",
