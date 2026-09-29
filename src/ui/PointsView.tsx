@@ -28,15 +28,16 @@ export function PointsView({ project, setProject }: { project: Project; setProje
               <option value="off-the-gross">Off the gross (Sing Sing)</option>
               <option value="recoup-first">Recoup first</option>
             </select></div>
-          <div className="ctl"><label>Investor recoup %</label><input type="number" step={5} value={w.recoupPct} onChange={e => setW({ recoupPct: +e.target.value })} /><div className="hint">of the cash budget</div></div>
+          <div className="ctl"><label>Grants / fiscal sponsorship ($)</label><input type="number" step={10000} value={w.nonRecoupable ?? 0} onChange={e => setW({ nonRecoupable: Math.max(0, +e.target.value || 0) })} /><div className="hint">never paid back; investors recoup the rest</div></div>
+          <div className="ctl"><label>Investor recoup %</label><input type="number" step={5} value={w.recoupPct} onChange={e => setW({ recoupPct: +e.target.value })} /><div className="hint">of the invested {money(r.budget)}</div></div>
           {w.model === 'off-the-gross' && <div className="ctl"><label>Pool share of gross %</label><input type="number" step={5} value={w.grossSharePct} onChange={e => setW({ grossSharePct: +e.target.value })} /><div className="hint">from dollar one</div></div>}
           <div className="ctl"><label>Pool share after recoup %</label><input type="number" step={5} value={w.poolPct} onChange={e => setW({ poolPct: +e.target.value })} /></div>
           <div className="ctl"><label>Scenarios ($)</label><input value={w.scenarios.join(', ')} onChange={e => setW({ scenarios: e.target.value.split(',').map(s => +s.replace(/[^\d.]/g, '')).filter(n => n > 0) })} /><div className="hint">producer's net revenue</div></div>
         </div>
         <p className="help" style={{ marginTop: 10 }}>
           {w.model === 'off-the-gross'
-            ? <>The pool takes {w.grossSharePct}% of every dollar until investors have recouped {w.recoupPct}% of the {money(r.budget)} cash budget from their {100 - w.grossSharePct}% (that happens at {money(rStar)} of revenue). After that the split is {w.poolPct}/{100 - w.poolPct}. This is the Sing Sing structure: the back end pays even if the film only does modestly.</>
-            : <>Investors take {w.recoupPct}% of the {money(r.budget)} cash budget first ({money(rStar)}). Then {w.poolPct}% of everything above that funds the pool. Simpler to explain, but nobody on the crew sees a dollar until recoupment.</>}
+            ? <>The pool takes {w.grossSharePct}% of every dollar until investors have recouped {w.recoupPct}% of the {money(r.budget)} they put in from their {100 - w.grossSharePct}% (that happens at {money(rStar)} of revenue). After that the split is {w.poolPct}/{100 - w.poolPct}. This is the Sing Sing structure: the back end pays even if the film only does modestly.</>
+            : <>Investors take {w.recoupPct}% of the {money(r.budget)} they put in first ({money(rStar)}). Then {w.poolPct}% of everything above that funds the pool. Simpler to explain, but nobody on the crew sees a dollar until recoupment.</>}
         </p>
         <table style={{ marginTop: 8 }}>
           <thead><tr><th className="l">At revenue of</th>{r.scenarios.map(s => <th key={s}>{money(s)}</th>)}</tr></thead>

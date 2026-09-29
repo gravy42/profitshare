@@ -55,6 +55,7 @@ export type WaterfallModel = 'recoup-first' | 'off-the-gross';
 export interface Waterfall {
   model: WaterfallModel;
   recoupPct: number;      // investors get this % of budget back before the pool (110 = 110 %)
+  nonRecoupable?: number; // grants, fiscal-sponsorship donations, tax credits: money that never has to be paid back
   poolPct: number;        // share of post-recoup profits that goes to the pool (50 = 50/50)
   grossSharePct: number;  // off-the-gross only: pool's share of dollar one until investors recoup
   scenarios: number[];    // revenue levels shown in the tables

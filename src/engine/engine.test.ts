@@ -316,3 +316,13 @@ describe('prep / wrap / post days at a cash floor', () => {
     expect(floorNonShootDays(p, { cashHourly: 16.9, rest: 'points' }).lines.length).toBe(p.lines.length); // idempotent
   });
 });
+
+import { recoupableBudget } from './waterfall';
+describe('non-recoupable financing', () => {
+  it('shrinks what investors recoup, so the pool flips sooner', () => {
+    const half = { ...seed, waterfall: { ...seed.waterfall, nonRecoupable: 400_000 } };
+    expect(recoupableBudget(half)).toBeCloseTo(topSheet(seed).cashBudget - 400_000, 2);
+    const a = waterfallReport(seed), b = waterfallReport(half);
+    expect(b.pools[1]).toBeGreaterThan(a.pools[1]);       // at $3M, more reaches the crew when less has to be recouped
+  });
+});

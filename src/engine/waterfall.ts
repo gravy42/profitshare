@@ -36,7 +36,7 @@ export interface PayoutRow {
 }
 
 export interface WaterfallReport {
-  budget: number;              // the cash budget the waterfall recoups
+  budget: number;              // what the waterfall recoups: the cash budget less non-recoupable money
   totalPoints: number;
   scenarios: number[];
   pools: number[];
@@ -44,9 +44,13 @@ export interface WaterfallReport {
   rows: PayoutRow[];
 }
 
+/** The part of the cash budget investors put in and expect back: the budget less grants and donations. */
+export function recoupableBudget(p: Project): number {
+  return Math.max(0, topSheet(p).cashBudget - (p.waterfall.nonRecoupable ?? 0));
+}
+
 export function waterfallReport(p: Project): WaterfallReport {
-  const ts = topSheet(p);
-  const budget = ts.cashBudget;
+  const budget = recoupableBudget(p);
   const tp = totalPoints(p) || 1;
   const scenarios = p.waterfall.scenarios;
   const pools = scenarios.map(r => poolAt(p.waterfall, budget, r));
