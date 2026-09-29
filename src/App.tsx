@@ -5,6 +5,7 @@ import { sagReport } from './engine/sag';
 import { parseBudgetFile } from './engine/importers/budget';
 import { parseSex } from './engine/importers/sex';
 import { parseFdx } from './engine/importers/fdx';
+import { parseScreenplayLines, parseScreenplayText } from './engine/importers/screenplay';
 import { sampleProject, blankProject, deriveParticipants, standardChartOfAccounts, type BlankOptions } from './data/seed';
 import type { Project } from './engine/types';
 import { TopSheetView } from './ui/TopSheetView';
@@ -31,8 +32,16 @@ export default function App() {
   const flash = (m: string) => { setMsg(m); setTimeout(() => setMsg(null), 6000); };
 
   // ---- file intake: one path for the buttons and for drag-and-drop ----
-  const kindOf = (name: string): 'project' | 'budget' | 'board' | 'mbd' | 'unknown' =>
-    /\.json$/i.test(name) ? 'project' : /\.(xlsx|xls|csv|tsv|txt)$/i.test(name) ? 'budget' : /\.(sex|fdx)$/i.test(name) ? 'board' : /\.mbd$/i.test(name) ? 'mbd' : 'unknown';
+  type Kind = 'project' | 'budget' | 'board' | 'script' | 'mbd' | 'unknown';
+  const kindOf = (name: string): Kind =>
+    /\.json$/i.test(name) ? 'project' : /\.(xlsx|xls|csv|tsv)$/i.test(name) ? 'budget' : /\.(sex|fdx)$/i.test(name) ? 'board'
+      : /\.(pdf|fountain|txt|text)$/i.test(name) ? 'script' : /\.mbd$/i.test(name) ? 'mbd' : 'unknown';
+  // a .txt is a script if it has scene headings, otherwise a tab-separated budget export
+  const sniff = async (f: File): Promise<Kind> => {
+    const k = kindOf(f.name);
+    if (k !== 'script' || !/\.(txt|text)$/i.test(f.name)) return k;
+    return /^\s*(\d+[A-Z]?\s+)?(INT|EXT|I\/E)[.\s]/m.test(await f.text()) ? 'script' : 'budget';
+  };
 
   const [pendingProject, setPendingProject] = useState<{ project: Project; name: string } | null>(null);
   const loadProjectFile = async (f: File) => {
@@ -63,19 +72,33 @@ export default function App() {
     setTab('board');
     return `${board.scenes.length} scenes from ${f.name}${/\.fdx$/i.test(f.name) ? ' (script order; drag strips to build the shooting order)' : ' (board order kept)'}`;
   };
+  /** A screenplay (PDF, Fountain, plain text) broken down into scenes, eighths and cast. */
+  const loadScriptFile = async (f: File) => {
+    const imp = /\.pdf$/i.test(f.name)
+      ? parseScreenplayLines(await (await import('./engine/importers/pdfScript')).pdfScriptLines(await f.arrayBuffer()), { cueIndent: 90 })
+      : parseScreenplayText(await f.text());
+    if (!imp.board.scenes.length) throw new Error(`no scene headings found in ${f.name}${/\.pdf$/i.test(f.name) ? ' (a scanned PDF has no text to read; export the PDF from your writing app instead)' : ''}`);
+    setProject(p => ({ ...p, board: imp.board, name: imp.title && (!p.name || /^untitled/i.test(p.name)) ? imp.title : p.name }));
+    setFresh(false);
+    setTab('board');
+    const c = imp.board.castList.length;
+    return `${imp.board.scenes.length} scenes, ${c} speaking part${c === 1 ? '' : 's'}, ${imp.pages} page${imp.pages === 1 ? '' : 's'} from ${f.name} (script order; drag strips to build the shooting order, and check the cast: silent characters only show when the script names them)`;
+  };
   /** Take any mix of files, work out what each one is, and load it. Budgets before boards so cast days can link. */
   const intake = async (files: File[]) => {
-    const order = { budget: 0, board: 1, project: 2, mbd: 3, unknown: 3 };
-    const sorted = [...files].sort((x, y) => order[kindOf(x.name)] - order[kindOf(y.name)]);
+    const order: Record<Kind, number> = { budget: 0, board: 1, script: 1, project: 2, mbd: 3, unknown: 3 };
+    const kinds = new Map(await Promise.all(files.map(async f => [f, await sniff(f)] as const)));
+    const sorted = [...files].sort((x, y) => order[kinds.get(x)!] - order[kinds.get(y)!]);
     const out: string[] = [];
     for (const f of sorted) {
       try {
-        const k = kindOf(f.name);
+        const k = kinds.get(f)!;
         if (k === 'project') out.push(await loadProjectFile(f));
         else if (k === 'budget') out.push(await loadBudgetFile(f));
         else if (k === 'board') out.push(await loadBoardFile(f));
+        else if (k === 'script') out.push(await loadScriptFile(f));
         else if (k === 'mbd') out.push(`${f.name}: Movie Magic's native .mbd is a closed format. In Movie Magic Budgeting use File → Export to Excel or CSV and drop that instead.`);
-        else out.push(`${f.name}: not a file type I know. Budgets: .xlsx .csv (Shamel, Movie Magic export, any sheet). Boards: .sex (Movie Magic Scheduling). Scripts: .fdx. Projects: .json.`);
+        else out.push(`${f.name}: not a file type I know. Budgets: .xlsx .csv (Shamel, Movie Magic export, any sheet). Boards: .sex (Movie Magic Scheduling). Scripts: .fdx .pdf .fountain .txt. Projects: .json.`);
       } catch (e: any) { out.push(`${f.name}: ${e.message}`); }
     }
     flash(out.join(' · '));
@@ -83,7 +106,7 @@ export default function App() {
   const pick = async (accept: string) => { const f = await pickFile(accept); if (f) await intake([f]); };
   const openJson = () => pick('.json');
   const importBudget = () => pick('.xlsx,.xls,.csv,.txt,.tsv');
-  const importBoard = () => pick('.sex,.fdx');
+  const importBoard = () => pick('.sex,.fdx,.pdf,.fountain,.txt');
 
   // drag-and-drop anywhere on the page
   const [dragging, setDragging] = useState(false);
@@ -122,7 +145,7 @@ export default function App() {
 
   return (
     <div className="app">
-      {dragging && <div className="dropzone"><div><b>Drop to import</b><span>Budgets (.xlsx, .csv), boards (.sex), scripts (.fdx), saved projects (.json). Several at once is fine.</span></div></div>}
+      {dragging && <div className="dropzone"><div><b>Drop to import</b><span>Budgets (.xlsx, .csv), boards (.sex), scripts (.fdx, .pdf, .fountain, .txt), saved projects (.json). Several at once is fine.</span></div></div>}
       <header className="top">
         <h1>ProfitShare</h1>
         <span className="proj">
@@ -143,7 +166,7 @@ export default function App() {
           <button className="btn ghost" onClick={() => downloadJson(project)}>Save</button>
           <button className="btn ghost" onClick={copyJson} title="Copy the project as JSON (for places where downloads are blocked)">Copy JSON</button>
           <button className="btn ghost" onClick={importBudget} title="Shamel Studio .xlsx, Movie Magic Budgeting Excel/CSV export, or any sheet with Account / Description / Amount / Rate / Total columns">Import budget (.xlsx / .csv)</button>
-          <button className="btn ghost" onClick={importBoard}>Import board (.sex / .fdx)</button>
+          <button className="btn ghost" onClick={importBoard}>Import board or script (.sex / .fdx / .pdf)</button>
         </span>
       </header>
       <nav className="tabs">
@@ -184,7 +207,7 @@ function About({ onStart }: { onStart: () => void }) {
         <p><b>The Deal tab</b> holds every term (day length, SAG tier, pay model, premiums, floor rate for non-shoot days, grants, waterfall) as a layer over the raw budget. Nothing you imported is rewritten; every tab recomputes from budget plus terms, live, and any term can change at any time.</p>
         <p>The stripboard feeds the same model: place day breaks, and the day-out-of-days tells you each actor's work days, which you can push straight into the cast lines and the points schedule.</p>
         <p><b>Local-first.</b> Nothing leaves your browser. Autosave keeps your work in this browser; press Save to download a .json you can open anywhere or share with a collaborator, and Open to load one.</p>
-        <p><b>Imports.</b> Budgets from Shamel Studio (.xlsx) and Movie Magic Budgeting (Excel or CSV export), or any spreadsheet with account, description, amount, rate and total columns. Boards from Movie Magic Scheduling (.sex, which Shamel also exports) and Final Draft scripts (.fdx).</p>
+        <p><b>Imports.</b> Budgets from Shamel Studio (.xlsx) and Movie Magic Budgeting (Excel or CSV export), or any spreadsheet with account, description, amount, rate and total columns. Boards from Movie Magic Scheduling (.sex, which Shamel also exports). Scripts from Final Draft (.fdx), Highland, Celtx, WriterDuet or any app that saves Fountain or plain text, and any screenplay PDF with real text in it (not a scan): scenes, eighths and speaking cast are read straight off the page.</p>
         <p><b>Rates.</b> SAG-AFTRA low-budget scale effective 7/1/2026, California payroll fringes as of 2026. Check them before you rely on them.</p>
       </div>
       <div className="row" style={{ marginTop: 12 }}>

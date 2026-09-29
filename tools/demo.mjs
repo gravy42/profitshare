@@ -130,7 +130,7 @@ await cap(null);
 
 // 11. drag and drop
 await click(page.getByRole('button', { name: 'New…' }), 500);
-const c11 = cue('Bring your own: drop a Shamel export, a Movie Magic export, a Movie Magic board or a Final Draft script anywhere on the page. It works out what it got.', 5800);
+const c11 = cue('Bring your own: drop a Shamel export, a Movie Magic export, a Movie Magic board, or a script from Final Draft, Highland, Celtx or a PDF anywhere on the page. It works out what it got.', 9000);
 const csv = readFileSync(root + 'tools/fixtures/mmb-export.csv', 'utf8');
 await page.evaluate(() => { const ev = new DragEvent('dragenter', { bubbles: true, dataTransfer: new DataTransfer() }); ev.dataTransfer.items.add(new File(['x'], 'x.csv')); window.dispatchEvent(ev); });
 await moveTo(page.locator('.dropzone > div'), 1400);
@@ -142,6 +142,14 @@ await page.evaluate(text => { const dt = new DataTransfer(); dt.items.add(new Fi
 await wait(800);
 await click(page.getByRole('button', { name: 'Top sheet & budget', exact: true }), 400);
 await click(page.getByText('2100 PRODUCTION STAFF'), 400); await click(page.getByText('2102 1ST ASSISTANT DIRECTOR'), 400);
+// ...then a screenplay PDF, which lands on the stripboard broken down into scenes, eighths and cast
+const pdf = readFileSync(root + 'tools/fixtures/SaltFlat_Script.pdf').toString('base64');
+await page.evaluate(() => { const ev = new DragEvent('dragenter', { bubbles: true, dataTransfer: new DataTransfer() }); ev.dataTransfer.items.add(new File(['x'], 'x.pdf')); window.dispatchEvent(ev); });
+await wait(500);
+await page.evaluate(b64 => { const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0)); const dt = new DataTransfer(); dt.items.add(new File([bytes], 'SaltFlat_Script.pdf', { type: 'application/pdf' })); window.dispatchEvent(new DragEvent('drop', { bubbles: true, dataTransfer: dt })); }, pdf);
+await page.getByText('DESERT HIGHWAY').first().waitFor({ timeout: 15000 });
+await wait(1200);
+await scrollTo(300, 900);
 await c11;
 await cap(null);
 

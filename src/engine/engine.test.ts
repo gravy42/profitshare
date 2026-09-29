@@ -358,3 +358,90 @@ describe('the deal layer', () => {
     expect(p.deal!.producers.days).toBe(seed.shootDays + 40);
   });
 });
+
+import { parseScreenplayText, parseScreenplayLines, linesFromText } from './importers/screenplay';
+import { linesFromPdfItems } from './importers/pdfScript';
+
+describe('screenplay importers', () => {
+  const fountain = readFileSync(resolve(__dirname, '../../tools/fixtures/SaltFlat_Script.fountain'), 'utf8');
+
+  it('reads a Fountain script: title, scenes, time of day, eighths, speaking and named cast', () => {
+    const r = parseScreenplayText(fountain);
+    expect(r.title).toBe('SALT FLAT');
+    expect(r.pages).toBe(3);
+    expect(r.board.scenes).toHaveLength(9);
+    const [s1, , s3, s4, , , s7, s8] = r.board.scenes;
+    expect(s1).toMatchObject({ ie: 'EXT', set: 'DESERT HIGHWAY', tod: 'DAWN', pages: '1' });
+    expect(s1.cast.map(c => c.name).sort()).toEqual(['JUNE', 'LENA']);
+    expect(s3.cast.map(c => c.name)).toContain('THE MECHANIC');
+    expect(s4.set).toBe('GAS STATION DINER');
+    expect(s7.cast.map(c => c.name)).toEqual(['LENA']);                       // silent: named in action in Title Case
+    expect(s8.cast.map(c => c.name).sort()).toEqual(['JUNE', 'WALT']);       // WALT (CONT'D) folds into WALT
+    expect(r.board.castList.map(c => c.name)).toEqual(['JUNE', 'LENA', 'THE MECHANIC', 'WAITRESS', 'KID', 'WALT']);
+    const eighths = r.board.scenes.reduce((t, s) => t + s.eighths, 0);
+    expect(eighths).toBeGreaterThanOrEqual(20); expect(eighths).toBeLessThanOrEqual(28);   // about 3 pages
+    expect(s1.synopsis).toMatch(/^Two sisters push/);
+    expect(r.board.strips).toHaveLength(9);
+  });
+
+  it('handles Fountain forcing, scene numbers, INT./EXT., dual dialogue and shouted action', () => {
+    const r = parseScreenplayText(`
+.FLASHBACK - THE KITCHEN #4A#
+
+Mother stirs a pot.
+
+12 INT./EXT. CAR - MOVING - NIGHT 12
+
+THE CAR SWERVES OFF THE ROAD AND ROLLS TWICE.
+
+@McCLANE
+Yippee.
+
+DEL ^
+Same.
+
+RAY/EVE
+Together.
+
+CUT TO:
+
+ext. salt flat - day
+
+Nothing.
+`);
+    const [a, b, c] = r.board.scenes;
+    expect(a).toMatchObject({ ie: 'INT', set: 'FLASHBACK - THE KITCHEN', number: '4A' });
+    expect(b).toMatchObject({ ie: 'I/E', set: 'CAR - MOVING', tod: 'NIGHT', number: '12' });
+    expect(b.cast.map(x => x.name)).toEqual(['MCCLANE', 'DEL', 'RAY', 'EVE']);
+    expect(b.synopsis).toMatch(/^THE CAR SWERVES/);
+    expect(c).toMatchObject({ ie: 'EXT', set: 'SALT FLAT', tod: 'DAY' });
+  });
+
+  it('reads pdftotext-style indented text and form-feed page breaks', () => {
+    const text = ['                                                            1.', '', 'INT. ROOM - DAY', '', 'A man, BOB, waits.', '', '                       BOB', '           Well.', '', '                       ANN (V.O.)', '           Hi.',
+      '\f                                                            2.', '', 'EXT. YARD - LATER', '', 'Bob leaves. NOT A CUE.', ''].join('\n');
+    const r = parseScreenplayText(text);
+    expect(r.board.scenes).toHaveLength(2);
+    expect(r.board.scenes[0].cast.map(c => c.name)).toEqual(['BOB', 'ANN']);
+    expect(r.board.scenes[1].cast.map(c => c.name)).toEqual(['BOB']);
+    expect(r.board.scenes[1]).toMatchObject({ tod: 'LATER', pages: '2' });
+    const m = parseScreenplayText(['INT. A - DAY', '', 'Go.', '', '                       McCLANE', '           Yippee.', ''].join('\n') + '\n'.repeat(60));
+    expect(m.board.scenes[0].cast.map(c => c.name)).toEqual(['MCCLANE']);
+    expect(linesFromText(text).lines.filter(l => l.text).length).toBeGreaterThan(8);
+  });
+
+  it('turns positioned PDF text into lines with page labels, indents and blank-line gaps', () => {
+    const P = (items: [number, number, string][]) => ({ items: items.map(([x, y, s]) => ({ x, y, w: s.length * 7.2, s })), height: 792 });
+    const pages = [P([[540, 740, '1.'], [108, 700, 'INT. ROOM - DAY'], [108, 676, 'A room. '], [160, 676, 'BOB waits.'], [266, 640, 'BOB'], [180, 628, 'Well.'], [108, 100, 'The end of the page.']]),
+      P([[540, 740, '2.'], [108, 700, 'EXT. YARD - DAY'], [108, 676, 'Bob leaves.']])];
+    const lines = linesFromPdfItems(pages);
+    expect(lines.map(l => l.text)).toEqual(['1.', '', 'INT. ROOM - DAY', '', 'A room. BOB waits.', '', 'BOB', 'Well.', '', 'The end of the page.', '2.', '', 'EXT. YARD - DAY', '', 'Bob leaves.']);
+    expect(lines[6]).toMatchObject({ indent: 266, page: '1' });
+    expect(lines[12].page).toBe('2');
+    const r = parseScreenplayLines(lines, { cueIndent: 90 });
+    expect(r.board.scenes.map(s => s.set)).toEqual(['ROOM', 'YARD']);
+    expect(r.board.scenes[0].cast.map(c => c.name)).toEqual(['BOB']);
+    expect(r.board.scenes[0].eighths).toBe(8);
+    expect(r.board.scenes[1].cast.map(c => c.name)).toEqual(['BOB']);
+  });
+});

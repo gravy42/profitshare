@@ -39,7 +39,7 @@ export function StartView({ onBlank, onImportBudget, onOpen, onSample, armed }: 
               <li>Any spreadsheet with Account, Description, Amount, Units, X, Rate and Total columns.</li>
             </ul>
             <div className="droptarget"><b>Drop files anywhere on this page</b><span>or</span><button className={`btn ${armed ? 'primary' : ''}`} onClick={onImportBudget}>{confirm}Import .xlsx / .csv</button></div>
-            <p className="small muted" style={{ marginTop: 8 }}>A .sex board, an .fdx script or a saved .json can be dropped too, together or one at a time. Movie Magic's native .mbd is a closed format; export first.</p>
+            <p className="small muted" style={{ marginTop: 8 }}>A .sex board, a script (.fdx, .pdf, .fountain or .txt) or a saved .json can be dropped too, together or one at a time. Movie Magic's native .mbd is a closed format; export first.</p>
           </div>
           <div className="card">
             <h3>Open or explore</h3>

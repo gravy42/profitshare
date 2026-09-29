@@ -15,7 +15,8 @@ Written by a director budgeting her first feature, because none of the tools wou
 The live demo is at **https://gravy42.github.io/profitshare/**. It opens on a start screen with three ways in:
 
 - **From scratch.** An empty budget with a standard feature chart of accounts (1100 Story & Screenplay through 5200 General Expenses) and California payroll fringes. Open a category, open an account, press *+ line*. *Edit accounts* renames, adds and removes categories and accounts; the *Fringes* panel sets rates and caps.
-- **Drop files on the page.** ProfitShare works out what each one is. A Shamel Studio `.xlsx` export comes in whole, fringes included. A Movie Magic Budgeting Excel or CSV export (File → Export) is matched by its column headers, as is any spreadsheet with Account, Description, Amount, Units, X, Rate and Total columns. A Movie Magic Scheduling `.sex` board keeps its strip order and breakdown tags; a Final Draft `.fdx` gives scenes, page counts and speaking cast; a saved `.json` reopens a project. Drop them together or one at a time. Movie Magic's native `.mbd` is a closed format, so export first.
+- **Drop files on the page.** ProfitShare works out what each one is. A Shamel Studio `.xlsx` export comes in whole, fringes included. A Movie Magic Budgeting Excel or CSV export (File → Export) is matched by its column headers, as is any spreadsheet with Account, Description, Amount, Units, X, Rate and Total columns. A Movie Magic Scheduling `.sex` board keeps its strip order and breakdown tags; a script gives scenes, eighths and speaking cast, from Final Draft `.fdx`, Fountain or plain text (Highland, Celtx, WriterDuet, Final Draft's save-as-text) or a screenplay PDF with real text in it; a saved `.json` reopens a project. Drop them together or one at a time. Movie Magic's native `.mbd` is a closed format, so export first.
+- **Script breakdown.** A dropped script becomes a first-pass board: one strip per scene heading with INT/EXT, set, time of day, scene number if the script has them, a length in eighths measured from where the headings fall on the page, the first action line as a synopsis, and the cast. Cast is everyone who speaks in the scene plus any speaking character the action names in caps or Title Case (so Lena floating alone in the pool still counts). Extras, vehicles, props and the rest are yours to add; a scanned PDF has no text to read, so export the PDF from the writing app instead. `tools/fixtures/SaltFlat_Script.fountain` and the PDF made from it by `tools/make-script-pdf.mjs` are the test scripts.
 - **Open or explore.** Open a saved `.json`, or load the sample: *Salt Flat*, an invented 12-day, 26-scene SAG feature with a 154-line budget and a board in shooting order. Every name and number in it is made up (`tools/make-sample.mjs` builds it).
 
 Then:
@@ -60,7 +61,7 @@ tools/                 make-sample.mjs (builds the sample and its fixtures), smo
 
 `src/engine/types.ts` is the whole data model. A project file is that object as JSON, so anything that can read JSON can read a ProfitShare project.
 
-The `.sex` reader was reverse-engineered from a Shamel Studio export (there is no public spec); `tools/make-sample.mjs` writes the test fixture in the same layout. The spreadsheet importer (`src/engine/importers/genericBudget.ts`) matches columns by header name and treats rows with a number and a name but no money as account or category headers, which is the shape Movie Magic Budgeting exports. If a file from another app fails to import, open an issue and attach it.
+The `.sex` reader was reverse-engineered from a Shamel Studio export (there is no public spec); `tools/make-sample.mjs` writes the test fixture in the same layout. The spreadsheet importer (`src/engine/importers/genericBudget.ts`) matches columns by header name and treats rows with a number and a name but no money as account or category headers, which is the shape Movie Magic Budgeting exports. The script reader (`src/engine/importers/screenplay.ts`) is one parser for Fountain, plain text and the positioned lines pdf.js pulls out of a PDF (`pdfScript.ts`, loaded on first use): a character cue is an all-caps line that sits further in than the action and has dialogue under it. If a file from another app fails to import, open an issue and attach it.
 
 ## Rates and disclaimers
 
@@ -74,7 +75,7 @@ None of this is legal, tax or financial advice. Check the numbers with your payr
 - Participation-agreement exhibit generated from the points schedule
 - CSV and XLSX export of the top sheet and points schedule
 - Movie Magic Budgeting native `.mbd` files (needs a sample; the Excel/CSV export already imports)
-- Optional AI-assisted breakdown tagging for scripts imported from Final Draft (opt-in, bring your own key)
+- Optional AI-assisted breakdown tagging for imported scripts (opt-in, bring your own key)
 
 ## Contributing
 

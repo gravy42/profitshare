@@ -1,4 +1,5 @@
-import type { Board, Scene, Strip } from '../types';
+import type { Board, Scene } from '../types';
+import { finishBoard } from './screenplay';
 
 /** Final Draft (.fdx) → breakdown. Reads scene headings, page lengths and the characters who speak
  *  in each scene. Non-speaking characters tagged in Final Draft's tagger are not in the FDX text
@@ -49,12 +50,5 @@ export function parseFdx(xml: string): Board {
       if (t) cur.synopsis = t.length > 120 ? t.slice(0, 117) + '...' : t;
     }
   }
-  const castList: { id: number; name: string }[] = [];
-  for (const s of scenes) for (const c of s.cast) {
-    let m = castList.find(x => x.name === c.name);
-    if (!m) { m = { id: castList.length + 1, name: c.name }; castList.push(m); }
-    c.id = m.id;
-  }
-  const strips: Strip[] = scenes.map(s => ({ type: 'scene', sceneId: s.id }));
-  return { castList, scenes, strips, targetEighthsPerDay: 44 };
+  return finishBoard(scenes);
 }

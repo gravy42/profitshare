@@ -54,7 +54,7 @@ The stripboard offers ease, flexibility and integration with your budget. Drag a
 [PAUSE: 1.5s]
 
 // CUE 11: drop import
-Bring your own. Drop a Shamel export, a Movie Magic export, a Movie Magic board or a Final Draft script anywhere on the page. It works out what it got.
+Bring your own. Drop a Shamel export, a Movie Magic export, a Movie Magic board, or a script from Final Draft, Highland, Celtx or a PDF anywhere on the page. It works out what it got.
 
 [PAUSE: 1.5s]
 

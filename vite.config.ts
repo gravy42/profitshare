@@ -7,5 +7,5 @@ import { viteSingleFile } from 'vite-plugin-singlefile';
 export default defineConfig({
   base: process.env.SINGLEFILE ? './' : '/profitshare/',
   plugins: process.env.SINGLEFILE ? [react(), viteSingleFile()] : [react()],
-  test: { environment: 'jsdom' },
+  test: { environment: 'jsdom', exclude: ['node_modules/**', 'scratch/**'] },
 } as any);
