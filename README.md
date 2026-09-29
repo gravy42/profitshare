@@ -2,7 +2,7 @@
 
 Open-source budgeting, scheduling and profit-share modelling for independent films.
 
-Commercial budgeting software stops at the cash column. ProfitShare is for films where part of everyone's pay is a share of the back end, the way *Sing Sing* was made: everyone takes scale in cash, and the upside is split by points. Every budget line carries a pay type, `cash` (what you raise), `deferred` (a fixed IOU paid from first proceeds) or `points` (contingent profit participation). The top sheet, the SAG-AFTRA tier check, the stripboard's day-out-of-days and the points schedule all read from the same lines, so moving a producer fee to points, or dragging a scene to a different day, reprices the whole film at once.
+Commercial budgeting software stops at what you pay up front. ProfitShare is for films where part of everyone's pay is a share of the back end, the way *Sing Sing* was made: everyone takes scale up front, and the upside is split by points. Every budget line carries a pay type: up front (what you raise; `cash` in the file), deferred (a fixed IOU paid from first proceeds) or points (contingent profit participation). The top sheet, the SAG-AFTRA tier check, the stripboard's day-out-of-days and the points schedule all read from the same lines, so moving a producer fee to points, or dragging a scene to a different day, reprices the whole film at once.
 
 Written by a director budgeting her first feature, because none of the tools would let her model the deal she was actually making.
 
@@ -20,16 +20,16 @@ The live demo is at **https://gravy42.github.io/profitshare/**. It opens on a st
 
 Then:
 
-1. **Set the terms on the Deal tab.** Shoot days and a 10- or 12-hour day; the SAG tier and DIC; how people are paid (as budgeted, or everyone at scale, the *Sing Sing* deal, with the crew rate you choose); what happens to producer fees, the script purchase and star allowances (cash, points, deferred, or gone); prep, wrap and post days at a cash floor with the balance to the back end; grants that investors never recoup; and the waterfall. The budget you imported is never rewritten. The terms sit on top of it, every tab recomputes live, and you can change any term at any time.
+1. **Set the terms on the Deal tab.** Shoot days and a 10- or 12-hour day; the SAG tier and DIC; how people are paid (as budgeted, or everyone at scale, the *Sing Sing* deal, with the crew rate you choose); what happens to producer fees, the script purchase and star allowances (up front, points, deferred, or gone); prep, wrap and post days at a floor rate with the balance to the back end; grants that investors never recoup; and the waterfall. The budget you imported is never rewritten. The terms sit on top of it, every tab recomputes live, and you can change any term at any time.
 2. **Place day breaks** on the stripboard (*Fit to N days* keeps your order and balances the pages), then *Push cast days → budget* so cast lines and the points schedule match the schedule.
 3. **Save.** Your project is one `.json` file, terms included. Nothing leaves your browser unless you send it somewhere.
 
 ## What it does
 
-- **Deal tab.** Every term in one place, applied as a layer over the raw budget: day length, SAG tier, pay model (as budgeted or everyone at scale with overtime priced off the 8-hour rate), premiums, non-shoot-day cash floor, producers' headcount and days, grants, waterfall. Lines the deal sets are marked on the top sheet; days and descriptions stay editable.
-- **Top sheet and budget.** Movie-Magic-style chart of accounts with per-line fringes (a rate plus a wage-base cap per line; the model was fitted against a real Shamel Studio export and reproduces its math to the cent). Add, edit and remove lines, accounts, categories and fringes in place. Shows cash budget, deferred total and points value side by side.
+- **Deal tab.** Every term in one place, applied as a layer over the raw budget: day length, SAG tier, pay model (as budgeted or everyone at scale with overtime priced off the 8-hour rate), premiums, non-shoot-day floor rate, producers' headcount and days, grants, waterfall. Lines the deal sets are marked on the top sheet; days and descriptions stay editable.
+- **Top sheet and budget.** Movie-Magic-style chart of accounts with per-line fringes (a rate plus a wage-base cap per line; the model was fitted against a real Shamel Studio export and reproduces its math to the cent). Add, edit and remove lines, accounts, categories and fringes in place. Shows the budget to raise, deferred total and points value side by side.
 - **Stripboard.** Drag to reorder, insert day breaks, or auto-break at a pages-per-day target without changing your scene order. Day summaries, day-out-of-days with work and hold days, and a one-click sync of cast work days into the cast budget lines and the points schedule.
-- **Points and waterfall.** Two waterfalls: recoup-first, and off-the-gross where the pool takes a share from dollar one. Tiers are multipliers on days worked, with a per-person bonus multiplier. Payouts at three revenue scenarios, investor multiples, and each person's cash pay next to their points.
+- **Points and waterfall.** Two waterfalls: recoup-first, and off-the-gross where the pool takes a share from dollar one. Tiers are multipliers on days worked, with a per-person bonus multiplier. Payouts at three revenue scenarios, investor multiples, and each person's wages next to their points.
 - **SAG tier.** Total production cost the way SAG measures it (deferred pay counts, points do not). Ultra Low, Moderate Low, Low Budget and Basic caps, with and without the Diversity in Casting incentive, checked against the effective budget.
 - **Local-first.** No accounts, no server, no telemetry. Autosaves to your browser; Save and Open a `.json` project file to keep it or hand it to a collaborator.
 

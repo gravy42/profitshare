@@ -22,7 +22,7 @@ export function PointsView({ project, setProject }: { project: Project; setProje
     <div>
       <div className="panel">
         <h2>The waterfall</h2>
-        <p className="help"><b>{w.model === 'off-the-gross' ? 'Off the gross (Sing Sing)' : 'Recoup first'}</b> · investors recoup {w.recoupPct}% of {money(r.budget)}{(w.nonRecoupable ?? 0) > 0 ? ` (the cash budget less ${money(w.nonRecoupable!)} of grants)` : ''}{w.model === 'off-the-gross' ? ` · pool takes ${w.grossSharePct}% of gross until then` : ''} · pool {w.poolPct}% after recoup. Change any of this on the Deal tab.</p>
+        <p className="help"><b>{w.model === 'off-the-gross' ? 'Off the gross (Sing Sing)' : 'Recoup first'}</b> · investors recoup {w.recoupPct}% of {money(r.budget)}{(w.nonRecoupable ?? 0) > 0 ? ` (the budget less ${money(w.nonRecoupable!)} of grants)` : ''}{w.model === 'off-the-gross' ? ` · pool takes ${w.grossSharePct}% of gross until then` : ''} · pool {w.poolPct}% after recoup. Change any of this on the Deal tab.</p>
         <p className="help" style={{ marginTop: 10 }}>
           {w.model === 'off-the-gross'
             ? <>The pool takes {w.grossSharePct}% of every dollar until investors have recouped {w.recoupPct}% of the {money(r.budget)} they put in from their {100 - w.grossSharePct}% (that happens at {money(rStar)} of revenue). After that the split is {w.poolPct}/{100 - w.poolPct}. This is the Sing Sing structure: the back end pays even if the film only does modestly.</>
@@ -69,7 +69,7 @@ export function PointsView({ project, setProject }: { project: Project; setProje
       <div className="panel">
         <h2>Points schedule</h2>
         <table>
-          <thead><tr><th className="l">Participant</th><th className="l">Role</th><th>Group</th><th>Tier</th><th>Days</th><th>Bonus ×</th><th>Points</th><th>Share</th><th>Cash pay</th>{r.scenarios.map(s => <th key={s}>@ {money(s / 1e6, 1)}M</th>)}<th /></tr></thead>
+          <thead><tr><th className="l">Participant</th><th className="l">Role</th><th>Group</th><th>Tier</th><th>Days</th><th>Bonus ×</th><th>Points</th><th>Share</th><th>Wages</th>{r.scenarios.map(s => <th key={s}>@ {money(s / 1e6, 1)}M</th>)}<th /></tr></thead>
           <tbody>
             {r.rows.map(row => {
               const p = row.participant;

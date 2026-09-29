@@ -9,7 +9,7 @@ export function SagView({ project }: { project: Project }) {
     <div>
       <div className="grid3" style={{ marginBottom: 16 }}>
         <div className={`stat ${r.fits ? 'good' : 'bad'}`}><div className="label">Total production cost</div><div className="value">{money(r.totalProductionCost)}</div>
-          <div className="sub">cash budget {money(r.cashBudget)} + deferred {money(r.deferredTotal)}{project.sag.includeContingency ? ' (contingency in)' : ' (contingency out)'}</div></div>
+          <div className="sub">budget to raise {money(r.cashBudget)} + deferred {money(r.deferredTotal)}{project.sag.includeContingency ? ' (contingency in)' : ' (contingency out)'}</div></div>
         <div className={`stat ${r.fits ? 'good' : 'bad'}`}><div className="label">Target: {r.target.name}</div>
           <div className="value">{r.targetCap === null ? 'no cap' : (r.fits ? 'fits' : 'over')}</div>
           <div className="sub">{r.targetCap === null ? 'Basic Agreement, any budget' : `${r.fits ? 'headroom' : 'over by'} ${money(Math.abs(r.headroom))} of ${money(r.targetCap)} cap${project.sag.dic ? ' (DIC)' : ''}`}</div></div>

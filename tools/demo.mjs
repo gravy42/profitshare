@@ -88,14 +88,14 @@ await wait(1200); await click(page.getByText('Everyone at scale (the'), 300); aw
 await scrollTo(1000, 800);
 
 // 5. premiums
-const c5 = cue('Producer fees, the script, the star allowance: each can stay cash, move to points, or come off the budget entirely.', 4800);
+const c5 = cue('Producer fees, the script, the star allowance: each can stay up front, move to points, or come off the budget entirely.', 4800);
 await wait(600);
 for (const sel of await page.locator('table select').all()) { await moveTo(sel, 150); await sel.selectOption('points'); await wait(500); }
 await c5;
 await scrollTo(1250, 800);
 
-// 6. cash floor
-const c6 = cue('Prep, wrap and post days at a cash floor, balance on the back end. Days worked don\'t change, so nobody\'s points change. Cash does.', 4600);
+// 6. floor rate
+const c6 = cue('Prep, wrap and post days at a floor rate, balance on the back end. Days worked don\'t change, so nobody\'s points change. What they\'re paid up front does.', 4600);
 await wait(800); await click(page.getByLabel(/Pay non-shoot days/), 300); await c6;
 await scrollTo(0, 500);
 await cap(null);
@@ -108,12 +108,12 @@ await cap(null);
 
 // 8. SAG tab
 await click(page.getByRole('button', { name: 'SAG tier', exact: true }), 500);
-await cue('SAG measures total production cost. Deferred pay counts; points don\'t. This page checks the budget against every tier.', 4200);
+await cue('SAG sets your tier by total production cost. Profit-share points aren\'t part of that cost, which is what makes this work.', 4200);
 await cap(null);
 
 // 9. points tab
 await click(page.getByRole('button', { name: 'Points & waterfall', exact: true }), 500);
-const c9 = cue('The back end splits by days worked times a tier multiplier, at three revenue scenarios. Grants are never recouped. Everyone on the schedule is here, cash pay next to their points.', 6500);
+const c9 = cue('The back end splits by days worked times a tier multiplier, at three revenue scenarios. Grants are never recouped. Everyone on the schedule is here, wages next to their points.', 6500);
 await wait(2600); await scrollTo(420, 1200); await c9;
 await scrollTo(0, 400);
 await cap(null);

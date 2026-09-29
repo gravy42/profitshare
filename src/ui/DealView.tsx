@@ -8,7 +8,7 @@ import { money } from './format';
 
 type Set = (f: (p: Project) => Project) => void;
 
-const PREMIUM_LABEL: Record<PremiumChoice, string> = { cash: 'cash, as budgeted', points: 'points (contingent)', deferred: 'deferred (fixed IOU, counts for SAG)', delete: 'gone: delete the lines' };
+const PREMIUM_LABEL: Record<PremiumChoice, string> = { cash: 'up front, as budgeted', points: 'points (contingent)', deferred: 'deferred (fixed IOU, counts for SAG)', delete: 'gone: delete the lines' };
 
 /** One page for every term of the deal. `raw` is what the user typed or imported; `eff` is the budget with the terms applied. */
 export function DealView({ raw, eff, setProject, fresh }: { raw: Project; eff: Project; setProject: Set; fresh?: boolean }) {
@@ -35,10 +35,10 @@ export function DealView({ raw, eff, setProject, fresh }: { raw: Project; eff: P
     <div>
       {fresh && <div className="notice">Set the terms of the film here. Everything on the other tabs is computed from your budget plus these terms, live, and you can come back and change any of them at any time.</div>}
       <div className="grid3" style={{ marginBottom: 16 }}>
-        <div className="stat"><div className="label">Cash budget (what you raise)</div><div className="value">{money(ts.cashBudget)}</div><div className="sub">investors recoup {money(recoupableBudget(eff))} of it</div></div>
+        <div className="stat"><div className="label">Budget to raise</div><div className="value">{money(ts.cashBudget)}</div><div className="sub">investors recoup {money(recoupableBudget(eff))} of it</div></div>
         <div className={`stat ${r.fits ? 'good' : 'bad'}`}><div className="label">SAG: {r.target.name}</div><div className="value">{r.targetCap === null ? 'no cap' : r.fits ? 'fits' : 'over'}</div>
           <div className="sub">{r.targetCap === null ? 'Basic Agreement' : `${r.fits ? 'headroom' : 'over by'} ${money(Math.abs(r.headroom))} of ${money(r.targetCap)}`} · qualifies for {r.qualifying.name}</div></div>
-        <div className="stat"><div className="label">On the back end</div><div className="value">{money(ts.pointsValue)}</div><div className="sub">cash value traded for points · {eff.participants.length} participants</div></div>
+        <div className="stat"><div className="label">On the back end</div><div className="value">{money(ts.pointsValue)}</div><div className="sub">value traded for points · {eff.participants.length} participants</div></div>
       </div>
 
       <div className="panel">
@@ -93,9 +93,9 @@ export function DealView({ raw, eff, setProject, fresh }: { raw: Project; eff: P
 
       <div className="panel">
         <h2>Above-scale ATL money</h2>
-        <p className="help">The three places above-scale money usually sits. Each can stay cash, go to points, go to deferred, or come off the budget entirely.</p>
+        <p className="help">The three places above-scale money usually sits. Each can stay up front, go to points, go to deferred, or come off the budget entirely.</p>
         <table style={{ maxWidth: 820 }}>
-          <thead><tr><th className="l">Group</th><th>Lines</th><th>Cash value</th><th className="l">Becomes</th></tr></thead>
+          <thead><tr><th className="l">Group</th><th>Lines</th><th>Value</th><th className="l">Becomes</th></tr></thead>
           <tbody>
             {groupTotals.map(({ g, count, total }) => (
               <tr key={g}>
@@ -112,9 +112,9 @@ export function DealView({ raw, eff, setProject, fresh }: { raw: Project; eff: P
       <div className="panel">
         <h2>Prep, wrap and post days</h2>
         <div className="row" style={{ alignItems: 'flex-end' }}>
-          <label className="row" style={{ gap: 6 }}><input type="checkbox" checked={d.nonShoot.enabled} onChange={e => setDeal(x => ({ ...x, nonShoot: { ...x.nonShoot, enabled: e.target.checked } }))} /> Pay non-shoot days at a cash floor, balance to the back end</label>
+          <label className="row" style={{ gap: 6 }}><input type="checkbox" checked={d.nonShoot.enabled} onChange={e => setDeal(x => ({ ...x, nonShoot: { ...x.nonShoot, enabled: e.target.checked } }))} /> Pay non-shoot days at a floor rate, balance to the back end</label>
           {d.nonShoot.enabled && <>
-            <div className="ctl" style={{ minWidth: 90 }}><label>Cash floor, $/hour</label><input type="number" step="0.05" value={d.nonShoot.cashHourly} onChange={e => setDeal(x => ({ ...x, nonShoot: { ...x.nonShoot, cashHourly: +e.target.value || 0 } }))} style={{ width: 100 }} /></div>
+            <div className="ctl" style={{ minWidth: 90 }}><label>Floor, $/hour</label><input type="number" step="0.05" value={d.nonShoot.cashHourly} onChange={e => setDeal(x => ({ ...x, nonShoot: { ...x.nonShoot, cashHourly: +e.target.value || 0 } }))} style={{ width: 100 }} /></div>
             <div className="ctl"><label>Balance becomes</label>
               <select value={d.nonShoot.rest} onChange={e => setDeal(x => ({ ...x, nonShoot: { ...x.nonShoot, rest: e.target.value as any } }))}><option value="points">points (contingent)</option><option value="deferred">deferred (counts for SAG)</option></select></div>
           </>}

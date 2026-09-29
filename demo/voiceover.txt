@@ -14,7 +14,7 @@ Three ways in. Start from scratch, drop in a budget you already have, or load th
 [PAUSE: 1.5s]
 
 // CUE 3: deal tab
-Everything about the deal lives on one page, and it sits on top of your budget instead of rewriting it. Salt Flat, our sample, is a twelve-day SAG feature at eight hundred and twelve thousand dollars as budgeted.
+Everything about the deal lives on one page, and it sits on top of your budget instead of rewriting it. Salt Flat, our sample, is a twelve-day SAG feature with a budget of eight hundred and twelve thousand dollars, as budgeted.
 
 [PAUSE: 1.5s]
 
@@ -24,12 +24,12 @@ Flip to the Sing Sing deal. One hourly rate for everyone, above and below the li
 [PAUSE: 1.5s]
 
 // CUE 5: premiums
-Producer fees, the script, the star allowance. Each one can stay cash, move to points, or come off the budget entirely.
+Producer fees, the script, the star allowance. Each one can stay up front, move to points, or come off the budget entirely.
 
 [PAUSE: 1.5s]
 
-// CUE 6: cash floor
-Prep, wrap and post days at a cash floor, with the balance on the back end. Days worked don't change, so nobody's points change. Cash does.
+// CUE 6: floor rate
+Prep, wrap and post days at a floor rate, with the balance on the back end. Days worked don't change, so nobody's points change. What they're paid up front does.
 
 [PAUSE: 1.5s]
 
@@ -39,12 +39,12 @@ The top sheet shows the result. Lines the deal set are marked. Days and descript
 [PAUSE: 1.5s]
 
 // CUE 8: SAG
-SAG measures total production cost. Deferred pay counts. Points don't. This page checks the budget against every tier.
+SAG sets your tier by total production cost. Your profit-share points aren't part of that cost, which is what makes this work. This page checks the budget against every tier.
 
 [PAUSE: 1.5s]
 
 // CUE 9: points
-The back end splits by days worked times a tier multiplier, at three revenue scenarios. Grants are never recouped. Everyone on the schedule is here, cash pay next to their points.
+The back end splits by days worked times a tier multiplier, at three revenue scenarios. Grants are never recouped. Everyone on the schedule is here, wages next to their points.
 
 [PAUSE: 1.5s]
 

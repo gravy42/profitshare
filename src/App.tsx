@@ -131,7 +131,7 @@ export default function App() {
         </span>
         <span className="spacer" />
         <span className="kpi">
-          <span>Cash budget<b>{money(ts.cashBudget)}</b></span>
+          <span>Budget to raise<b>{money(ts.cashBudget)}</b></span>
           <span>Deal<b>{project.deal?.pay.model === 'everyone-at-scale' ? 'everyone at scale' : 'as budgeted'}</b></span>
           <span>Points value<b>{money(ts.pointsValue)}</b></span>
           <span>SAG<b>{sag.qualifying.id}{sag.dic ? '+DIC' : ''}</b></span>
@@ -180,8 +180,8 @@ function About({ onStart }: { onStart: () => void }) {
     <div className="panel">
       <h2>About ProfitShare</h2>
       <div className="help">
-        <p>Budgeting and scheduling software stops at the cash column. ProfitShare is built for films where part of everyone's pay is a share of the back end. Every budget line carries a pay type: <span className="tag cash">cash</span> is what you raise, <span className="tag deferred">deferred</span> is a fixed IOU, <span className="tag points">points</span> is contingent participation. The top sheet, the SAG tier check and the points schedule all update from the same lines.</p>
-        <p><b>The Deal tab</b> holds every term (day length, SAG tier, pay model, premiums, cash floor, grants, waterfall) as a layer over the raw budget. Nothing you imported is rewritten; every tab recomputes from budget plus terms, live, and any term can change at any time.</p>
+        <p>Budgeting and scheduling software stops at the cash column. ProfitShare is built for films where part of everyone's pay is a share of the back end. Every budget line carries a pay type: <span className="tag cash">up front</span> is what you raise, <span className="tag deferred">deferred</span> is a fixed IOU, <span className="tag points">points</span> is contingent participation. The top sheet, the SAG tier check and the points schedule all update from the same lines.</p>
+        <p><b>The Deal tab</b> holds every term (day length, SAG tier, pay model, premiums, floor rate for non-shoot days, grants, waterfall) as a layer over the raw budget. Nothing you imported is rewritten; every tab recomputes from budget plus terms, live, and any term can change at any time.</p>
         <p>The stripboard feeds the same model: place day breaks, and the day-out-of-days tells you each actor's work days, which you can push straight into the cast lines and the points schedule.</p>
         <p><b>Local-first.</b> Nothing leaves your browser. Autosave keeps your work in this browser; press Save to download a .json you can open anywhere or share with a collaborator, and Open to load one.</p>
         <p><b>Imports.</b> Budgets from Shamel Studio (.xlsx) and Movie Magic Budgeting (Excel or CSV export), or any spreadsheet with account, description, amount, rate and total columns. Boards from Movie Magic Scheduling (.sex, which Shamel also exports) and Final Draft scripts (.fdx).</p>

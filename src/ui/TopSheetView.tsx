@@ -4,7 +4,7 @@ import {
   addAccount, addCategory, addLine, lineFringes, lineSubtotal, removeAccount, removeCategory, removeFringe, removeLine,
   renameAccount, renameCategory, rollupCashTotal, toggleLineFringe, topSheet, updateLine, upsertFringe, type CategoryRollup,
 } from '../engine/budget';
-import { money } from './format';
+import { money, PAY_LABEL } from './format';
 
 const PAY: PayType[] = ['cash', 'deferred', 'points'];
 const UNITS = ['-', 'DAY', 'WEEK', 'HOUR', 'ALLOW', 'ITEM', 'MONTH', 'FLAT', 'FEET', 'MILE'];
@@ -94,18 +94,18 @@ export function TopSheetView({ project, raw, controlled, setProject }: { project
   return (
     <div>
       <div className="grid3" style={{ marginBottom: 16 }}>
-        <div className="stat"><div className="label">Cash budget (what you raise)</div><div className="value">{money(ts.cashBudget)}</div>
+        <div className="stat"><div className="label">Budget to raise</div><div className="value">{money(ts.cashBudget)}</div>
           <div className="sub">incl. {money(ts.contingency)} contingency at {project.contingencyPct}%</div></div>
         <div className="stat"><div className="label">Deferred (fixed IOUs)</div><div className="value">{money(ts.deferredTotal)}</div>
           <div className="sub">counts toward SAG total production cost</div></div>
         <div className="stat"><div className="label">Converted to points</div><div className="value">{money(ts.pointsValue)}</div>
-          <div className="sub">cash value people traded for back end</div></div>
+          <div className="sub">value people traded for the back end</div></div>
       </div>
       <div className="panel">
         <div className="row" style={{ justifyContent: 'space-between' }}>
           <h2>Top sheet</h2>
           <div className="row">
-            <div className="bar" style={{ width: 220 }} title="cash / deferred / points">
+            <div className="bar" style={{ width: 220 }} title="up front / deferred / points">
               <i className="c" style={{ width: `${100 * rollupCashTotal(ts.subtotal) / total}%` }} />
               <i className="d" style={{ width: `${100 * ts.deferredTotal / total}%` }} />
               <i className="p" style={{ width: `${100 * ts.pointsValue / total}%` }} />
@@ -117,10 +117,10 @@ export function TopSheetView({ project, raw, controlled, setProject }: { project
         <p className="help">
           {empty
             ? <>Nothing in the budget yet. Open a category, then an account, and press <b>+ line</b>. Every line is amount × rate × multiplier, with fringes on top. <b>Edit accounts</b> lets you rename, add or remove categories and accounts.</>
-            : <>Click a category, then an account, to open its lines. Change <b>Pay</b> on any line to move it between cash, deferred and points. Cash is what you have to raise; deferred still counts for SAG; points live only in the back end.</>}
+            : <>Click a category, then an account, to open its lines. Change <b>Pay</b> on any line to move it between up front, deferred and points. Up front is what you have to raise; deferred still counts for SAG; points live only in the back end.</>}
         </p>
         <table>
-          <thead><tr><th>Account</th><th>Cash</th><th>Deferred</th><th>Points</th><th>Fringes</th></tr></thead>
+          <thead><tr><th>Account</th><th>Up front</th><th>Deferred</th><th>Points</th><th>Fringes</th></tr></thead>
           <tbody>
             {ts.sections.map(s => (
               <>
@@ -132,7 +132,7 @@ export function TopSheetView({ project, raw, controlled, setProject }: { project
             ))}
             <tr className="total"><td>Subtotal</td><td>{money(rollupCashTotal(ts.subtotal))}</td><td className="muted">{money(ts.deferredTotal)}</td><td className="muted">{money(ts.pointsValue)}</td><td className="muted">{money(ts.subtotal.cashFringes + ts.subtotal.deferredFringes)}</td></tr>
             <tr><td>Contingency {project.contingencyPct}% <input type="number" value={project.contingencyPct} step={0.5} style={{ width: 60, textAlign: 'right' }} onChange={e => setProject(p => ({ ...p, contingencyPct: +e.target.value }))} /></td><td>{money(ts.contingency)}</td><td /><td /><td /></tr>
-            <tr className="total hl"><td>Cash budget</td><td>{money(ts.cashBudget)}</td><td className="muted">{money(ts.deferredTotal)}</td><td className="muted">{money(ts.pointsValue)}</td><td /></tr>
+            <tr className="total hl"><td>Budget to raise</td><td>{money(ts.cashBudget)}</td><td className="muted">{money(ts.deferredTotal)}</td><td className="muted">{money(ts.pointsValue)}</td><td /></tr>
             <tr className="total"><td>Total production cost (SAG measures this)</td><td colSpan={2}>{money(ts.totalProductionCost)}</td><td /><td /></tr>
           </tbody>
         </table>
@@ -191,7 +191,7 @@ function LineTable({ lines, project, locked, patch, setProject, onAdd }: { lines
               <td className="muted">{fr ? money(fr, 2) : ''}</td>
               <td><b>{money(sub + fr, 2)}</b></td>
               <td>{derived ? <span className="muted small">{l.fringes.length ? `${l.fringes.length} fr.` : 'none'}</span> : <FringePicker line={l} fringes={project.fringes} onToggle={id => setProject(p => toggleLineFringe(p, l.id, id))} />}</td>
-              <td>{byDeal ? <span className={`tag ${l.payType}`}>{l.payType}</span> : <select value={l.payType} onChange={e => patch(l.id, { payType: e.target.value as PayType })} className={`tag ${l.payType}`}>{PAY.map(p => <option key={p} value={p}>{p}</option>)}</select>}</td>
+              <td>{byDeal ? <span className={`tag ${l.payType}`}>{PAY_LABEL[l.payType]}</span> : <select value={l.payType} onChange={e => patch(l.id, { payType: e.target.value as PayType })} className={`tag ${l.payType}`}>{PAY.map(p => <option key={p} value={p}>{PAY_LABEL[p]}</option>)}</select>}</td>
               <td>{!derived && <button className="btn small danger" title="Remove line" onClick={() => setProject(p => removeLine(p, l.id))}>×</button>}</td>
             </tr>
           );
