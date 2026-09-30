@@ -548,3 +548,18 @@ describe('editing days under the deal', () => {
     expect(applyDeal(p2).participants.find(x => x.id === 'p_producer_1')!.days).toBe(33);
   });
 });
+
+describe('days and wage lines agree under every deal', () => {
+  it('as budgeted: a days edit on the schedule reprices the wage line, and a line edit shows on the schedule', () => {
+    const p0 = withDeal(sampleProject());
+    const upm = applyDeal(p0).participants.find(x => /Line producer/i.test(x.name))!;
+    const before = topSheet(applyDeal(p0)).cashBudget;
+    const p1 = setParticipantDays(p0, upm.id, upm.days + 10);
+    expect(applyDeal(p1).participants.find(x => x.id === upm.id)!.days).toBe(upm.days + 10);
+    expect(topSheet(applyDeal(p1)).cashBudget).toBeGreaterThan(before);
+    // edit the line instead: the schedule follows
+    const line = p0.lines.find(l => l.participantId === upm.id && (l.unit === 'DAY' || l.unit === 'WEEK'))!;
+    const p2 = { ...p0, lines: p0.lines.map(l => l.id === line.id ? { ...l, amount: l.amount + 2 } : l) };
+    expect(applyDeal(p2).participants.find(x => x.id === upm.id)!.days).toBe(upm.days + (line.unit === 'WEEK' ? 10 : 2));
+  });
+});

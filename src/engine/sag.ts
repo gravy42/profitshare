@@ -162,11 +162,7 @@ export function everyoneAtScale(p: Project, tierId: SagTierId, opts: EveryoneAtS
     addAfter('1102', { id: 'L_scale_writer', accountId: '1102', description: 'Writer: scale, prep', amount: 10, unit: 'DAY', rate: hourly,
       multiplier: hours.day, fringes: fr, tags: ['ATL'], payType: 'cash', participantId: scriptLine.participantId });
   }
-  const participants = p.participants.map(pt => {
-    const days = lines.filter(l => l.participantId === pt.id && isPayrollLine(l)).reduce((n, l) => n + (l.unit === 'WEEK' ? l.amount * 5 : l.amount), 0);
-    return days > 0 ? { ...pt, days } : pt;
-  });
-  return { ...out, lines, participants };
+  return daysFromLines({ ...out, lines });
 }
 
 // ---------- prep, wrap and post days at a cash floor ----------
@@ -199,13 +195,26 @@ export function floorNonShootDays(p: Project, opts: { cashHourly: number; rest: 
   return { ...p, lines };
 }
 
+/** A line that carries someone's days: a wage line, not an allowance. */
+export const isDaysLine = (l: LineItem) => isPayrollLine(l) && !/allowance/i.test(l.description);
+export const lineDays = (l: LineItem) => l.unit === 'WEEK' ? l.amount * 5 : l.amount;
+
+/** Participants whose pay is on wage lines take their days from those lines, so the top sheet and the points
+ *  schedule always agree; a participant with no wage line keeps the days typed on the schedule. */
+export function daysFromLines(p: Project): Project {
+  const participants = p.participants.map(pt => {
+    const days = p.lines.filter(l => l.participantId === pt.id && isDaysLine(l)).reduce((n, l) => n + lineDays(l), 0);
+    return days > 0 ? { ...pt, days } : pt;
+  });
+  return { ...p, participants };
+}
+
 /** Set a participant's days worked on the raw project. When the participant is paid through wage lines (which is
  *  how everyone-at-scale reads days), the lines move too, so the edit survives the deal being re-applied: one line
  *  takes the new figure outright (weeks = days / 5); several share the change in proportion. */
 export function setParticipantDays(p: Project, participantId: string, days: number): Project {
   const d = Math.max(0, Math.round(days));
-  const linked = p.lines.filter(l => l.participantId === participantId && isPayrollLine(l) && (l.unit === 'DAY' || l.unit === 'WEEK'));
-  const lineDays = (l: LineItem) => l.unit === 'WEEK' ? l.amount * 5 : l.amount;
+  const linked = p.lines.filter(l => l.participantId === participantId && isDaysLine(l));
   let lines = p.lines;
   if (linked.length === 1) {
     const l = linked[0];

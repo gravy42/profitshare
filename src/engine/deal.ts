@@ -3,7 +3,7 @@
 // budget from raw lines + terms, and every view reads the effective one. Change a term, everything updates.
 import type { Deal, Participant, Project, SagTierId } from './types';
 import { PAID_HOURS, setDayHours } from './budget';
-import { everyoneAtScale, floorNonShootDays, rerateCast, sagTier } from './sag';
+import { daysFromLines, everyoneAtScale, floorNonShootDays, rerateCast, sagTier } from './sag';
 import type { LineItem, PremiumGroup } from './types';
 
 /** The above-scale above-the-line money, in three groups, so a deal can treat each one differently. */
@@ -65,6 +65,8 @@ export function applyDeal(raw: Project): Project {
   } else if (d.pay.rerateCast) {
     p = rerateCast(p, p.sag.targetTier);
   }
+  // whatever the pay model, days on the schedule are the days on the wage lines
+  p = daysFromLines(p);
 
   // 4. premiums: producer fees, script purchase, star / cast allowances
   const groups = Object.keys(PRESET_GROUPS) as PremiumGroup[];
