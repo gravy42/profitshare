@@ -377,7 +377,7 @@ describe('screenplay importers', () => {
     expect(s4.set).toBe('GAS STATION DINER');
     expect(s7.cast.map(c => c.name)).toEqual(['LENA']);                       // silent: named in action in Title Case
     expect(s8.cast.map(c => c.name).sort()).toEqual(['JUNE', 'WALT']);       // WALT (CONT'D) folds into WALT
-    expect(r.board.castList.map(c => c.name)).toEqual(['JUNE', 'LENA', 'THE MECHANIC', 'WAITRESS', 'KID', 'WALT']);
+    expect(r.board.castList.map(c => c.name)).toEqual(['JUNE', 'LENA', 'WALT', 'THE MECHANIC', 'WAITRESS', 'KID']);   // most scenes first
     const eighths = r.board.scenes.reduce((t, s) => t + s.eighths, 0);
     expect(eighths).toBeGreaterThanOrEqual(20); expect(eighths).toBeLessThanOrEqual(28);   // about 3 pages
     expect(s1.synopsis).toMatch(/^Two sisters push/);
@@ -412,7 +412,7 @@ Nothing.
     const [a, b, c] = r.board.scenes;
     expect(a).toMatchObject({ ie: 'INT', set: 'FLASHBACK - THE KITCHEN', number: '4A' });
     expect(b).toMatchObject({ ie: 'I/E', set: 'CAR - MOVING', tod: 'NIGHT', number: '12' });
-    expect(b.cast.map(x => x.name)).toEqual(['MCCLANE', 'DEL', 'RAY', 'EVE']);
+    expect(b.cast.map(x => x.name).sort()).toEqual(['DEL', 'EVE', 'MCCLANE', 'RAY']);
     expect(b.synopsis).toMatch(/^THE CAR SWERVES/);
     expect(c).toMatchObject({ ie: 'EXT', set: 'SALT FLAT', tod: 'DAY' });
   });
@@ -500,5 +500,29 @@ describe('breakdown tagger', () => {
     const b4 = addCast(b3, 'sc1', 'jack');
     expect(b4.castList.map(c => c.name)).toEqual(['SAM', 'JACK']);
     expect(b4.scenes[0].cast.map(c => c.id)).toEqual([1, 2]);
+  });
+});
+
+import { renumberCast, castOrderByScenes, castOrderByAppearance } from './board';
+
+describe('cast numbering', () => {
+  const mk = () => {
+    const r = parseScreenplayText(readFileSync(resolve(__dirname, '../../tools/fixtures/SaltFlat_Script.fountain'), 'utf8'));
+    const p: any = { ...sampleProject(), board: r.board, participants: [{ id: 'p_cast_3', name: 'WALT', role: 'x', group: 'cast', tierId: 'cast', days: 0, bonusMultiplier: 1, castId: 3 }] };
+    return p;
+  };
+  it('orders by scene count or by first appearance, and renumbers scenes and participants together', () => {
+    const p = mk();
+    expect(castOrderByScenes(p.board).slice(0, 3)).toEqual([1, 2, 3]);
+    const byAppear = castOrderByAppearance(p.board);
+    const names = (q: any) => q.board.castList.map((c: any) => `${c.id} ${c.name}`);
+    const q = renumberCast(p, byAppear);
+    expect(names(q)).toEqual(['1 JUNE', '2 LENA', '3 THE MECHANIC', '4 WAITRESS', '5 KID', '6 WALT']);
+    expect(q.participants[0].castId).toBe(6);                                          // Walt's participant follows him
+    const walt = q.board.scenes[7].cast.find((c: any) => c.name === 'WALT');
+    expect(walt?.id).toBe(6);
+    const r = renumberCast(q, [6]);                                                    // Walt to #1, everyone else shifts
+    expect(names(r).slice(0, 2)).toEqual(['1 WALT', '2 JUNE']);
+    expect(r.participants[0].castId).toBe(1);
   });
 });

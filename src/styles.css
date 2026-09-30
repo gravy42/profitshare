@@ -180,3 +180,15 @@ details.panel > summary::-webkit-details-marker { display: none; }
 tr.section td { background: var(--soft); font-weight: 800; font-size: 11px; letter-spacing: .5px; text-transform: uppercase; color: var(--plum); padding-top: 10px; }
 tr.subtotal td { border-top: 1px solid var(--line); font-weight: 700; color: var(--muted); }
 tr.total td { border-top: 2px solid var(--ink); font-weight: 800; }
+
+/* DOOD popout */
+.modal { position: fixed; inset: 0; z-index: 2000; background: rgba(10,8,14,.55); display: flex; align-items: center; justify-content: center; padding: 24px; }
+.modal-card { background: var(--card); color: var(--ink); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; width: min(96vw, 1600px); max-height: 92vh; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 30px 80px rgba(0,0,0,.45); }
+.dood-full { overflow: auto; max-height: calc(92vh - 110px); }
+.dood-full table.full th:first-child, .dood-full table.full td:first-child { position: sticky; left: 0; background: var(--card); z-index: 1; }
+.dood-full table.full thead th { position: sticky; top: 0; background: var(--card); z-index: 2; }
+.dood-full table.full thead th:first-child { z-index: 3; }
+.dood-full table.full td, .dood-full table.full th { padding: 4px 7px; font-size: 12px; }
+.dood-full tr[draggable] { cursor: grab; }
+.dood-full tr.dragover td { border-top: 3px solid var(--orange); }
+.dood-full .handle { color: var(--muted); }

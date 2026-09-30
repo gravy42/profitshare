@@ -139,3 +139,34 @@ export function syncCastDaysFromBoard(p: Project): Project {
 }
 
 export const totalEighths = (board: Board) => board.scenes.reduce((n, s) => n + s.eighths, 0);
+
+/** Scenes each cast member is in, in script order (strip order is the schedule; this is the story). */
+export function castSceneCounts(board: Board): Map<number, number> {
+  const m = new Map<number, number>();
+  for (const s of board.scenes) for (const c of s.cast) if (c.id != null) m.set(c.id, (m.get(c.id) ?? 0) + 1);
+  return m;
+}
+
+/** The cast list in a new order (old cast ids, in the order they should now be numbered 1..n). Scene tags and any
+ *  participants linked by cast number follow. */
+export function renumberCast(p: Project, order: number[]): Project {
+  const b = p.board;
+  const seen = new Set<number>();
+  const ids = [...order.filter(id => b.castList.some(c => c.id === id) && !seen.has(id) && (seen.add(id), true)), ...b.castList.map(c => c.id).filter(id => !seen.has(id))];
+  const map = new Map(ids.map((old, i) => [old, i + 1]));
+  const castList = ids.map(old => ({ ...b.castList.find(c => c.id === old)!, id: map.get(old)! }));
+  const scenes = b.scenes.map(s => ({ ...s, cast: s.cast.map(c => c.id != null ? { ...c, id: map.get(c.id) ?? c.id } : c).sort((x, y) => (x.id ?? 0) - (y.id ?? 0)) }));
+  const participants = p.participants.map(pt => pt.castId != null && map.has(pt.castId) ? { ...pt, castId: map.get(pt.castId)! } : pt);
+  return { ...p, board: { ...b, castList, scenes }, participants };
+}
+/** Most scenes first (the way a breakdown numbers its cast), ties by current number. */
+export const castOrderByScenes = (board: Board): number[] => {
+  const n = castSceneCounts(board);
+  return board.castList.map(c => c.id).sort((a, b) => (n.get(b) ?? 0) - (n.get(a) ?? 0) || a - b);
+};
+/** Order of first appearance in the script. */
+export const castOrderByAppearance = (board: Board): number[] => {
+  const first = new Map<number, number>();
+  board.scenes.forEach((s, i) => { for (const c of s.cast) if (c.id != null && !first.has(c.id)) first.set(c.id, i); });
+  return board.castList.map(c => c.id).sort((a, b) => (first.get(a) ?? 1e9) - (first.get(b) ?? 1e9) || a - b);
+};

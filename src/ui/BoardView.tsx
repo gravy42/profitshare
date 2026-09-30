@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Board, Project, Scene } from '../engine/types';
-import { autoDayBreaks, fitDayBreaks, clearDayBreaks, dood, eighthsToText, insertDayBreak, moveStrip, removeStrip, shootDays, syncCastDaysFromBoard, totalEighths } from '../engine/board';
+import { autoDayBreaks, fitDayBreaks, clearDayBreaks, dood, eighthsToText, insertDayBreak, moveStrip, removeStrip, shootDays, syncCastDaysFromBoard, totalEighths, castSceneCounts, castOrderByAppearance, castOrderByScenes, renumberCast } from '../engine/board';
 import { BREAKDOWN_CATEGORIES, addCast, addElement, autoTag, autoTagBoard, categoryColor, removeCast, removeElement } from '../engine/breakdown';
 
 type Set = (f: (p: Project) => Project) => void;
@@ -20,6 +20,7 @@ export function BoardView({ project, setProject }: { project: Project; setProjec
   const [target, setTarget] = useState(board.targetEighthsPerDay);
   const [showDood, setShowDood] = useState(true);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [doodOpen, setDoodOpen] = useState(false);
   const total = totalEighths(board);
   const hasText = board.scenes.some(s => s.text);
   const tagCount = (s: Scene) => Object.values(s.elements).reduce((n, v) => n + v.length, 0);
@@ -108,30 +109,74 @@ export function BoardView({ project, setProject }: { project: Project; setProjec
           </div>
           {showDood && (
             <div className="panel dood">
-              <h2>Day out of days</h2>
-              <table>
-                <thead><tr><th className="l">Cast</th>{days.map(d => <th key={d.index}>{d.index}</th>)}<th>W</th><th>Span</th></tr></thead>
-                <tbody>
-                  {dood(board).filter(r => r.total > 0).map(r => (
-                    <tr key={r.castId}><td className="l">{r.castId} {r.name}</td>
-                      {days.map(d => {
-                        const w = r.workDays.includes(d.index);
-                        const hold = !w && d.index > r.workDays[0] && d.index < r.workDays[r.workDays.length - 1];
-                        return <td key={d.index} className={w ? 'w' : hold ? 'h' : ''}>{w ? 'W' : hold ? 'H' : ''}</td>;
-                      })}
-                      <td><b>{r.total}</b></td><td className="muted">{r.span}</td></tr>
-                  ))}
-                </tbody>
-              </table>
-              <p className="help small">W = work day, H = hold day between work days. Cast on SAG weekly deals are paid through holds, so a long span costs more than a short one.</p>
+              <div className="row" style={{ justifyContent: 'space-between' }}><h2>Day out of days</h2><button className="btn small" title="open the full day-out-of-days" onClick={() => setDoodOpen(true)}>⤢ pop out</button></div>
+              <DoodTable board={board} days={days} compact />
+              <p className="help small">W = work day, H = hold day between work days. Cast on SAG weekly deals are paid through holds, so a long span costs more than a short one. Pop out to see every day, and to renumber the cast.</p>
             </div>
           )}
+        </div>
+      </div>
+      {doodOpen && <DoodPopout project={project} setProject={setProject} onClose={() => setDoodOpen(false)} />}
+    </div>
+  );
+}
+
+/** The DOOD grid. Compact shows the first days that fit; the popout shows them all and lets rows be dragged to renumber. */
+function DoodTable({ board, days, compact, onReorder }: { board: Board; days: ReturnType<typeof shootDays>; compact?: boolean; onReorder?: (order: number[]) => void }) {
+  const rows = dood(board);
+  const counts = castSceneCounts(board);
+  const [drag, setDrag] = useState<number | null>(null);
+  const [over, setOver] = useState<number | null>(null);
+  const drop = (to: number) => {
+    if (drag === null || !onReorder) return;
+    const ids = board.castList.map(c => c.id); const from = ids.indexOf(drag);
+    if (from >= 0) { ids.splice(from, 1); ids.splice(to > from ? to - 1 : to, 0, drag); onReorder(ids); }
+    setDrag(null); setOver(null);
+  };
+  return (
+    <table className={compact ? '' : 'full'}>
+      <thead><tr><th className="l">Cast</th>{!compact && <th title="scenes in the script">Sc</th>}{days.map(d => <th key={d.index} title={d.label || `Day ${d.index}`}>{d.index}</th>)}<th>W</th><th>Span</th></tr></thead>
+      <tbody>
+        {rows.filter(r => compact ? r.total > 0 : true).map((r, i) => (
+          <tr key={r.castId} className={over === i ? 'dragover' : ''}
+            draggable={!!onReorder} onDragStart={() => setDrag(r.castId)} onDragOver={e => { if (onReorder) { e.preventDefault(); setOver(i); } }} onDragLeave={() => setOver(o => (o === i ? null : o))} onDrop={e => { e.preventDefault(); drop(i); }}>
+            <td className="l">{onReorder && <span className="handle">⋮⋮ </span>}{r.castId} {r.name}</td>
+            {!compact && <td className="muted">{counts.get(r.castId) ?? 0}</td>}
+            {days.map(d => {
+              const w = r.workDays.includes(d.index);
+              const hold = !w && d.index > r.workDays[0] && d.index < r.workDays[r.workDays.length - 1];
+              return <td key={d.index} className={w ? 'w' : hold ? 'h' : ''}>{w ? 'W' : hold ? 'H' : ''}</td>;
+            })}
+            <td><b>{r.total}</b></td><td className="muted">{r.span}</td></tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function DoodPopout({ project, setProject, onClose }: { project: Project; setProject: Set; onClose: () => void }) {
+  const board = project.board; const days = shootDays(board);
+  useEffect(() => { const k = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); }; window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k); }, [onClose]);
+  const holds = dood(board).reduce((n, r) => n + Math.max(0, r.span - r.total), 0);
+  return (
+    <div className="modal" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="modal-card">
+        <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
+          <h2>Day out of days · {board.castList.length} cast · {days.length} days · {holds} hold days</h2>
+          <div className="row">
+            <button className="btn small" title="1 = most scenes, the way a breakdown numbers a cast list" onClick={() => setProject(p => renumberCast(p, castOrderByScenes(p.board)))}>Number by scenes</button>
+            <button className="btn small" title="1 = first to appear in the script" onClick={() => setProject(p => renumberCast(p, castOrderByAppearance(p.board)))}>Number by first appearance</button>
+            <button className="btn small" onClick={onClose}>Close (Esc)</button>
+          </div>
+        </div>
+        <p className="help small">Drag a row to renumber by hand; scene tags and the points schedule follow the new numbers. W = work day, H = hold day between work days (paid on SAG weekly deals).</p>
+        <div className="dood dood-full">
+          <DoodTable board={board} days={days} onReorder={order => setProject(p => renumberCast(p, order))} />
         </div>
       </div>
     </div>
   );
 }
-
 const esc = (x: string) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /** The scene as written, with everything tagged on it lit up; select words to tag them. */

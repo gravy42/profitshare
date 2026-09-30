@@ -34,14 +34,15 @@ const looksLikeCue = (s: string, strict = true) => {
     && !NOT_CUE.test(c) && /[A-Z]/.test(c) && !/[,:;!?"“”]|\.$/.test(c);
 };
 
-/** Shared by every script importer: number the cast, one strip per scene in script order. */
+/** Shared by every script importer: number the cast (most scenes first, ties by first appearance, the way a
+ *  breakdown numbers a cast list), one strip per scene in script order. */
 export function finishBoard(scenes: Scene[]): Board {
-  const castList: { id: number; name: string }[] = [];
-  for (const s of scenes) for (const c of s.cast) {
-    let m = castList.find(x => x.name === c.name);
-    if (!m) { m = { id: castList.length + 1, name: c.name }; castList.push(m); }
-    c.id = m.id;
-  }
+  const count = new Map<string, number>(), first = new Map<string, number>();
+  scenes.forEach((s, i) => { for (const c of s.cast) { count.set(c.name, (count.get(c.name) ?? 0) + 1); if (!first.has(c.name)) first.set(c.name, i); } });
+  const names = [...count.keys()].sort((a, b) => count.get(b)! - count.get(a)! || first.get(a)! - first.get(b)!);
+  const castList = names.map((name, i) => ({ id: i + 1, name }));
+  const idOf = new Map(castList.map(c => [c.name, c.id]));
+  for (const s of scenes) for (const c of s.cast) c.id = idOf.get(c.name);
   for (const s of scenes) s.cast.sort((a, b) => (a.id ?? 0) - (b.id ?? 0));
   const strips: Strip[] = scenes.map(s => ({ type: 'scene', sceneId: s.id }));
   return { castList, scenes, strips, targetEighthsPerDay: 44 };
