@@ -16,6 +16,18 @@ export function PointsView({ project, setProject }: { project: Project; setProje
   const removeP = (id: string) => setProject(p => ({ ...p, participants: p.participants.filter(x => x.id !== id), lines: p.lines.map(l => l.participantId === id ? { ...l, participantId: undefined } : l) }));
   const patchTier = (id: string, multiplier: number) => setProject(p => ({ ...p, tiers: p.tiers.map(t => t.id === id ? { ...t, multiplier } : t) }));
 
+  // the schedule reads ATL / cast / BTL, the way a budget does; group keys underneath stay as they are
+  const GROUP_LABEL: Record<Participant['group'], string> = { producer: 'ATL', cast: 'Cast', crew: 'BTL', other: 'BTL (other)' };
+  const sections: { key: string; title: string; groups: Participant['group'][] }[] = [
+    { key: 'ATL', title: 'Above the line', groups: ['producer'] },
+    { key: 'CAST', title: 'Cast', groups: ['cast'] },
+    { key: 'BTL', title: 'Below the line', groups: ['crew', 'other'] },
+  ];
+  const sum = (rows: typeof r.rows) => ({
+    people: rows.length, days: rows.reduce((n, x) => n + x.participant.days, 0), points: rows.reduce((n, x) => n + x.points, 0),
+    share: rows.reduce((n, x) => n + x.share, 0), cash: rows.reduce((n, x) => n + (x.cashPay ?? 0), 0),
+    payouts: r.scenarios.map((_, i) => rows.reduce((n, x) => n + x.payouts[i], 0)),
+  });
   const rStar = w.model === 'off-the-gross' ? (r.budget * w.recoupPct / 100) / (1 - w.grossSharePct / 100) : r.budget * w.recoupPct / 100;
 
   return (
@@ -68,27 +80,39 @@ export function PointsView({ project, setProject }: { project: Project; setProje
 
       <div className="panel">
         <h2>Points schedule</h2>
+        <p className="help">Above the line, cast, then below the line, each with its own subtotal. A participant's group sets where they sit; change it in the Group column.</p>
         <table>
           <thead><tr><th className="l">Participant</th><th className="l">Role</th><th>Group</th><th>Tier</th><th>Days</th><th>Bonus ×</th><th>Points</th><th>Share</th><th>Wages</th>{r.scenarios.map(s => <th key={s}>@ {money(s / 1e6, 1)}M</th>)}<th /></tr></thead>
           <tbody>
-            {r.rows.map(row => {
-              const p = row.participant;
-              return (
-                <tr key={p.id} className={p.group === 'cast' ? 'hl' : ''}>
-                  <td><input className="l" value={p.name} onChange={e => patchP(p.id, { name: e.target.value })} /></td>
-                  <td><input className="l" value={p.role} onChange={e => patchP(p.id, { role: e.target.value })} /></td>
-                  <td><select value={p.group} onChange={e => patchP(p.id, { group: e.target.value as Participant['group'] })}>{['cast', 'crew', 'producer', 'other'].map(g => <option key={g}>{g}</option>)}</select></td>
-                  <td><select value={p.tierId} onChange={e => patchP(p.id, { tierId: e.target.value })}>{project.tiers.map(t => <option key={t.id} value={t.id}>{t.name} ×{t.multiplier}</option>)}</select></td>
-                  <td className="num"><input type="number" value={p.days} onChange={e => patchP(p.id, { days: +e.target.value })} /></td>
-                  <td className="num"><input type="number" step={0.25} value={p.bonusMultiplier} onChange={e => patchP(p.id, { bonusMultiplier: +e.target.value })} /></td>
-                  <td>{num(row.points)}</td>
-                  <td className="muted">{pct(row.share)}</td>
-                  <td className="muted">{row.cashPay ? money(row.cashPay) : ''}</td>
-                  {row.payouts.map((v, i) => <td key={i}><b>{money(v)}</b></td>)}
-                  <td><button className="btn small" title="remove" onClick={() => removeP(p.id)}>×</button></td>
-                </tr>
-              );
+            {sections.map(sec => {
+              const rows = r.rows.filter(x => sec.groups.includes(x.participant.group))
+                .sort((a, b) => sec.key === 'CAST' ? (a.participant.castId ?? 999) - (b.participant.castId ?? 999) : 0);
+              if (!rows.length) return null;
+              const t = sum(rows);
+              return [
+                <tr key={sec.key + '-h'} className="section"><td colSpan={9 + r.scenarios.length + 1}>{sec.title} · {t.people} {t.people === 1 ? 'person' : 'people'}</td></tr>,
+                ...rows.map(row => {
+                  const p = row.participant;
+                  return (
+                    <tr key={p.id} className={p.group === 'cast' ? 'hl' : ''}>
+                      <td><input className="l" value={p.name} onChange={e => patchP(p.id, { name: e.target.value })} /></td>
+                      <td><input className="l" value={p.role} onChange={e => patchP(p.id, { role: e.target.value })} /></td>
+                      <td><select value={p.group} onChange={e => patchP(p.id, { group: e.target.value as Participant['group'] })}>{(['producer', 'cast', 'crew', 'other'] as Participant['group'][]).map(g => <option key={g} value={g}>{GROUP_LABEL[g]}</option>)}</select></td>
+                      <td><select value={p.tierId} onChange={e => patchP(p.id, { tierId: e.target.value })}>{project.tiers.map(t => <option key={t.id} value={t.id}>{t.name} ×{t.multiplier}</option>)}</select></td>
+                      <td className="num"><input type="number" value={p.days} onChange={e => patchP(p.id, { days: +e.target.value })} /></td>
+                      <td className="num"><input type="number" step={0.25} value={p.bonusMultiplier} onChange={e => patchP(p.id, { bonusMultiplier: +e.target.value })} /></td>
+                      <td>{num(row.points)}</td>
+                      <td className="muted">{pct(row.share)}</td>
+                      <td className="muted">{row.cashPay ? money(row.cashPay) : ''}</td>
+                      {row.payouts.map((v, i) => <td key={i}><b>{money(v)}</b></td>)}
+                      <td><button className="btn small" title="remove" onClick={() => removeP(p.id)}>×</button></td>
+                    </tr>
+                  );
+                }),
+                <tr key={sec.key + '-t'} className="subtotal"><td colSpan={4}>{sec.title} subtotal</td><td className="num">{num(t.days)}</td><td /><td>{num(t.points)}</td><td>{pct(t.share)}</td><td>{t.cash ? money(t.cash) : ''}</td>{t.payouts.map((v, i) => <td key={i}>{money(v)}</td>)}<td /></tr>,
+              ];
             })}
+            {(() => { const t = sum(r.rows); return <tr className="total"><td colSpan={4}>Everyone · {t.people} people</td><td className="num">{num(t.days)}</td><td /><td>{num(t.points)}</td><td>{pct(t.share)}</td><td>{t.cash ? money(t.cash) : ''}</td>{t.payouts.map((v, i) => <td key={i}>{money(v)}</td>)}<td /></tr>; })()}
           </tbody>
         </table>
       </div>
