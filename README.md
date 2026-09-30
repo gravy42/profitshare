@@ -8,7 +8,7 @@ Written by a director budgeting her first feature, because none of the tools wou
 
 ## Demo
 
-[▶ 90-second walkthrough](demo/profitshare-demo.mp4): the Deal tab repricing the sample live, the top sheet showing what the deal set, the SAG check, the waterfall, day breaks, and a drag-and-drop import. `npm run demo` re-records it from `tools/demo.mjs`.
+[▶ Narrated walkthrough, 2:41](demo/profitshare-demo.mp4): the Deal tab repricing the sample live, the top sheet showing what the deal set, the SAG check, the waterfall, day breaks, and a drag-and-drop import of a budget and a script. Captions are a subtitle track you can switch on (CC in QuickTime or VLC); `demo/profitshare-demo.srt` and `.vtt` sit beside it for YouTube or a web player. `npm run demo` re-records a captioned silent cut from `tools/demo.mjs`; `npm run demo:vo` records a clean cut timed to `demo/vo.mp3` and lays the narration and subtitles on (the script is `demo/voiceover.txt`).
 
 ## Try it
 
@@ -45,7 +45,8 @@ npm run build          # static site in dist/ (the GitHub Pages workflow deploys
 npm run build:single   # one self-contained index.html in dist-single/
 npm run sample         # rebuild the sample project and the importer fixtures from tools/make-sample.mjs
 npm run smoke          # Playwright walk-through with screenshots, light and dark
-npm run demo           # re-record demo/profitshare-demo.mp4 (needs ffmpeg)
+npm run demo           # re-record a silent, captioned demo/profitshare-demo.mp4 (needs ffmpeg)
+npm run demo:vo        # narrated cut: analyze demo/vo.mp3, re-record clean, mux voice + subtitle track (VO_SILENCE=0.7 for tighter pauses)
 ```
 
 Needs Node 20 or newer. The Pages workflow in `.github/workflows/pages.yml` builds and deploys on every push to `main`; turn on Pages in the repo settings with *Source: GitHub Actions*.

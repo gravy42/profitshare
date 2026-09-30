@@ -45,7 +45,9 @@ await page.addInitScript(() => {
 });
 
 const wait = ms => page.waitForTimeout(ms);
-const cap = async (t, ms = 0) => { await page.evaluate(t => window.__caption(t), t); if (ms) await wait(ms); };
+// DEMO_CAPTIONS=off records without the on-screen captions (the narrated cut carries them as a subtitle track instead)
+const burnIn = process.env.DEMO_CAPTIONS !== 'off';
+const cap = async (t, ms = 0) => { if (burnIn) await page.evaluate(t => window.__caption(t), t); if (ms) await wait(ms); };
 const card = async (title, sub, ms = 0) => { await page.evaluate(([a, b]) => window.__card(a, b), [title, sub]); if (ms) await wait(ms); };
 // a cue = one narration line. `after` is the on-screen action that happens while it plays (runs after `lead` ms).
 const holdFor = (ms) => timing && timing[cueIdx] !== undefined ? Math.max(ms, Math.round(timing[cueIdx] * 1000) + 700) : ms;

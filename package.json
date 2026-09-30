@@ -15,7 +15,7 @@
     "smoke": "npm run build:single && node tools/smoke.mjs",
     "demo": "npm run build:single && node tools/demo.mjs && ffmpeg -y -loglevel error -i demo/profitshare-demo.webm -c:v libx264 -preset slow -crf 20 -pix_fmt yuv420p -movflags +faststart demo/profitshare-demo.mp4",
     "sample": "node tools/make-sample.mjs",
-    "demo:vo": "node tools/vo-mux.mjs analyze demo/vo.mp3 && node tools/demo.mjs && node tools/vo-mux.mjs mux demo/vo.mp3"
+    "demo:vo": "node tools/vo-mux.mjs analyze demo/vo.mp3 && DEMO_CAPTIONS=off node tools/demo.mjs && node tools/vo-mux.mjs mux demo/vo.mp3"
   },
   "dependencies": {
     "pdfjs-dist": "^4.10.38",
