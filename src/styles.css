@@ -197,3 +197,9 @@ tr.total td { border-top: 2px solid var(--ink); font-weight: 800; }
 .addpos { margin-top: 10px; padding: 10px 12px; border: 1px dashed var(--line); border-radius: 10px; background: var(--soft); }
 .addpos .ctl input, .addpos .ctl select { width: 100%; }
 .addpos input::placeholder { color: var(--muted); opacity: .55; font-style: italic; }
+
+/* a note under a line: what the memo rows around it said before they were folded in, or anything typed */
+tr.line.noted > td { border-bottom: none; padding-bottom: 0; }
+tr.linenote > td { padding: 0 8px 6px 34px; }
+tr.linenote textarea.note { display: block; width: 100%; box-sizing: border-box; padding: 2px 6px; font: inherit; font-size: 11.5px; line-height: 1.35; color: var(--muted); background: transparent; border: 1px solid transparent; border-radius: 6px; resize: vertical; white-space: pre-wrap; }
+tr.linenote textarea.note:hover, tr.linenote textarea.note:focus { border-color: var(--line); background: var(--panel); color: var(--ink); }

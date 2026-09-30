@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useProject, downloadJson, pickFile, hadSavedProject } from './store';
-import { topSheet } from './engine/budget';
+import { foldMemoLines, memoLines, topSheet } from './engine/budget';
 import { sagReport } from './engine/sag';
 import { parseBudgetFile } from './engine/importers/budget';
 import { parseSex } from './engine/importers/sex';
@@ -58,16 +58,19 @@ export default function App() {
   const loadBudgetFile = async (f: File) => {
     const imp = parseBudgetFile(await f.arrayBuffer(), f.name, standardChartOfAccounts());
     const weekly = weeklyWageLines({ lines: imp.lines } as Project).length;
+    const memo = memoLines({ lines: imp.lines } as Project).length;
     setProject(p => {
       const { participants, lines } = deriveParticipants(imp.lines, imp.accounts, p.board, imp.shootDays || p.shootDays);
       const next = { ...p, name: imp.name || p.name, version: imp.version || p.version, shootDays: imp.shootDays || p.shootDays,
         categories: imp.categories, accounts: imp.accounts, fringes: imp.fringes, lines, participants };
-      return weeksToDays(next);      // everyone in this app works in days: weekly crew lines come in as five days at rate ÷ 5
+      // everyone in this app works in days: weekly crew lines come in as five days at rate ÷ 5; spreadsheet spacer rows,
+      // headers and prop lists become notes on the lines they belong to
+      return foldMemoLines(weeksToDays(next));
     });
     setFresh(false);
     const via = imp.source === 'shamel' ? 'Shamel Studio' : 'spreadsheet';
     setTab('deal');
-    return `${imp.lines.length} budget lines from ${f.name} (${via}${imp.reportedTotal ? `, file total ${money(imp.reportedTotal)}` : ''}${weekly ? `; ${weekly} weekly wage line${weekly > 1 ? 's' : ''} rewritten as days, same money` : ''})${imp.warnings.length ? `. ${imp.warnings.length} note${imp.warnings.length > 1 ? 's' : ''}: ${imp.warnings.slice(0, 3).join('; ')}` : ''}`;
+    return `${imp.lines.length} budget lines from ${f.name} (${via}${imp.reportedTotal ? `, file total ${money(imp.reportedTotal)}` : ''}${weekly ? `; ${weekly} weekly wage line${weekly > 1 ? 's' : ''} rewritten as days, same money` : ''}${memo ? `; ${memo} memo row${memo > 1 ? 's' : ''} folded into notes` : ''})${imp.warnings.length ? `. ${imp.warnings.length} note${imp.warnings.length > 1 ? 's' : ''}: ${imp.warnings.slice(0, 3).join('; ')}` : ''}`;
   };
   const loadBoardFile = async (f: File) => {
     const board = /\.fdx$/i.test(f.name) ? parseFdx(await f.text()) : parseSex(await f.arrayBuffer());

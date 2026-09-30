@@ -1,8 +1,9 @@
-import { useState, type MouseEvent } from 'react';
+import { Fragment, useState, type MouseEvent } from 'react';
 import type { FringeDef, LineItem, PayType, Project, Section } from '../engine/types';
 import {
   addAccount, addCategory, addLine, lineFringes, lineSubtotal, removeAccount, removeCategory, removeFringe, removeLine,
   renameAccount, renameCategory, rollupCashTotal, toggleLineFringe, topSheet, updateLine, upsertFringe, type CategoryRollup,
+  foldMemoLines, memoLines,
 } from '../engine/budget';
 import { money, PAY_LABEL } from './format';
 import { weeklyWageLines, weeksToDays } from '../engine/sag';
@@ -21,10 +22,12 @@ export function TopSheetView({ project, raw, controlled, setProject }: { project
   const [openAcct, setOpenAcct] = useState<Record<string, boolean>>({});
   const [filter, setFilter] = useState('');
   const [editing, setEditing] = useState(false);
+  const [hideEmpty, setHideEmpty] = useState(false);
   const toggle = (k: string) => setOpen(o => ({ ...o, [k]: !o[k] }));
   const toggleAcct = (k: string) => setOpenAcct(o => ({ ...o, [k]: !o[k] }));
   const f = filter.trim().toLowerCase();
-  const linesFor = (acct: string) => project.lines.filter(l => l.accountId === acct && (!f || l.description.toLowerCase().includes(f)));
+  const linesFor = (acct: string) => project.lines.filter(l => l.accountId === acct && (!f || l.description.toLowerCase().includes(f) || (l.notes ?? '').toLowerCase().includes(f)) && (!hideEmpty || lineSubtotal(l) !== 0));
+  const memoCount = memoLines(rawP).length;
   const total = rollupCashTotal(ts.subtotal) + ts.deferredTotal + ts.pointsValue || 1;
   const empty = project.lines.length === 0;
 
@@ -117,6 +120,8 @@ export function TopSheetView({ project, raw, controlled, setProject }: { project
               <i className="p" style={{ width: `${100 * ts.pointsValue / total}%` }} />
             </div>
             <input placeholder="filter lines…" value={filter} onChange={e => setFilter(e.target.value)} style={{ padding: '6px 9px', border: '1px solid var(--line)', borderRadius: 8 }} />
+            {memoCount > 0 && <button className="btn small" title="Blank rows, headers and list rows that carry no money become notes on the line they sit above (or the prop allowance they sit under). Nothing about the money changes." onClick={() => setProject(p => foldMemoLines(p))}>Fold memo lines ({memoCount})</button>}
+            <label className="small muted" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }} title="Hide lines whose amount × rate is zero (held days, placeholders)"><input type="checkbox" checked={hideEmpty} onChange={e => setHideEmpty(e.target.checked)} /> hide empty</label>
             {weeklyWageLines(rawP).length > 0 && <button className="btn small" title="Rewrite weekly crew and staff wage lines as days (five to the week, rate ÷ 5, same money). SAG weekly deals and rentals are left alone." onClick={() => setProject(weeksToDays)}>Weeks → days ({weeklyWageLines(rawP).length})</button>}
             <button className={`btn small ${editing ? 'primary' : ''}`} onClick={() => setEditing(e => !e)} title="Rename, add or remove categories and accounts">{editing ? 'Done editing accounts' : 'Edit accounts'}</button>
           </div>
@@ -178,6 +183,7 @@ function NewAccountRow({ category, project, setProject }: { category: string; pr
 }
 
 function LineTable({ lines, project, locked, patch, setProject, onAdd }: { lines: LineItem[]; project: Project; locked: Set<string>; patch: (id: string, p: Partial<LineItem>) => void; setProject: Setter; onAdd: () => void }) {
+  const [noting, setNoting] = useState<string | null>(null);
   return (
     <table>
       {lines.length > 0 && <thead><tr><th className="l">Description</th><th>Amt</th><th>Unit</th><th>×</th><th>Rate</th><th>Subtotal</th><th>Fringes</th><th>Total</th><th>Fringes</th><th>Pay</th><th /></tr></thead>}
@@ -187,8 +193,10 @@ function LineTable({ lines, project, locked, patch, setProject, onAdd }: { lines
           const dim = l.amount === 0 || l.rate === 0;
           const byDeal = locked.has(l.id);
           const derived = /^(SPLIT:|L_scale_)/.test(l.id);   // a line the deal created; it has no raw line to edit
+          const note = l.notes || noting === l.id;
           return (
-            <tr key={l.id} className={`line${dim ? ' dim' : ''}`} title={byDeal ? 'Set by the deal (Deal tab)' : undefined}>
+            <Fragment key={l.id}>
+            <tr className={`line${dim ? ' dim' : ''}${note ? ' noted' : ''}`} title={byDeal ? 'Set by the deal (Deal tab)' : undefined}>
               <td>{derived ? <span style={{ paddingLeft: 4 }}>{l.description} <span className="tag points">deal</span></span> : <><input className="l" value={l.description} placeholder="description" onChange={e => patch(l.id, { description: e.target.value })} />{byDeal && <span className="tag points" style={{ marginLeft: 4 }}>deal</span>}</>}</td>
               <td className="num">{derived ? l.amount : <input type="number" step="any" value={l.amount} onChange={e => patch(l.id, { amount: +e.target.value })} />}</td>
               <td>{byDeal ? l.unit : <select value={l.unit} onChange={e => patch(l.id, { unit: e.target.value })}>{(UNITS.includes(l.unit) ? UNITS : [...UNITS, l.unit]).map(u => <option key={u}>{u}</option>)}</select>}</td>
@@ -199,8 +207,10 @@ function LineTable({ lines, project, locked, patch, setProject, onAdd }: { lines
               <td><b>{money(sub + fr, 2)}</b></td>
               <td>{derived ? <span className="muted small">{l.fringes.length ? `${l.fringes.length} fr.` : 'none'}</span> : <FringePicker line={l} fringes={project.fringes} onToggle={id => setProject(p => toggleLineFringe(p, l.id, id))} />}</td>
               <td>{byDeal ? <span className={`tag ${l.payType}`}>{PAY_LABEL[l.payType]}</span> : <select value={l.payType} onChange={e => patch(l.id, { payType: e.target.value as PayType })} className={`tag ${l.payType}`}>{PAY.map(p => <option key={p} value={p}>{PAY_LABEL[p]}</option>)}</select>}</td>
-              <td>{!derived && <button className="btn small danger" title="Remove line" onClick={() => setProject(p => removeLine(p, l.id))}>×</button>}</td>
+              <td style={{ whiteSpace: 'nowrap' }}>{!derived && !note && <button className="btn small" title="Add a note to this line" onClick={() => setNoting(l.id)}>✎</button>}{!derived && <button className="btn small danger" title="Remove line" onClick={() => setProject(p => removeLine(p, l.id))}>×</button>}</td>
             </tr>
+            {note && <tr className="linenote"><td colSpan={11}><textarea className="note" rows={Math.min(6, Math.ceil((l.notes?.length ?? 0) / 110) || 1)} value={l.notes ?? ''} placeholder="note: what this line covers, a list, a reminder" autoFocus={noting === l.id} onChange={e => patch(l.id, { notes: e.target.value || undefined })} onBlur={() => setNoting(null)} /></td></tr>}
+            </Fragment>
           );
         })}
         <tr className="new"><td colSpan={11} style={{ paddingLeft: 34 }}><button className="btn small" onClick={onAdd}>+ line</button>{!lines.length && <span className="muted small"> No lines in this account.</span>}</td></tr>

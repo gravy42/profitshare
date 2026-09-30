@@ -223,3 +223,56 @@ export function setDayHours(p: Project, hours: 10 | 12): Project {
   });
   return { ...p, dayHours: hours, lines };
 }
+
+/** A memo line: no rate, no fringes, nobody linked, so it can never carry money. Budgets exported from a spreadsheet
+ *  are full of them: blank spacer rows, "CAST #3: COLIN" headers, a prop list with a quantity on each row. A zero-day
+ *  line that does have a rate (a Wrap or 6th Day placeholder waiting for days) is not a memo line. */
+export const isMemoLine = (l: LineItem) => l.rate === 0 && l.fringes.length === 0 && !l.participantId && !/^(SPLIT:|L_scale_)/.test(l.id);
+/** The memo lines worth folding. A memo line that is the only line in its account is left alone: that is an empty
+ *  account waiting for an amount, not clutter. */
+export function memoLines(p: Project, accountId?: string): LineItem[] {
+  const count = new Map<string, number>();
+  for (const l of p.lines) count.set(l.accountId, (count.get(l.accountId) ?? 0) + 1);
+  return p.lines.filter(l => isMemoLine(l) && (count.get(l.accountId) ?? 0) > 1 && (!accountId || l.accountId === accountId));
+}
+
+const PLACEHOLDER = /\[NAME\]|^(LIST|ALLOWANCE|ALLOW|MEMO|TBD|N\/A)$/i;
+/** What a memo line says, once it is a note: "phone ×10", "CAST #3: COLIN"; nothing for a blank or a template row. */
+export function memoText(l: LineItem): string {
+  const d = l.description.replace(/\s+/g, ' ').trim();
+  if (!d || PLACEHOLDER.test(d)) return '';
+  return l.amount > 0 ? `${d} ×${l.amount}` : d;
+}
+
+/** Fold an account's memo lines into notes on its real lines: each memo becomes part of the note on the next line
+ *  in that account that carries money (the line a header sits above), or on the last one before it when nothing
+ *  follows (a prop list under its allowance). Accounts with nothing but memo lines keep one line holding the list.
+ *  Nothing about the money changes. */
+export function foldMemoLines(p: Project, accountId?: string): Project {
+  const memo = new Set(memoLines(p, accountId).map(l => l.id));
+  if (!memo.size) return p;
+  const notes = new Map<string, string[]>();
+  const keep: LineItem[] = [];
+  for (const acct of new Set(p.lines.map(l => l.accountId))) {
+    const ls = p.lines.filter(l => l.accountId === acct);
+    const real = ls.filter(l => !memo.has(l.id));
+    if (!real.length) {   // an account of pure memo: keep the first line that says something, with the rest as its note
+      const texts = ls.map(memoText).filter(Boolean);
+      const first = ls.find(l => memoText(l)) ?? ls[0];
+      if (texts.length) keep.push({ ...first, amount: 0, notes: [first.notes, ...texts.slice(1)].filter(Boolean).join(', ') || undefined });
+      continue;
+    }
+    let pending: string[] = [];
+    for (const l of ls) {
+      if (memo.has(l.id)) { const t = memoText(l); if (t) pending.push(t); continue; }
+      if (pending.length) { notes.set(l.id, [...(notes.get(l.id) ?? []), ...pending]); pending = []; }
+    }
+    if (pending.length) { const last = real[real.length - 1]; notes.set(last.id, [...(notes.get(last.id) ?? []), ...pending]); }
+  }
+  const lines = p.lines.flatMap(l => {
+    if (memo.has(l.id)) { const k = keep.find(x => x.id === l.id); return k ? [k] : []; }
+    const add = notes.get(l.id);
+    return [add ? { ...l, notes: [l.notes, ...add].filter(Boolean).join(', ') } : l];
+  });
+  return { ...p, lines };
+}

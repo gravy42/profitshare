@@ -640,3 +640,31 @@ describe('projects saved before the deal layer', () => {
     expect(unbakeDerived(p)).toBe(p);                                                          // a clean project is untouched
   });
 });
+
+import { foldMemoLines, isMemoLine, memoLines } from './budget';
+import type { LineItem, Project } from './types';
+describe('memo lines', () => {
+  const line = (id: string, accountId: string, description: string, amount = 0, rate = 0, extra: Partial<LineItem> = {}): LineItem =>
+    ({ id, accountId, description, amount, unit: rate ? 'DAY' : '-', rate, multiplier: 1, fringes: [], tags: [], payType: 'cash', ...extra });
+  const p = { ...blankProject(), lines: [
+    line('h', '1403', 'CAST #7: FRANK'), line('b', '1403', ''), line('s', '1403', 'Shoot', 2, 1283), line('hold', '1403', 'Hold', 0, 1283),
+    line('a', '2411', 'ALLOWANCE', 4, 1250), line('l', '2411', 'LIST'), line('p1', '2411', 'phone', 10), line('p2', '2411', 'typewriter', 4),
+    line('ot', '2111', 'OT', 0, 0, { fringes: ['FICA1'] }),
+    line('m1', '1101', 'Right Fees'), line('m2', '1101', 'Copyright Fees'),
+  ] } as Project;
+  it('tells memo rows from zero-day placeholders', () => {
+    expect(memoLines(p).map(l => l.id)).toEqual(['h', 'b', 'l', 'p1', 'p2', 'm1', 'm2']);
+    expect(isMemoLine(p.lines.find(l => l.id === 'hold')!)).toBe(false);   // has a rate: days can be typed in
+    expect(isMemoLine(p.lines.find(l => l.id === 'ot')!)).toBe(false);     // carries fringes
+  });
+  it('folds them into notes on the lines they belong to, same money', () => {
+    const f = foldMemoLines(p);
+    const by = Object.fromEntries(f.lines.map(l => [l.id, l]));
+    expect(f.lines.map(l => l.id)).toEqual(['s', 'hold', 'a', 'ot', 'm1']);
+    expect(by.s.notes).toBe('CAST #7: FRANK');                    // a header goes on the line below it
+    expect(by.a.notes).toBe('phone ×10, typewriter ×4');          // a list under its allowance, LIST and the blank dropped
+    expect(by.m1.notes).toBe('Copyright Fees');                   // an account of pure memo keeps one line
+    expect(topSheet(f).cashBudget).toBe(topSheet(p).cashBudget);
+    expect(foldMemoLines(p, '2411').lines.map(l => l.id)).toEqual(['h', 'b', 's', 'hold', 'a', 'ot', 'm1', 'm2']);
+  });
+});
