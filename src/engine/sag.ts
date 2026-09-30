@@ -135,7 +135,8 @@ export function everyoneAtScale(p: Project, tierId: SagTierId, opts: EveryoneAtS
   let lines = out.lines.flatMap(l => {
     if (premiums(l)) return opts.premiums === 'keep' ? [l] : opts.premiums === 'delete' ? [] : [{ ...l, payType: opts.premiums }];
     if (isPayrollLine(l) && !isSagPerformerLine(l)) {
-      if (l.unit === 'WEEK') return [{ ...l, rate: Math.round(hourly * hours.day * 5 * 100) / 100, multiplier: 1 }]; // five crew days
+      // a weekly line becomes five days at the day rate: everyone on the same day rate reads as days, not weeks
+      if (l.unit === 'WEEK') return [{ ...l, unit: 'DAY' as const, amount: l.amount * 5, rate: hourly, multiplier: hours.day }];
       const m = l.multiplier === hours.long ? hours.long : hours.day;
       return [{ ...l, rate: hourly, multiplier: m }];
     }

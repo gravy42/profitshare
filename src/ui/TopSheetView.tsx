@@ -27,7 +27,12 @@ export function TopSheetView({ project, raw, controlled, setProject }: { project
   const total = rollupCashTotal(ts.subtotal) + ts.deferredTotal + ts.pointsValue || 1;
   const empty = project.lines.length === 0;
 
-  const patch = (id: string, p: Partial<LineItem>) => setProject(pr => updateLine(pr, id, p));
+  // an amount typed on a line the deal shows in days but the budget keeps in weeks goes back as weeks
+  const patch = (id: string, p: Partial<LineItem>) => setProject(pr => {
+    const rawLine = pr.lines.find(l => l.id === id); const shown = project.lines.find(l => l.id === id);
+    if (p.amount !== undefined && rawLine?.unit === 'WEEK' && shown?.unit === 'DAY') p = { ...p, amount: Math.round(p.amount / 5 * 10) / 10 };
+    return updateLine(pr, id, p);
+  });
   const onAddLine = (acct: string) => { setProject(p => addLine(p, acct).project); setOpenAcct(o => ({ ...o, [acct]: true })); };
 
   // every category is listed, even empty ones, so a from-scratch budget has somewhere to put lines
