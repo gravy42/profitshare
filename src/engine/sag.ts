@@ -233,3 +233,20 @@ export function setParticipantDays(p: Project, participantId: string, days: numb
   }
   return { ...p, lines, participants: p.participants.map(pt => pt.id === participantId ? { ...pt, days: d } : pt) };
 }
+
+/** The crew and staff wage lines a budget carries in weeks. */
+export const weeklyWageLines = (p: Project) => p.lines.filter(l => l.unit === 'WEEK' && isPayrollLine(l) && !isSagPerformerLine(l));
+
+/** Rewrite weekly crew and staff wage lines as days: five days to the week, rate ÷ 5, same money. SAG weekly
+ *  performer deals are a different contract and are left alone; so are weekly rentals. A memo line such as
+ *  "2nd AD Weekly Rate: $1,558.90" is reworded to the day rate. */
+export function weeksToDays(p: Project): Project {
+  const ids = new Set(weeklyWageLines(p).map(l => l.id));
+  const lines = p.lines.map(l => {
+    if (ids.has(l.id)) return { ...l, unit: 'DAY' as const, amount: Math.round(l.amount * 5 * 100) / 100, rate: Math.round(l.rate / 5 * 100) / 100 };
+    const m = /^(.*?)\s*weekly rate:?\s*\$?\s*([\d,]+(?:\.\d+)?)(.*)$/i.exec(l.description);
+    if (m && l.amount === 0) { const day = parseFloat(m[2].replace(/,/g, '')) / 5; return { ...l, description: `${m[1]} Day Rate: $${day.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${m[3]}`.trim() }; }
+    return l;
+  });
+  return { ...p, lines };
+}

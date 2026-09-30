@@ -563,3 +563,21 @@ describe('days and wage lines agree under every deal', () => {
     expect(applyDeal(p2).participants.find(x => x.id === upm.id)!.days).toBe(upm.days + (line.unit === 'WEEK' ? 10 : 2));
   });
 });
+
+import { weeksToDays, weeklyWageLines } from './sag';
+
+describe('weeks to days', () => {
+  it('rewrites weekly crew wage lines as five days at rate ÷ 5, same money, and leaves SAG weeklies and rentals alone', () => {
+    const p = withDeal(sampleProject());
+    const before = topSheet(p).cashBudget;
+    const n = weeklyWageLines(p).length;
+    expect(n).toBeGreaterThan(0);
+    const q = weeksToDays(p);
+    expect(weeklyWageLines(q)).toHaveLength(0);
+    expect(topSheet(q).cashBudget).toBeCloseTo(before, 0);
+    expect(q.lines.filter(l => l.unit === 'WEEK').every(l => !l.fringes.some(f => /FICA/i.test(f)) || /allowance/i.test(l.description) || l.accountId.startsWith('14'))).toBe(true);
+    const memo = weeksToDays({ ...p, lines: [...p.lines, { ...p.lines[0], id: 'memo', description: '2nd AD Weekly Rate: $1,558.90', amount: 0, rate: 0, unit: '-', fringes: [] }] }).lines.find(l => l.id === 'memo')!;
+    expect(memo.description).toBe('2nd AD Day Rate: $311.78');
+    expect(applyDeal(q).participants.map(x => x.days)).toEqual(applyDeal(p).participants.map(x => x.days));   // days unchanged
+  });
+});

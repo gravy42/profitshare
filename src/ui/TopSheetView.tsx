@@ -5,6 +5,7 @@ import {
   renameAccount, renameCategory, rollupCashTotal, toggleLineFringe, topSheet, updateLine, upsertFringe, type CategoryRollup,
 } from '../engine/budget';
 import { money, PAY_LABEL } from './format';
+import { weeklyWageLines, weeksToDays } from '../engine/sag';
 
 const PAY: PayType[] = ['cash', 'deferred', 'points'];
 const UNITS = ['-', 'DAY', 'WEEK', 'HOUR', 'ALLOW', 'ITEM', 'MONTH', 'FLAT', 'FEET', 'MILE'];
@@ -116,6 +117,7 @@ export function TopSheetView({ project, raw, controlled, setProject }: { project
               <i className="p" style={{ width: `${100 * ts.pointsValue / total}%` }} />
             </div>
             <input placeholder="filter lines…" value={filter} onChange={e => setFilter(e.target.value)} style={{ padding: '6px 9px', border: '1px solid var(--line)', borderRadius: 8 }} />
+            {weeklyWageLines(rawP).length > 0 && <button className="btn small" title="Rewrite weekly crew and staff wage lines as days (five to the week, rate ÷ 5, same money). SAG weekly deals and rentals are left alone." onClick={() => setProject(weeksToDays)}>Weeks → days ({weeklyWageLines(rawP).length})</button>}
             <button className={`btn small ${editing ? 'primary' : ''}`} onClick={() => setEditing(e => !e)} title="Rename, add or remove categories and accounts">{editing ? 'Done editing accounts' : 'Edit accounts'}</button>
           </div>
         </div>
