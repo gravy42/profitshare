@@ -207,7 +207,7 @@ describe('generic budget import (Movie Magic Budgeting / Excel / CSV exports)', 
 describe('building a budget from scratch', () => {
   it('starts with the standard chart of accounts and no money', () => {
     const p = blankProject({ name: 'Test', shootDays: 12 });
-    expect(p.categories.length).toBe(32); expect(p.accounts.length).toBe(272); expect(p.lines).toEqual([]);
+    expect(p.categories.length).toBe(32); expect(p.accounts.length).toBe(274); expect(p.lines).toEqual([]);
     expect(topSheet(p).cashBudget).toBe(0);
   });
   it('adds categories, accounts, lines and fringes and rolls them up', () => {
@@ -579,5 +579,41 @@ describe('weeks to days', () => {
     const memo = weeksToDays({ ...p, lines: [...p.lines, { ...p.lines[0], id: 'memo', description: '2nd AD Weekly Rate: $1,558.90', amount: 0, rate: 0, unit: '-', fringes: [] }] }).lines.find(l => l.id === 'memo')!;
     expect(memo.description).toBe('2nd AD Day Rate: $311.78');
     expect(applyDeal(q).participants.map(x => x.days)).toEqual(applyDeal(p).participants.map(x => x.days));   // days unchanged
+  });
+});
+
+import { addPosition, suggestAccount } from './positions';
+
+describe('positions', () => {
+  it('suggests an account from the title and hires a person into a wage line plus the schedule', () => {
+    const p = withDeal(sampleProject());
+    expect(suggestAccount(p, 'Intimacy Coordinator')).toMatchObject({ number: '1503', exists: false });
+    expect(suggestAccount(p, 'Stunt Coordinator')).toMatchObject({ number: '1501' });
+    expect(suggestAccount(p, 'Studio Teacher')).toMatchObject({ number: '2112' });
+    const before = topSheet(applyDeal(p)).cashBudget;
+    const { project: q, participant } = addPosition(p, { title: 'Stunt Coordinator', accountId: '1501', days: 3, note: '(skateboarding)' });
+    const line = q.lines.find(l => l.participantId === participant.id)!;
+    expect(line).toMatchObject({ accountId: '1501', unit: 'DAY', amount: 3, description: 'Stunt Coordinator (skateboarding)' });
+    expect(line.fringes.length).toBeGreaterThan(0);
+    expect(q.accounts.some(a => a.number === '1501')).toBe(true);
+    expect(q.categories.some(c => c.number === '1500')).toBe(true);
+    expect(applyDeal(q).participants.find(x => x.id === participant.id)!.days).toBe(3);
+    expect(topSheet(applyDeal(q)).cashBudget).toBeGreaterThan(before);
+  });
+  it('a position that follows cast takes its days from the board and keeps them on a push', () => {
+    const p = withDeal(sampleProject());
+    const b = fitDayBreaks(p.board, 12);
+    const p1 = { ...p, board: b };
+    const kid = b.castList.find(c => c.name === 'KID')!, waitress = b.castList.find(c => c.name === 'WAITRESS')!;
+    const { project: q, participant } = addPosition(p1, { title: 'Studio Teacher', accountId: '2112', days: 0, followsCastIds: [kid.id, waitress.id] });
+    const expected = shootDays(b).filter(d => d.castIds.includes(kid.id) || d.castIds.includes(waitress.id)).length;
+    expect(participant.days).toBe(expected);
+    expect(q.lines.find(l => l.participantId === participant.id)!.description).toMatch(/days with KID, WAITRESS/);
+    // move the board and push: the teacher's days follow
+    const moved = { ...q, board: fitDayBreaks(q.board, 4) };
+    const synced = syncCastDaysFromBoard(moved);
+    const now = shootDays(moved.board).filter(d => d.castIds.includes(kid.id) || d.castIds.includes(waitress.id)).length;
+    expect(synced.participants.find(x => x.id === participant.id)!.days).toBe(now);
+    expect(synced.lines.find(l => l.participantId === participant.id)!.amount).toBe(now);
   });
 });

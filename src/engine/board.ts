@@ -126,16 +126,22 @@ export function fitDayBreaks(board: Board, days: number): Board {
 export function syncCastDaysFromBoard(p: Project): Project {
   const rows = dood(p.board);
   const daysByCast = new Map(rows.map(r => [r.castId, r.total]));
-  const participants = p.participants.map(pt =>
-    pt.castId != null && daysByCast.has(pt.castId) ? { ...pt, days: daysByCast.get(pt.castId)! } : pt);
-  const castOfParticipant = new Map(participants.filter(x => x.castId != null).map(x => [x.id, x.castId!]));
+  const participants = p.participants.map(pt => {
+    if (pt.castId != null && daysByCast.has(pt.castId)) return { ...pt, days: daysByCast.get(pt.castId)! };
+    if (pt.followsCastIds?.length) { const d = daysWithCast(p.board, pt.followsCastIds); return d > 0 || rows.length ? { ...pt, days: d } : pt; }
+    return pt;
+  });
+  const daysOfParticipant = new Map(participants.filter(x => x.castId != null || x.followsCastIds?.length).map(x => [x.id, x.days]));
   const lines = p.lines.map(l => {
-    if (!l.participantId || l.unit !== 'DAY') return l;
-    const cid = castOfParticipant.get(l.participantId);
-    if (cid == null || !daysByCast.has(cid)) return l;
-    return { ...l, amount: daysByCast.get(cid)! };
+    if (!l.participantId || l.unit !== 'DAY' || !daysOfParticipant.has(l.participantId)) return l;
+    return { ...l, amount: daysOfParticipant.get(l.participantId)! };
   });
   return { ...p, participants, lines };
+}
+
+/** Shoot days on which any of these cast members work: a studio teacher's days, a stunt double's days. */
+export function daysWithCast(board: Board, castIds: number[]): number {
+  return shootDays(board).filter(d => d.castIds.some(id => castIds.includes(id))).length;
 }
 
 export const totalEighths = (board: Board) => board.scenes.reduce((n, s) => n + s.eighths, 0);

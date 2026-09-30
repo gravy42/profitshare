@@ -22,7 +22,7 @@
   },
   {
    "number": "1500",
-   "name": "STUNTS",
+   "name": "STUNTS & INTIMACY",
    "section": "ATL"
   },
   {
@@ -288,6 +288,11 @@
    "categoryNumber": "1500"
   },
   {
+   "number": "1503",
+   "name": "INTIMACY COORDINATOR",
+   "categoryNumber": "1500"
+  },
+  {
    "number": "1510",
    "name": "STUNT PURCHASES",
    "categoryNumber": "1500"
@@ -400,6 +405,11 @@
   {
    "number": "2111",
    "name": "PRODUCTION ASSISTANTS",
+   "categoryNumber": "2100"
+  },
+  {
+   "number": "2112",
+   "name": "STUDIO TEACHER",
    "categoryNumber": "2100"
   },
   {

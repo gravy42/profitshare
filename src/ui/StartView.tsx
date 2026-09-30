@@ -26,7 +26,7 @@ export function StartView({ onBlank, onImportBudget, onOpen, onSample, armed }: 
             <div className="row">
               <div className="ctl"><label>Shoot days</label><input type="number" min={1} value={days} onChange={e => setDays(+e.target.value || 1)} style={{ width: 90 }} /></div>
               <div className="ctl"><label>Chart of accounts</label>
-                <select value={coa} onChange={e => setCoa(e.target.value as any)}><option value="standard">Standard feature (272 accounts)</option><option value="empty">Empty, I'll build my own</option></select></div>
+                <select value={coa} onChange={e => setCoa(e.target.value as any)}><option value="standard">Standard feature (274 accounts)</option><option value="empty">Empty, I'll build my own</option></select></div>
             </div>
             <button className={`btn ${armed ? 'primary' : ''}`} onClick={() => onBlank({ name, shootDays: days, chartOfAccounts: coa })}>{confirm}Start from scratch</button>
           </div>

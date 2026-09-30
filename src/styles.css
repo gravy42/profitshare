@@ -193,3 +193,6 @@ tr.total td { border-top: 2px solid var(--ink); font-weight: 800; }
 .dood-full tr[draggable] { cursor: grab; }
 .dood-full tr.dragover td { border-top: 3px solid var(--orange); }
 .dood-full .handle { color: var(--muted); }
+
+.addpos { margin-top: 10px; padding: 10px 12px; border: 1px dashed var(--line); border-radius: 10px; background: var(--soft); }
+.addpos .ctl input, .addpos .ctl select { width: 100%; }

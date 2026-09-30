@@ -46,6 +46,7 @@ export interface Participant {
   days: number;             // days worked (drives points). Can be synced from the board or budget lines.
   bonusMultiplier: number;  // per-person nudge on top of the tier (1 = none)
   castId?: number;          // cast number on the board, for syncing days from the DOOD
+  followsCastIds?: number[]; // works whenever any of these cast members work (a studio teacher with the minors)
 }
 
 export interface PointsTier { id: string; name: string; multiplier: number }

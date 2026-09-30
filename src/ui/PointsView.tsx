@@ -1,4 +1,8 @@
+import { useState } from 'react';
 import type { Participant, Project, WaterfallModel } from '../engine/types';
+import { addPosition, suggestAccount, SUGGESTED_ACCOUNTS } from '../engine/positions';
+import { scaleHourly } from '../engine/sag';
+import { crewDayRateOf } from '../engine/deal';
 import { waterfallReport, syncDaysFromBudget, participantPoints } from '../engine/waterfall';
 import { syncCastDaysFromBoard } from '../engine/board';
 import { newId } from '../engine/budget';
@@ -84,6 +88,7 @@ export function PointsView({ project, setProject }: { project: Project; setProje
             <button className="btn" onClick={() => setProject(syncCastDaysFromBoard)}>Sync cast days from board (DOOD)</button>
             <button className="btn" onClick={addP}>+ Add participant</button>
           </div>
+          <AddPosition project={project} setProject={setProject} />
           <div className="small muted" style={{ marginTop: 8 }}>Total points: <b>{num(r.totalPoints)}</b> across {project.participants.length} participants.</div>
         </div>
       </div>
@@ -134,5 +139,55 @@ export function PointsView({ project, setProject }: { project: Project; setProje
         </table>
       </div>
     </div>
+  );
+}
+
+
+/** Hire someone: one form makes the wage line in the right account and the participant linked to it. */
+function AddPosition({ project, setProject }: { project: Project; setProject: Set }) {
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState('');
+  const [acct, setAcct] = useState('');
+  const [days, setDays] = useState(1);
+  const [hourly, setHourly] = useState<number | ''>('');
+  const [follows, setFollows] = useState<number[]>([]);
+  const [note, setNote] = useState('');
+  const suggestion = suggestAccount(project, title);
+  const accountId = acct || suggestion?.number || '';
+  const defaultHourly = scaleHourly(crewDayRateOf(project));
+  const options = [...project.accounts.map(a => ({ number: a.number, name: a.name, exists: true })), ...SUGGESTED_ACCOUNTS.filter(s => !project.accounts.some(a => a.number === s.number)).map(s => ({ number: s.number, name: s.name, exists: false }))]
+    .sort((a, b) => a.number.localeCompare(b.number, undefined, { numeric: true }));
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim() || !accountId) return;
+    setProject(p => addPosition(p, { title, accountId, days, hourly: hourly === '' ? undefined : +hourly, note: note.trim() || undefined, followsCastIds: follows.length ? follows : undefined }).project);
+    setTitle(''); setAcct(''); setDays(1); setHourly(''); setFollows([]); setNote(''); setOpen(false);
+  };
+  if (!open) return <p className="help" style={{ marginTop: 8 }}><button className="btn small primary" onClick={() => setOpen(true)}>+ Add position</button> <span className="small muted">a wage line in the right account plus the person on this schedule, in one go</span></p>;
+  return (
+    <form className="addpos" onSubmit={submit}>
+      <div className="row">
+        <div className="ctl" style={{ flex: 2 }}><label>Position</label><input autoFocus placeholder="Intimacy Coordinator" value={title} onChange={e => setTitle(e.target.value)} /></div>
+        <div className="ctl" style={{ flex: 2 }}><label>Account {suggestion && !acct ? <span className="hint">suggested{suggestion.exists ? '' : ', will be added'}</span> : null}</label>
+          <select value={accountId} onChange={e => setAcct(e.target.value)}>
+            <option value="">choose…</option>
+            {options.map(o => <option key={o.number} value={o.number}>{o.number} {o.name}{o.exists ? '' : ' (add)'}</option>)}
+          </select></div>
+        <div className="ctl" style={{ minWidth: 80 }}><label>Days</label><input type="number" min={0} value={days} disabled={follows.length > 0} onChange={e => setDays(+e.target.value)} /></div>
+        <div className="ctl" style={{ minWidth: 110 }}><label>Hourly (8-hr base)</label><input type="number" step="0.01" placeholder={String(defaultHourly)} value={hourly} onChange={e => setHourly(e.target.value === '' ? '' : +e.target.value)} /><span className="hint">blank = crew rate {money(defaultHourly, 2)}</span></div>
+        <div className="ctl" style={{ flex: 1 }}><label>Note</label><input placeholder="(skateboarding)" value={note} onChange={e => setNote(e.target.value)} /></div>
+      </div>
+      {project.board.castList.length > 0 && (
+        <div className="row" style={{ marginTop: 6, alignItems: 'baseline', flexWrap: 'wrap', gap: 6 }}>
+          <span className="small muted">Or on set whenever these cast work:</span>
+          {project.board.castList.map(c => <label key={c.id} className="small" style={{ display: 'inline-flex', gap: 3, alignItems: 'center' }}><input type="checkbox" checked={follows.includes(c.id)} onChange={e => setFollows(f => e.target.checked ? [...f, c.id] : f.filter(x => x !== c.id))} />{c.id} {c.name}</label>)}
+          {follows.length > 0 && <span className="small muted">→ days come from the stripboard's day breaks, and follow them</span>}
+        </div>
+      )}
+      <div className="row" style={{ marginTop: 8 }}>
+        <button className="btn primary" type="submit" disabled={!title.trim() || !accountId}>Add {title.trim() || 'position'}</button>
+        <button className="btn" type="button" onClick={() => setOpen(false)}>Cancel</button>
+      </div>
+    </form>
   );
 }
