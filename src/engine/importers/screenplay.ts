@@ -13,18 +13,25 @@ export interface ScriptLine { text: string; pos: number; indent: number; page: s
 export interface ScreenplayImport { board: Board; title: string; pages: number; warnings: string[] }
 
 const HEADING = /^(?:(\d+[A-Z]?)[.\s]+)?(INT\.?\s*\/\s*EXT\.?|EXT\.?\s*\/\s*INT\.?|I\/E\.?|INT\.?|EXT\.?)(?=[\s.\-:])\s*[.\-:]?\s*(.*?)(?:\s+(\d+[A-Z]?)|\s*#([\w.-]+)#)?\s*$/i;
-const TOD = /^(DAY|NIGHT|MORNING|AFTERNOON|EVENING|DUSK|DAWN|SUNSET|SUNRISE|LATER|MOMENTS LATER|CONTINUOUS|SAME|SAME TIME|MAGIC HOUR|PRE-DAWN|PREDAWN|NOON|MIDNIGHT|TWILIGHT)\b.*$/i;
+const TOD = /\b(DAY|NIGHT|MORNING|AFTERNOON|EVENING|DUSK|DAWN|SUNSET|SUNRISE|LATER|CONTINUOUS|SAME TIME|MAGIC HOUR|PRE-DAWN|PREDAWN|NOON|MIDNIGHT|TWILIGHT|MOMENTS|HOURS?|MINUTES)\b/i;
+// all-caps lines that are not character cues: time cards, montage marks, sound effects with punctuation
+const NOT_CUE = /^(?:LATER|MEANWHILE|CONTINUOUS|THE NEXT (?:DAY|MORNING|NIGHT)|THAT (?:NIGHT|MORNING|EVENING|AFTERNOON)|(?:\w+[- ])?(?:SECONDS?|MINUTES?|HOURS?|DAYS?|WEEKS?|MONTHS?|YEARS?) LATER|MOMENTS LATER|END (?:OF )?(?:MONTAGE|FLASHBACK|DREAM|INTERCUT).*|MONTAGE.*|FLASHBACK.*|INTERCUT.*|BACK TO .*|SUPER.*|TITLE.*|CHYRON.*|INSERT.*|ANGLE ON.*|CLOSE ON.*|POV.*|SILENCE|BLACK|BEAT)$/i;
 const TRANSITION = /^(?:(?:CUT|DISSOLVE|FADE|SMASH CUT|MATCH CUT|WIPE|JUMP CUT|TIME CUT|IRIS)\b.*(?:TO|IN|OUT)\s*[:.]?|.*TO:|THE END\.?|END\.?|FADE OUT\.?|OVER BLACK\.?|BLACK\.?)$/i;
 const NOISE = /^(?:\(?CONTINUED\)?:?|\(MORE\)|CONT'D|\d{1,3}\.?|[ivx]+\.?)$/i;
 const CAST_SPLIT = /\s*(?:\/|\s&\s|\s\+\s)\s*/;
+const GROUP = /^(?:EVERYONE|EVERYBODY|ALL|BOTH|TOGETHER|CROWD|GROUP|VOICE|VOICES|UNISON|OVERLAPPING|VARIOUS)$/;
+// group cues that are real parts (they speak) but are ordinary words in action, so never matched there
+const GROUP_NOUN = /^(?:FRIENDS|FAMILY|KIDS|CHILDREN|MEN|WOMEN|GUESTS|PEOPLE|PATRONS|STUDENTS|SOLDIERS|COPS|OFFICERS|CUSTOMERS|REPORTERS|FANS|TEAM)$/;
 
 const letters = (s: string) => s.replace(/[^A-Za-z]/g, '');
 const isCaps = (s: string) => { const l = letters(s); return l.length > 0 && l === l.toUpperCase(); };
 const mostlyCaps = (s: string) => { const l = letters(s); return l.length > 0 && l.replace(/[a-z]/g, '').length / l.length >= 0.7; };   // McCLANE, DeSANTIS
-const cleanCue = (s: string) => s.replace(/\(.*?\)/g, '').replace(/\^\s*$/, '').replace(/\s+/g, ' ').trim().toUpperCase();
+const plain = (s: string) => s.replace(/[‘’]/g, "'").replace(/[“”]/g, '"');
+const cleanCue = (s: string) => plain(s).replace(/\(.*?\)/g, '').replace(/\^\s*$/, '').replace(/\s+/g, ' ').trim().toUpperCase();
 const looksLikeCue = (s: string, strict = true) => {
   const c = cleanCue(s);
-  return c.length >= 2 && c.length <= 40 && c.split(' ').length <= 5 && (strict ? isCaps(s) : mostlyCaps(s)) && !HEADING.test(s) && !TRANSITION.test(s) && !NOISE.test(s) && /[A-Z]/.test(c);
+  return c.length >= 2 && c.length <= 40 && c.split(' ').length <= 5 && (strict ? isCaps(s) : mostlyCaps(s)) && !HEADING.test(s) && !TRANSITION.test(s) && !NOISE.test(s)
+    && !NOT_CUE.test(c) && /[A-Z]/.test(c) && !/[,:;!?"“”]|\.$/.test(c);
 };
 
 /** Shared by every script importer: number the cast, one strip per scene in script order. */
@@ -54,16 +61,31 @@ export function linesFromText(text: string): { lines: ScriptLine[]; title: strin
     }
   }
   let pages = src.split(/\f|^={3,}\s*$/m).map(p => p.split('\n'));
-  if (pages.length === 1 && pages[0].length > 70) {
-    const all = pages[0]; pages = [];
-    for (let i = 0; i < all.length; i += 55) pages.push(all.slice(i, i + 55));
+  let labels: string[] | null = null;
+  if (pages.length === 1) {
+    // text copied out of a PDF keeps its page numbers as bare lines ("12."); when they count up, they mark the pages
+    const all = pages[0];
+    const marks: number[] = []; let last = 0;
+    all.forEach((raw, i) => { const m = /^\s*(\d{1,3})\.?\s*$/.exec(raw); if (m && (+m[1] === last + 1 || (last === 0 && +m[1] <= 3))) { marks.push(i); last = +m[1]; } });
+    if (marks.length >= 2 && last >= marks.length) {
+      pages = []; labels = [];
+      let start = 0, n = 1;
+      for (const mi of marks) {
+        if (mi > start) { pages.push(all.slice(start, mi)); labels.push(String(n)); }
+        start = mi; n = +(/(\d+)/.exec(all[mi])![1]);
+      }
+      pages.push(all.slice(start)); labels.push(String(n));
+    } else if (all.length > 70) {
+      pages = [];
+      for (let i = 0; i < all.length; i += 55) pages.push(all.slice(i, i + 55));
+    }
   }
   const out: ScriptLine[] = [];
   pages.forEach((lines, pi) => {
     const n = Math.max(lines.length, 1);
     lines.forEach((raw, li) => {
       const indent = raw.length - raw.trimStart().length;
-      out.push({ text: raw.trim(), pos: pi + li / n, indent, page: String(pi + 1) });
+      out.push({ text: raw.trim(), pos: pi + li / n, indent, page: labels ? labels[pi] : String(pi + 1) });
     });
   });
   return { lines: out, title };
@@ -86,6 +108,10 @@ export function parseScreenplayLines(lines: ScriptLine[], opts: { cueIndent: num
   const freq = new Map<number, number>();
   for (const l of nonEmpty) if (l.text.length > 30) freq.set(l.indent, (freq.get(l.indent) ?? 0) + 1);
   const actionIndent = hasIndent ? [...freq.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? Math.min(...nonEmpty.filter(l => !NOISE.test(l.text)).map(l => l.indent)) : 0;
+  // text copied out of a PDF loses both indentation and blank lines; then a cue is any short all-caps line with
+  // dialogue under it, and dialogue runs until a line too long to be dialogue (the dialogue column is ~35 chars)
+  const dense = !hasIndent && lines.length > 20 && (lines.length - nonEmpty.length) / lines.length < 0.08;
+  const DIALOGUE_MAX = 42;
 
   // title: the first real line before the first heading, if it's short and not a key: value
   let title = opts.title ?? '';
@@ -127,33 +153,38 @@ export function parseScreenplayLines(lines: ScriptLine[], opts: { cueIndent: num
     const forcedAction = /^!/.test(t);
     const nextIsDialogue = !!next?.text && !headingOf(next.text, true) && !TRANSITION.test(next.text) && (!hasIndent || next.indent < l.indent - opts.cueIndent / 2 || /^\(/.test(next.text));
     const cueByIndent = hasIndent && l.indent >= actionIndent + opts.cueIndent && looksLikeCue(t, false) && nextIsDialogue;
-    const cueByShape = !hasIndent && prevBlank && looksLikeCue(t) && nextIsDialogue;
+    const cueByShape = !hasIndent && (prevBlank || dense) && looksLikeCue(t) && nextIsDialogue && !(dense && isCaps(next?.text ?? '') && !/^\(/.test(next?.text ?? ''));
     if (!forcedAction && (forcedCue || cueByIndent || cueByShape)) {
       for (const name of cleanCue(t.replace(/^@/, '')).split(CAST_SPLIT).map(s => s.trim()).filter(Boolean)) {
-        if (name.length >= 2 && !cur.cast.some(c => c.name === name)) cur.cast.push({ name });
+        if (name.length >= 2 && !GROUP.test(name) && !cur.cast.some(c => c.name === name)) cur.cast.push({ name });
       }
       mode = 'dialogue';
       continue;
     }
+    if (mode === 'dialogue' && dense && t.length > DIALOGUE_MAX && !/^\(/.test(t)) mode = 'action';
     if (mode === 'dialogue') continue;        // dialogue and parentheticals, until the next blank line
     if (/^[#=~]/.test(t)) continue;           // Fountain sections, synopses, lyrics
     const a = t.replace(/^!/, '');
     actionText[scenes.length - 1].push(a);
-    if (!cur.synopsis) cur.synopsis = a.length > 120 ? a.slice(0, 117) + '...' : a;
+    if (!cur.synopsis && !NOT_CUE.test(a)) cur.synopsis = a.length > 120 ? a.slice(0, 117) + '...' : a;
   }
   close();
 
   // silent cast: a speaking character named in a scene's action, in CAPS (an introduction) or in Title Case
-  // ("Lena floats on her back"). Lower-case words never count, so KID doesn't match "a kid on a bike".
+  // ("Lena floats on her back"). A name right after of / from / about, or with 's on it, is a mention,
+  // not a presence ("a photo of Addison", "a text from Cathy", "Pete's name on the screen"), and lower-case
+  // words never count, so KID doesn't match "a kid on a bike".
   const names = new Set<string>();
-  for (const s of scenes) for (const c of s.cast) if (c.name.length >= 3) names.add(c.name);
+  for (const s of scenes) for (const c of s.cast) if (c.name.length >= 3 && !GROUP_NOUN.test(c.name)) names.add(c.name);
   const titleCase = (n: string) => n.toLowerCase().replace(/(^|[\s'-])(\w)/g, (_, a, b) => a + b.toUpperCase());
   scenes.forEach((s, i) => {
     const text = actionText[i].join(' ');
     for (const name of names) {
       if (s.cast.some(c => c.name === name)) continue;
       const esc = (x: string) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      if (new RegExp(`(^|[^A-Za-z])(${esc(name)}|${esc(titleCase(name))})(?=$|[^A-Za-z])`).test(text)) s.cast.push({ name });
+      const caps = new RegExp(`(^|[^A-Za-z])${esc(name)}(?=$|[^A-Za-z])`).test(text);
+      const present = new RegExp(`(?<!\\b(?:of|from|about) )(?<![A-Za-z])${esc(titleCase(name))}(?![A-Za-z]|['’]s)`).test(text);
+      if (caps || present) s.cast.push({ name });
     }
   });
 
@@ -172,7 +203,7 @@ function headingOf(text: string, allowed: boolean): { ie: Scene['ie']; set: stri
   if (!m && !forced) return null;
   const ieRaw = (m?.[2] ?? '').replace(/[.\s]/g, '').toUpperCase();
   const forcedNumber = forced ? /#([\w.-]+)#\s*$/.exec(t)?.[1] ?? '' : '';
-  const rest = (m ? m[3] : t).replace(/\s*#[\w.-]+#\s*$/, '').trim().toUpperCase();
+  const rest = plain(m ? m[3] : t).replace(/\s*#[\w.-]+#\s*$/, '').trim().toUpperCase();
   const parts = rest.split(/\s+[-–—]+\s+/);
   let tod = '';
   if (parts.length > 1 && TOD.test(parts[parts.length - 1])) tod = parts.pop()!.trim();

@@ -430,6 +430,26 @@ Nothing.
     expect(linesFromText(text).lines.filter(l => l.text).length).toBeGreaterThan(8);
   });
 
+  it('reads text copied out of a PDF: no indents, no blank lines, page numbers top and bottom', () => {
+    const page = (n: number, body: string[]) => [`${n}.`, ...body, `${n}.`];
+    const text = [
+      'SALT FLAT', 'Written by', 'Somebody', 'FADE IN:',
+      'EXT. DESERT HIGHWAY - DAWN', 'LENA (34) steers. JUNE (26) pushes the wagon from the back, sweating.', 'JUNE', "That's it. That's the whole plan.", 'LENA', 'The plan was Reno.', 'Lena looks at the horizon like it owes her money, then kicks the tire.',
+      'ON CARD: SHE WAITED AT THE WINDOW.', 'KNOCK, KNOCK, KNOCK!', 'Nobody answers the door of the wagon.',
+      ...page(2, ['INT. STATION WAGON - CONTINUOUS', 'June finds a letter. A photo of Walt falls out of it onto the seat.', 'JUNE', 'Lena.', 'LENA (O.S.)', 'Not now.', '(MORE)']),
+      ...page(3, ['LENA (CONT\'D)', 'Really not now.', 'TEN MINUTES LATER', 'June puts it back exactly where it was in the glovebox.', 'EXT. GAS STATION - DAY', 'The wagon on a flatbed. WALT wipes his hands on a rag.', 'WALT', 'Transmission.', 'EVERYONE', 'No!']),
+    ].join('\n');
+    const r = parseScreenplayText(text);
+    expect(r.title).toBe('SALT FLAT');
+    expect(r.pages).toBe(3);
+    expect(r.board.scenes.map(s => s.pages)).toEqual(['1', '2-3', '3']);
+    expect(r.board.scenes[0].cast.map(c => c.name)).toEqual(['JUNE', 'LENA']);          // KNOCK, KNOCK, KNOCK! is not a cue
+    expect(r.board.scenes[1].cast.map(c => c.name)).toEqual(['JUNE', 'LENA']);          // "a photo of Walt" is a mention, not Walt
+    expect(r.board.scenes[2].cast.map(c => c.name)).toEqual(['WALT']);                  // EVERYONE is not a part
+    expect(r.board.scenes[2].synopsis).toMatch(/^The wagon on a flatbed/);
+    expect(r.board.scenes[1].synopsis).toMatch(/^June finds a letter/);
+  });
+
   it('turns positioned PDF text into lines with page labels, indents and blank-line gaps', () => {
     const P = (items: [number, number, string][]) => ({ items: items.map(([x, y, s]) => ({ x, y, w: s.length * 7.2, s })), height: 792 });
     const pages = [P([[540, 740, '1.'], [108, 700, 'INT. ROOM - DAY'], [108, 676, 'A room. '], [160, 676, 'BOB waits.'], [266, 640, 'BOB'], [180, 628, 'Well.'], [108, 100, 'The end of the page.']]),
