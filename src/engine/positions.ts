@@ -1,11 +1,11 @@
 // Hiring someone in one move: a wage line in the right account (created if the budget doesn't have it) and a
 // participant on the points schedule linked to it, so the top sheet, the SAG check and the back end all see them.
-import type { Participant, Project } from './types';
+import type { BoardElement, Participant, Project } from './types';
 import { addAccount, addCategory, addLine, PAID_HOURS, dayHoursOf, newId } from './budget';
 import { payrollFringeSet, scaleHourly } from './sag';
 import { crewDayRateOf } from './deal';
 import { sectionForNumber } from './budget';
-import { daysWithCast } from './board';
+import { daysFollowing } from './board';
 
 export interface NewPosition {
   title: string;                 // "Intimacy Coordinator"
@@ -17,6 +17,7 @@ export interface NewPosition {
   payType?: 'cash' | 'deferred' | 'points';
   note?: string;                 // "(skateboarding)"
   followsCastIds?: number[];     // on set whenever any of these cast work; days come from the board
+  followsElements?: BoardElement[]; // on set whenever a scene carries one of these tags (Animals: cat)
 }
 
 /** Accounts a position is likely to want that a Shamel or Movie Magic budget may not carry yet. */
@@ -57,10 +58,15 @@ export function addPosition(p: Project, pos: NewPosition): { project: Project; p
   const hourly = pos.hourly ?? scaleHourly(crewDayRateOf(q));
   const title = pos.title.trim();
   const id = newId('p');
-  const follows = pos.followsCastIds?.filter(id => q.board.castList.some(c => c.id === id));
-  const days = follows?.length ? daysWithCast(q.board, follows) : Math.max(0, pos.days);
-  const participant: Participant = { id, name: title, role: title, group: pos.group ?? 'crew', tierId: q.tiers.some(t => t.id === tierForHourly(hourly)) ? tierForHourly(hourly) : q.tiers[0]?.id ?? 'crew', days, bonusMultiplier: 1, ...(follows?.length ? { followsCastIds: follows } : {}) };
-  const names = follows?.length ? follows.map(id => q.board.castList.find(c => c.id === id)!.name).join(', ') : '';
+  const follows = pos.followsCastIds?.filter(id => q.board.castList.some(c => c.id === id)) ?? [];
+  const els = pos.followsElements ?? [];
+  const following = follows.length > 0 || els.length > 0;
+  const days = following ? daysFollowing(q.board, { followsCastIds: follows, followsElements: els }) : Math.max(0, pos.days);
+  // a rate typed in says something about seniority; the shared crew rate says nothing, so that hire starts as plain crew
+  const tier = pos.hourly != null ? tierForHourly(pos.hourly) : 'crew';
+  const participant: Participant = { id, name: title, role: title, group: pos.group ?? 'crew', tierId: q.tiers.some(t => t.id === tier) ? tier : q.tiers[0]?.id ?? 'crew', days, bonusMultiplier: 1,
+    ...(follows.length ? { followsCastIds: follows } : {}), ...(els.length ? { followsElements: els } : {}) };
+  const names = [...follows.map(id => q.board.castList.find(c => c.id === id)!.name), ...els.map(e => e.item)].join(', ');
   const { project } = addLine(q, pos.accountId, {
     description: `${title}${pos.note ? ` ${pos.note}` : ''}${names ? ` (days with ${names})` : ''}`, amount: days, unit: 'DAY', rate: hourly,
     multiplier: pos.longDay ? hours.long : hours.day, fringes: payrollFringeSet(q), tags: [], payType: pos.payType ?? 'cash', participantId: id,

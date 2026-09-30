@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { Board, Project, Scene } from '../engine/types';
 import { autoDayBreaks, fitDayBreaks, clearDayBreaks, dood, eighthsToText, insertDayBreak, moveStrip, removeStrip, shootDays, syncCastDaysFromBoard, totalEighths, castSceneCounts, castOrderByAppearance, castOrderByScenes, renumberCast } from '../engine/board';
-import { BREAKDOWN_CATEGORIES, addCast, addElement, autoTag, autoTagBoard, categoryColor, removeCast, removeElement } from '../engine/breakdown';
+import { BREAKDOWN_CATEGORIES, addCast, addElement, autoTag, autoTagBoard, categoryColor, namedAnimals, removeCast, removeElement } from '../engine/breakdown';
 
 type Set = (f: (p: Project) => Project) => void;
 
@@ -217,7 +217,7 @@ function Tagger({ scene: s, board, setBoard }: { scene: Scene; board: Board; set
       <div className="tags">
         <div className="row" style={{ justifyContent: 'space-between' }}>
           <b>Scene {s.number} breakdown</b>
-          {s.text && <button className="btn small" title="Tag this scene from the script text; keeps what you've added" onClick={() => setBoard(b => ({ ...b, scenes: b.scenes.map(x => x.id === s.id ? { ...x, elements: autoTag(x, b.castList.map(c => c.name)) } : x) }))}>Auto-tag</button>}
+          {s.text && <button className="btn small" title="Tag this scene from the script text; keeps what you've added" onClick={() => setBoard(b => ({ ...b, scenes: b.scenes.map(x => x.id === s.id ? { ...x, elements: autoTag(x, b.castList.map(c => c.name), namedAnimals(b)) } : x) }))}>Auto-tag</button>}
         </div>
         <div className="tagrow"><span className="tagcat" style={{ color: 'var(--plum)' }}>Cast</span>
           {s.cast.map(c => <span key={c.name} className="chip" style={{ borderColor: 'var(--plum)' }}>{c.id ? `${c.id} ` : ''}{c.name}<button title="remove from this scene" onClick={() => setBoard(b => removeCast(b, s.id, c.name))}>×</button></span>)}

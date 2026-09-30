@@ -8,7 +8,7 @@ import { lineFringes, lineSubtotal, topSheet, setPayType, rollupCashTotal } from
 const rollupCash = (ts: ReturnType<typeof topSheet>) => rollupCashTotal(ts.subtotal);
 import { sagReport, rerateCast, qualifyingTier } from './sag';
 import { poolAt, waterfallReport, syncDaysFromBudget } from './waterfall';
-import { autoDayBreaks, dood, insertDayBreak, moveStrip, shootDays, syncCastDaysFromBoard, totalEighths } from './board';
+import { autoDayBreaks, boardElements, daysFollowing, daysWithElements, dood, insertDayBreak, moveStrip, shootDays, syncCastDaysFromBoard, totalEighths } from './board';
 import { parseSex } from './importers/sex';
 import { parseFdx } from './importers/fdx';
 import { parseShamelXlsx } from './importers/shamelXlsx';
@@ -467,7 +467,7 @@ Nothing.
   });
 });
 
-import { autoTag, addElement, removeElement, addCast, autoTagBoard } from './breakdown';
+import { autoTag, addElement, removeElement, addCast, autoTagBoard, namedAnimals } from './breakdown';
 
 describe('breakdown tagger', () => {
   it('reads a first pass of tags off the scene text, from action only', () => {
@@ -489,6 +489,23 @@ describe('breakdown tagger', () => {
     expect(e.Music).toEqual(['Classic jazz']);
     expect(e['Special Equipment']).toEqual(['car mount / process trailer']);
     expect(e.Extras ?? []).not.toContain('we were perfectly intelligent people');
+  });
+  it('learns a named animal from its introduction and tags every scene whose action has it', () => {
+    const sc = (id: string, text: string): any => ({ id, number: id, ie: 'INT', set: 'ROOM', tod: 'DAY', pages: '1', eighths: 8, synopsis: '', location: '', scriptDay: '', cast: [{ id: 1, name: 'SAM' }], elements: {}, text });
+    const board: any = { castList: [{ id: 1, name: 'SAM' }], strips: [], targetEighthsPerDay: 44, scenes: [
+      sc('1', 'JACK, a handsome orange tabby cat stares out one of the front windows. Sam waves.'),
+      sc('2', 'Jack sits on the dryer and watches Sam fold.'),
+      sc('3', "Sam fills Jack's bowl. She is alone.\n                    SAM\n          How's Jack?"),
+      sc('4', 'Sam and Jack come into the kitchen. The cat hops onto the counter.'),
+      sc('5', 'PETE (40s) walks in with a DOG on a leash.'),
+    ] };
+    expect([...namedAnimals(board)]).toEqual([['JACK', 'cat']]);
+    const b = autoTagBoard(board);
+    expect(b.scenes[0].elements.Animals).toEqual(['Jack the cat']);        // the introduction, not "Orange tabby cat" as well
+    expect(b.scenes[1].elements.Animals).toEqual(['Jack the cat']);        // no animal word in the line at all
+    expect(b.scenes[2].elements.Animals).toBeUndefined();                  // his bowl and a line of dialogue: the cat is not on set
+    expect(b.scenes[3].elements.Animals).toEqual(['Jack the cat']);        // "the cat" folds into him
+    expect(b.scenes[4].elements.Animals).toEqual(['Dog']);                 // an unnamed animal still tags on its own
   });
   it('keeps hand-made tags across auto-tag, and edits chips and cast', () => {
     const board: any = { castList: [{ id: 1, name: 'SAM' }], scenes: [{ id: 'sc1', number: '1', ie: 'INT', set: 'ROOM', tod: 'DAY', pages: '1', eighths: 8, synopsis: '', location: '', scriptDay: '', cast: [{ id: 1, name: 'SAM' }], elements: { Props: ['hero mug'] }, text: 'Sam drinks coffee from a mug.' }], strips: [{ type: 'scene', sceneId: 'sc1' }], targetEighthsPerDay: 44 };
@@ -615,6 +632,26 @@ describe('positions', () => {
     const now = shootDays(moved.board).filter(d => d.castIds.includes(kid.id) || d.castIds.includes(waitress.id)).length;
     expect(synced.participants.find(x => x.id === participant.id)!.days).toBe(now);
     expect(synced.lines.find(l => l.participantId === participant.id)!.amount).toBe(now);
+  });
+  it('a position can follow a tag on the board: a picture-car wrangler on every day with the station wagon', () => {
+    const p = withDeal(sampleProject());
+    const b = fitDayBreaks(p.board, 12);
+    const tags = boardElements(b);
+    expect(tags.find(t => t.category === 'Vehicles' && t.item === 'station wagon')!.scenes).toBe(5);
+    const wagon = { category: 'Vehicles', item: 'Station Wagon' };   // case doesn't matter
+    const expected = shootDays(b).filter(d => d.scenes.some(s => (s.elements.Vehicles ?? []).includes('station wagon'))).length;
+    expect(expected).toBeGreaterThan(0);
+    expect(daysWithElements(b, [wagon])).toBe(expected);
+    const { project: q, participant } = addPosition({ ...p, board: b }, { title: 'Picture Car Wrangler', accountId: '2107', days: 0, followsElements: [wagon] });
+    expect(participant.days).toBe(expected);
+    expect(participant.followsElements).toEqual([wagon]);
+    expect(q.lines.find(l => l.participantId === participant.id)!.description).toMatch(/days with Station Wagon/);
+    const moved = { ...q, board: fitDayBreaks(q.board, 5) };
+    const synced = syncCastDaysFromBoard(moved);
+    expect(synced.participants.find(x => x.id === participant.id)!.days).toBe(daysWithElements(moved.board, [wagon]));
+    // cast and tags together: any day either brings them in
+    const kid = b.castList.find(c => c.name === 'KID')!;
+    expect(daysFollowing(b, { followsCastIds: [kid.id], followsElements: [wagon] })).toBe(shootDays(b).filter(d => d.castIds.includes(kid.id) || d.scenes.some(s => (s.elements.Vehicles ?? []).includes('station wagon'))).length);
   });
 });
 

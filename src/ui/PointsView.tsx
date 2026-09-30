@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import type { Participant, Project, WaterfallModel } from '../engine/types';
+import type { BoardElement, Participant, Project, WaterfallModel } from '../engine/types';
 import { addPosition, suggestAccount, SUGGESTED_ACCOUNTS } from '../engine/positions';
 import { scaleHourly } from '../engine/sag';
 import { crewDayRateOf } from '../engine/deal';
 import { waterfallReport, syncDaysFromBudget, participantPoints } from '../engine/waterfall';
-import { syncCastDaysFromBoard } from '../engine/board';
+import { boardElements, shootDays, syncCastDaysFromBoard } from '../engine/board';
 import { newId } from '../engine/budget';
 import { setParticipantDays } from '../engine/sag';
 import { money, num, pct } from './format';
@@ -14,7 +14,10 @@ type Set = (f: (p: Project) => Project) => void;
 export function PointsView({ project, setProject }: { project: Project; setProject: Set }) {
   const r = waterfallReport(project);
   const w = project.waterfall;
-  
+  const [followsOpen, setFollowsOpen] = useState<string | null>(null);
+  const setFollows = (id: string, f: { followsCastIds?: number[]; followsElements?: BoardElement[] }) =>
+    setProject(p => syncCastDaysFromBoard({ ...p, participants: p.participants.map(x => x.id === id ? { ...x, followsCastIds: f.followsCastIds?.length ? f.followsCastIds : undefined, followsElements: f.followsElements?.length ? f.followsElements : undefined } : x) }));
+
   const patchP = (id: string, patch: Partial<Participant>) =>
     setProject(p => ({ ...p, participants: p.participants.map(x => x.id === id ? { ...x, ...patch } : x) }));
   const addP = () => setProject(p => ({ ...p, participants: [...p.participants, { id: newId('p'), name: 'New participant', role: '', group: 'crew', tierId: 'crew', days: 20, bonusMultiplier: 1 }] }));
@@ -112,23 +115,30 @@ export function PointsView({ project, setProject }: { project: Project; setProje
                 <tr key={sec.key + '-h'} className="section"><td colSpan={9 + r.scenarios.length + 1}>{sec.title} · {t.people} {t.people === 1 ? 'person' : 'people'}</td></tr>,
                 ...depts.flatMap(({ d, rows }) => [
                   ...(d ? (() => { const dt = sum(rows); return [<tr key={sec.key + '-d-' + d.number} className="dept"><td colSpan={4}>{d.number !== '9999' ? d.number + ' ' : ''}{d.name} · {dt.people}</td><td className="num">{num(dt.days)}</td><td /><td>{num(dt.points)}</td><td>{pct(dt.share)}</td><td>{dt.cash ? money(dt.cash) : ''}</td>{dt.payouts.map((v, i) => <td key={i}>{money(v)}</td>)}<td /></tr>]; })() : []),
-                  ...rows.map(row => {
+                  ...rows.flatMap(row => {
                   const p = row.participant;
-                  return (
+                  const following = (p.followsCastIds?.length ?? 0) + (p.followsElements?.length ?? 0) > 0;
+                  const followLabel = [...(p.followsCastIds ?? []).map(id => project.board.castList.find(c => c.id === id)?.name ?? `#${id}`), ...(p.followsElements ?? []).map(e => e.item)].join(', ');
+                  return [
                     <tr key={p.id} className={p.group === 'cast' ? 'hl' : ''}>
-                      <td><input className="l" value={p.name} onChange={e => patchP(p.id, { name: e.target.value })} /></td>
+                      <td><input className="l" value={p.name} onChange={e => patchP(p.id, { name: e.target.value })} />{following && <div className="small muted follows-label" title={followLabel}>⇢ with {followLabel}</div>}</td>
                       <td><input className="l" value={p.role} onChange={e => patchP(p.id, { role: e.target.value })} /></td>
                       <td><select value={p.group} onChange={e => patchP(p.id, { group: e.target.value as Participant['group'] })}>{(['producer', 'cast', 'crew', 'other'] as Participant['group'][]).map(g => <option key={g} value={g}>{GROUP_LABEL[g]}</option>)}</select></td>
                       <td><select value={p.tierId} onChange={e => patchP(p.id, { tierId: e.target.value })}>{project.tiers.map(t => <option key={t.id} value={t.id}>{t.name} ×{t.multiplier}</option>)}</select></td>
-                      <td className="num"><input type="number" value={p.days} title="Days worked. Changing them here changes this person's wage lines on the top sheet."  onChange={e => setProject(q => setParticipantDays(q, p.id, +e.target.value))} /></td>
+                      <td className="num" style={{ whiteSpace: 'nowrap' }}><input type="number" value={p.days} disabled={following} title={following ? `Days come from the stripboard: every shoot day with ${followLabel}` : "Days worked. Changing them here changes this person's wage lines on the top sheet."} onChange={e => setProject(q => setParticipantDays(q, p.id, +e.target.value))} />
+                        {p.castId == null && <button type="button" className={`btn small${following ? ' follows' : ''}`} title={following ? `On set ${[p.followsCastIds?.length ? `whenever ${p.followsCastIds.map(id => project.board.castList.find(c => c.id === id)?.name ?? `#${id}`).join(' or ')} work` : '', p.followsElements?.length ? `whenever a scene has ${p.followsElements.map(e => e.item).join(' or ')}` : ''].filter(Boolean).join(', or ')}. Click to change.` : 'Tie this person\'s days to the stripboard: on set whenever certain cast, or certain tags (an animal, a picture car, stunts), are in the day'} onClick={() => setFollowsOpen(o => o === p.id ? null : p.id)}>⇢</button>}</td>
                       <td className="num"><input type="number" step={0.25} value={p.bonusMultiplier} onChange={e => patchP(p.id, { bonusMultiplier: +e.target.value })} /></td>
                       <td>{num(row.points)}</td>
                       <td className="muted">{pct(row.share)}</td>
                       <td className="muted">{row.cashPay ? money(row.cashPay) : ''}</td>
                       {row.payouts.map((v, i) => <td key={i}><b>{money(v)}</b></td>)}
                       <td><button className="btn small" title="remove" onClick={() => removeP(p.id)}>×</button></td>
-                    </tr>
-                  );
+                    </tr>,
+                    ...(followsOpen === p.id ? [<tr key={p.id + '-f'} className="followsrow"><td colSpan={9 + r.scenarios.length + 1}>
+                      <FollowsEditor project={project} cast={p.followsCastIds ?? []} elements={p.followsElements ?? []} onChange={f => setFollows(p.id, f)} />
+                      <button type="button" className="btn small" style={{ marginTop: 6 }} onClick={() => setFollowsOpen(null)}>Done</button>
+                    </td></tr>] : []),
+                  ];
                   }),
                 ]),
                 <tr key={sec.key + '-t'} className="subtotal"><td colSpan={4}>{sec.title} subtotal</td><td className="num">{num(t.days)}</td><td /><td>{num(t.points)}</td><td>{pct(t.share)}</td><td>{t.cash ? money(t.cash) : ''}</td>{t.payouts.map((v, i) => <td key={i}>{money(v)}</td>)}<td /></tr>,
@@ -151,6 +161,7 @@ function AddPosition({ project, setProject }: { project: Project; setProject: Se
   const [days, setDays] = useState(1);
   const [hourly, setHourly] = useState<number | ''>('');
   const [follows, setFollows] = useState<number[]>([]);
+  const [followEls, setFollowEls] = useState<BoardElement[]>([]);
   const [note, setNote] = useState('');
   const suggestion = suggestAccount(project, title);
   const accountId = acct || suggestion?.number || '';
@@ -160,8 +171,8 @@ function AddPosition({ project, setProject }: { project: Project; setProject: Se
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !accountId) return;
-    setProject(p => addPosition(p, { title, accountId, days, hourly: hourly === '' ? undefined : +hourly, note: note.trim() || undefined, followsCastIds: follows.length ? follows : undefined }).project);
-    setTitle(''); setAcct(''); setDays(1); setHourly(''); setFollows([]); setNote(''); setOpen(false);
+    setProject(p => addPosition(p, { title, accountId, days, hourly: hourly === '' ? undefined : +hourly, note: note.trim() || undefined, followsCastIds: follows.length ? follows : undefined, followsElements: followEls.length ? followEls : undefined }).project);
+    setTitle(''); setAcct(''); setDays(1); setHourly(''); setFollows([]); setFollowEls([]); setNote(''); setOpen(false);
   };
   if (!open) return <p className="help" style={{ marginTop: 8 }}><button className="btn small primary" onClick={() => setOpen(true)}>+ Add position</button> <span className="small muted">a wage line in the right account plus the person on this schedule, in one go</span></p>;
   return (
@@ -173,21 +184,49 @@ function AddPosition({ project, setProject }: { project: Project; setProject: Se
             <option value="">choose…</option>
             {options.map(o => <option key={o.number} value={o.number}>{o.number} {o.name}{o.exists ? '' : ' (add)'}</option>)}
           </select></div>
-        <div className="ctl" style={{ minWidth: 80 }}><label>Days</label><input type="number" min={0} value={days} disabled={follows.length > 0} onChange={e => setDays(+e.target.value)} /></div>
+        <div className="ctl" style={{ minWidth: 80 }}><label>Days</label><input type="number" min={0} value={days} disabled={follows.length > 0 || followEls.length > 0} onChange={e => setDays(+e.target.value)} /></div>
         <div className="ctl" style={{ minWidth: 110 }}><label>Hourly (8-hr base)</label><input type="number" step="0.01" placeholder="crew rate" value={hourly} onChange={e => setHourly(e.target.value === '' ? '' : +e.target.value)} /><span className="hint">blank = crew rate {money(defaultHourly, 2)}/hr</span></div>
         <div className="ctl" style={{ flex: 1 }}><label>Note</label><input placeholder="optional, e.g. (skateboarding)" value={note} onChange={e => setNote(e.target.value)} /></div>
       </div>
-      {project.board.castList.length > 0 && (
-        <div className="row" style={{ marginTop: 6, alignItems: 'baseline', flexWrap: 'wrap', gap: 6 }}>
-          <span className="small muted">Or on set whenever these cast work:</span>
-          {project.board.castList.map(c => <label key={c.id} className="small" style={{ display: 'inline-flex', gap: 3, alignItems: 'center' }}><input type="checkbox" checked={follows.includes(c.id)} onChange={e => setFollows(f => e.target.checked ? [...f, c.id] : f.filter(x => x !== c.id))} />{c.id} {c.name}</label>)}
-          {follows.length > 0 && <span className="small muted">→ days come from the stripboard's day breaks, and follow them</span>}
-        </div>
-      )}
+      {project.board.scenes.length > 0 && <FollowsEditor project={project} cast={follows} elements={followEls} onChange={f => { setFollows(f.followsCastIds ?? []); setFollowEls(f.followsElements ?? []); }} />}
       <div className="row" style={{ marginTop: 8 }}>
         <button className="btn primary" type="submit" disabled={!title.trim() || !accountId}>{!title.trim() ? 'Type a position title first' : !accountId ? 'Pick an account' : `Add ${title.trim()}`}</button>
         <button className="btn" type="button" onClick={() => setOpen(false)}>Cancel</button>
       </div>
     </form>
+  );
+}
+
+
+/** Tie someone's days to the stripboard: on set whenever certain cast work, or whenever a scene carries certain tags
+ *  (Animals: cat for the wrangler, Vehicles for the picture-car wrangler, Stunts for the coordinator). */
+function FollowsEditor({ project, cast, elements, onChange }: { project: Project; cast: number[]; elements: BoardElement[]; onChange: (f: { followsCastIds: number[]; followsElements: BoardElement[] }) => void }) {
+  const els = boardElements(project.board);
+  const days = shootDays(project.board).length;
+  const same = (a: BoardElement, b: BoardElement) => a.category === b.category && a.item.toLowerCase() === b.item.toLowerCase();
+  const key = (e: BoardElement) => e.category + '\u0000' + e.item;
+  const byCat = els.reduce((m, e) => { (m.get(e.category) ?? m.set(e.category, []).get(e.category)!).push(e); return m; }, new Map<string, typeof els>());
+  const following = cast.length + elements.length > 0;
+  return (
+    <div className="follows">
+      {project.board.castList.length > 0 && (
+        <div className="row" style={{ alignItems: 'baseline', flexWrap: 'wrap', gap: 6 }}>
+          <span className="small muted">On set whenever these cast work:</span>
+          {project.board.castList.map(c => <label key={c.id} className="small" style={{ display: 'inline-flex', gap: 3, alignItems: 'center' }}><input type="checkbox" checked={cast.includes(c.id)} onChange={e => onChange({ followsCastIds: e.target.checked ? [...cast, c.id] : cast.filter(x => x !== c.id), followsElements: elements })} />{c.id} {c.name}</label>)}
+        </div>
+      )}
+      {els.length > 0 && (
+        <div className="row" style={{ marginTop: 4, alignItems: 'baseline', flexWrap: 'wrap', gap: 6 }}>
+          <span className="small muted">Or whenever a scene carries:</span>
+          {elements.map(e => <span key={key(e)} className="chip">{e.category}: {e.item} <button type="button" title="remove" onClick={() => onChange({ followsCastIds: cast, followsElements: elements.filter(x => !same(x, e)) })}>×</button></span>)}
+          <select value="" onChange={e => { const hit = els.find(x => key(x) === e.target.value); if (hit && !elements.some(x => same(x, hit))) onChange({ followsCastIds: cast, followsElements: [...elements, { category: hit.category, item: hit.item }] }); }}>
+            <option value="">add a tag from the board…</option>
+            {[...byCat.entries()].map(([c, items]) => <optgroup key={c} label={c}>{items.map(e => <option key={key(e)} value={key(e)}>{e.item} ({e.scenes} sc)</option>)}</optgroup>)}
+          </select>
+        </div>
+      )}
+      {following && <div className="small muted" style={{ marginTop: 4 }}>→ days come from the stripboard's day breaks{days ? ` (${days} shoot days on the board)` : ' (no day breaks yet, so 0 days until the board is broken into days)'}, and follow them as the schedule moves.</div>}
+      {!els.length && !project.board.castList.length && <div className="small muted">Nothing on the board to follow yet.</div>}
+    </div>
   );
 }

@@ -1,4 +1,4 @@
-import type { Board, Project, Scene, Strip } from './types';
+import type { Board, BoardElement, Project, Scene, Strip } from './types';
 import { newId } from './budget';
 
 export const eighthsToText = (e: number) => {
@@ -128,10 +128,10 @@ export function syncCastDaysFromBoard(p: Project): Project {
   const daysByCast = new Map(rows.map(r => [r.castId, r.total]));
   const participants = p.participants.map(pt => {
     if (pt.castId != null && daysByCast.has(pt.castId)) return { ...pt, days: daysByCast.get(pt.castId)! };
-    if (pt.followsCastIds?.length) { const d = daysWithCast(p.board, pt.followsCastIds); return d > 0 || rows.length ? { ...pt, days: d } : pt; }
+    if (pt.followsCastIds?.length || pt.followsElements?.length) { const d = daysFollowing(p.board, pt); return d > 0 || rows.length ? { ...pt, days: d } : pt; }
     return pt;
   });
-  const daysOfParticipant = new Map(participants.filter(x => x.castId != null || x.followsCastIds?.length).map(x => [x.id, x.days]));
+  const daysOfParticipant = new Map(participants.filter(x => x.castId != null || x.followsCastIds?.length || x.followsElements?.length).map(x => [x.id, x.days]));
   const lines = p.lines.map(l => {
     if (!l.participantId || l.unit !== 'DAY' || !daysOfParticipant.has(l.participantId)) return l;
     return { ...l, amount: daysOfParticipant.get(l.participantId)! };
@@ -142,6 +142,34 @@ export function syncCastDaysFromBoard(p: Project): Project {
 /** Shoot days on which any of these cast members work: a studio teacher's days, a stunt double's days. */
 export function daysWithCast(board: Board, castIds: number[]): number {
   return shootDays(board).filter(d => d.castIds.some(id => castIds.includes(id))).length;
+}
+
+const normEl = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+const sceneHasElement = (s: Scene, els: BoardElement[]) =>
+  els.some(e => (s.elements[e.category] ?? []).some(item => normEl(item) === normEl(e.item)));
+
+/** Shoot days on which a scene carries any of these tags: an animal wrangler's days with the cat, a picture-car
+ *  wrangler's days with the Datsun, a stunt coordinator's days with the stunts. */
+export function daysWithElements(board: Board, els: BoardElement[]): number {
+  return shootDays(board).filter(d => d.scenes.some(s => sceneHasElement(s, els))).length;
+}
+
+/** Days for someone who follows cast and/or tags: any day either brings them in. */
+export function daysFollowing(board: Board, who: { followsCastIds?: number[]; followsElements?: BoardElement[] }): number {
+  const cast = who.followsCastIds ?? [], els = who.followsElements ?? [];
+  if (!cast.length && !els.length) return 0;
+  return shootDays(board).filter(d => d.castIds.some(id => cast.includes(id)) || d.scenes.some(s => sceneHasElement(s, els))).length;
+}
+
+/** Every tag on the board, once each, with how many scenes carry it; for picking what a position follows. */
+export function boardElements(board: Board): (BoardElement & { scenes: number })[] {
+  const m = new Map<string, BoardElement & { scenes: number }>();
+  for (const s of board.scenes) for (const [category, items] of Object.entries(s.elements)) for (const item of items) {
+    const k = category + '\u0000' + normEl(item);
+    const hit = m.get(k);
+    if (hit) hit.scenes++; else m.set(k, { category, item, scenes: 1 });
+  }
+  return [...m.values()].sort((a, b) => a.category.localeCompare(b.category) || b.scenes - a.scenes || a.item.localeCompare(b.item));
 }
 
 export const totalEighths = (board: Board) => board.scenes.reduce((n, s) => n + s.eighths, 0);

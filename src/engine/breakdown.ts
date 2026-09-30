@@ -78,7 +78,29 @@ const same = (a: string, b: string) => norm(a) === norm(b);
 /** A first pass at the breakdown from the scene text: what an AD would circle on the first read. Existing tags
  *  are kept; new ones are added. Honest about what it is: keywords and screenplay conventions (a CAPS phrase in
  *  action is a prop, a sound or a person), so it over-tags a little and misses what the writer didn't name. */
-export function autoTag(scene: Scene, castNames: string[] = []): Record<string, string[]> {
+const ANIMAL = 'cat|kitten|kitty|tabby|dog|puppy|pup|horse|pony|bird|parrot|snake|rat|mouse|rabbit|bunny|cow|goat|pig|chicken|rooster|pigeon|fish|hamster|ferret|donkey|deer|lizard|turtle|tortoise|iguana|gecko|owl|hawk|raccoon|possum|opossum|squirrel|goose|duck';
+
+/** Animals the script names. "JACK, a handsome orange tabby cat stares out the window" makes Jack a cat, and from
+ *  then on any scene whose action has Jack in it has the cat on set, whether or not the word "cat" comes up again.
+ *  Returns name (as written in caps) → species. Cast names are never animals. */
+export function namedAnimals(board: Board): Map<string, string> {
+  const cast = new Set(board.castList.map(c => c.name.toUpperCase()));
+  const out = new Map<string, string>();
+  const intro = new RegExp(`(?<![\\w'’])([A-Z][A-Z'’-]{1,20})(?![\\w'’])\\s*(?:,|\\s+is|\\s+was)?\\s+(?:a|an|the|her|his|their|our|my)\\s+(?:[\\w-]+\\s+){0,4}(${ANIMAL})(?![\\w-])`, 'g');
+  for (const s of board.scenes) {
+    const action = (s.text ?? '').split('\n').filter(l => l && !/^\s/.test(l)).join('\n');
+    for (const m of action.matchAll(intro)) {
+      const name = m[1];
+      if (cast.has(name) || out.has(name) || /^(INT|EXT|THE|AND|CUT|FADE|ON|POV|CLOSE|ANGLE|BACK|LATER|DAY|NIGHT|MORNING|NOTE)$/.test(name)) continue;
+      out.set(name, m[2].toLowerCase());
+    }
+  }
+  return out;
+}
+
+const properCase = (n: string) => n.charAt(0) + n.slice(1).toLowerCase();
+
+export function autoTag(scene: Scene, castNames: string[] = [], animals: Map<string, string> = new Map()): Record<string, string[]> {
   const out: Record<string, string[]> = Object.fromEntries(Object.entries(scene.elements).map(([k, v]) => [k, [...v]]));
   const add = (cat: string, item: string) => {
     const it = clean(item);
@@ -120,6 +142,15 @@ export function autoTag(scene: Scene, castNames: string[] = []): Record<string, 
     const src = r.cat === 'Visual Effects' ? action : scan;   // inserts are read for VFX, and for nothing else
     for (const m of src.matchAll(r.re)) { if (negated(src, m.index!)) continue; add(r.cat, r.label ? r.label(m as RegExpExecArray, src) : m[0]); }
   }
+  // a named animal is on set whenever the action names it ("Jack sits on the dryer"); a possessive is its thing, not it
+  for (const [name, species] of animals) {
+    const here = new RegExp(`(?<![\\w'’])(?:${name}|${properCase(name)})(?![\\w'’])`).test(scan);
+    if (!here) continue;
+    const label = `${properCase(name)} the ${species}`;
+    const list = (out.Animals ??= []).filter(x => !(new RegExp(`(?<![\\w-])${species}(?![\\w-])`, 'i').test(x) && !x.includes(properCase(name))));   // "Orange tabby cat" → the named cat
+    out.Animals = list;
+    add('Animals', label);
+  }
   // the heading itself
   if (/\((?:DRIVING|MOVING)\)/i.test(scene.set)) add('Special Equipment', /DRIVING/i.test(scene.set) ? 'car mount / process trailer' : 'camera car');
   if (/\((?:DRIVING)\)/i.test(scene.set)) add('Vehicles', scene.set.replace(/\s*\(.*\)/, '').toLowerCase());
@@ -134,7 +165,8 @@ export function autoTag(scene: Scene, castNames: string[] = []): Record<string, 
 
 export function autoTagBoard(board: Board): Board {
   const names = board.castList.map(c => c.name);
-  return { ...board, scenes: board.scenes.map(s => ({ ...s, elements: autoTag(s, names) })) };
+  const animals = namedAnimals(board);
+  return { ...board, scenes: board.scenes.map(s => ({ ...s, elements: autoTag(s, names, animals) })) };
 }
 
 export function addElement(board: Board, sceneId: string, cat: string, item: string): Board {

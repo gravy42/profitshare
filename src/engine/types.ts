@@ -47,7 +47,11 @@ export interface Participant {
   bonusMultiplier: number;  // per-person nudge on top of the tier (1 = none)
   castId?: number;          // cast number on the board, for syncing days from the DOOD
   followsCastIds?: number[]; // works whenever any of these cast members work (a studio teacher with the minors)
+  followsElements?: BoardElement[]; // works whenever a scene carries one of these tags (an animal wrangler with the cat, a picture-car wrangler)
 }
+
+/** One breakdown tag on the board, by category and item: { category: 'Animals', item: 'cat' }. */
+export interface BoardElement { category: string; item: string }
 
 export interface PointsTier { id: string; name: string; multiplier: number }
 
