@@ -167,15 +167,15 @@ function AddPosition({ project, setProject }: { project: Project; setProject: Se
   return (
     <form className="addpos" onSubmit={submit}>
       <div className="row">
-        <div className="ctl" style={{ flex: 2 }}><label>Position</label><input autoFocus placeholder="Intimacy Coordinator" value={title} onChange={e => setTitle(e.target.value)} /></div>
+        <div className="ctl" style={{ flex: 2 }}><label>Position</label><input autoFocus placeholder="type a title, e.g. Intimacy Coordinator" value={title} onChange={e => setTitle(e.target.value)} /></div>
         <div className="ctl" style={{ flex: 2 }}><label>Account {suggestion && !acct ? <span className="hint">suggested{suggestion.exists ? '' : ', will be added'}</span> : null}</label>
           <select value={accountId} onChange={e => setAcct(e.target.value)}>
             <option value="">choose…</option>
             {options.map(o => <option key={o.number} value={o.number}>{o.number} {o.name}{o.exists ? '' : ' (add)'}</option>)}
           </select></div>
         <div className="ctl" style={{ minWidth: 80 }}><label>Days</label><input type="number" min={0} value={days} disabled={follows.length > 0} onChange={e => setDays(+e.target.value)} /></div>
-        <div className="ctl" style={{ minWidth: 110 }}><label>Hourly (8-hr base)</label><input type="number" step="0.01" placeholder={String(defaultHourly)} value={hourly} onChange={e => setHourly(e.target.value === '' ? '' : +e.target.value)} /><span className="hint">blank = crew rate {money(defaultHourly, 2)}</span></div>
-        <div className="ctl" style={{ flex: 1 }}><label>Note</label><input placeholder="(skateboarding)" value={note} onChange={e => setNote(e.target.value)} /></div>
+        <div className="ctl" style={{ minWidth: 110 }}><label>Hourly (8-hr base)</label><input type="number" step="0.01" placeholder="crew rate" value={hourly} onChange={e => setHourly(e.target.value === '' ? '' : +e.target.value)} /><span className="hint">blank = crew rate {money(defaultHourly, 2)}/hr</span></div>
+        <div className="ctl" style={{ flex: 1 }}><label>Note</label><input placeholder="optional, e.g. (skateboarding)" value={note} onChange={e => setNote(e.target.value)} /></div>
       </div>
       {project.board.castList.length > 0 && (
         <div className="row" style={{ marginTop: 6, alignItems: 'baseline', flexWrap: 'wrap', gap: 6 }}>
@@ -185,7 +185,7 @@ function AddPosition({ project, setProject }: { project: Project; setProject: Se
         </div>
       )}
       <div className="row" style={{ marginTop: 8 }}>
-        <button className="btn primary" type="submit" disabled={!title.trim() || !accountId}>Add {title.trim() || 'position'}</button>
+        <button className="btn primary" type="submit" disabled={!title.trim() || !accountId}>{!title.trim() ? 'Type a position title first' : !accountId ? 'Pick an account' : `Add ${title.trim()}`}</button>
         <button className="btn" type="button" onClick={() => setOpen(false)}>Cancel</button>
       </div>
     </form>

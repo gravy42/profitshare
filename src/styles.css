@@ -196,3 +196,4 @@ tr.total td { border-top: 2px solid var(--ink); font-weight: 800; }
 
 .addpos { margin-top: 10px; padding: 10px 12px; border: 1px dashed var(--line); border-radius: 10px; background: var(--soft); }
 .addpos .ctl input, .addpos .ctl select { width: 100%; }
+.addpos input::placeholder { color: var(--muted); opacity: .55; font-style: italic; }
