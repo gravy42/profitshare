@@ -157,7 +157,7 @@ describe('importers', () => {
     expect(b.scenes[0].ie).toBe('EXT');
     expect(b.scenes[0].eighths).toBe(2);
     expect(b.scenes[2].eighths).toBe(27);
-    expect(b.scenes[2].cast.map(c => c.name)).toEqual(['WAITRESS', 'LENA', 'JUNE']);
+    expect(b.scenes[2].cast.map(c => c.name).sort()).toEqual(['JUNE', 'LENA', 'WAITRESS']);
     expect(b.castList.map(c => c.name)).toContain('LENA');
   });
 });
@@ -488,7 +488,7 @@ describe('breakdown tagger', () => {
     expect(e.Stunts).toEqual(['She trips on nothing and almost face-plants on the floor']);
     expect(e.Music).toEqual(['Classic jazz']);
     expect(e['Special Equipment']).toEqual(['car mount / process trailer']);
-    expect(e.Extras ?? []).not.toContain('we were perfectly intelligent people');
+    expect(e['Background Actors'] ?? []).not.toContain('we were perfectly intelligent people');
   });
   it('learns a named animal from its introduction and tags every scene whose action has it', () => {
     const sc = (id: string, text: string): any => ({ id, number: id, ie: 'INT', set: 'ROOM', tod: 'DAY', pages: '1', eighths: 8, synopsis: '', location: '', scriptDay: '', cast: [{ id: 1, name: 'SAM' }], elements: {}, text });
@@ -703,5 +703,46 @@ describe('memo lines', () => {
     expect(by.m1.notes).toBe('Copyright Fees');                   // an account of pure memo keeps one line
     expect(topSheet(f).cashBudget).toBe(topSheet(p).cashBudget);
     expect(foldMemoLines(p, '2411').lines.map(l => l.id)).toEqual(['h', 'b', 's', 'hold', 'a', 'ot', 'm1', 'm2']);
+  });
+});
+
+import { mergeScriptIntoBoard } from './importers/merge';
+describe('script into an existing board', () => {
+  it('keeps the schedule and the tags, adds text, cast and a first pass of tags, matched by scene number', () => {
+    const script = autoTagBoard(parseScreenplayText(readFileSync(resolve(__dirname, '../../tools/fixtures/SaltFlat_Script.fountain'), 'utf8')).board);
+    // a board someone scheduled by hand (a .sex export): no text, its own tags, cast numbered its own way, day breaks in place
+    const plain = parseScreenplayText(readFileSync(resolve(__dirname, '../../tools/fixtures/SaltFlat_Script.fountain'), 'utf8')).board;
+    const board = fitDayBreaks({
+      ...plain,
+      castList: [{ id: 1, name: 'LENA' }, { id: 2, name: 'WALT' }],
+      scenes: plain.scenes.map(s => ({ ...s, text: undefined, cast: s.cast.filter(c => /LENA|WALT/.test(c.name)).map(c => ({ name: c.name, id: c.name === 'LENA' ? 1 : 2 })), elements: { Props: ['hero mug'] }, location: 'Wendover, UT' })),
+      strips: [...plain.strips].reverse(),
+    }, 3);
+    const before = shootDays(board).length;
+    const { board: m, report } = mergeScriptIntoBoard(board, script);
+    expect(report.matched).toBe(plain.scenes.length);
+    expect(report.unmatched).toEqual([]);
+    expect(report.headingMismatch).toEqual([]);
+    expect(shootDays(m).length).toBe(before);                                    // day breaks untouched
+    expect(m.strips.map(s => s.type === 'scene' ? s.sceneId : 'db')).toEqual(board.strips.map(s => s.type === 'scene' ? s.sceneId : 'db'));
+    expect(m.scenes.every(s => s.text && s.location === 'Wendover, UT')).toBe(true);
+    expect(m.scenes.every(s => s.elements.Props?.includes('hero mug'))).toBe(true);   // hand-made tags stay
+    expect(report.tagsAdded).toBeGreaterThan(20);
+    expect(m.castList.find(c => c.name === 'LENA')!.id).toBe(1);                  // cast numbers stay
+    expect(m.castList.find(c => c.name === 'WALT')!.id).toBe(2);
+    expect(report.newCast).toContain('JUNE');                                     // the script's other people join the list after the existing ones
+    expect(m.castList.find(c => c.name === 'JUNE')!.id).toBeGreaterThan(2);
+    const sc1 = m.scenes.find(s => s.number === '1')!;
+    expect(sc1.cast.map(c => c.name)).toEqual(expect.arrayContaining(['LENA', 'JUNE']));
+    expect(sc1.elements.Vehicles).toBeDefined();
+  });
+  it('reports scenes only one side has, and appends the script\'s extras at the end', () => {
+    const script = parseScreenplayText(readFileSync(resolve(__dirname, '../../tools/fixtures/SaltFlat_Script.fountain'), 'utf8')).board;
+    const board = { ...script, scenes: script.scenes.slice(0, 5).map(s => ({ ...s, text: undefined })), strips: script.strips.slice(0, 5) };
+    const { board: m, report } = mergeScriptIntoBoard(board, script);
+    expect(report.matched).toBe(5);
+    expect(report.added.length).toBe(script.scenes.length - 5);
+    expect(m.scenes.length).toBe(script.scenes.length);
+    expect(m.strips.slice(-report.added.length).every(s => s.type === 'scene')).toBe(true);
   });
 });

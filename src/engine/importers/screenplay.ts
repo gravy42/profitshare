@@ -176,29 +176,32 @@ export function parseScreenplayLines(lines: ScriptLine[], opts: { cueIndent: num
   }
   close();
 
-  // silent cast: a speaking character named in a scene's action, in CAPS (an introduction) or in Title Case
-  // ("Lena floats on her back"). A name right after of / from / about, or with 's on it, is a mention,
-  // not a presence ("a photo of Addison", "a text from Cathy", "Pete's name on the screen"), and lower-case
-  // words never count, so KID doesn't match "a kid on a bike".
-  const names = new Set<string>();
-  for (const s of scenes) for (const c of s.cast) if (c.name.length >= 3 && !GROUP_NOUN.test(c.name)) names.add(c.name);
-  const titleCase = (n: string) => n.toLowerCase().replace(/(^|[\s'-])(\w)/g, (_, a, b) => a + b.toUpperCase());
-  scenes.forEach((s, i) => {
-    const text = actionText[i].join(' ');
-    for (const name of names) {
-      if (s.cast.some(c => c.name === name)) continue;
-      const esc = (x: string) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const caps = new RegExp(`(^|[^A-Za-z])${esc(name)}(?=$|[^A-Za-z])`).test(text);
-      const present = new RegExp(`(?<!\\b(?:of|from|about) )(?<![A-Za-z])${esc(titleCase(name))}(?![A-Za-z]|['’]s)`).test(text);
-      if (caps || present) s.cast.push({ name });
-    }
-  });
-
   scenes.forEach((s, i) => { s.text = sceneText[i].join('\n'); });
+  addSilentCast(scenes);
   const lastPos = nonEmpty.length ? nonEmpty[nonEmpty.length - 1].pos : 0;
   const pages = Math.max(1, Math.ceil(lastPos + 0.01));
   if (!scenes.length) warnings.push('No scene headings found (lines starting INT. or EXT.)');
   return { board: finishBoard(scenes), title, pages, warnings };
+}
+
+/** Silent cast: a speaking character named in a scene's action, in CAPS (an introduction) or in Title Case
+ *  ("Lena floats on her back"). A name right after of / from / about, or with 's on it, is a mention, not a
+ *  presence ("a photo of Addison", "a text from Cathy", "Pete's name on the screen"), and lower-case words never
+ *  count, so KID doesn't match "a kid on a bike". Reads each scene's text; action lines are the ones flush left. */
+export function addSilentCast(scenes: Scene[]): void {
+  const names = new Set<string>();
+  for (const s of scenes) for (const c of s.cast) if (c.name.length >= 3 && !GROUP_NOUN.test(c.name)) names.add(c.name);
+  const titleCase = (n: string) => n.toLowerCase().replace(/(^|[\s'-])(\w)/g, (_, a, b) => a + b.toUpperCase());
+  const esc = (x: string) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  for (const s of scenes) {
+    const text = (s.text ?? '').split('\n').filter(l => l && !/^\s/.test(l)).join(' ');
+    for (const name of names) {
+      if (s.cast.some(c => c.name === name)) continue;
+      const caps = new RegExp(`(^|[^A-Za-z])${esc(name)}(?=$|[^A-Za-z])`).test(text);
+      const present = new RegExp(`(?<!\\b(?:of|from|about) )(?<![A-Za-z])${esc(titleCase(name))}(?![A-Za-z]|['’]s)`).test(text);
+      if (caps || present) s.cast.push({ name });
+    }
+  }
 }
 
 function headingOf(text: string, allowed: boolean): { ie: Scene['ie']; set: string; tod: string; number: string } | null {

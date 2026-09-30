@@ -1,5 +1,5 @@
 import type { Board, Scene } from '../types';
-import { finishBoard } from './screenplay';
+import { addSilentCast, finishBoard } from './screenplay';
 
 /** Final Draft (.fdx) → breakdown. Reads scene headings, page lengths and the characters who speak
  *  in each scene. Non-speaking characters tagged in Final Draft's tagger are not in the FDX text
@@ -31,8 +31,9 @@ export function parseFdx(xml: string): Board {
       const m = /^(INT\.?\/EXT\.?|EXT\.?\/INT\.?|I\/E\.?|INT\.?|EXT\.?)\s*(.*?)(?:\s+-\s+([^-]*))?$/.exec(heading);
       const ieRaw = (m?.[1] ?? '').replace(/\./g, '');
       n += 1;
+      const fdNumber = (p.getAttribute('Number') ?? '').trim();   // Final Draft's own scene number, once the script is locked or numbered
       cur = {
-        id: `sc${n}`, number: String(n),
+        id: `sc${n}`, number: fdNumber || String(n),
         ie: ieRaw === 'INT' ? 'INT' : ieRaw === 'EXT' ? 'EXT' : 'I/E',
         set: (m?.[2] ?? heading).trim(), tod: (m?.[3] ?? '').trim(),
         pages: props?.getAttribute('Page') ?? '', eighths: lengthToEighths(props?.getAttribute('Length') ?? ''),
@@ -54,5 +55,18 @@ export function parseFdx(xml: string): Board {
       if (t) cur.text = (cur.text ? cur.text + '\n' : '') + t;
     }
   }
+  addSilentCast(scenes);
   return finishBoard(scenes);
+}
+
+/** The title from a Final Draft title page, if there is one. */
+export function fdxTitle(xml: string): string {
+  const doc = new DOMParser().parseFromString(xml, 'application/xml');
+  const tp = doc.querySelector('TitlePage');
+  if (!tp) return '';
+  for (const p of Array.from(tp.querySelectorAll('Paragraph'))) {
+    const t = Array.from(p.children).filter(c => c.tagName === 'Text').map(c => c.textContent ?? '').join('').replace(/\s+/g, ' ').trim();
+    if (t) return t.replace(/^["“”']+|["“”']+$/g, '');
+  }
+  return '';
 }

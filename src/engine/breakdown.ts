@@ -4,7 +4,7 @@
 import type { Board, Scene } from './types';
 
 export const BREAKDOWN_CATEGORIES = [
-  { key: 'Extras', color: '#7a6a3a' },
+  { key: 'Background Actors', color: '#7a6a3a' },
   { key: 'Stunts', color: '#b3402a' },
   { key: 'Vehicles', color: '#2f5f8f' },
   { key: 'Props', color: '#a0522d' },
@@ -56,7 +56,7 @@ const negated = (text: string, at: number) => /\b(no|without|never)\s+(\w+\s+)?$
 const RULES: Rule[] = [
   { cat: 'Vehicles', re: kw("station wagon|wagon|muscle car|sports car|pickup truck|pick-up|electric SUV|SUV|car|cars|truck|van|bus|taxi|cab|motorcycle|motorbike|scooter|bicycle|bike|flatbed|ambulance|limo|limousine|jeep|convertible|sedan|trailer|RV|boat|plane|helicopter|train|subway|golf cart|tractor"), label: (m, t) => cap(phraseBefore(t, m.index, m[0].toLowerCase() === 'suv' ? 'SUV' : m[0].toLowerCase())) },
   { cat: 'Animals', re: kw("cat|kitten|kitty|tabby|dog|puppy|horse|horses|bird|birds|parrot|snake|rat|mouse|rabbit|cow|cows|goat|chicken|chickens|pigeon|pigeons|fish|hamster|ferret|donkey|deer"), label: (m, t) => cap(phraseBefore(t, m.index, m[0].toLowerCase(), 1)) },
-  { cat: 'Extras', re: kw("patrons|guests|crowd|couples|passersby|passers-by|pedestrians|customers|diners|shoppers|neighbors|partygoers|party-goers|onlookers|commuters|tourists|students|waiters|waitresses|bartenders|nurses|cops|officers|paramedics|reporters|photographers|fans|audience|mourners|congregation|family and friends|friends and family|movie patrons|groups of friends|eight men and women|men and women|the whole family|kids|children|extras"), label: (m, t) => cap(phraseBefore(t, m.index, m[0].toLowerCase(), 2)) },
+  { cat: 'Background Actors', re: kw("patrons|guests|crowd|couples|passersby|passers-by|pedestrians|customers|diners|shoppers|neighbors|partygoers|party-goers|onlookers|commuters|tourists|students|waiters|waitresses|bartenders|nurses|cops|officers|paramedics|reporters|photographers|fans|audience|mourners|congregation|family and friends|friends and family|movie patrons|groups of friends|eight men and women|men and women|the whole family|kids|children|extras"), label: (m, t) => cap(phraseBefore(t, m.index, m[0].toLowerCase(), 2)) },
   { cat: 'Sound', re: /\b(SOUND[S]? OF [A-Z ,'&-]+|KNOCK(?:, KNOCK)*[,!.]?|RINGS|RING|CHIRPS|CHIRP|DINGS|DING|HONKS|HONK|MEOWS|MEOW|PURRS?|SNORE|BUZZES|BUZZ|SIREN|ALARM|CRASH|BANG|GUNSHOT|THUNDER|CHEERING|APPLAUSE|POPPERS|CLICKING|CLINKS?|SLAMMING SHUT|SLAMS|DOORBELL|BELL|WHISTLE|FOOTSTEPS|SCREECH|EXPLOSION|VIBRATES)\b/g, label: m => cap(m[0].replace(/[,!.]+$/, '').toLowerCase()) },
   { cat: 'Music', re: kw("jazz music|classic jazz|jazz song|jazz record|jazz|music|song|record player|turntable|vinyl|radio|band|accordion|guitar|piano|drums|bodhran|bordhran|karaoke|playlist|singing|sings"), label: (m, t) => cap(phraseBefore(t, m.index, m[0].toLowerCase(), 2)) },
   { cat: 'Special Effects', re: kw("snow|fake snow|flurry|fireworks|rain|fire pit|fire|smoke|fog|explosion|sparks|wind machine|bubbles|steam|breath in the cold"), label: (m, t) => cap(phraseBefore(t, m.index, m[0].toLowerCase(), 1)) },
@@ -135,7 +135,7 @@ export function autoTag(scene: Scene, castNames: string[] = [], animals: Map<str
     if (/^(?:SOUND|KNOCK|RING|CHIRP|DING|HONK|MEOW|PURR|SNORE|CLICK|CLINK|SLAM|BUZZ|SIREN|ALARM|CRASH|BANG|CHEER|POPPER|VIBRAT|LOUD)/.test(p)) continue;   // sounds handled below
     if (/^(?:TEN|TWENTY|THIRTY|AN? |ONE |TWO |THREE )?(?:SECONDS?|MINUTES?|HOURS?|DAYS?|WEEKS?|MONTHS?|YEARS?) LATER$/.test(p) || /LATER$/.test(p)) continue;
     if (/^ON [A-Z]/.test(p) || /^SUPER/.test(p) || /^TITLE/.test(p)) continue;    // screen inserts, VFX rule
-    if (/(PATRONS|GUESTS|CROWD|COUPLES|FRIENDS|FAMILY|MEN AND WOMEN|PEOPLE|KIDS|CHILDREN|WAITRESS|WAITER|HOSTESS|ENGINEER|EXECUTIVE|COP|OFFICER|NURSE|DRIVER|PERSON|WOMAN|MAN|GUY|GIRL|BOY|COUPLE)$/.test(p)) { add('Extras', p.toLowerCase().replace(/^(a|an|the) /, '')); continue; }
+    if (/(PATRONS|GUESTS|CROWD|COUPLES|FRIENDS|FAMILY|MEN AND WOMEN|PEOPLE|KIDS|CHILDREN|WAITRESS|WAITER|HOSTESS|ENGINEER|EXECUTIVE|COP|OFFICER|NURSE|DRIVER|PERSON|WOMAN|MAN|GUY|GIRL|BOY|COUPLE)$/.test(p)) { add('Background Actors', p.toLowerCase().replace(/^(a|an|the) /, '')); continue; }
     if (/^(?:[A-Z]+ ){0,3}(?:CARD|CARDS|APP|MESSAGE|TEXT|RING|WIG|NOSE|OUTFIT|HAT|CONTROL|NOTE|HANDKERCHIEF|PHOTOS?|PHOTOGRAPHS?|DECORATIONS|PARAPHERNALIA|BOOK|POSTER|ENVELOPES?|BOTTLE|MOVIE|PICTURE|POST|CALLS|TEXT MESSAGE)$/.test(p)) add(/(PHOTOS?|PHOTOGRAPHS?|DECORATIONS|PARAPHERNALIA|POSTER)$/.test(p) ? 'Set Dressing' : /(MESSAGE|TEXT|APP|CALLS|POST)$/.test(p) ? 'Visual Effects' : 'Props', p.toLowerCase());
   }
   for (const r of RULES) {

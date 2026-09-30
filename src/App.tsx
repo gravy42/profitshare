@@ -4,12 +4,13 @@ import { foldMemoLines, memoLines, topSheet } from './engine/budget';
 import { sagReport } from './engine/sag';
 import { parseBudgetFile } from './engine/importers/budget';
 import { parseSex } from './engine/importers/sex';
-import { parseFdx } from './engine/importers/fdx';
+import { fdxTitle, parseFdx } from './engine/importers/fdx';
+import { describeMerge, mergeScriptIntoBoard } from './engine/importers/merge';
 import { parseScreenplayLines, parseScreenplayText } from './engine/importers/screenplay';
 import { autoTagBoard } from './engine/breakdown';
 import { weeklyWageLines, weeksToDays } from './engine/sag';
 import { sampleProject, blankProject, deriveParticipants, standardChartOfAccounts, type BlankOptions } from './data/seed';
-import type { Project } from './engine/types';
+import type { Board, Project } from './engine/types';
 import { TopSheetView } from './ui/TopSheetView';
 import { PointsView } from './ui/PointsView';
 import { SagView } from './ui/SagView';
@@ -36,8 +37,8 @@ export default function App() {
   // ---- file intake: one path for the buttons and for drag-and-drop ----
   type Kind = 'project' | 'budget' | 'board' | 'script' | 'mbd' | 'unknown';
   const kindOf = (name: string): Kind =>
-    /\.json$/i.test(name) ? 'project' : /\.(xlsx|xls|csv|tsv)$/i.test(name) ? 'budget' : /\.(sex|fdx)$/i.test(name) ? 'board'
-      : /\.(pdf|fountain|txt|text)$/i.test(name) ? 'script' : /\.mbd$/i.test(name) ? 'mbd' : 'unknown';
+    /\.json$/i.test(name) ? 'project' : /\.(xlsx|xls|csv|tsv)$/i.test(name) ? 'budget' : /\.sex$/i.test(name) ? 'board'
+      : /\.(fdx|pdf|fountain|txt|text)$/i.test(name) ? 'script' : /\.mbd$/i.test(name) ? 'mbd' : 'unknown';
   // a .txt is a script if it has scene headings, otherwise a tab-separated budget export
   const sniff = async (f: File): Promise<Kind> => {
     const k = kindOf(f.name);
@@ -73,25 +74,52 @@ export default function App() {
     return `${imp.lines.length} budget lines from ${f.name} (${via}${imp.reportedTotal ? `, file total ${money(imp.reportedTotal)}` : ''}${weekly ? `; ${weekly} weekly wage line${weekly > 1 ? 's' : ''} rewritten as days, same money` : ''}${memo ? `; ${memo} memo row${memo > 1 ? 's' : ''} folded into notes` : ''})${imp.warnings.length ? `. ${imp.warnings.length} note${imp.warnings.length > 1 ? 's' : ''}: ${imp.warnings.slice(0, 3).join('; ')}` : ''}`;
   };
   const loadBoardFile = async (f: File) => {
-    const board = /\.fdx$/i.test(f.name) ? parseFdx(await f.text()) : parseSex(await f.arrayBuffer());
+    const board = parseSex(await f.arrayBuffer());
     setProject(p => ({ ...p, board }));
     setFresh(false);
     setTab('board');
-    return `${board.scenes.length} scenes from ${f.name}${/\.fdx$/i.test(f.name) ? ' (script order; drag strips to build the shooting order)' : ' (board order kept)'}`;
+    return `${board.scenes.length} scenes from ${f.name} (board order kept)`;
+  };
+  /** A script dropped on a project that already has a board: merge it in, or start the board over. */
+  const [pendingScript, setPendingScript] = useState<{ board: Board; name: string; title: string; note: string } | null>(null);
+  const mergePending = () => {
+    if (!pendingScript) return;
+    const { board: script, name } = pendingScript;
+    const { board, report } = mergeScriptIntoBoard(project.board, script);
+    setProject(p => ({ ...p, board }));
+    setPendingScript(null); setTab('board');
+    flash(`${name} merged into the board: ${describeMerge(report)}. Day breaks, strip order, cast numbers and the tags you had are untouched; open a strip's ⌄ to read the scene.`);
+  };
+  const replacePending = () => {
+    if (!pendingScript) return;
+    const { board, name, title, note } = pendingScript;
+    setProject(p => ({ ...p, board, name: title && (!p.name || /^untitled/i.test(p.name)) ? title : p.name }));
+    setPendingScript(null); setTab('board');
+    flash(`${name}: ${note}`);
   };
   /** A screenplay (PDF, Fountain, plain text) broken down into scenes, eighths and cast. */
   const loadScriptFile = async (f: File) => {
     const imp = /\.pdf$/i.test(f.name)
       ? parseScreenplayLines(await (await import('./engine/importers/pdfScript')).pdfScriptLines(await f.arrayBuffer()), { cueIndent: 90 })
-      : parseScreenplayText(await f.text());
+      : /\.fdx$/i.test(f.name)
+        ? (xml => { const b = parseFdx(xml); return { board: b, title: fdxTitle(xml), pages: b.scenes.reduce((n, s) => n + s.eighths, 0) / 8, warnings: [] as string[] }; })(await f.text())
+        : parseScreenplayText(await f.text());
     if (!imp.board.scenes.length) throw new Error(`no scene headings found in ${f.name}${/\.pdf$/i.test(f.name) ? ' (a scanned PDF has no text to read; export the PDF from your writing app instead)' : ''}`);
     const board = autoTagBoard(imp.board);
+    const c = board.castList.length;
+    const numbered = imp.board.scenes.some((s, i) => s.number !== String(i + 1));
+    const pages = Math.round(imp.pages);
+    const note = `${board.scenes.length} scenes, ${c} speaking part${c === 1 ? '' : 's'}, ${pages} page${pages === 1 ? '' : 's'}. ${numbered ? 'Scene numbers kept from the script' : 'The script had no scene numbers, so scenes are numbered in script order'}; first-pass tags are on every strip (open a strip's ⌄ to read and tag). Drag strips to build the shooting order.`;
+    const current = project;
+    if (!fresh && current.board.scenes.length > 0) {
+      // a board is already here: keep its schedule and pour the script in, unless asked to start over
+      setPendingScript({ board, name: f.name, title: imp.title, note });
+      return `${f.name} is ready (${board.scenes.length} scenes, ${c} speaking part${c === 1 ? '' : 's'}). Merge it into the board you have, or replace the board?`;
+    }
     setProject(p => ({ ...p, board, name: imp.title && (!p.name || /^untitled/i.test(p.name)) ? imp.title : p.name }));
     setFresh(false);
     setTab('board');
-    const c = board.castList.length;
-    const numbered = imp.board.scenes.some((s, i) => s.number !== String(i + 1));
-    return `${board.scenes.length} scenes, ${c} speaking part${c === 1 ? '' : 's'}, ${imp.pages} page${imp.pages === 1 ? '' : 's'} from ${f.name}. ${numbered ? 'Scene numbers kept from the script' : 'The script had no scene numbers, so scenes are numbered in script order'}; first-pass tags are on every strip (open a strip's ⌄ to read and tag). Drag strips to build the shooting order.`;
+    return `${f.name}: ${note}`;
   };
   /** Take any mix of files, work out what each one is, and load it. Budgets before boards so cast days can link. */
   const intake = async (files: File[]) => {
@@ -189,6 +217,14 @@ export default function App() {
             <span>Replace the open project with <b>{pendingProject.name}</b>? Save the current one first if you want to keep it.</span>
             <button className="btn primary small" onClick={() => { replace(pendingProject.project); setPendingProject(null); setTab('topsheet'); flash(`Opened ${pendingProject.name}`); }}>Replace</button>
             <button className="btn small" onClick={() => setPendingProject(null)}>Cancel</button>
+          </div>
+        )}
+        {pendingScript && (
+          <div className="notice row">
+            <span><b>{pendingScript.name}</b> has {pendingScript.board.scenes.length} scenes and this project already has a board with {project.board.scenes.length}. <b>Merge</b> matches scenes by number and adds the script text, cast and a first pass of tags to the strips you have, keeping your day breaks, strip order, cast numbers, locations and every tag. <b>Replace</b> starts the board over from the script.</span>
+            <button className="btn primary small" onClick={mergePending}>Merge into the board</button>
+            <button className="btn small" onClick={replacePending}>Replace the board</button>
+            <button className="btn small" onClick={() => setPendingScript(null)}>Cancel</button>
           </div>
         )}
         {tab === 'start' && <StartView onBlank={startBlank} onImportBudget={startImport} onOpen={startOpen} onSample={startSample} armed={armed} />}
