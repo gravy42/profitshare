@@ -6,6 +6,7 @@ import { parseBudgetFile } from './engine/importers/budget';
 import { parseSex } from './engine/importers/sex';
 import { parseFdx } from './engine/importers/fdx';
 import { parseScreenplayLines, parseScreenplayText } from './engine/importers/screenplay';
+import { autoTagBoard } from './engine/breakdown';
 import { sampleProject, blankProject, deriveParticipants, standardChartOfAccounts, type BlankOptions } from './data/seed';
 import type { Project } from './engine/types';
 import { TopSheetView } from './ui/TopSheetView';
@@ -78,11 +79,13 @@ export default function App() {
       ? parseScreenplayLines(await (await import('./engine/importers/pdfScript')).pdfScriptLines(await f.arrayBuffer()), { cueIndent: 90 })
       : parseScreenplayText(await f.text());
     if (!imp.board.scenes.length) throw new Error(`no scene headings found in ${f.name}${/\.pdf$/i.test(f.name) ? ' (a scanned PDF has no text to read; export the PDF from your writing app instead)' : ''}`);
-    setProject(p => ({ ...p, board: imp.board, name: imp.title && (!p.name || /^untitled/i.test(p.name)) ? imp.title : p.name }));
+    const board = autoTagBoard(imp.board);
+    setProject(p => ({ ...p, board, name: imp.title && (!p.name || /^untitled/i.test(p.name)) ? imp.title : p.name }));
     setFresh(false);
     setTab('board');
-    const c = imp.board.castList.length;
-    return `${imp.board.scenes.length} scenes, ${c} speaking part${c === 1 ? '' : 's'}, ${imp.pages} page${imp.pages === 1 ? '' : 's'} from ${f.name} (script order; drag strips to build the shooting order, and check the cast: silent characters only show when the script names them)`;
+    const c = board.castList.length;
+    const numbered = imp.board.scenes.some((s, i) => s.number !== String(i + 1));
+    return `${board.scenes.length} scenes, ${c} speaking part${c === 1 ? '' : 's'}, ${imp.pages} page${imp.pages === 1 ? '' : 's'} from ${f.name}. ${numbered ? 'Scene numbers kept from the script' : 'The script had no scene numbers, so scenes are numbered in script order'}; first-pass tags are on every strip (open a strip's ⌄ to read and tag). Drag strips to build the shooting order.`;
   };
   /** Take any mix of files, work out what each one is, and load it. Budgets before boards so cast days can link. */
   const intake = async (files: File[]) => {

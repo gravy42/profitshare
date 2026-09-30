@@ -126,6 +126,8 @@ export function parseScreenplayLines(lines: ScriptLine[], opts: { cueIndent: num
   let curStart = 0, curEnd = 0;
   let mode: 'action' | 'dialogue' = 'action';
   const actionText: string[][] = [];   // per scene, the action lines, for finding silent cast later
+  const sceneText: string[][] = [];    // per scene, the scene as written (cues and dialogue indented) for the tagger
+  const CUE_IN = ' '.repeat(20), DLG_IN = ' '.repeat(10);
   const LINE = 1 / 55;
   const close = () => { if (cur) cur.eighths = Math.max(1, Math.round((curEnd + LINE - curStart) * 8)); };
 
@@ -139,14 +141,15 @@ export function parseScreenplayLines(lines: ScriptLine[], opts: { cueIndent: num
       close();
       const n = scenes.length + 1;
       cur = { id: `sc${n}`, number: h.number || String(n), ie: h.ie, set: h.set, tod: h.tod, pages: l.page, eighths: 1, synopsis: '', location: '', scriptDay: '', cast: [], elements: {} };
-      scenes.push(cur); actionText.push([]);
+      scenes.push(cur); actionText.push([]); sceneText.push([]);
       curStart = l.pos; curEnd = l.pos; mode = 'action';
       continue;
     }
     if (!cur) continue;                       // title page, FADE IN, anything before scene 1
     curEnd = l.pos;
+    const st = sceneText[scenes.length - 1];
     if (l.page !== cur.pages.split('-').pop()) cur.pages = `${cur.pages.split('-')[0]}-${l.page}`;
-    if (TRANSITION.test(t) || /^>/.test(t)) { mode = 'action'; continue; }
+    if (TRANSITION.test(t) || /^>/.test(t)) { mode = 'action'; st.push(t); continue; }
     const next = lines[i + 1];
     const prevBlank = i === 0 || !lines[i - 1].text;
     const forcedCue = /^@/.test(t);
@@ -159,12 +162,14 @@ export function parseScreenplayLines(lines: ScriptLine[], opts: { cueIndent: num
         if (name.length >= 2 && !GROUP.test(name) && !cur.cast.some(c => c.name === name)) cur.cast.push({ name });
       }
       mode = 'dialogue';
+      st.push(CUE_IN + plain(t.replace(/^@/, '')));
       continue;
     }
     if (mode === 'dialogue' && dense && t.length > DIALOGUE_MAX && !/^\(/.test(t)) mode = 'action';
-    if (mode === 'dialogue') continue;        // dialogue and parentheticals, until the next blank line
+    if (mode === 'dialogue') { st.push(DLG_IN + plain(t)); continue; }        // dialogue and parentheticals, until the next blank line
     if (/^[#=~]/.test(t)) continue;           // Fountain sections, synopses, lyrics
-    const a = t.replace(/^!/, '');
+    const a = plain(t.replace(/^!/, ''));
+    st.push(a);
     actionText[scenes.length - 1].push(a);
     if (!cur.synopsis && !NOT_CUE.test(a)) cur.synopsis = a.length > 120 ? a.slice(0, 117) + '...' : a;
   }
@@ -188,6 +193,7 @@ export function parseScreenplayLines(lines: ScriptLine[], opts: { cueIndent: num
     }
   });
 
+  scenes.forEach((s, i) => { s.text = sceneText[i].join('\n'); });
   const lastPos = nonEmpty.length ? nonEmpty[nonEmpty.length - 1].pos : 0;
   const pages = Math.max(1, Math.ceil(lastPos + 0.01));
   if (!scenes.length) warnings.push('No scene headings found (lines starting INT. or EXT.)');

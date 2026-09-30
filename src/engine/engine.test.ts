@@ -465,3 +465,40 @@ Nothing.
     expect(r.board.scenes[1].cast.map(c => c.name)).toEqual(['BOB']);
   });
 });
+
+import { autoTag, addElement, removeElement, addCast, autoTagBoard } from './breakdown';
+
+describe('breakdown tagger', () => {
+  it('reads a first pass of tags off the scene text, from action only', () => {
+    const scene: any = { id: 'sc1', set: "SAM'S CAR (DRIVING)", synopsis: '', cast: [{ id: 1, name: 'SAM' }], elements: {}, text: [
+      'SAM PENN (45) rides her long board past her beat-up little green car. JACK, an orange tabby cat, watches.',
+      "Sam's cell phone RINGS. A TEXT MESSAGE from COLIN stares back at her. No purse.",
+      'She trips on nothing and almost face-plants on the floor.',
+      '                    SAM', '          I love my truck and my dog.', 'ON CARD: WE WERE PERFECTLY INTELLIGENT PEOPLE.', 'CLASSIC JAZZ blasts.',
+    ].join('\n') };
+    const e = autoTag(scene, ['SAM', 'COLIN']);
+    expect(e.Vehicles).toEqual(['Little green car']);                    // "sam's car" from the heading folds into it
+    expect(e.Vehicles.join()).not.toMatch(/truck/);                       // dialogue is not on set
+    expect(e.Animals).toEqual(['Orange tabby cat']);
+    expect(e.Props).toEqual(['Long board', 'Cell phone']);                 // not the CARD in the insert
+    expect(e.Props.join()).not.toMatch(/purse/);                          // "No purse" is a negation
+    expect(e.Sound).toEqual(['Rings']);
+    expect(e['Visual Effects']).toEqual(expect.arrayContaining(['On card insert', 'phone screen: text message']));
+    expect(e.Stunts).toEqual(['She trips on nothing and almost face-plants on the floor']);
+    expect(e.Music).toEqual(['Classic jazz']);
+    expect(e['Special Equipment']).toEqual(['car mount / process trailer']);
+    expect(e.Extras ?? []).not.toContain('we were perfectly intelligent people');
+  });
+  it('keeps hand-made tags across auto-tag, and edits chips and cast', () => {
+    const board: any = { castList: [{ id: 1, name: 'SAM' }], scenes: [{ id: 'sc1', number: '1', ie: 'INT', set: 'ROOM', tod: 'DAY', pages: '1', eighths: 8, synopsis: '', location: '', scriptDay: '', cast: [{ id: 1, name: 'SAM' }], elements: { Props: ['hero mug'] }, text: 'Sam drinks coffee from a mug.' }], strips: [{ type: 'scene', sceneId: 'sc1' }], targetEighthsPerDay: 44 };
+    const b1 = autoTagBoard(board);
+    expect(b1.scenes[0].elements.Props).toContain('hero mug');
+    const b2 = addElement(b1, 'sc1', 'Wardrobe', ' robe ');
+    expect(b2.scenes[0].elements.Wardrobe).toEqual(['robe']);
+    const b3 = removeElement(b2, 'sc1', 'Wardrobe', 'robe');
+    expect(b3.scenes[0].elements.Wardrobe).toBeUndefined();
+    const b4 = addCast(b3, 'sc1', 'jack');
+    expect(b4.castList.map(c => c.name)).toEqual(['SAM', 'JACK']);
+    expect(b4.scenes[0].cast.map(c => c.id)).toEqual([1, 2]);
+  });
+});

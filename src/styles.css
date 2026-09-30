@@ -96,7 +96,7 @@ td.num { width: 90px; }
 .board { display: grid; grid-template-columns: 1fr 340px; gap: 16px; align-items: start; }
 @media (max-width: 1000px) { .board { grid-template-columns: 1fr; } }
 .strips { display: flex; flex-direction: column; gap: 3px; }
-.strip { color: #2A2A33; display: grid; grid-template-columns: 26px 44px 34px 1fr 80px 70px 80px 26px; gap: 8px; align-items: center; padding: 5px 8px; border-radius: 8px; border: 1px solid var(--line); background: #fff; cursor: grab; font-size: 12.5px; }
+.strip { color: #2A2A33; display: grid; grid-template-columns: 26px 44px 34px 1fr 80px 70px 80px 44px 26px; gap: 8px; align-items: center; padding: 5px 8px; border-radius: 8px; border: 1px solid var(--line); background: #fff; cursor: grab; font-size: 12.5px; }
 .strip:active { cursor: grabbing; }
 .strip.dragover { border-top: 3px solid var(--orange); }
 .strip.day-int { background: #fff; }
@@ -160,3 +160,18 @@ details.panel > summary::-webkit-details-marker { display: none; }
 .droptarget { border: 2px dashed var(--line); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 6px; align-items: center; text-align: center; font-size: 13px; }
 .droptarget span { color: var(--muted); font-size: 12px; }
 .start .card .droptarget .btn { margin-top: 0; align-self: center; }
+
+/* script tagger under an open strip */
+.strip.open { border-color: var(--plum); box-shadow: 0 0 0 2px rgba(91,42,134,.15); }
+.tagger { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(260px, 1fr); gap: 14px; background: var(--card); border: 1px solid var(--line); border-top: 0; border-radius: 0 0 10px 10px; padding: 12px 14px; margin: -2px 0 6px 0; }
+.tagger .script { white-space: pre-wrap; font: 12.5px/1.5 'Courier New', Courier, monospace; max-height: 420px; overflow: auto; padding: 8px 10px; background: var(--soft); border-radius: 8px; user-select: text; cursor: text; }
+.tagger .script mark { color: #fff; border-radius: 3px; padding: 0 2px; }
+.tagger .tags { font-size: 12.5px; }
+.tagrow { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; margin: 6px 0; }
+.tagcat { font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .4px; min-width: 96px; }
+.chip { display: inline-flex; align-items: center; gap: 4px; border: 1.5px solid var(--line); border-radius: 999px; padding: 1px 4px 1px 8px; background: var(--card); font-size: 12px; }
+.chip button { border: 0; background: transparent; color: var(--muted); cursor: pointer; font-size: 13px; line-height: 1; padding: 0 3px; }
+.chip button:hover { color: var(--bad); }
+.tagmenu { position: fixed; z-index: 1000; display: flex; flex-wrap: wrap; gap: 5px; max-width: 420px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; box-shadow: 0 12px 30px rgba(0,0,0,.25); }
+.tagmenu button { border: 1.5px solid; border-radius: 999px; background: var(--card); color: var(--ink); padding: 2px 9px; font-size: 12px; cursor: pointer; }
+.tagmenu button:hover { background: var(--soft); }

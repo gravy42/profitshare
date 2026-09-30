@@ -45,9 +45,13 @@ export function parseFdx(xml: string): Board {
       for (const name of raw.split('/').map(s => s.trim()).filter(Boolean)) {
         if (!cur.cast.some(c => c.name === name)) cur.cast.push({ name });
       }
-    } else if (type === 'Action' && cur && !cur.synopsis) {
+      cur.text = (cur.text ? cur.text + '\n' : '') + ' '.repeat(20) + textOf(p).toUpperCase();
+    } else if ((type === 'Dialogue' || type === 'Parenthetical') && cur) {
+      cur.text = (cur.text ? cur.text + '\n' : '') + ' '.repeat(10) + textOf(p);
+    } else if (type === 'Action' && cur) {
       const t = textOf(p);
-      if (t) cur.synopsis = t.length > 120 ? t.slice(0, 117) + '...' : t;
+      if (t && !cur.synopsis) cur.synopsis = t.length > 120 ? t.slice(0, 117) + '...' : t;
+      if (t) cur.text = (cur.text ? cur.text + '\n' : '') + t;
     }
   }
   return finishBoard(scenes);

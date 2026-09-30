@@ -97,6 +97,7 @@ export interface Scene {
   scriptDay: string;
   cast: SceneCast[];
   elements: Record<string, string[]>; // breakdown category -> items
+  text?: string;            // the scene as written, for the tagger: action flush left, cues and dialogue indented
 }
 
 export type Strip =
