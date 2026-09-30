@@ -2,6 +2,7 @@ import type { Participant, Project, WaterfallModel } from '../engine/types';
 import { waterfallReport, syncDaysFromBudget, participantPoints } from '../engine/waterfall';
 import { syncCastDaysFromBoard } from '../engine/board';
 import { newId } from '../engine/budget';
+import { setParticipantDays } from '../engine/sag';
 import { money, num, pct } from './format';
 
 type Set = (f: (p: Project) => Project) => void;
@@ -99,7 +100,7 @@ export function PointsView({ project, setProject }: { project: Project; setProje
                       <td><input className="l" value={p.role} onChange={e => patchP(p.id, { role: e.target.value })} /></td>
                       <td><select value={p.group} onChange={e => patchP(p.id, { group: e.target.value as Participant['group'] })}>{(['producer', 'cast', 'crew', 'other'] as Participant['group'][]).map(g => <option key={g} value={g}>{GROUP_LABEL[g]}</option>)}</select></td>
                       <td><select value={p.tierId} onChange={e => patchP(p.id, { tierId: e.target.value })}>{project.tiers.map(t => <option key={t.id} value={t.id}>{t.name} ×{t.multiplier}</option>)}</select></td>
-                      <td className="num"><input type="number" value={p.days} onChange={e => patchP(p.id, { days: +e.target.value })} /></td>
+                      <td className="num"><input type="number" value={p.days} title={project.deal?.pay.model === 'everyone-at-scale' ? 'Days come from this person\'s wage lines on the top sheet; changing them here changes those lines' : 'Days worked, for points'} onChange={e => setProject(q => setParticipantDays(q, p.id, +e.target.value))} /></td>
                       <td className="num"><input type="number" step={0.25} value={p.bonusMultiplier} onChange={e => patchP(p.id, { bonusMultiplier: +e.target.value })} /></td>
                       <td>{num(row.points)}</td>
                       <td className="muted">{pct(row.share)}</td>

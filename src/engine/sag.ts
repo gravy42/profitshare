@@ -198,3 +198,28 @@ export function floorNonShootDays(p: Project, opts: { cashHourly: number; rest: 
   }
   return { ...p, lines };
 }
+
+/** Set a participant's days worked on the raw project. When the participant is paid through wage lines (which is
+ *  how everyone-at-scale reads days), the lines move too, so the edit survives the deal being re-applied: one line
+ *  takes the new figure outright (weeks = days / 5); several share the change in proportion. */
+export function setParticipantDays(p: Project, participantId: string, days: number): Project {
+  const d = Math.max(0, Math.round(days));
+  const linked = p.lines.filter(l => l.participantId === participantId && isPayrollLine(l) && (l.unit === 'DAY' || l.unit === 'WEEK'));
+  const lineDays = (l: LineItem) => l.unit === 'WEEK' ? l.amount * 5 : l.amount;
+  let lines = p.lines;
+  if (linked.length === 1) {
+    const l = linked[0];
+    lines = p.lines.map(x => x.id !== l.id ? x : { ...x, amount: l.unit === 'WEEK' ? Math.round(d / 5 * 10) / 10 : d });
+  } else if (linked.length > 1) {
+    const cur = linked.reduce((n, l) => n + lineDays(l), 0);
+    const ratio = cur > 0 ? d / cur : 0;
+    let assigned = 0;
+    const next = new Map<string, number>();
+    linked.forEach((l, i) => {
+      const share = i === linked.length - 1 ? d - assigned : cur > 0 ? Math.round(lineDays(l) * ratio) : Math.round(d / linked.length);
+      assigned += share; next.set(l.id, share);
+    });
+    lines = p.lines.map(x => next.has(x.id) ? { ...x, amount: x.unit === 'WEEK' ? Math.round(next.get(x.id)! / 5 * 10) / 10 : next.get(x.id)! } : x);
+  }
+  return { ...p, lines, participants: p.participants.map(pt => pt.id === participantId ? { ...pt, days: d } : pt) };
+}

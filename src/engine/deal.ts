@@ -53,7 +53,8 @@ export function applyDeal(raw: Project): Project {
     const producers = p.participants.filter(x => x.group === 'producer' && x.id.startsWith('p_producer'));
     const others = p.participants.filter(x => !(x.group === 'producer' && x.id.startsWith('p_producer')));
     const want = d.producers.count ?? producers.length;
-    const kept: Participant[] = producers.slice(0, want).map(x => ({ ...x, days: d.producers.days }));
+    // each producer keeps their own days (editable on the points schedule); the deal's figure is the default for new ones
+    const kept: Participant[] = producers.slice(0, want).map(x => ({ ...x, days: x.days || d.producers.days }));
     for (let i = producers.length; i < want; i++) kept.push({ id: `p_producer_${i + 1}`, name: `Producer #${i + 1}`, role: 'Producer', group: 'producer', tierId: 'producer', days: d.producers.days, bonusMultiplier: 1 });
     p = { ...p, participants: [...others, ...kept] };
   }

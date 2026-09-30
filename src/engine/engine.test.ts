@@ -337,7 +337,8 @@ describe('the deal layer', () => {
   });
   it('reproduces everyone-at-scale + premiums + floor from terms, and never touches the raw lines', () => {
     const p = withDeal(seed);
-    const terms = { ...p, dayHours: 10 as const, deal: { ...p.deal!, pay: { ...p.deal!.pay, model: 'everyone-at-scale' as const, crewBasis: 'MLB' as const, premiums: { producers: 'points' as const, script: 'points' as const, allowances: 'delete' as const } }, producers: { count: 1, days: 30 }, nonShoot: { enabled: true, cashHourly: 16.9, rest: 'points' as const } } };
+    // the Deal tab's "producer days" writes the figure onto every producer; a single producer can then be changed on the points schedule
+    const terms = { ...p, dayHours: 10 as const, participants: p.participants.map(x => x.id.startsWith('p_producer') ? { ...x, days: 30 } : x), deal: { ...p.deal!, pay: { ...p.deal!.pay, model: 'everyone-at-scale' as const, crewBasis: 'MLB' as const, premiums: { producers: 'points' as const, script: 'points' as const, allowances: 'delete' as const } }, producers: { count: 1, days: 30 }, nonShoot: { enabled: true, cashHourly: 16.9, rest: 'points' as const } } };
     const e = applyDeal(terms);
     // by hand, in the same order
     let h = setDayHours({ ...p, dayHours: 12 }, 10);
@@ -524,5 +525,26 @@ describe('cast numbering', () => {
     const r = renumberCast(q, [6]);                                                    // Walt to #1, everyone else shifts
     expect(names(r).slice(0, 2)).toEqual(['1 WALT', '2 JUNE']);
     expect(r.participants[0].castId).toBe(1);
+  });
+});
+
+import { setParticipantDays } from './sag';
+
+describe('editing days under the deal', () => {
+  it('a days edit on the points schedule survives everyone-at-scale by moving the wage lines', () => {
+    const base = withDeal(sampleProject());
+    const p0 = { ...base, deal: { ...base.deal!, pay: { ...base.deal!.pay, model: 'everyone-at-scale' as const } } };
+    const eff0 = applyDeal(p0);
+    const director = eff0.participants.find(x => x.id.startsWith('p_1301'))!;
+    expect(director.days).toBeGreaterThan(0);
+    const p1 = setParticipantDays(p0, director.id, director.days + 20);
+    const eff1 = applyDeal(p1);
+    expect(eff1.participants.find(x => x.id === director.id)!.days).toBe(director.days + 20);
+    const linked = p1.lines.filter(l => l.participantId === director.id && (l.unit === 'DAY' || l.unit === 'WEEK'));
+    expect(linked.reduce((n, l) => n + (l.unit === 'WEEK' ? l.amount * 5 : l.amount), 0)).toBe(director.days + 20);
+    // a participant with no wage lines just takes the number
+    const p2 = setParticipantDays(p0, 'p_producer_1', 33);
+    expect(p2.participants.find(x => x.id === 'p_producer_1')!.days).toBe(33);
+    expect(applyDeal(p2).participants.find(x => x.id === 'p_producer_1')!.days).toBe(33);
   });
 });
