@@ -212,3 +212,6 @@ tr.followsrow > td { padding: 6px 8px 8px 34px; background: var(--soft); }
 .follows .chip button { border: none; background: none; color: inherit; cursor: pointer; padding: 0; font-size: 12px; }
 .follows select { max-width: 320px; }
 .follows label { white-space: nowrap; }
+.check { display: flex; align-items: center; gap: 7px; flex-wrap: nowrap; font-size: 13px; cursor: pointer; }
+.check input { width: auto; margin: 0; }
+.panel h2 label input { margin-right: 6px; vertical-align: -1px; }

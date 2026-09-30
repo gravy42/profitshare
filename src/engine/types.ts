@@ -137,6 +137,36 @@ export interface Deal {
   nonShoot: { enabled: boolean; cashHourly: number; rest: 'points' | 'deferred' };
 }
 
+/** Production incentives the film may qualify for. Each is a toggle; the money they bring back reduces what
+ *  investors have to put in (and recoup), the way grants do. */
+export interface Incentives {
+  startDate: string;                 // planned first day of principal photography, YYYY-MM-DD
+  ca: {
+    enabled: boolean;
+    excludedCategories: string[];    // category numbers whose spend doesn't qualify (writer, producers, director, cast, publicity...)
+    caSharePct: number;              // share of non-wage spend bought from California vendors
+    outOfZonePct: number;            // share of shoot days outside the Los Angeles 30-mile zone
+    localHirePct: number;            // share of qualified wages to residents outside the zone working outside it
+    vfx: boolean;                    // VFX uplift (75% of VFX in California, or $10M of it)
+    trainees: number;                // Career Pathways trainees hired, 0–4
+    monetize: 'transfer' | 'refund' | 'own-tax';
+    transferCents: number;           // sold at this many cents on the dollar
+    bridge: boolean;                 // borrow against the credit so the money is in the bank for the shoot
+    bridgeCostPct: number;           // interest and fees on that loan, as a % of the credit
+    auditCost: number;               // the CPA audit the program requires
+  };
+  federal: {
+    enabled: boolean;                // the Motion Picture, Television, and Entertainment Revitalization Act, if it passes
+    includeAtl: boolean;             // count above-the-line wages as labor
+    independent: boolean;            // +5% independent production bonus
+    rural: boolean;                  // +5% for 30% of days in rural opportunity zones or disaster areas
+    transferCents: number;
+    bridge: boolean;
+    bridgeCostPct: number;
+  };
+  perks: Record<string, number>;     // local perks switched on, by id → dollars saved (0 = on, no estimate yet)
+}
+
 // ---------- the whole project ----------
 
 export interface Project {
@@ -157,5 +187,6 @@ export interface Project {
   sag: SagSettings;
   board: Board;
   deal?: Deal;
+  incentives?: Incentives;
   notes?: string;
 }

@@ -5,6 +5,7 @@ import { scaleHourly } from '../engine/sag';
 import { crewDayRateOf } from '../engine/deal';
 import { waterfallReport, syncDaysFromBudget, participantPoints } from '../engine/waterfall';
 import { boardElements, shootDays, syncCastDaysFromBoard } from '../engine/board';
+import { incentiveProceeds } from '../engine/incentives';
 import { newId } from '../engine/budget';
 import { setParticipantDays } from '../engine/sag';
 import { money, num, pct } from './format';
@@ -51,7 +52,7 @@ export function PointsView({ project, setProject }: { project: Project; setProje
     <div>
       <div className="panel">
         <h2>The waterfall</h2>
-        <p className="help"><b>{w.model === 'off-the-gross' ? 'Off the gross (Sing Sing)' : 'Recoup first'}</b> · investors recoup {w.recoupPct}% of {money(r.budget)}{(w.nonRecoupable ?? 0) > 0 ? ` (the budget less ${money(w.nonRecoupable!)} of grants)` : ''}{w.model === 'off-the-gross' ? ` · pool takes ${w.grossSharePct}% of gross until then` : ''} · pool {w.poolPct}% after recoup. Change any of this on the Deal tab.</p>
+        <p className="help"><b>{w.model === 'off-the-gross' ? 'Off the gross (Sing Sing)' : 'Recoup first'}</b> · investors recoup {w.recoupPct}% of {money(r.budget)}{(w.nonRecoupable ?? 0) > 0 || incentiveProceeds(project) > 0 ? ` (the budget less ${[(w.nonRecoupable ?? 0) > 0 ? `${money(w.nonRecoupable!)} of grants` : '', incentiveProceeds(project) > 0 ? `${money(incentiveProceeds(project))} of incentives` : ''].filter(Boolean).join(' and ')})` : ''}{w.model === 'off-the-gross' ? ` · pool takes ${w.grossSharePct}% of gross until then` : ''} · pool {w.poolPct}% after recoup. Change any of this on the Deal tab.</p>
         <p className="help" style={{ marginTop: 10 }}>
           {w.model === 'off-the-gross'
             ? <>The pool takes {w.grossSharePct}% of every dollar until investors have recouped {w.recoupPct}% of the {money(r.budget)} they put in from their {100 - w.grossSharePct}% (that happens at {money(rStar)} of revenue). After that the split is {w.poolPct}/{100 - w.poolPct}. This is the Sing Sing structure: the back end pays even if the film only does modestly.</>

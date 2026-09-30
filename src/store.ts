@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { Project } from './engine/types';
+import type { Project, Board } from './engine/types';
 import { sampleProject } from './data/seed';
 import { withDeal } from './engine/deal';
 
@@ -16,6 +16,18 @@ function loadSaved(): Project | null {
 /** True when this browser already had a project autosaved (so the app opens on it rather than the start screen). */
 export const hadSavedProject = () => loadSaved() !== null;
 const load = (): Project => loadSaved() ?? sampleProject();
+
+const BOARD_KEY = 'profitshare.previous-board';
+export interface BoardBackup { when: string; reason: string; board: Board }
+/** The board as it was before something replaced it, kept in the browser so a reload doesn't lose it. */
+export function keepBoard(board: Board, reason: string): void {
+  if (!board.scenes.length) return;
+  try { localStorage.setItem(BOARD_KEY, JSON.stringify({ when: new Date().toISOString(), reason, board } satisfies BoardBackup)); } catch { /* ignore */ }
+}
+export function previousBoard(): BoardBackup | null {
+  try { const raw = localStorage.getItem(BOARD_KEY); return raw ? JSON.parse(raw) as BoardBackup : null; } catch { return null; }
+}
+export function forgetPreviousBoard(): void { try { localStorage.removeItem(BOARD_KEY); } catch { /* ignore */ } }
 
 /** One project in memory, autosaved to localStorage, with undo. */
 export function useProject() {

@@ -774,3 +774,72 @@ describe('script into an existing board', () => {
     expect(m.strips.slice(-report.added.length).every(s => s.type === 'scene')).toBe(true);
   });
 });
+
+import { californiaCredit, defaultIncentives, federalCredit, incentiveReport, withIncentives } from './incentives';
+describe('incentives', () => {
+  // the sample film is under the programs' $1M floor; triple its rates so it qualifies
+  const base = (() => { const s = withDeal(sampleProject()); return { ...s, lines: s.lines.map(l => ({ ...l, rate: l.rate * 3 })) }; })();
+  const on = (p: Project, ca = true, fed = false): Project => { const d = defaultIncentives(p); return { ...p, incentives: { ...d, ca: { ...d.ca, enabled: ca }, federal: { ...d.federal, enabled: fed } } }; };
+  it('the California credit is 35% of below-the-line cash spend, less the cost of getting it, and comes off what investors put in', () => {
+    const p = on(applyDeal(base));
+    const inc = withIncentives(p);
+    const r = californiaCredit(p, inc);
+    expect(inc.ca.excludedCategories).toEqual(expect.arrayContaining(['1100', '1200', '1300', '1400']));
+    expect(inc.ca.excludedCategories).not.toContain('1500');                       // stunts qualify
+    expect(r.eligible).toBe(true);
+    expect(californiaCredit(applyDeal(withDeal(sampleProject())), inc).net).toBe(0);   // under $1M: nothing, and a note says why
+    expect(r.qualifiedNonWage).toBeGreaterThan(0);
+    expect(r.parts[0].amount).toBeCloseTo(r.qualified * 0.35, 2);
+    expect(r.gross).toBeCloseTo(r.qualified * 0.35, 2);                              // no uplifts by default
+    const costs = r.costs.reduce((n, x) => n + x.amount, 0);
+    expect(r.net).toBeCloseTo(r.gross - costs, 2);
+    expect(r.costs.map(c => c.label)).toEqual(expect.arrayContaining([expect.stringMatching(/90¢/), expect.stringMatching(/bridge/), 'CPA audit']));
+    expect(recoupableBudget(p)).toBeCloseTo(recoupableBudget(base) - r.net, 0);
+    expect(recoupableBudget({ ...p, incentives: { ...inc, ca: { ...inc.ca, enabled: false } } })).toBeCloseTo(recoupableBudget(base), 0);
+    // no ATL wages in the base: turning the writer's category back on adds it
+    const more = californiaCredit(p, { ...inc, ca: { ...inc.ca, excludedCategories: inc.ca.excludedCategories.filter(c => c !== '1300') } });
+    expect(more.qualified).toBeGreaterThan(r.qualified);
+  });
+  it('uplifts and the refund election', () => {
+    const p = on(applyDeal(base));
+    const inc = withIncentives(p);
+    const zone = californiaCredit(p, { ...inc, ca: { ...inc.ca, outOfZonePct: 100, localHirePct: 50, trainees: 2, monetize: 'refund', bridge: false } });
+    expect(zone.parts.map(x => x.label)).toEqual([expect.stringMatching(/35%/), expect.stringMatching(/outside the LA zone/), expect.stringMatching(/local hire/), expect.stringMatching(/2 Career Pathways trainees/)]);
+    expect(zone.parts[1].amount).toBeCloseTo(zone.qualified * 0.05, 2);
+    expect(zone.parts[2].amount).toBeCloseTo((zone.qualifiedWages + zone.qualifiedFringes) * 0.5 * 0.10, 2);
+    expect(zone.parts[3].amount).toBeCloseTo(zone.qualified * 0.01, 2);
+    expect(zone.costs.find(c => /refund/.test(c.label))!.amount).toBeCloseTo(zone.gross * 0.10, 2);
+    expect(zone.costs.some(c => /bridge/.test(c.label))).toBe(false);
+  });
+  it('the federal bill: 20% of labor plus 5% independent, above the line in or out', () => {
+    const p = on(applyDeal(base), false, true);
+    const inc = withIncentives(p);
+    const all = federalCredit(p, inc);
+    expect(all.gross).toBeCloseTo(all.qualified * 0.25, 2);
+    const btl = federalCredit(p, { ...inc, federal: { ...inc.federal, includeAtl: false } });
+    expect(btl.qualified).toBeLessThan(all.qualified);
+    const r = incentiveReport(p);
+    expect(r.total).toBeCloseTo(all.net, 2);
+    expect(r.duringProduction).toBe(0);                                              // not bridged by default
+    expect(r.afterDelivery).toBeCloseTo(all.net, 2);
+  });
+  it('picks the application window for the start date: a March 2027 shoot applies in January', () => {
+    const p = on(applyDeal(base));
+    const r = incentiveReport({ ...p, incentives: { ...withIncentives(p), startDate: '2027-03-01' } });
+    expect(r.window?.apply).toBe('Jan 11–13, 2027');
+    expect(r.window?.startBy).toBe('2027-08-21');
+    expect(r.federalDateOk).toBe(true);
+    const late = incentiveReport({ ...p, incentives: { ...withIncentives(p), startDate: '2027-02-01' } });
+    expect(late.window).toBeNull();                                                 // the Jan letter comes after Feb 1; the Aug 2026 window is closed
+    expect(incentiveReport({ ...p, incentives: { ...withIncentives(p), startDate: '2026-12-01' } }).federalDateOk).toBe(false);
+  });
+  it('perks come off too, and an untouched project has none of this', () => {
+    const p = on(applyDeal(base), false, false);
+    const r = incentiveReport({ ...p, incentives: { ...withIncentives(p), perks: { 'state-locations': 12_000, 'hotel-tax': 0 } } });
+    expect(r.perks.length).toBe(2);
+    expect(r.total).toBe(12_000);
+    expect(r.duringProduction).toBe(12_000);
+    expect(incentiveReport(applyDeal(base)).total).toBe(0);
+    expect(recoupableBudget(applyDeal(base))).toBe(recoupableBudget(base));
+  });
+});

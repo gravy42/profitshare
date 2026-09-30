@@ -1,4 +1,5 @@
 import type { Participant, PointsTier, Project, Waterfall } from './types';
+import { incentiveProceeds } from './incentives';
 import { topSheet } from './budget';
 
 /** Points for one participant: days × tier multiplier × personal bonus. */
@@ -44,9 +45,10 @@ export interface WaterfallReport {
   rows: PayoutRow[];
 }
 
-/** The part of the cash budget investors put in and expect back: the budget less grants and donations. */
+/** The part of the cash budget investors put in and expect back: the budget less grants, donations and the
+ *  tax credits and perks switched on under Incentives. */
 export function recoupableBudget(p: Project): number {
-  return Math.max(0, topSheet(p).cashBudget - (p.waterfall.nonRecoupable ?? 0));
+  return Math.max(0, topSheet(p).cashBudget - (p.waterfall.nonRecoupable ?? 0) - incentiveProceeds(p));
 }
 
 export function waterfallReport(p: Project): WaterfallReport {

@@ -3,6 +3,7 @@ import { SAG_TIERS, sagReport, sagTier, isPayrollLine, isSagPerformerLine, NON_S
 import { topSheet, PAID_HOURS } from '../engine/budget';
 import { crewDayRateOf, withDeal } from '../engine/deal';
 import { recoupableBudget } from '../engine/waterfall';
+import { incentiveProceeds } from '../engine/incentives';
 import { PRESET_GROUPS } from '../engine/deal';
 import { money } from './format';
 
@@ -35,7 +36,7 @@ export function DealView({ raw, eff, setProject, fresh }: { raw: Project; eff: P
     <div>
       {fresh && <div className="notice">Set the terms of the film here. Everything on the other tabs is computed from your budget plus these terms, live, and you can come back and change any of them at any time.</div>}
       <div className="grid3" style={{ marginBottom: 16 }}>
-        <div className="stat"><div className="label">Budget to raise</div><div className="value">{money(ts.cashBudget)}</div><div className="sub">investors recoup {money(recoupableBudget(eff))} of it</div></div>
+        <div className="stat"><div className="label">Budget to raise</div><div className="value">{money(ts.cashBudget)}</div><div className="sub">investors recoup {money(recoupableBudget(eff))} of it{incentiveProceeds(eff) > 0 ? ` (${money(incentiveProceeds(eff))} comes back in incentives)` : ''}</div></div>
         <div className={`stat ${r.fits ? 'good' : 'bad'}`}><div className="label">SAG: {r.target.name}</div><div className="value">{r.targetCap === null ? 'no cap' : r.fits ? 'fits' : 'over'}</div>
           <div className="sub">{r.targetCap === null ? 'Basic Agreement' : `${r.fits ? 'headroom' : 'over by'} ${money(Math.abs(r.headroom))} of ${money(r.targetCap)}`} · qualifies for {r.qualifying.name}</div></div>
         <div className="stat"><div className="label">On the back end</div><div className="value">{money(ts.pointsValue)}</div><div className="sub">value traded for points · {eff.participants.length} participants</div></div>

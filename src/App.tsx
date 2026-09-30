@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useProject, downloadJson, pickFile, hadSavedProject } from './store';
+import { useProject, downloadJson, pickFile, hadSavedProject, keepBoard, previousBoard, forgetPreviousBoard } from './store';
 import { foldMemoLines, memoLines, topSheet } from './engine/budget';
 import { sagReport } from './engine/sag';
 import { parseBudgetFile } from './engine/importers/budget';
@@ -15,13 +15,14 @@ import type { Board, Project } from './engine/types';
 import { TopSheetView } from './ui/TopSheetView';
 import { PointsView } from './ui/PointsView';
 import { SagView } from './ui/SagView';
+import { IncentivesView } from './ui/IncentivesView';
 import { BoardView } from './ui/BoardView';
 import { DealView } from './ui/DealView';
 import { applyDeal, dealControlledIds, withDeal } from './engine/deal';
 import { StartView } from './ui/StartView';
 import { money } from './ui/format';
 
-type Tab = 'start' | 'deal' | 'topsheet' | 'board' | 'points' | 'sag' | 'about';
+type Tab = 'start' | 'deal' | 'topsheet' | 'board' | 'points' | 'sag' | 'incentives' | 'about';
 
 export default function App() {
   const { project, setProject, undo, replace, canUndo } = useProject();
@@ -76,10 +77,21 @@ export default function App() {
   };
   const loadBoardFile = async (f: File) => {
     const board = parseSex(await f.arrayBuffer());
+    const had = project.board.scenes.length;
+    if (had) keepBoard(project.board, `before ${f.name} replaced it`);
     setProject(p => ({ ...p, board }));
     setFresh(false);
     setTab('board');
-    return `${board.scenes.length} scenes from ${f.name} (board order kept)`;
+    setBackup(previousBoard());
+    return `${board.scenes.length} scenes from ${f.name} (board order kept)${had ? `. The board you had is kept: Undo brings it back, or the Restore button on the Stripboard` : ''}`;
+  };
+  /** The board as it was before the last replace, if there is one, so a wrong click or a reload is not the end of it. */
+  const [backup, setBackup] = useState(previousBoard);
+  const restoreBoard = () => {
+    const b = previousBoard(); if (!b) return;
+    setProject(p => ({ ...p, board: b.board }));
+    forgetPreviousBoard(); setBackup(null); setTab('board');
+    flash(`Board restored: ${b.board.scenes.length} scenes, ${b.board.strips.filter(s => s.type === 'daybreak').length} day breaks, as it was ${new Date(b.when).toLocaleString()}.`);
   };
   /** A script dropped on a project that already has a board: merge it in, or start the board over. */
   const [pendingScript, setPendingScript] = useState<{ board: Board; name: string; title: string; note: string } | null>(null);
@@ -95,10 +107,14 @@ export default function App() {
   const replacePending = () => {
     if (!pendingScript) return;
     const { board: raw, name, title, note } = pendingScript;
+    const old = project.board;
+    const breaks = old.strips.filter(s => s.type === 'daybreak').length, tags = old.scenes.reduce((n, s) => n + Object.values(s.elements).flat().length, 0);
+    if (!window.confirm(`Replace the board? ${old.scenes.length} scenes, ${breaks} day break${breaks === 1 ? '' : 's'} and ${tags} tags go, and the board starts over from ${name}. (Merge keeps all of it.)`)) return;
+    keepBoard(old, `before ${name} replaced it`);
     const board = autoTagBoard(raw);
     setProject(p => ({ ...p, board, name: title && (!p.name || /^untitled/i.test(p.name)) ? title : p.name }));
-    setPendingScript(null); setTab('board');
-    flash(`${name}: ${note}`);
+    setPendingScript(null); setTab('board'); setBackup(previousBoard());
+    flash(`${name}: ${note} The board you had is kept: Undo brings it back, or the Restore button on the Stripboard.`);
   };
   /** A screenplay (PDF, Fountain, plain text) broken down into scenes, eighths and cast. */
   const loadScriptFile = async (f: File) => {
@@ -113,7 +129,7 @@ export default function App() {
     const numbered = imp.board.scenes.some((s, i) => s.number !== String(i + 1));
     const pages = Math.round(imp.pages);
     const writerTags = imp.board.scenes.reduce((n, s) => n + Object.values(s.elements).flat().length, 0);   // Final Draft's tagger, when the writer used it
-    const note = `${board.scenes.length} scenes, ${c} speaking part${c === 1 ? '' : 's'}, ${pages} page${pages === 1 ? '' : 's'}. ${numbered ? 'Scene numbers kept from the script' : 'The script had no scene numbers, so scenes are numbered in script order'}; ${writerTags ? `${writerTags} tags from the script's own tagger are on the strips, with first-pass tags on top` : 'first-pass tags are on every strip'} (open a strip's ⌄ to read and tag). Drag strips to build the shooting order.`;
+    const note = `${board.scenes.length} scenes, ${c} speaking part${c === 1 ? '' : 's'}, ${pages} page${pages === 1 ? '' : 's'}. ${numbered ? 'Scene numbers kept from the script' : `Scenes numbered 1–${board.scenes.length} in script order`}; ${writerTags ? `${writerTags} tags from the script's own tagger are on the strips, with first-pass tags on top` : 'first-pass tags are on every strip'} (open a strip's ⌄ to read and tag). Drag strips to build the shooting order.`;
     const current = project;
     if (!fresh && current.board.scenes.length > 0) {
       // a board is already here: keep its schedule and pour the script in, unless asked to start over (the merge does its own first pass)
@@ -211,7 +227,7 @@ export default function App() {
         </span>
       </header>
       <nav className="tabs">
-        {([['start', 'Start'], ['deal', 'Deal'], ['topsheet', 'Top sheet & budget'], ['board', 'Stripboard'], ['points', 'Points & waterfall'], ['sag', 'SAG tier'], ['about', 'About']] as [Tab, string][]).map(([k, label]) =>
+        {([['start', 'Start'], ['deal', 'Deal'], ['topsheet', 'Top sheet & budget'], ['board', 'Stripboard'], ['points', 'Points & waterfall'], ['sag', 'SAG tier'], ['incentives', 'Incentives'], ['about', 'About']] as [Tab, string][]).map(([k, label]) =>
           <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{label}</button>)}
       </nav>
       <main>
@@ -237,9 +253,15 @@ export default function App() {
           {controlled.size > 0 && <div className="notice">{controlled.size} line{controlled.size > 1 ? 's are' : ' is'} set by the deal (marked <span className="tag points">deal</span>): rates, hours or pay type come from the Deal tab. Days and descriptions are still yours to edit.</div>}
           <TopSheetView project={eff} raw={project} controlled={controlled} setProject={setProject} />
         </>}
+        {tab === 'board' && backup && backup.board.scenes.length > 0 && (
+          <div className="notice row"><span>The board from before <b>{backup.reason.replace(/^before /, '')}</b> ({backup.board.scenes.length} scenes, {backup.board.strips.filter(s => s.type === 'daybreak').length} day breaks, kept {new Date(backup.when).toLocaleString()}) is still here.</span>
+            <button className="btn primary small" onClick={restoreBoard}>Restore that board</button>
+            <button className="btn small" onClick={() => { forgetPreviousBoard(); setBackup(null); }}>Forget it</button></div>
+        )}
         {tab === 'board' && <BoardView project={eff} setProject={setProject} />}
         {tab === 'points' && <PointsView project={eff} setProject={setProject} />}
         {tab === 'sag' && <SagView project={eff} />}
+        {tab === 'incentives' && <IncentivesView project={eff} setProject={setProject} />}
         {tab === 'about' && <About onStart={() => setTab('start')} />}
         <footer>ProfitShare · open source, MIT · your data stays in this browser until you press Save · not legal, tax or financial advice</footer>
       </main>
