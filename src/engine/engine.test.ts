@@ -617,3 +617,26 @@ describe('positions', () => {
     expect(synced.lines.find(l => l.participantId === participant.id)!.amount).toBe(now);
   });
 });
+
+import { unbakeDerived } from './deal';
+
+describe('projects saved before the deal layer', () => {
+  it('drops baked scale lines and floor splits, restoring the split line with the days it shows', () => {
+    const p = withDeal(sampleProject());
+    const l0 = p.lines.find(l => l.unit === 'DAY' && /prep/i.test(l.description) && l.fringes.length)!;
+    const baked = { ...p, lines: [
+      ...p.lines.filter(l => l.id !== l0.id),
+      { ...l0, id: `SPLIT:${l0.id}:cash`, description: `${l0.description} (cash floor)`, amount: 7, rate: 16.9 },
+      { ...l0, id: `SPLIT:${l0.id}:rest`, description: `${l0.description} balance to back end`, payType: 'points' as const, participantId: undefined },
+      { ...l0, id: 'L_scale_prod_1', accountId: '1201', description: 'Producer #1: scale, shoot', participantId: 'p_producer_1' },
+      { ...l0, id: 'SPLIT:L_scale_prod_1:cash', accountId: '1201', description: 'Producer #1: scale, prep / post (cash floor)', participantId: 'p_producer_1' },
+      { ...l0, id: 'SPLIT:L_scale_prod_1:rest', accountId: '1201', description: 'Producer #1: scale balance to back end', payType: 'points' as const, participantId: undefined },
+    ] };
+    const q = unbakeDerived(baked);
+    expect(q.lines.some(l => /^(SPLIT:|L_scale_)/.test(l.id))).toBe(false);
+    const back = q.lines.find(l => l.id === l0.id)!;
+    expect(back).toMatchObject({ amount: 7, description: l0.description });
+    expect(withDeal(baked).lines.some(l => /^(SPLIT:|L_scale_)/.test(l.id))).toBe(false);   // withDeal does it on load
+    expect(unbakeDerived(p)).toBe(p);                                                          // a clean project is untouched
+  });
+});

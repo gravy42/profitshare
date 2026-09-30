@@ -24,8 +24,29 @@ export function defaultDeal(p: { shootDays: number; sag: { targetTier: SagTierId
   };
 }
 
+/** Projects saved before the deal layer (Sept 28) carry the deal's own lines baked into the raw budget: the
+ *  producer scale lines and the prep / wrap / post floor splits. Applying the deal on top of them counts the
+ *  back-end balances twice, so they come out: a split's cash half becomes the original line again (with the
+ *  days it shows now), the balance half and the scale lines go, and the deal rebuilds them live. */
+export function unbakeDerived(p: Project): Project {
+  if (!p.lines.some(l => /^(SPLIT:|L_scale_)/.test(l.id))) return p;
+  const lines: LineItem[] = [];
+  for (const l of p.lines) {
+    if (/^L_scale_/.test(l.id) || /^SPLIT:.*:rest$/.test(l.id)) continue;
+    const m = /^SPLIT:(.+):cash$/.exec(l.id);
+    if (m) {
+      if (/^L_scale_/.test(m[1])) continue;                                  // a producer's floored scale line: the deal remakes it
+      lines.push({ ...l, id: m[1], description: l.description.replace(/\s*\(cash floor\)/i, '') });
+      continue;
+    }
+    lines.push({ ...l, description: l.description.replace(/\s*\(cash floor\)/i, '') });
+  }
+  return { ...p, lines };
+}
+
 /** Fill in terms a project saved before the deal layer existed. Safe to call on any project. */
-export function withDeal(p: Project): Project {
+export function withDeal(p0: Project): Project {
+  const p = unbakeDerived(p0);
   const d = defaultDeal(p);
   const deal: Deal = p.deal ? {
     pay: { ...d.pay, ...p.deal.pay, premiums: { ...d.pay.premiums, ...(p.deal.pay?.premiums ?? {}) } },
