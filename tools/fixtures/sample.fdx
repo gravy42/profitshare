@@ -14,12 +14,12 @@
       <SceneProperties Length="2/8" Page="1" Title=""><SceneArcBeats/></SceneProperties>
       <Text Style="AllCaps">INT. STATION WAGON - conTINUOUS</Text><Text></Text>
     </Paragraph>
-    <Paragraph Type="Action"><Text>June finds a letter in the glovebox.</Text></Paragraph>
+    <Paragraph Type="Action"><Text>June finds a </Text><Text TagNumber="300">letter</Text><Text> in the glovebox. </Text><Text TagNumber="301">Biscuit</Text><Text> snores on the back seat.</Text></Paragraph>
     <Paragraph Type="Scene Heading">
       <SceneProperties Length="3 3/8" Page="2" Title=""><SceneArcBeats/></SceneProperties>
       <Text Style="AllCaps">Int. GAS STATION - Diner - DAY</Text><Text></Text>
     </Paragraph>
-    <Paragraph Type="Action"><Text>Pie, coffee, and the first real fight.</Text></Paragraph>
+    <Paragraph Type="Action"><Text TagNumber="302">Pie, coffee</Text><Text>, and the first real fight. </Text><Text TagNumber="303">WALT</Text><Text> watches from the counter.</Text></Paragraph>
     <Paragraph Type="Character"><Text Style="AllCaps">WAITRESS</Text><Text> </Text></Paragraph>
     <Paragraph Type="Parenthetical"><Text>(refilling)</Text></Paragraph>
     <Paragraph Type="Dialogue"><Text>You two sisters?</Text></Paragraph>
@@ -31,4 +31,43 @@
     <Paragraph Type="Character"><Text>LENA</Text></Paragraph>
     <Paragraph Type="Dialogue"><Text>Half.</Text></Paragraph>
   </Content>
+  <TitlePage>
+    <Content>
+      <Paragraph Alignment="Center"><Text>SALT FLAT</Text></Paragraph>
+      <Paragraph Alignment="Center"><Text>Written by</Text></Paragraph>
+      <Paragraph Alignment="Center"><Text>A Writer</Text></Paragraph>
+    </Content>
+  </TitlePage>
+  <TagData>
+    <TagCategories>
+      <TagCategory Id="c-cast" Name="Cast Members" Number="3"/>
+      <TagCategory Id="c-bg" Name="Background Actors" Number="4"/>
+      <TagCategory Id="c-veh" Name="Vehicles" Number="6"/>
+      <TagCategory Id="c-props" Name="Props" Number="7"/>
+      <TagCategory Id="c-animals" Name="Animals" Number="11"/>
+      <TagCategory Id="c-day" Name="Script Day" Number="27"/>
+      <TagCategory Id="c-loc" Name="Location" Number="30"/>
+    </TagCategories>
+    <TagDefinitions>
+      <TagDefinition CatId="c-cast" Id="d-lena" Label="LENA" Number="1"/>
+      <TagDefinition CatId="c-cast" Id="d-walt" Label="WALT (O.S.)" Number="2"/>
+      <TagDefinition CatId="c-veh" Id="d-wagon" Label="DEAD STATION WAGON" Number="3"/>
+      <TagDefinition CatId="c-props" Id="d-letter" Label="THE LETTER" Number="4"/>
+      <TagDefinition CatId="c-props" Id="d-pie" Label="PIE &amp; COFFEE" Number="5"/>
+      <TagDefinition CatId="c-animals" Id="d-biscuit" Label="BISCUIT" Number="6"/>
+      <TagDefinition CatId="c-day" Id="d-d1" Label="D1" Number="7"/>
+      <TagDefinition CatId="c-day" Id="d-d2" Label="D2" Number="8"/>
+      <TagDefinition CatId="c-bg" Id="d-diners" Label="6 DINER PATRONS" Number="9"/>
+      <TagDefinition CatId="c-loc" Id="d-wendover" Label="Wendover, UT" Number="10"/>
+    </TagDefinitions>
+    <Tags>
+      <Tag Number="1233"><DefId>d-d1</DefId><DefId>d-wagon</DefId></Tag>
+      <Tag Number="1234"><DefId>d-wendover</DefId></Tag>
+      <Tag Number="144"><DefId>d-lena</DefId></Tag>
+      <Tag Number="300"><DefId>d-letter</DefId></Tag>
+      <Tag Number="301"><DefId>d-biscuit</DefId></Tag>
+      <Tag Number="302"><DefId>d-pie</DefId><DefId>d-diners</DefId><DefId>d-d2</DefId></Tag>
+      <Tag Number="303"><DefId>d-walt</DefId></Tag>
+    </Tags>
+  </TagData>
 </FinalDraft>

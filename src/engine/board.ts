@@ -139,6 +139,23 @@ export function syncCastDaysFromBoard(p: Project): Project {
   return { ...p, participants, lines };
 }
 
+/** Only the positions that follow cast or tags: recounted after the board's tags change (a script merge, a re-tag).
+ *  Cast-linked participants are left alone; pushing cast days into the budget stays a deliberate click. */
+export function syncFollowersFromBoard(p: Project): { project: Project; changed: string[] } {
+  const changed: string[] = [];
+  const participants = p.participants.map(pt => {
+    if (!(pt.followsCastIds?.length || pt.followsElements?.length)) return pt;
+    const d = daysFollowing(p.board, pt);
+    if (d === pt.days) return pt;
+    changed.push(`${pt.name} ${pt.days} → ${d}`);
+    return { ...pt, days: d };
+  });
+  if (!changed.length) return { project: p, changed };
+  const daysOf = new Map(participants.filter(x => x.followsCastIds?.length || x.followsElements?.length).map(x => [x.id, x.days]));
+  const lines = p.lines.map(l => (!l.participantId || l.unit !== 'DAY' || !daysOf.has(l.participantId)) ? l : { ...l, amount: daysOf.get(l.participantId)! });
+  return { project: { ...p, participants, lines }, changed };
+}
+
 /** Shoot days on which any of these cast members work: a studio teacher's days, a stunt double's days. */
 export function daysWithCast(board: Board, castIds: number[]): number {
   return shootDays(board).filter(d => d.castIds.some(id => castIds.includes(id))).length;

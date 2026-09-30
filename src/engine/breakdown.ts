@@ -55,7 +55,7 @@ const sentenceAt = (text: string, at: number) => {
 const negated = (text: string, at: number) => /\b(no|without|never)\s+(\w+\s+)?$/i.test(text.slice(Math.max(0, at - 20), at));
 const RULES: Rule[] = [
   { cat: 'Vehicles', re: kw("station wagon|wagon|muscle car|sports car|pickup truck|pick-up|electric SUV|SUV|car|cars|truck|van|bus|taxi|cab|motorcycle|motorbike|scooter|bicycle|bike|flatbed|ambulance|limo|limousine|jeep|convertible|sedan|trailer|RV|boat|plane|helicopter|train|subway|golf cart|tractor"), label: (m, t) => cap(phraseBefore(t, m.index, m[0].toLowerCase() === 'suv' ? 'SUV' : m[0].toLowerCase())) },
-  { cat: 'Animals', re: kw("cat|kitten|kitty|tabby|dog|puppy|horse|horses|bird|birds|parrot|snake|rat|mouse|rabbit|cow|cows|goat|chicken|chickens|pigeon|pigeons|fish|hamster|ferret|donkey|deer"), label: (m, t) => cap(phraseBefore(t, m.index, m[0].toLowerCase(), 1)) },
+  { cat: 'Animals', re: kw("cat|kitten|kitty|tabby|dog|puppy|horse|horses|bird|birds|parrot|snake|rat|mouse|rabbit|cow|cows|goat|chicken|chickens|pigeon|pigeons|fish|hamster|ferret|donkey|deer"), label: (m, t) => /^(puppy|puppy dog|hangdog)\s+eyes|^(cat|dog)\s*(nap|fight|walk|house|food|tree|bowl|bed|toy|lady|person|hair|litter)/i.test(t.slice(m.index)) ? '' : cap(phraseBefore(t, m.index, m[0].toLowerCase(), 1)) },
   { cat: 'Background Actors', re: kw("patrons|guests|crowd|couples|passersby|passers-by|pedestrians|customers|diners|shoppers|neighbors|partygoers|party-goers|onlookers|commuters|tourists|students|waiters|waitresses|bartenders|nurses|cops|officers|paramedics|reporters|photographers|fans|audience|mourners|congregation|family and friends|friends and family|movie patrons|groups of friends|eight men and women|men and women|the whole family|kids|children|extras"), label: (m, t) => cap(phraseBefore(t, m.index, m[0].toLowerCase(), 2)) },
   { cat: 'Sound', re: /\b(SOUND[S]? OF [A-Z ,'&-]+|KNOCK(?:, KNOCK)*[,!.]?|RINGS|RING|CHIRPS|CHIRP|DINGS|DING|HONKS|HONK|MEOWS|MEOW|PURRS?|SNORE|BUZZES|BUZZ|SIREN|ALARM|CRASH|BANG|GUNSHOT|THUNDER|CHEERING|APPLAUSE|POPPERS|CLICKING|CLINKS?|SLAMMING SHUT|SLAMS|DOORBELL|BELL|WHISTLE|FOOTSTEPS|SCREECH|EXPLOSION|VIBRATES)\b/g, label: m => cap(m[0].replace(/[,!.]+$/, '').toLowerCase()) },
   { cat: 'Music', re: kw("jazz music|classic jazz|jazz song|jazz record|jazz|music|song|record player|turntable|vinyl|radio|band|accordion|guitar|piano|drums|bodhran|bordhran|karaoke|playlist|singing|sings"), label: (m, t) => cap(phraseBefore(t, m.index, m[0].toLowerCase(), 2)) },
@@ -99,26 +99,32 @@ export function namedAnimals(board: Board): Map<string, string> {
 }
 
 const properCase = (n: string) => n.charAt(0) + n.slice(1).toLowerCase();
+const SPECIES_WORDS: Record<string, string> = { cat: 'cat|kitten|kitty|tabby', dog: 'dog|puppy|pup|hound|mutt', horse: 'horse|pony|mare|stallion', bird: 'bird|parrot|budgie|canary', rabbit: 'rabbit|bunny' };
+
+/** Add one tag to a scene's elements without doubling up: "long board" already there swallows "SAM'S LONG BOARD",
+ *  "tabby cat" on top of "orange tabby" becomes "orange tabby cat". Returns true when the list changed. */
+export function addTag(out: Record<string, string[]>, cat: string, item: string): boolean {
+  const it = clean(item);
+  if (it.length < 2 || it.length > 80) return false;
+  const list = (out[cat] ??= []);
+  const n = norm(it), nw = n.split(' ');
+  for (let i = 0; i < list.length; i++) {
+    const x = norm(list[i]), xw = x.split(' ');
+    if (x === n || x.endsWith(' ' + n)) return false;                              // already there, or a longer phrase has it
+    if (n.endsWith(' ' + x)) { list[i] = it; return true; }                        // the new phrase is the longer one
+    // overlap: "orange tabby" + "tabby cat" → "orange tabby cat"
+    for (let k = Math.min(xw.length, nw.length) - 1; k >= 1; k--) {
+      if (xw.slice(-k).join(' ') === nw.slice(0, k).join(' ')) { list[i] = cap([...xw, ...nw.slice(k)].join(' ')); return true; }
+      if (nw.slice(-k).join(' ') === xw.slice(0, k).join(' ')) { list[i] = cap([...nw, ...xw.slice(k)].join(' ')); return true; }
+    }
+  }
+  list.push(it);
+  return true;
+}
 
 export function autoTag(scene: Scene, castNames: string[] = [], animals: Map<string, string> = new Map()): Record<string, string[]> {
   const out: Record<string, string[]> = Object.fromEntries(Object.entries(scene.elements).map(([k, v]) => [k, [...v]]));
-  const add = (cat: string, item: string) => {
-    const it = clean(item);
-    if (it.length < 2 || it.length > 80) return;
-    const list = (out[cat] ??= []);
-    const n = norm(it), nw = n.split(' ');
-    for (let i = 0; i < list.length; i++) {
-      const x = norm(list[i]), xw = x.split(' ');
-      if (x === n || x.endsWith(' ' + n)) return;                                  // already there, or a longer phrase has it
-      if (n.endsWith(' ' + x)) { list[i] = it; return; }                           // the new phrase is the longer one
-      // overlap: "orange tabby" + "tabby cat" → "orange tabby cat"
-      for (let k = Math.min(xw.length, nw.length) - 1; k >= 1; k--) {
-        if (xw.slice(-k).join(' ') === nw.slice(0, k).join(' ')) { list[i] = cap([...xw, ...nw.slice(k)].join(' ')); return; }
-        if (nw.slice(-k).join(' ') === xw.slice(0, k).join(' ')) { list[i] = cap([...nw, ...xw.slice(k)].join(' ')); return; }
-      }
-    }
-    list.push(it);
-  };
+  const add = (cat: string, item: string) => { addTag(out, cat, item); };
   const text = scene.text ?? scene.synopsis ?? '';
   if (!text) return out;
   // only action lines (scene text keeps cues and dialogue indented): people talk about things that aren't on set
@@ -145,9 +151,12 @@ export function autoTag(scene: Scene, castNames: string[] = [], animals: Map<str
   // a named animal is on set whenever the action names it ("Jack sits on the dryer"); a possessive is its thing, not it
   for (const [name, species] of animals) {
     const here = new RegExp(`(?<![\\w'’])(?:${name}|${properCase(name)})(?![\\w'’])`).test(scan);
-    if (!here) continue;
+    const taggedByName = (out.Animals ?? []).some(x => norm(x) === name.toLowerCase());   // the writer's own tag (Final Draft's "JACK")
+    if (!here && !taggedByName) continue;
     const label = `${properCase(name)} the ${species}`;
-    const list = (out.Animals ??= []).filter(x => !(new RegExp(`(?<![\\w-])${species}(?![\\w-])`, 'i').test(x) && !x.includes(properCase(name))));   // "Orange tabby cat" → the named cat
+    // "Orange tabby cat" and "Orange tabby" → the named cat; a bare "JACK" → "Jack the cat"
+    const kin = SPECIES_WORDS[species] ?? species;
+    const list = (out.Animals ??= []).filter(x => norm(x) !== name.toLowerCase() && !(new RegExp(`(?<![\\w-])(?:${kin})(?![\\w-])`, 'i').test(x) && !x.includes(properCase(name))));
     out.Animals = list;
     add('Animals', label);
   }

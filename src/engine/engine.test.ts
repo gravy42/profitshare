@@ -10,7 +10,7 @@ import { sagReport, rerateCast, qualifyingTier } from './sag';
 import { poolAt, waterfallReport, syncDaysFromBudget } from './waterfall';
 import { autoDayBreaks, boardElements, daysFollowing, daysWithElements, dood, insertDayBreak, moveStrip, shootDays, syncCastDaysFromBoard, totalEighths } from './board';
 import { parseSex } from './importers/sex';
-import { parseFdx } from './importers/fdx';
+import { fdxHasTags, fdxTitle, parseFdx } from './importers/fdx';
 import { parseShamelXlsx } from './importers/shamelXlsx';
 
 const seed = sampleProject();
@@ -157,8 +157,24 @@ describe('importers', () => {
     expect(b.scenes[0].ie).toBe('EXT');
     expect(b.scenes[0].eighths).toBe(2);
     expect(b.scenes[2].eighths).toBe(27);
-    expect(b.scenes[2].cast.map(c => c.name).sort()).toEqual(['JUNE', 'LENA', 'WAITRESS']);
+    expect(b.scenes[2].cast.map(c => c.name).sort()).toEqual(['JUNE', 'LENA', 'WAITRESS', 'WALT']);
     expect(b.castList.map(c => c.name)).toContain('LENA');
+  });
+  it('reads the tags the writer made in Final Draft', () => {
+    const xml = readFileSync(fx('sample.fdx'), 'utf8');
+    expect(fdxHasTags(xml)).toBe(true);
+    expect(fdxTitle(xml)).toBe('SALT FLAT');
+    const [s1, s2, s3] = parseFdx(xml).scenes;
+    expect(s1.scriptDay).toBe('1');                                              // D1 → 1, from the heading's tag
+    expect(s1.location).toBe('Wendover, UT');
+    expect(s1.elements.Vehicles).toEqual(['DEAD STATION WAGON']);
+    expect(s2.elements.Props).toEqual(['THE LETTER']);
+    expect(s2.elements.Animals).toEqual(['BISCUIT']);
+    expect(s3.scriptDay).toBe('2');
+    expect(s3.elements.Props).toEqual(['PIE & COFFEE']);
+    expect(s3.elements['Background Actors']).toEqual(['6 DINER PATRONS']);
+    expect(s3.cast.map(c => c.name)).toContain('WALT');                          // "WALT (O.S.)" tagged in the action, never speaks
+    expect(s1.cast.map(c => c.name)).toEqual(expect.arrayContaining(['LENA', 'JUNE']));
   });
 });
 
@@ -707,6 +723,7 @@ describe('memo lines', () => {
 });
 
 import { mergeScriptIntoBoard } from './importers/merge';
+import { syncFollowersFromBoard } from './board';
 describe('script into an existing board', () => {
   it('keeps the schedule and the tags, adds text, cast and a first pass of tags, matched by scene number', () => {
     const script = autoTagBoard(parseScreenplayText(readFileSync(resolve(__dirname, '../../tools/fixtures/SaltFlat_Script.fountain'), 'utf8')).board);
@@ -735,6 +752,17 @@ describe('script into an existing board', () => {
     const sc1 = m.scenes.find(s => s.number === '1')!;
     expect(sc1.cast.map(c => c.name)).toEqual(expect.arrayContaining(['LENA', 'JUNE']));
     expect(sc1.elements.Vehicles).toBeDefined();
+  });
+  it('recounts only the positions that follow tags after the board changes', () => {
+    const base = withDeal(sampleProject());
+    const { project: p, participant: wr } = addPosition(base, { title: 'Picture Car Wrangler', accountId: '2107', days: 0, followsElements: [{ category: 'Vehicles', item: 'station wagon' }] });
+    expect(wr.days).toBeGreaterThan(0);
+    const stripped = { ...p, board: { ...p.board, scenes: p.board.scenes.map(s => ({ ...s, elements: {} })) } };
+    const { project: q, changed } = syncFollowersFromBoard(stripped);
+    expect(changed).toEqual([`Picture Car Wrangler ${wr.days} → 0`]);
+    expect(q.participants.find(x => x.name === 'Picture Car Wrangler')!.days).toBe(0);
+    expect(q.participants.filter(x => x.castId != null).map(x => x.days)).toEqual(p.participants.filter(x => x.castId != null).map(x => x.days));   // cast-linked people untouched
+    expect(syncFollowersFromBoard(p).changed).toEqual([]);
   });
   it('reports scenes only one side has, and appends the script\'s extras at the end', () => {
     const script = parseScreenplayText(readFileSync(resolve(__dirname, '../../tools/fixtures/SaltFlat_Script.fountain'), 'utf8')).board;

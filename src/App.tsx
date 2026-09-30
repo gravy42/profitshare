@@ -8,6 +8,7 @@ import { fdxTitle, parseFdx } from './engine/importers/fdx';
 import { describeMerge, mergeScriptIntoBoard } from './engine/importers/merge';
 import { parseScreenplayLines, parseScreenplayText } from './engine/importers/screenplay';
 import { autoTagBoard } from './engine/breakdown';
+import { syncFollowersFromBoard } from './engine/board';
 import { weeklyWageLines, weeksToDays } from './engine/sag';
 import { sampleProject, blankProject, deriveParticipants, standardChartOfAccounts, type BlankOptions } from './data/seed';
 import type { Board, Project } from './engine/types';
@@ -86,13 +87,15 @@ export default function App() {
     if (!pendingScript) return;
     const { board: script, name } = pendingScript;
     const { board, report } = mergeScriptIntoBoard(project.board, script);
-    setProject(p => ({ ...p, board }));
+    const { project: next, changed } = syncFollowersFromBoard({ ...project, board });
+    setProject(next);
     setPendingScript(null); setTab('board');
-    flash(`${name} merged into the board: ${describeMerge(report)}. Day breaks, strip order, cast numbers and the tags you had are untouched; open a strip's ⌄ to read the scene.`);
+    flash(`${name} merged into the board: ${describeMerge(report)}. Day breaks, strip order, cast numbers and the tags you had are untouched; open a strip's ⌄ to read the scene.${changed.length ? ` Days recounted for ${changed.join(', ')}.` : ''}`);
   };
   const replacePending = () => {
     if (!pendingScript) return;
-    const { board, name, title, note } = pendingScript;
+    const { board: raw, name, title, note } = pendingScript;
+    const board = autoTagBoard(raw);
     setProject(p => ({ ...p, board, name: title && (!p.name || /^untitled/i.test(p.name)) ? title : p.name }));
     setPendingScript(null); setTab('board');
     flash(`${name}: ${note}`);
@@ -109,12 +112,13 @@ export default function App() {
     const c = board.castList.length;
     const numbered = imp.board.scenes.some((s, i) => s.number !== String(i + 1));
     const pages = Math.round(imp.pages);
-    const note = `${board.scenes.length} scenes, ${c} speaking part${c === 1 ? '' : 's'}, ${pages} page${pages === 1 ? '' : 's'}. ${numbered ? 'Scene numbers kept from the script' : 'The script had no scene numbers, so scenes are numbered in script order'}; first-pass tags are on every strip (open a strip's ⌄ to read and tag). Drag strips to build the shooting order.`;
+    const writerTags = imp.board.scenes.reduce((n, s) => n + Object.values(s.elements).flat().length, 0);   // Final Draft's tagger, when the writer used it
+    const note = `${board.scenes.length} scenes, ${c} speaking part${c === 1 ? '' : 's'}, ${pages} page${pages === 1 ? '' : 's'}. ${numbered ? 'Scene numbers kept from the script' : 'The script had no scene numbers, so scenes are numbered in script order'}; ${writerTags ? `${writerTags} tags from the script's own tagger are on the strips, with first-pass tags on top` : 'first-pass tags are on every strip'} (open a strip's ⌄ to read and tag). Drag strips to build the shooting order.`;
     const current = project;
     if (!fresh && current.board.scenes.length > 0) {
-      // a board is already here: keep its schedule and pour the script in, unless asked to start over
-      setPendingScript({ board, name: f.name, title: imp.title, note });
-      return `${f.name} is ready (${board.scenes.length} scenes, ${c} speaking part${c === 1 ? '' : 's'}). Merge it into the board you have, or replace the board?`;
+      // a board is already here: keep its schedule and pour the script in, unless asked to start over (the merge does its own first pass)
+      setPendingScript({ board: imp.board, name: f.name, title: imp.title, note });
+      return `${f.name} is ready (${board.scenes.length} scenes, ${c} speaking part${c === 1 ? '' : 's'}${writerTags ? `, ${writerTags} tags from the script's tagger` : ''}). Merge it into the board you have, or replace the board?`;
     }
     setProject(p => ({ ...p, board, name: imp.title && (!p.name || /^untitled/i.test(p.name)) ? imp.title : p.name }));
     setFresh(false);
