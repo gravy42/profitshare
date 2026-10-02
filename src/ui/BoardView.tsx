@@ -104,6 +104,16 @@ export function BoardView({ project, setProject }: { project: Project; setProjec
               </div>
             );
           })}
+          {days.length > 0 && board.strips[board.strips.length - 1]?.type !== 'daybreak' && (() => {
+            const d = days[days.length - 1];
+            const heavy = d.eighths > target * 1.15;
+            return (
+              <div className="daybreak wrap" onDragOver={e => { e.preventDefault(); setOver(board.strips.length); }} onDragLeave={() => setOver(o => (o === board.strips.length ? null : o))} onDrop={e => { e.preventDefault(); onDrop(board.strips.length); }}>
+                <span>End of Day {d.index} · {eighthsToText(d.eighths)} pgs · {d.castIds.length} cast {heavy && <span className="warn">· heavy</span>} · wrap</span>
+                <span className="small muted">last day of the schedule</span>
+              </div>
+            );
+          })()}
           <div style={{ height: 30 }} onDragOver={e => e.preventDefault()} onDrop={() => onDrop(board.strips.length)} />
         </div>
 
