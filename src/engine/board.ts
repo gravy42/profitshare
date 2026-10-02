@@ -12,9 +12,21 @@ export interface ShootDay {
   index: number;            // 1-based
   label?: string;
   date?: string;
-  scenes: Scene[];
+  scenes: Scene[];          // a scene shot across days appears in each of them
   eighths: number;
   castIds: number[];
+}
+
+/** Pages a strip carries: its own share when the scene is split across days, else the whole scene. */
+export const stripEighths = (board: Board, strip: Strip, byId = new Map(board.scenes.map(s => [s.id, s]))): number =>
+  strip.type !== 'scene' ? 0 : strip.eighths ?? byId.get(strip.sceneId)?.eighths ?? 0;
+
+/** Which part of its scene a strip is (1-based) and how many parts there are; 1 of 1 for an unsplit scene. */
+export function stripPart(board: Board, index: number): { part: number; parts: number } {
+  const s = board.strips[index];
+  if (!s || s.type !== 'scene') return { part: 1, parts: 1 };
+  const idx = board.strips.map((x, i) => (x.type === 'scene' && x.sceneId === s.sceneId ? i : -1)).filter(i => i >= 0);
+  return { part: idx.indexOf(index) + 1, parts: idx.length };
 }
 
 /** Group the strips into shoot days. A trailing group without a day break still counts as a day. */
@@ -31,7 +43,7 @@ export function shootDays(board: Board): ShootDay[] {
       const s = byId.get(strip.sceneId);
       if (!s) continue;
       cur.scenes.push(s);
-      cur.eighths += s.eighths;
+      cur.eighths += stripEighths(board, strip, byId);
       for (const c of s.cast) if (c.id != null && !cur.castIds.includes(c.id)) cur.castIds.push(c.id);
     }
   }
@@ -71,6 +83,48 @@ export function removeStrip(board: Board, index: number): Board {
   return { ...board, strips };
 }
 
+/** Shoot this strip over two days: it becomes two strips of the same scene, the pages halved between them (the odd
+ *  eighth lands on the first). Split a part again for a third day. Drag the second part below a day break. */
+export function splitStrip(board: Board, index: number): Board {
+  const s = board.strips[index];
+  if (!s || s.type !== 'scene') return board;
+  const e = stripEighths(board, s);
+  const first = Math.ceil(e / 2), second = e - first;
+  const strips = board.strips.slice();
+  strips.splice(index, 1, { ...s, eighths: first }, { type: 'scene', sceneId: s.sceneId, eighths: second });
+  return { ...board, strips };
+}
+
+/** Put a split scene back on one strip, where its first part sits, with the scene's full page count. */
+export function unsplitScene(board: Board, sceneId: string): Board {
+  const first = board.strips.findIndex(x => x.type === 'scene' && x.sceneId === sceneId);
+  if (first < 0) return board;
+  const strips = board.strips.filter((x, i) => i === first || !(x.type === 'scene' && x.sceneId === sceneId));
+  strips[first] = { type: 'scene', sceneId };
+  return { ...board, strips };
+}
+
+/** Set one part's pages; the scene's other parts share what is left so the parts still add up to the scene. */
+export function setPartEighths(board: Board, index: number, eighths: number): Board {
+  const s = board.strips[index];
+  if (!s || s.type !== 'scene') return board;
+  const total = board.scenes.find(x => x.id === s.sceneId)?.eighths ?? 0;
+  const others = board.strips.map((x, i) => (i !== index && x.type === 'scene' && x.sceneId === s.sceneId ? i : -1)).filter(i => i >= 0);
+  if (!others.length) return board;
+  const mine = Math.max(0, Math.min(total, Math.round(eighths)));
+  const was = others.map(i => stripEighths(board, board.strips[i]));
+  const wasSum = was.reduce((a, b) => a + b, 0) || others.length;
+  let left = total - mine;
+  const strips = board.strips.slice();
+  strips[index] = { ...s, eighths: mine };
+  others.forEach((i, k) => {
+    const share = k === others.length - 1 ? left : Math.round((total - mine) * (was[k] || 1) / wasSum);
+    strips[i] = { ...(strips[i] as Extract<Strip, { type: 'scene' }>), eighths: Math.max(0, share) };
+    left -= Math.max(0, share);
+  });
+  return { ...board, strips };
+}
+
 export function clearDayBreaks(board: Board): Board {
   return { ...board, strips: board.strips.filter(s => s.type !== 'daybreak') };
 }
@@ -82,7 +136,7 @@ export function autoDayBreaks(board: Board, targetEighths = board.targetEighthsP
   let run = 0;
   for (const strip of board.strips) {
     if (strip.type === 'daybreak') continue;
-    const e = strip.type === 'scene' ? (byId.get(strip.sceneId)?.eighths ?? 0) : 0;
+    const e = stripEighths(board, strip, byId);
     if (run > 0 && run + e > targetEighths) { out.push({ type: 'daybreak', id: newId('db') }); run = 0; }
     out.push(strip); run += e;
   }
@@ -94,7 +148,7 @@ export function autoDayBreaks(board: Board, targetEighths = board.targetEighthsP
 export function fitDayBreaks(board: Board, days: number): Board {
   const byId = new Map(board.scenes.map(s => [s.id, s]));
   const items = board.strips.filter(s => s.type !== 'daybreak');
-  const w = items.map(s => s.type === 'scene' ? (byId.get(s.sceneId)?.eighths ?? 0) : 0);
+  const w = items.map(s => stripEighths(board, s, byId));
   const n = Math.max(1, Math.min(Math.floor(days), items.length));
   const fits = (cap: number) => { let used = 1, run = 0; for (const e of w) { if (run + e > cap && run > 0) { used++; run = 0; } run += e; } return used <= n; };
   let lo = Math.max(...w, 0), hi = w.reduce((a, b) => a + b, 0);

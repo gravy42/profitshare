@@ -96,7 +96,7 @@ td.num { width: 90px; }
 .board { display: grid; grid-template-columns: 1fr 340px; gap: 16px; align-items: start; }
 @media (max-width: 1000px) { .board { grid-template-columns: 1fr; } }
 .strips { display: flex; flex-direction: column; gap: 3px; }
-.strip { color: #2A2A33; display: grid; grid-template-columns: 26px 44px 34px 1fr 80px 70px 80px 44px 26px; gap: 8px; align-items: center; padding: 5px 8px; border-radius: 8px; border: 1px solid var(--line); background: #fff; cursor: grab; font-size: 12.5px; }
+.strip { color: #2A2A33; display: grid; grid-template-columns: 26px 54px 34px 1fr 80px 70px 80px 44px 64px; gap: 8px; align-items: center; padding: 5px 8px; border-radius: 8px; border: 1px solid var(--line); background: #fff; cursor: grab; font-size: 12.5px; }
 .strip:active { cursor: grabbing; }
 .strip.dragover { border-top: 3px solid var(--orange); }
 .strip.day-int { background: #fff; }
@@ -104,6 +104,8 @@ td.num { width: 90px; }
 .strip.day-ext { background: #f6ecc5; }
 .strip.night-ext { background: #d7ead5; }
 .strip .num { font-weight: 800; }
+.strip .part { display: inline-block; margin-left: 3px; padding: 0 4px; border-radius: 6px; background: #2A2A33; color: #fff; font-size: 9.5px; font-weight: 700; vertical-align: middle; }
+.strip input.eighths { width: 38px; padding: 1px 3px; font-size: 11px; }
 .strip .set { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .strip .set small { color: var(--muted); display: block; font-size: 11px; white-space: normal; }
 .strip .cast { font-size: 11px; color: #6b6456; }

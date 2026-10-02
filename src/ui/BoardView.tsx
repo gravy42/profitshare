@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { Board, Project, Scene } from '../engine/types';
-import { autoDayBreaks, fitDayBreaks, clearDayBreaks, dood, eighthsToText, insertDayBreak, moveStrip, removeStrip, shootDays, syncCastDaysFromBoard, totalEighths, castSceneCounts, castOrderByAppearance, castOrderByScenes, renumberCast } from '../engine/board';
+import { autoDayBreaks, fitDayBreaks, clearDayBreaks, dood, eighthsToText, insertDayBreak, moveStrip, removeStrip, shootDays, syncCastDaysFromBoard, totalEighths, castSceneCounts, castOrderByAppearance, castOrderByScenes, renumberCast, splitStrip, unsplitScene, setPartEighths, stripPart, stripEighths } from '../engine/board';
 import { BREAKDOWN_CATEGORIES, addCast, addElement, autoTag, autoTagBoard, categoryColor, namedAnimals, removeCast, removeElement } from '../engine/breakdown';
 
 type Set = (f: (p: Project) => Project) => void;
@@ -48,7 +48,7 @@ export function BoardView({ project, setProject }: { project: Project; setProjec
             <button className="btn primary" onClick={() => setProject(syncCastDaysFromBoard)}>Push cast days → budget</button>
           </div>
         </div>
-        <p className="help">Drag strips to reorder. Open a strip's ⌄ to read the scene and tag it: select any words in the script and pick a category, the way Final Draft's tagger works. Drop a day break with the ⏎ button on any strip (it goes in above it). Auto day breaks keeps your scene order and splits at the target; Fit to {project.shootDays} days keeps the order and balances the pages across the schedule; {eighthsToText(total)} pages over {project.shootDays} days is {(total / 8 / project.shootDays).toFixed(1)} pages a day.</p>
+        <p className="help">Drag strips to reorder. Open a strip's ⌄ to read the scene and tag it: select any words in the script and pick a category, the way Final Draft's tagger works. Drop a day break with the ⏎ button on any strip (it goes in above it). ½ splits a strip so one scene shoots over two days: drag the second part below a day break, set each part's pages, and the cast and tags count on both days. Auto day breaks keeps your scene order and splits at the target; Fit to {project.shootDays} days keeps the order and balances the pages across the schedule; {eighthsToText(total)} pages over {project.shootDays} days is {(total / 8 / project.shootDays).toFixed(1)} pages a day.</p>
         <div className="legend"><span className="di">Day int</span><span className="ni">Night int</span><span className="de">Day ext</span><span className="ne">Night ext</span></div>
       </div>
 
@@ -79,18 +79,26 @@ export function BoardView({ project, setProject }: { project: Project; setProjec
             const s = byId.get(strip.sceneId);
             if (!s) return null;
             const isOpen = openId === s.id;
+            const { part, parts } = stripPart(board, i);
+            const e = stripEighths(board, strip, byId);
             return (
-              <div key={strip.sceneId}>
+              <div key={`${strip.sceneId}:${i}`}>
                 <div className={`${stripClass(s)} ${over === i ? 'dragover' : ''} ${isOpen ? 'open' : ''}`} {...common} title={s.synopsis}>
                   <span className="handle">⋮⋮</span>
-                  <span className="num">{s.number}</span>
+                  <span className="num">{s.number}{parts > 1 && <span className="part" title={`part ${part} of ${parts}: this scene shoots over ${parts} days`}>{part}/{parts}</span>}</span>
                   <span>{s.ie}</span>
                   <span className="set">{s.set}<small>{s.synopsis}</small></span>
                   <span className="small muted">{s.tod}</span>
-                  <span className="small">{eighthsToText(s.eighths)} pg</span>
+                  {parts > 1
+                    ? <span className="small" title={`this part's pages, in eighths (scene is ${eighthsToText(s.eighths)})`}><input className="eighths" type="number" min={0} max={s.eighths} value={e} onChange={ev => setBoard(b => setPartEighths(b, i, +ev.target.value || 0))} onMouseDown={ev => ev.stopPropagation()} />/8</span>
+                    : <span className="small">{eighthsToText(s.eighths)} pg</span>}
                   <span className="cast" title={s.cast.map(c => c.name).join(', ')}>{s.cast.map(c => c.id ?? c.name.slice(0, 3)).join(', ')}</span>
                   <button className="btn small" title={isOpen ? 'close' : 'read and tag this scene'} onClick={() => setOpenId(isOpen ? null : s.id)}>{isOpen ? '⌃' : '⌄'}{tagCount(s) ? ` ${tagCount(s)}` : ''}</button>
-                  <button className="btn small" title="insert day break above" onClick={() => setBoard(b => insertDayBreak(b, i))}>⏎</button>
+                  <span className="row" style={{ gap: 4 }}>
+                    <button className="btn small" title="insert day break above" onClick={() => setBoard(b => insertDayBreak(b, i))}>⏎</button>
+                    <button className="btn small" title={parts > 1 ? 'split this part again (a third day)' : 'shoot this scene over two days: splits the strip in two'} onClick={() => setBoard(b => splitStrip(b, i))}>½</button>
+                    {parts > 1 && <button className="btn small" title="put the scene back on one strip" onClick={() => setBoard(b => unsplitScene(b, s.id))}>⊕</button>}
+                  </span>
                 </div>
                 {isOpen && <Tagger scene={s} board={board} setBoard={setBoard} />}
               </div>

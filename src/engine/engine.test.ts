@@ -8,7 +8,7 @@ import { lineFringes, lineSubtotal, topSheet, setPayType, rollupCashTotal } from
 const rollupCash = (ts: ReturnType<typeof topSheet>) => rollupCashTotal(ts.subtotal);
 import { sagReport, rerateCast, qualifyingTier } from './sag';
 import { poolAt, waterfallReport, syncDaysFromBudget } from './waterfall';
-import { autoDayBreaks, boardElements, daysFollowing, daysWithElements, dood, insertDayBreak, moveStrip, shootDays, syncCastDaysFromBoard, totalEighths } from './board';
+import { autoDayBreaks, boardElements, daysFollowing, daysWithElements, dood, insertDayBreak, moveStrip, shootDays, syncCastDaysFromBoard, totalEighths, splitStrip, unsplitScene, setPartEighths, stripPart } from './board';
 import { parseSex } from './importers/sex';
 import { fdxHasTags, fdxTitle, parseFdx } from './importers/fdx';
 import { parseShamelXlsx } from './importers/shamelXlsx';
@@ -126,6 +126,41 @@ describe('board', () => {
     const line = p.lines.find(l => l.participantId === lena.id && l.unit === 'DAY')!;
     expect(line.amount).toBe(lena.days);
     expect(lena.days).toBeGreaterThan(8);
+  });
+});
+
+describe('a scene shot over two days', () => {
+  const sc = (id: string, eighths: number, cast: number[]): Scene => ({ id, number: id.slice(2), ie: 'EXT', set: 'STREET', tod: 'NIGHT', pages: '', eighths, synopsis: '', location: '', scriptDay: '', cast: cast.map(c => ({ id: c, name: `C${c}` })), elements: { Animals: ['Jack the cat'] } });
+  const board: Board = { castList: [1, 2, 8].map(id => ({ id, name: `C${id}` })), targetEighthsPerDay: 44,
+    scenes: [sc('sc74', 3, [1, 2]), sc('sc75', 64, [1, 2, 8]), sc('sc10', 1, [1])],
+    strips: [{ type: 'scene' as const, sceneId: 'sc74' }, { type: 'scene' as const, sceneId: 'sc75' }, { type: 'daybreak' as const, id: 'd1' }, { type: 'scene' as const, sceneId: 'sc10' }] };
+
+  it('splits the pages in half and keeps the scene whole in the script', () => {
+    const b = splitStrip(board, 1);
+    expect(b.strips.length).toBe(5);
+    expect(b.strips[1]).toEqual({ type: 'scene', sceneId: 'sc75', eighths: 32 });
+    expect(b.strips[2]).toEqual({ type: 'scene', sceneId: 'sc75', eighths: 32 });
+    expect(stripPart(b, 1)).toEqual({ part: 1, parts: 2 });
+    expect(stripPart(b, 2)).toEqual({ part: 2, parts: 2 });
+    expect(totalEighths(b)).toBe(68);
+    expect(unsplitScene(b, 'sc75')).toEqual(board);
+  });
+
+  it('counts the pages, the cast and the tags on both days once the second part is moved down', () => {
+    const b = moveStrip(splitStrip(board, 1), 2, 4); // part 2 below the day break
+    const days = shootDays(b);
+    expect(days.map(d => d.eighths)).toEqual([35, 33]);
+    expect(days[1].castIds).toEqual([1, 2, 8]);
+    expect(dood(b).find(r => r.castId === 8)!.workDays).toEqual([1, 2]);
+    expect(daysWithElements(b, [{ category: 'Animals', item: 'Jack the cat' }])).toBe(2);
+    const uneven = setPartEighths(b, 1, 40);
+    expect(shootDays(uneven).map(d => d.eighths)).toEqual([43, 25]);
+    expect(setPartEighths(b, 1, 99).strips[1]).toEqual({ type: 'scene', sceneId: 'sc75', eighths: 64 });
+  });
+
+  it('auto day breaks weigh a part by its own pages', () => {
+    const b = autoDayBreaks({ ...splitStrip(board, 1), strips: splitStrip(board, 1).strips.filter(x => x.type !== 'daybreak') }, 36);
+    expect(shootDays(b).map(d => d.eighths)).toEqual([35, 33]);
   });
 });
 
@@ -695,7 +730,7 @@ describe('projects saved before the deal layer', () => {
 });
 
 import { foldMemoLines, isMemoLine, memoLines } from './budget';
-import type { LineItem, Project } from './types';
+import type { Board, LineItem, Project, Scene } from './types';
 describe('memo lines', () => {
   const line = (id: string, accountId: string, description: string, amount = 0, rate = 0, extra: Partial<LineItem> = {}): LineItem =>
     ({ id, accountId, description, amount, unit: rate ? 'DAY' : '-', rate, multiplier: 1, fringes: [], tags: [], payType: 'cash', ...extra });

@@ -106,7 +106,7 @@ export interface Scene {
 }
 
 export type Strip =
-  | { type: 'scene'; sceneId: string }
+  | { type: 'scene'; sceneId: string; eighths?: number }  // eighths set = this strip is one part of a scene shot across days
   | { type: 'daybreak'; id: string; label?: string; date?: string }
   | { type: 'banner'; id: string; text: string };
 
