@@ -1,15 +1,48 @@
 import type { Deal, PremiumChoice, PremiumGroup, Project, SagTierId, WaterfallModel } from '../engine/types';
 import { SAG_TIERS, sagReport, sagTier, isPayrollLine, isSagPerformerLine, NON_SHOOT } from '../engine/sag';
 import { topSheet, PAID_HOURS } from '../engine/budget';
-import { crewDayRateOf, withDeal } from '../engine/deal';
+import { applyDeal, crewDayRateOf, withDeal } from '../engine/deal';
+import { useMemo } from 'react';
 import { recoupableBudget } from '../engine/waterfall';
 import { incentiveProceeds } from '../engine/incentives';
 import { PRESET_GROUPS } from '../engine/deal';
-import { money } from './format';
+import { money, pct } from './format';
 
 type Set = (f: (p: Project) => Project) => void;
 
 const PREMIUM_LABEL: Record<PremiumChoice, string> = { cash: 'up front, as budgeted', points: 'points (contingent)', deferred: 'deferred (fixed IOU, counts for SAG)', delete: 'gone: delete the lines' };
+
+/** Every tier under both pay models, side by side, from the same raw budget. Clicking a cell applies that combination. */
+function TierMatrix({ raw, setProject }: { raw: Project; setProject: Set }) {
+  const d = withDeal(raw).deal!;
+  const rows = useMemo(() => SAG_TIERS.map(t => {
+    const at = (model: Deal['pay']['model']) => {
+      const p: Project = { ...raw, sag: { ...raw.sag, targetTier: t.id }, deal: { ...d, pay: { ...d.pay, model, rerateCast: true, crewBasis: t.id } } };
+      const e = applyDeal(p); const ts = topSheet(e); const r = sagReport(e);
+      return { cash: ts.cashBudget, points: ts.pointsValue, fits: r.fits, headroom: r.headroom, cap: r.targetCap };
+    };
+    return { t, budgeted: at('as-budgeted'), scale: at('everyone-at-scale') };
+  }), [raw]);
+  const pick = (tier: SagTierId, model: Deal['pay']['model']) => setProject(p => { const q = withDeal(p); return { ...q, sag: { ...q.sag, targetTier: tier }, deal: { ...q.deal!, pay: { ...q.deal!.pay, model, rerateCast: true, crewBasis: tier } } }; });
+  const cur = (tier: SagTierId, model: Deal['pay']['model']) => raw.sag.targetTier === tier && d.pay.model === model && (model === 'as-budgeted' || d.pay.crewBasis === tier);
+  const cell = (tier: SagTierId, model: Deal['pay']['model'], x: { cash: number; points: number; fits: boolean; headroom: number; cap: number | null }) => (
+    <td className={`cell ${cur(tier, model) ? 'cur' : ''} ${x.fits ? 'ok' : 'over'}`} onClick={() => pick(tier, model)} title="Apply this tier and pay model">
+      <div className="big">{money(x.cash)}</div>
+      <div className="sub">{x.cap === null ? 'no cap' : x.fits ? `fits · ${money(x.headroom)} under` : `over by ${money(-x.headroom)}`} · back end {money(x.points)}</div>
+    </td>);
+  return (
+    <div className="panel">
+      <h2>Every tier, both ways</h2>
+      <table className="matrix" style={{ maxWidth: 900 }}>
+        <thead><tr><th className="l">SAG tier</th><th className="l">As budgeted<span className="hint">crew at the rates on the lines, cast re-rated at the tier</span></th><th className="l">Everyone at scale<span className="hint">crew and cast both at the tier's rate ÷ 8</span></th></tr></thead>
+        <tbody>{rows.map(({ t, budgeted, scale }) => (
+          <tr key={t.id}><td className="l"><b>{t.name}</b><div className="sub">${t.dayRate}/day · cap {t.cap ? money(raw.sag.dic && t.dicCap ? t.dicCap : t.cap) : 'none'}{raw.sag.dic && t.dicCap && t.cap !== t.dicCap ? ' with DIC' : ''}</div></td>{cell(t.id, 'as-budgeted', budgeted)}{cell(t.id, 'everyone-at-scale', scale)}</tr>
+        ))}</tbody>
+      </table>
+      <p className="help small" style={{ marginTop: 8 }}>Same budget, same premiums and non-shoot floor, only the tier and the pay model change. The highlighted cell is where the film sits now; click another to move it. "Fits" is total production cost against that tier's cap (with the Diversity in Casting cap when that box is on).</p>
+    </div>
+  );
+}
 
 /** One page for every term of the deal. `raw` is what the user typed or imported; `eff` is the budget with the terms applied. */
 export function DealView({ raw, eff, setProject, fresh }: { raw: Project; eff: Project; setProject: Set; fresh?: boolean }) {
@@ -91,6 +124,8 @@ export function DealView({ raw, eff, setProject, fresh }: { raw: Project; eff: P
         )}
         <p className="help small" style={{ marginTop: 8 }}>SAG scale covers an 8-hour day. Under everyone-at-scale, crew hourly is that rate ÷ 8 with California overtime (1.5× after 8, 2× after 12); cast get the target tier's rate ÷ 8 with SAG overtime (1.5× hours 9–10, 2× after). Cast can't be paid below the tier the film lands in, so equal pay means bringing crew up, never cast down.</p>
       </div>
+
+      <TierMatrix raw={raw} setProject={setProject} />
 
       <div className="panel">
         <h2>Above-scale ATL money</h2>
