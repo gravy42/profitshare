@@ -221,3 +221,11 @@ tr.followsrow > td { padding: 6px 8px 8px 34px; background: var(--soft); }
 .check { display: flex; align-items: center; gap: 7px; flex-wrap: nowrap; font-size: 13px; cursor: pointer; }
 .check input { width: auto; margin: 0; }
 .panel h2 label input { margin-right: 6px; vertical-align: -1px; }
+
+/* picking several strips, lifting a whole day */
+.strip.sel { outline: 2px solid var(--plum); outline-offset: -2px; filter: brightness(1.04); }
+.strip.lifting, .daybreak.lifting, .dayrows tr.lifting { opacity: .45; }
+.strip .handle .pick { width: 12px; height: 12px; margin: 0 4px 0 0; vertical-align: -1px; cursor: pointer; accent-color: var(--plum); }
+.daybreak .daygrip { cursor: grab; font-weight: 600; margin-right: 8px; padding: 0 4px; border-radius: 3px; background: var(--soft); border: 1px solid var(--line); }
+.daybreak .daygrip:active { cursor: grabbing; }
+.dayrows tr[draggable] { cursor: grab; }

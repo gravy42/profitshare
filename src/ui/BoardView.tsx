@@ -1,22 +1,25 @@
 import { useEffect, useState } from 'react';
 import type { Board, Project, Scene } from '../engine/types';
-import { autoDayBreaks, fitDayBreaks, clearDayBreaks, dood, eighthsToText, insertDayBreak, moveStrip, removeStrip, shootDays, totalEighths, castSceneCounts, castOrderByAppearance, castOrderByScenes, renumberCast, splitStrip, unsplitScene, setPartEighths, stripPart, stripEighths, dropCastMember, unusedCast } from '../engine/board';
+import { autoDayBreaks, fitDayBreaks, clearDayBreaks, dood, eighthsToText, insertDayBreak, moveStrip, removeStrip, shootDays, totalEighths, moveStrips, moveDay, dayOfIndex, castSceneCounts, castOrderByAppearance, castOrderByScenes, renumberCast, splitStrip, unsplitScene, setPartEighths, stripPart, stripEighths, dropCastMember, unusedCast } from '../engine/board';
 import { BREAKDOWN_CATEGORIES, addCast, addElement, autoTag, autoTagBoard, categoryColor, namedAnimals, removeCast, removeElement } from '../engine/breakdown';
 
-type Set = (f: (p: Project) => Project) => void;
+type SetProject = (f: (p: Project) => Project) => void;
 
 const stripClass = (s: Scene) => {
   const night = /NIGHT|EVENING|DUSK|LATE/i.test(s.tod);
   return `strip ${night ? 'night' : 'day'}-${s.ie === 'EXT' ? 'ext' : 'int'}`;
 };
 
-export function BoardView({ project, setProject }: { project: Project; setProject: Set }) {
+export function BoardView({ project, setProject }: { project: Project; setProject: SetProject }) {
   const board = project.board;
   const setBoard = (f: (b: Board) => Board) => setProject(p => ({ ...p, board: f(p.board) }));
   const byId = new Map(board.scenes.map(s => [s.id, s]));
   const days = shootDays(board);
   const [drag, setDrag] = useState<number | null>(null);
+  const [dragDay, setDragDay] = useState<number | null>(null);          // a whole day being lifted (1-based)
   const [over, setOver] = useState<number | null>(null);
+  const [selected, setSelected] = useState<Set<number>>(new Set());    // strip indices picked to move together
+  const [lastPick, setLastPick] = useState<number | null>(null);
   const [target, setTarget] = useState(board.targetEighthsPerDay);
   const [showDood, setShowDood] = useState(true);
   const [openId, setOpenId] = useState<string | null>(null);
@@ -29,7 +32,43 @@ export function BoardView({ project, setProject }: { project: Project; setProjec
   let dayIdx = 1;
   const dayOfStrip: number[] = board.strips.map(s => { const d = dayIdx; if (s.type === 'daybreak') dayIdx++; return d; });
 
-  const onDrop = (to: number) => { if (drag !== null) setBoard(b => moveStrip(b, drag, to)); setDrag(null); setOver(null); };
+  const clearSel = () => { setSelected(new Set()); setLastPick(null); };
+  /** Drop a strip (or the selection it belongs to) so it lands where strip `to` is; `to` = strips.length appends. */
+  const onDrop = (to: number) => {
+    if (drag !== null) {
+      const block = selected.has(drag) ? [...selected] : [drag];
+      setBoard(b => moveStrips(b, block, to));
+      clearSel();
+    }
+    setDrag(null); setOver(null);
+  };
+  /** Drop a lifted day: before the day that holds strip `at` (a scene), after it (a day bar), or last (the end). */
+  const onDropDay = (where: { beforeDayOf?: number; afterDay?: number; end?: boolean }) => {
+    if (dragDay !== null) {
+      const n = days.length;
+      const pos = where.end ? n : where.afterDay != null ? where.afterDay : dayOfIndex(board, where.beforeDayOf ?? 0) - 1;   // block slot in the current order
+      const toDay = pos - (pos > dragDay - 1 ? 1 : 0) + 1;
+      setBoard(b => moveDay(b, dragDay, toDay));
+      clearSel();
+    }
+    setDragDay(null); setOver(null);
+  };
+  const pick = (i: number, shift: boolean) => {
+    setSelected((prev: Set<number>) => {
+      const next = new Set(prev);
+      if (shift && lastPick !== null) {
+        const [lo, hi] = [Math.min(lastPick, i), Math.max(lastPick, i)];
+        for (let j = lo; j <= hi; j++) if (board.strips[j].type === 'scene') next.add(j);
+      } else if (next.has(i)) next.delete(i); else next.add(i);
+      return next;
+    });
+    setLastPick(i);
+  };
+  const dropAny = (e: React.DragEvent, i: number, bar: boolean) => {
+    e.preventDefault();
+    if (dragDay !== null) onDropDay(bar ? { afterDay: dayOfStrip[i] } : { beforeDayOf: i });
+    else onDrop(i);
+  };
 
   if (!board.scenes.length) return <div className="panel"><h2>Stripboard</h2><p className="help">No scenes yet. Import a Final Draft .fdx or a Movie Magic .sex board from the toolbar.</p></div>;
 
@@ -48,8 +87,11 @@ export function BoardView({ project, setProject }: { project: Project; setProjec
             <span className="small muted" title="Cast shoot days and followers (a studio teacher, an animal wrangler) are rewritten on the top sheet and in the points schedule after every edit here. Rehearsal and fitting days live on their own budget line.">cast days flow to the budget automatically</span>
           </div>
         </div>
-        <p className="help">Drag strips to reorder. Open a strip's ⌄ to read the scene and tag it: select any words in the script and pick a category, the way Final Draft's tagger works. Drop a day break with the ⏎ button on any strip (it goes in above it). ½ splits a strip so one scene shoots over two days: drag the second part below a day break, set each part's pages, and the cast and tags count on both days. Auto day breaks keeps your scene order and splits at the target; Fit to {project.shootDays} days keeps the order and balances the pages across the schedule; {eighthsToText(total)} pages over {project.shootDays} days is {(total / 8 / project.shootDays).toFixed(1)} pages a day.</p>
-        <div className="legend"><span className="di">Day int</span><span className="ni">Night int</span><span className="de">Day ext</span><span className="ne">Night ext</span></div>
+        <p className="help">Drag strips to reorder; tick the boxes (shift-click for a run) to pick several and drag them as one block; grab ⋮⋮ day on a day bar to lift the whole day and drop it before a strip or after another day bar. Open a strip's ⌄ to read the scene and tag it: select any words in the script and pick a category, the way Final Draft's tagger works. Drop a day break with the ⏎ button on any strip (it goes in above it). ½ splits a strip so one scene shoots over two days: drag the second part below a day break, set each part's pages, and the cast and tags count on both days. Auto day breaks keeps your scene order and splits at the target; Fit to {project.shootDays} days keeps the order and balances the pages across the schedule; {eighthsToText(total)} pages over {project.shootDays} days is {(total / 8 / project.shootDays).toFixed(1)} pages a day.</p>
+        <div className="row" style={{ justifyContent: 'space-between' }}>
+          <div className="legend"><span className="di">Day int</span><span className="ni">Night int</span><span className="de">Day ext</span><span className="ne">Night ext</span></div>
+          {selected.size > 0 && <span className="small"><b>{selected.size} picked</b> · drag any of them to move the group · <button className="btn small" onClick={clearSel}>clear</button></span>}
+        </div>
       </div>
 
       <div className="board">
@@ -60,14 +102,14 @@ export function BoardView({ project, setProject }: { project: Project; setProjec
               onDragStart: () => setDrag(i),
               onDragOver: (e: React.DragEvent) => { e.preventDefault(); setOver(i); },
               onDragLeave: () => setOver(o => (o === i ? null : o)),
-              onDrop: (e: React.DragEvent) => { e.preventDefault(); onDrop(i); },
+              onDrop: (e: React.DragEvent) => dropAny(e, i, strip.type === 'daybreak'),
             };
             if (strip.type === 'daybreak') {
               const d = days[dayOfStrip[i] - 1];
               const heavy = d && d.eighths > target * 1.15;
               return (
-                <div key={strip.id} className={`daybreak ${over === i ? 'dragover' : ''}`} {...common}>
-                  <span>End of Day {dayOfStrip[i]} · {d ? eighthsToText(d.eighths) : '0'} pgs · {d?.castIds.length ?? 0} cast {heavy && <span className="warn">· heavy</span>}</span>
+                <div key={strip.id} className={`daybreak ${over === i ? 'dragover' : ''} ${dragDay === dayOfStrip[i] ? 'lifting' : ''}`} {...common}>
+                  <span><span className="handle daygrip" draggable title={`Drag to move all of Day ${dayOfStrip[i]} (drop on a strip to go before that day, on a day bar to go after it)`} onDragStart={e => { e.stopPropagation(); setDragDay(dayOfStrip[i]); }} onDragEnd={() => { setDragDay(null); setOver(null); }}>⋮⋮ day</span> End of Day {dayOfStrip[i]} · {d ? eighthsToText(d.eighths) : '0'} pgs · {d?.castIds.length ?? 0} cast {heavy && <span className="warn">· heavy</span>}</span>
                   <span className="row" style={{ gap: 6 }}>
                     <input placeholder="date / label" value={strip.label ?? ''} onChange={e => setBoard(b => ({ ...b, strips: b.strips.map((s, j) => j === i && s.type === 'daybreak' ? { ...s, label: e.target.value } : s) }))} />
                     <button className="x" title="remove day break" onClick={() => setBoard(b => removeStrip(b, i))}>×</button>
@@ -83,8 +125,8 @@ export function BoardView({ project, setProject }: { project: Project; setProjec
             const e = stripEighths(board, strip, byId);
             return (
               <div key={`${strip.sceneId}:${i}`}>
-                <div className={`${stripClass(s)} ${over === i ? 'dragover' : ''} ${isOpen ? 'open' : ''}`} {...common} title={s.synopsis}>
-                  <span className="handle">⋮⋮</span>
+                <div className={`${stripClass(s)} ${over === i ? 'dragover' : ''} ${isOpen ? 'open' : ''} ${selected.has(i) ? 'sel' : ''} ${dragDay === dayOfStrip[i] ? 'lifting' : ''}`} {...common} title={s.synopsis}>
+                  <span className="handle" title={selected.size > 1 && selected.has(i) ? `drag moves all ${selected.size} picked strips` : 'drag to move; tick the box to pick several and move them together'}><input type="checkbox" className="pick" checked={selected.has(i)} onChange={() => undefined} onClick={e => { e.stopPropagation(); pick(i, e.shiftKey); }} onMouseDown={e => e.stopPropagation()} />⋮⋮</span>
                   <span className="num">{s.number}{parts > 1 && <span className="part" title={`part ${part} of ${parts}: this scene shoots over ${parts} days`}>{part}/{parts}</span>}</span>
                   <span>{s.ie}</span>
                   <span className="set">{s.set}<small>{s.synopsis}</small></span>
@@ -108,21 +150,21 @@ export function BoardView({ project, setProject }: { project: Project; setProjec
             const d = days[days.length - 1];
             const heavy = d.eighths > target * 1.15;
             return (
-              <div className="daybreak wrap" onDragOver={e => { e.preventDefault(); setOver(board.strips.length); }} onDragLeave={() => setOver(o => (o === board.strips.length ? null : o))} onDrop={e => { e.preventDefault(); onDrop(board.strips.length); }}>
+              <div className="daybreak wrap" onDragOver={e => { e.preventDefault(); setOver(board.strips.length); }} onDragLeave={() => setOver(o => (o === board.strips.length ? null : o))} onDrop={e => { e.preventDefault(); if (dragDay !== null) onDropDay({ end: true }); else onDrop(board.strips.length); }}>
                 <span>End of Day {d.index} · {eighthsToText(d.eighths)} pgs · {d.castIds.length} cast {heavy && <span className="warn">· heavy</span>} · wrap</span>
                 <span className="small muted">last day of the schedule</span>
               </div>
             );
           })()}
-          <div style={{ height: 30 }} onDragOver={e => e.preventDefault()} onDrop={() => onDrop(board.strips.length)} />
+          <div style={{ height: 30 }} onDragOver={e => e.preventDefault()} onDrop={() => (dragDay !== null ? onDropDay({ end: true }) : onDrop(board.strips.length))} />
         </div>
 
         <div>
           <div className="panel">
             <div className="row" style={{ justifyContent: 'space-between' }}><h2>Days</h2><button className="btn small" onClick={() => setShowDood(v => !v)}>{showDood ? 'hide DOOD' : 'show DOOD'}</button></div>
-            <table>
+            <table className="dayrows">
               <thead><tr><th>Day</th><th>Scenes</th><th>Pages</th><th>Cast</th></tr></thead>
-              <tbody>{days.map(d => <tr key={d.index} className={d.eighths > target * 1.15 ? 'hl' : ''}><td>{d.index}{d.label ? ` · ${d.label}` : ''}</td><td>{d.scenes.length}</td><td>{eighthsToText(d.eighths)}</td><td>{d.castIds.length}</td></tr>)}</tbody>
+              <tbody>{days.map(d => <tr key={d.index} className={`${d.eighths > target * 1.15 ? 'hl' : ''} ${dragDay === d.index ? 'lifting' : ''}`} draggable title="drag to reorder the days" onDragStart={() => setDragDay(d.index)} onDragEnd={() => setDragDay(null)} onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); if (dragDay !== null) { const from = dragDay; setBoard(b => moveDay(b, from, d.index)); setDragDay(null); clearSel(); } }}><td><span className="handle">⋮⋮ </span>{d.index}{d.label ? ` · ${d.label}` : ''}</td><td>{d.scenes.length}</td><td>{eighthsToText(d.eighths)}</td><td>{d.castIds.length}</td></tr>)}</tbody>
             </table>
           </div>
           {showDood && (
@@ -172,7 +214,7 @@ function DoodTable({ board, days, compact, onReorder, onRemove }: { board: Board
   );
 }
 
-function DoodPopout({ project, setProject, onClose }: { project: Project; setProject: Set; onClose: () => void }) {
+function DoodPopout({ project, setProject, onClose }: { project: Project; setProject: SetProject; onClose: () => void }) {
   const board = project.board; const days = shootDays(board);
   useEffect(() => { const k = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); }; window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k); }, [onClose]);
   const holds = dood(board).reduce((n, r) => n + Math.max(0, r.span - r.total), 0);

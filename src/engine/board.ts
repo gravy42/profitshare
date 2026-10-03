@@ -71,6 +71,58 @@ export function moveStrip(board: Board, from: number, to: number): Board {
   return { ...board, strips };
 }
 
+/** Move several strips as one block, keeping their relative order. `to` is an index into the current strips, the way
+ *  moveStrip takes it: the block lands where that strip was, pushing it down; `to` = strips.length appends. */
+export function moveStrips(board: Board, indices: number[], to: number): Board {
+  const pick = [...new Set(indices.filter(i => i >= 0 && i < board.strips.length))].sort((a, b) => a - b);
+  if (!pick.length) return board;
+  if (pick.length === 1) return moveStrip(board, pick[0], to);
+  const set = new Set(pick);
+  const block = pick.map(i => board.strips[i]);
+  const rest = board.strips.filter((_, i) => !set.has(i));
+  const at = to - pick.filter(i => i < to).length;   // where `to` sits once the block is lifted out
+  const strips = [...rest.slice(0, at), ...block, ...rest.slice(at)];
+  if (strips.every((x, i) => x === board.strips[i])) return board;
+  return { ...board, strips };
+}
+
+/** The strips that make up each shoot day, in order: every day but the last ends with its day break. */
+export function dayBlocks(board: Board): Strip[][] {
+  const blocks: Strip[][] = [[]];
+  for (const s of board.strips) {
+    blocks[blocks.length - 1].push(s);
+    if (s.type === 'daybreak') blocks.push([]);
+  }
+  if (blocks.length > 1 && blocks[blocks.length - 1].length === 0) blocks.pop();   // the board ends on a day break
+  return blocks;
+}
+
+/** Lift a whole day (its strips and its day break) and drop it so it becomes day `toDay`; 1-based, like the board.
+ *  The last day never carries a day break, so one is added or dropped as the blocks shuffle. */
+export function moveDay(board: Board, fromDay: number, toDay: number): Board {
+  const blocks = dayBlocks(board);
+  const n = blocks.length;
+  if (fromDay === toDay || fromDay < 1 || fromDay > n || toDay < 1 || toDay > n) return board;
+  const order = blocks.slice();
+  const [b] = order.splice(fromDay - 1, 1);
+  order.splice(toDay - 1, 0, b);
+  const strips: Strip[] = [];
+  const spare = order[order.length - 1].find(s => s.type === 'daybreak');   // the new last day sheds its break; a day that needs one takes it
+  order.forEach((block, i) => {
+    const last = i === order.length - 1;
+    strips.push(...block.filter(s => s.type !== 'daybreak'));
+    if (!last) strips.push(block.find(s => s.type === 'daybreak') ?? spare ?? { type: 'daybreak', id: newId('db') });
+  });
+  return { ...board, strips };
+}
+
+/** Which day (1-based) a strip index belongs to. */
+export function dayOfIndex(board: Board, index: number): number {
+  let d = 1;
+  for (let i = 0; i < index && i < board.strips.length; i++) if (board.strips[i].type === 'daybreak') d++;
+  return d;
+}
+
 export function insertDayBreak(board: Board, at: number): Board {
   const strips = board.strips.slice();
   strips.splice(at, 0, { type: 'daybreak', id: newId('db') });

@@ -8,7 +8,7 @@ import { lineFringes, lineSubtotal, topSheet, setPayType, rollupCashTotal } from
 const rollupCash = (ts: ReturnType<typeof topSheet>) => rollupCashTotal(ts.subtotal);
 import { sagReport, rerateCast, qualifyingTier } from './sag';
 import { poolAt, waterfallReport, syncDaysFromBudget } from './waterfall';
-import { autoDayBreaks, boardElements, daysFollowing, daysWithElements, dood, insertDayBreak, moveStrip, shootDays, syncCastDaysFromBoard, totalEighths, splitStrip, unsplitScene, setPartEighths, stripPart } from './board';
+import { autoDayBreaks, moveStrips, moveDay, dayBlocks, dayOfIndex, boardElements, daysFollowing, daysWithElements, dood, insertDayBreak, moveStrip, shootDays, syncCastDaysFromBoard, totalEighths, splitStrip, unsplitScene, setPartEighths, stripPart } from './board';
 import { parseSex } from './importers/sex';
 import { fdxHasTags, fdxTitle, parseFdx } from './importers/fdx';
 import { parseShamelXlsx } from './importers/shamelXlsx';
@@ -730,7 +730,7 @@ describe('projects saved before the deal layer', () => {
 });
 
 import { foldMemoLines, isMemoLine, memoLines } from './budget';
-import type { Board, LineItem, Project, Scene } from './types';
+import type { Board, LineItem, Project, Scene, Strip } from './types';
 describe('memo lines', () => {
   const line = (id: string, accountId: string, description: string, amount = 0, rate = 0, extra: Partial<LineItem> = {}): LineItem =>
     ({ id, accountId, description, amount, unit: rate ? 'DAY' : '-', rate, multiplier: 1, fringes: [], tags: [], payType: 'cash', ...extra });
@@ -977,5 +977,32 @@ describe('the board owns shoot days; rehearsal and fitting days live on their ow
     expect(p.lines.filter(l => l.participantId === 'pa').map(l => l.id)).toEqual(['a1']);
     expect(p.lines.find(l => l.id === 'a1')).toMatchObject({ amount: 1, daysFrom: 'board' });
     expect(p.participants.find(x => x.id === 'pa')!.days).toBe(1);
+  });
+});
+
+describe('moving several strips, and whole days', () => {
+  const S = (id: string): Strip => ({ type: 'scene', sceneId: id });
+  const D = (id: string): Strip => ({ type: 'daybreak', id });
+  const ids = (b: Board) => b.strips.map(s => s.type === 'scene' ? s.sceneId : `|${s.id}`).join(' ');
+  const base = (): Board => ({ ...sampleProject().board, scenes: [], castList: [],
+    strips: [S('a'), S('b'), D('d1'), S('c'), S('d'), D('d2'), S('e'), S('f')] });   // 3 days: ab | cd | ef
+  it('carries a block in order to the drop point', () => {
+    expect(ids(moveStrips(base(), [0, 3], 7))).toBe('b |d1 d |d2 e a c f');       // a and c land before f
+    expect(ids(moveStrips(base(), [6, 7], 0))).toBe('e f a b |d1 c d |d2');       // to the top
+    expect(ids(moveStrips(base(), [1, 3], 8))).toBe('a |d1 d |d2 e f b c');       // append
+    const same = base(); expect(moveStrips(same, [3, 4], 4)).toBe(same);         // dropped on itself: no-op
+    expect(ids(moveStrips(base(), [1], 4))).toBe(ids(moveStrip(base(), 1, 4)));  // one strip = moveStrip
+  });
+  it('splits the board into day blocks', () => {
+    expect(dayBlocks(base()).map(b => b.length)).toEqual([3, 3, 2]);
+    expect(dayBlocks({ ...base(), strips: [S('a'), D('d1')] }).map(b => b.length)).toEqual([2]);
+    expect(dayOfIndex(base(), 0)).toBe(1); expect(dayOfIndex(base(), 3)).toBe(2); expect(dayOfIndex(base(), 7)).toBe(3);
+  });
+  it('lifts a day and drops it as another day number, keeping one break between days', () => {
+    expect(ids(moveDay(base(), 3, 1))).toBe('e f |d2 a b |d1 c d');                // last day to the top takes the break day 2 no longer needs
+    expect(ids(moveDay(base(), 1, 3))).toBe('c d |d2 e f |d1 a b');                // first day to the end: carries d1 along as the new middle break
+    expect(ids(moveDay(base(), 1, 2))).toBe('c d |d2 a b |d1 e f');               // each day keeps its own break
+    expect(dayBlocks(moveDay(base(), 3, 1)).length).toBe(3);
+    const b = base(); expect(moveDay(b, 2, 2)).toBe(b); expect(moveDay(b, 0, 2)).toBe(b); expect(moveDay(b, 1, 4)).toBe(b);
   });
 });
