@@ -75,17 +75,17 @@ export function sagReport(p: Project): SagReport {
 /** Reprice every SAG performer day/week line at a tier's minimum. Returns a new project. */
 export function rerateCast(p: Project, tierId: SagTierId): Project {
   const t = sagTier(tierId);
-  let lastPerformerWages = 0;
+  let performerWages = 0;   // wages since the last agent fee: shoot days plus a rehearsal / fitting line of their own
   const lines = p.lines.map(l => {
     if (isSagPerformerLine(l)) {
       // a line with an hours multiplier is priced hourly off the 8-hour scale; a plain line is the flat day/week rate
       const rate = l.unit === 'WEEK' ? (t.weeklyRate ?? t.dayRate * 5) : l.multiplier > 1 ? scaleHourly(t.dayRate) : t.dayRate;
       const nl = { ...l, rate };
-      lastPerformerWages = lineSubtotal(nl);
+      performerWages += lineSubtotal(nl);
       return nl;
     }
     // Agent fee lines are modelled as ALLOW × wages × 0.1; keep them pinned to the repriced wages.
-    if (/agent fee/i.test(l.description) && l.unit === 'ALLOW') return { ...l, rate: lastPerformerWages };
+    if (/agent fee/i.test(l.description) && l.unit === 'ALLOW') { const r = performerWages; performerWages = 0; return { ...l, rate: r }; }
     return l;
   });
   return { ...p, sag: { ...p.sag, targetTier: tierId }, lines };

@@ -198,7 +198,7 @@ function LineTable({ lines, project, locked, patch, setProject, onAdd }: { lines
             <Fragment key={l.id}>
             <tr className={`line${dim ? ' dim' : ''}${note ? ' noted' : ''}`} title={byDeal ? 'Set by the deal (Deal tab)' : undefined}>
               <td>{derived ? <span style={{ paddingLeft: 4 }}>{l.description} <span className="tag points">deal</span></span> : <><input className="l" value={l.description} placeholder="description" onChange={e => patch(l.id, { description: e.target.value })} />{byDeal && <span className="tag points" style={{ marginLeft: 4 }}>deal</span>}</>}</td>
-              <td className="num">{derived ? l.amount : <input type="number" step="any" value={l.amount} onChange={e => patch(l.id, { amount: +e.target.value })} />}</td>
+              <td className="num">{derived ? l.amount : l.daysFrom === 'board' ? <span title="Days from the stripboard: this line follows the day-out-of-days. Put rehearsal or fitting days on their own line.">{l.amount} <span className="muted small">board</span></span> : <input type="number" step="any" value={l.amount} onChange={e => patch(l.id, { amount: +e.target.value })} />}</td>
               <td>{byDeal ? l.unit : <select value={l.unit} onChange={e => patch(l.id, { unit: e.target.value })}>{(UNITS.includes(l.unit) ? UNITS : [...UNITS, l.unit]).map(u => <option key={u}>{u}</option>)}</select>}</td>
               <td className="num">{byDeal ? l.multiplier : <input type="number" step="any" value={l.multiplier} onChange={e => patch(l.id, { multiplier: +e.target.value })} />}</td>
               <td className="num">{byDeal ? l.rate : <input type="number" step="any" value={l.rate} onChange={e => patch(l.id, { rate: +e.target.value })} />}</td>

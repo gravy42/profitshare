@@ -2,6 +2,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Project, Board } from './engine/types';
 import { sampleProject } from './data/seed';
 import { withDeal } from './engine/deal';
+import { adoptBoardDays, syncCastDaysFromBoard } from './engine/board';
+
+/** Every project that comes in: deal defaults, then the board takes ownership of cast and follower days. */
+const normalize = (p: Project): Project => syncCastDaysFromBoard(adoptBoardDays(withDeal(p)));
 
 const KEY = 'profitshare.project';
 const HISTORY = 30;
@@ -9,13 +13,13 @@ const HISTORY = 30;
 function loadSaved(): Project | null {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) { const p = JSON.parse(raw); if (p && p.schemaVersion === 1) return withDeal(p); }
+    if (raw) { const p = JSON.parse(raw); if (p && p.schemaVersion === 1) return normalize(p); }
   } catch { /* private mode, blocked storage, corrupt json – fall through */ }
   return null;
 }
 /** True when this browser already had a project autosaved (so the app opens on it rather than the start screen). */
 export const hadSavedProject = () => loadSaved() !== null;
-const load = (): Project => loadSaved() ?? sampleProject();
+const load = (): Project => loadSaved() ?? normalize(sampleProject());
 
 const BOARD_KEY = 'profitshare.previous-board';
 export interface BoardBackup { when: string; reason: string; board: Board }
@@ -42,7 +46,8 @@ export function useProject() {
 
   const setProject = useCallback((next: Project | ((p: Project) => Project)) => {
     setProjectState(prev => {
-      const n = typeof next === 'function' ? next(prev) : next;
+      let n = typeof next === 'function' ? next(prev) : next;
+      if (n.board !== prev.board || n.participants !== prev.participants) n = syncCastDaysFromBoard(adoptBoardDays(n));   // the board owns cast and follower days: every edit flows to the budget
       if (n !== prev) { past.current.push(prev); if (past.current.length > HISTORY) past.current.shift(); setDirty(true); }
       return n;
     });
@@ -53,7 +58,7 @@ export function useProject() {
     if (prev) setProjectState(prev);
   }, []);
 
-  const replace = useCallback((p: Project) => { past.current = []; setProjectState(withDeal(p)); setDirty(false); }, []);
+  const replace = useCallback((p: Project) => { past.current = []; setProjectState(normalize(p)); setDirty(false); }, []);
 
   return { project, setProject, undo, replace, dirty, setDirty, canUndo: past.current.length > 0 };
 }

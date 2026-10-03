@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { Board, Project, Scene } from '../engine/types';
-import { autoDayBreaks, fitDayBreaks, clearDayBreaks, dood, eighthsToText, insertDayBreak, moveStrip, removeStrip, shootDays, syncCastDaysFromBoard, totalEighths, castSceneCounts, castOrderByAppearance, castOrderByScenes, renumberCast, splitStrip, unsplitScene, setPartEighths, stripPart, stripEighths } from '../engine/board';
+import { autoDayBreaks, fitDayBreaks, clearDayBreaks, dood, eighthsToText, insertDayBreak, moveStrip, removeStrip, shootDays, totalEighths, castSceneCounts, castOrderByAppearance, castOrderByScenes, renumberCast, splitStrip, unsplitScene, setPartEighths, stripPart, stripEighths, dropCastMember, unusedCast } from '../engine/board';
 import { BREAKDOWN_CATEGORIES, addCast, addElement, autoTag, autoTagBoard, categoryColor, namedAnimals, removeCast, removeElement } from '../engine/breakdown';
 
 type Set = (f: (p: Project) => Project) => void;
@@ -45,7 +45,7 @@ export function BoardView({ project, setProject }: { project: Project; setProjec
             <button className="btn" title={`Split into exactly ${project.shootDays} days, keeping order, with the heaviest day as light as possible`} onClick={() => setBoard(b => fitDayBreaks(b, project.shootDays))}>Fit to {project.shootDays} days</button>
             <button className="btn" onClick={() => setBoard(clearDayBreaks)}>Clear day breaks</button>
             {hasText && <button className="btn" title="First-pass breakdown of every scene from the script text: props, vehicles, wardrobe, sounds, extras and the rest. Keeps tags you've added." onClick={() => setBoard(autoTagBoard)}>Auto-tag all scenes</button>}
-            <button className="btn primary" onClick={() => setProject(syncCastDaysFromBoard)}>Push cast days → budget</button>
+            <span className="small muted" title="Cast shoot days and followers (a studio teacher, an animal wrangler) are rewritten on the top sheet and in the points schedule after every edit here. Rehearsal and fitting days live on their own budget line.">cast days flow to the budget automatically</span>
           </div>
         </div>
         <p className="help">Drag strips to reorder. Open a strip's ⌄ to read the scene and tag it: select any words in the script and pick a category, the way Final Draft's tagger works. Drop a day break with the ⏎ button on any strip (it goes in above it). ½ splits a strip so one scene shoots over two days: drag the second part below a day break, set each part's pages, and the cast and tags count on both days. Auto day breaks keeps your scene order and splits at the target; Fit to {project.shootDays} days keeps the order and balances the pages across the schedule; {eighthsToText(total)} pages over {project.shootDays} days is {(total / 8 / project.shootDays).toFixed(1)} pages a day.</p>
@@ -140,7 +140,7 @@ export function BoardView({ project, setProject }: { project: Project; setProjec
 }
 
 /** The DOOD grid. Compact shows the first days that fit; the popout shows them all and lets rows be dragged to renumber. */
-function DoodTable({ board, days, compact, onReorder }: { board: Board; days: ReturnType<typeof shootDays>; compact?: boolean; onReorder?: (order: number[]) => void }) {
+function DoodTable({ board, days, compact, onReorder, onRemove }: { board: Board; days: ReturnType<typeof shootDays>; compact?: boolean; onReorder?: (order: number[]) => void; onRemove?: (castId: number) => void }) {
   const rows = dood(board);
   const counts = castSceneCounts(board);
   const [drag, setDrag] = useState<number | null>(null);
@@ -158,7 +158,7 @@ function DoodTable({ board, days, compact, onReorder }: { board: Board; days: Re
         {rows.filter(r => compact ? r.total > 0 : true).map((r, i) => (
           <tr key={r.castId} className={over === i ? 'dragover' : ''}
             draggable={!!onReorder} onDragStart={() => setDrag(r.castId)} onDragOver={e => { if (onReorder) { e.preventDefault(); setOver(i); } }} onDragLeave={() => setOver(o => (o === i ? null : o))} onDrop={e => { e.preventDefault(); drop(i); }}>
-            <td className="l">{onReorder && <span className="handle">⋮⋮ </span>}{r.castId} {r.name}</td>
+            <td className="l">{onReorder && <span className="handle">⋮⋮ </span>}{r.castId} {r.name}{onRemove && <button className="x" title={counts.get(r.castId) ? `remove ${r.name} from the cast list and untag them from ${counts.get(r.castId)} scene${counts.get(r.castId) === 1 ? '' : 's'}` : `remove ${r.name} from the cast list (no scenes)`} onClick={e => { e.stopPropagation(); if (!counts.get(r.castId) || window.confirm(`${r.name} is tagged in ${counts.get(r.castId)} scene(s). Remove them from the cast list and untag those scenes?`)) onRemove(r.castId); }}>×</button>}</td>
             {!compact && <td className="muted">{counts.get(r.castId) ?? 0}</td>}
             {days.map(d => {
               const w = r.workDays.includes(d.index);
@@ -176,6 +176,7 @@ function DoodPopout({ project, setProject, onClose }: { project: Project; setPro
   const board = project.board; const days = shootDays(board);
   useEffect(() => { const k = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); }; window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k); }, [onClose]);
   const holds = dood(board).reduce((n, r) => n + Math.max(0, r.span - r.total), 0);
+  const unused = unusedCast(board);
   return (
     <div className="modal" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="modal-card">
@@ -184,12 +185,13 @@ function DoodPopout({ project, setProject, onClose }: { project: Project; setPro
           <div className="row">
             <button className="btn small" title="1 = most scenes, the way a breakdown numbers a cast list" onClick={() => setProject(p => renumberCast(p, castOrderByScenes(p.board)))}>Number by scenes</button>
             <button className="btn small" title="1 = first to appear in the script" onClick={() => setProject(p => renumberCast(p, castOrderByAppearance(p.board)))}>Number by first appearance</button>
+            {unused.length > 0 && <button className="btn small" title={`Drop ${unused.map(id => board.castList.find(c => c.id === id)?.name).join(', ')}: on the cast list but tagged in no scene`} onClick={() => setProject(p => unusedCast(p.board).reduce((q, id) => dropCastMember(q, id), p))}>Remove {unused.length} unused</button>}
             <button className="btn small" onClick={onClose}>Close (Esc)</button>
           </div>
         </div>
-        <p className="help small">Drag a row to renumber by hand; scene tags and the points schedule follow the new numbers. W = work day, H = hold day between work days (paid on SAG weekly deals).</p>
+        <p className="help small">Drag a row to renumber by hand; scene tags and the points schedule follow the new numbers. × drops a character from the cast list (and untags their scenes). W = work day, H = hold day between work days (paid on SAG weekly deals).</p>
         <div className="dood dood-full">
-          <DoodTable board={board} days={days} onReorder={order => setProject(p => renumberCast(p, order))} />
+          <DoodTable board={board} days={days} onReorder={order => setProject(p => renumberCast(p, order))} onRemove={id => setProject(p => dropCastMember(p, id))} />
         </div>
       </div>
     </div>

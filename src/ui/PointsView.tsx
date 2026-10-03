@@ -4,7 +4,7 @@ import { addPosition, suggestAccount, SUGGESTED_ACCOUNTS } from '../engine/posit
 import { scaleHourly } from '../engine/sag';
 import { crewDayRateOf } from '../engine/deal';
 import { waterfallReport, syncDaysFromBudget, participantPoints } from '../engine/waterfall';
-import { boardElements, shootDays, syncCastDaysFromBoard } from '../engine/board';
+import { boardElements, dood, shootDays, syncCastDaysFromBoard, adoptBoardDays } from '../engine/board';
 import { incentiveProceeds } from '../engine/incentives';
 import { newId } from '../engine/budget';
 import { setParticipantDays } from '../engine/sag';
@@ -15,9 +15,10 @@ type Set = (f: (p: Project) => Project) => void;
 export function PointsView({ project, setProject }: { project: Project; setProject: Set }) {
   const r = waterfallReport(project);
   const w = project.waterfall;
+  const doodDays = new Map(dood(project.board).map(x => [x.castId, x.total]));
   const [followsOpen, setFollowsOpen] = useState<string | null>(null);
   const setFollows = (id: string, f: { followsCastIds?: number[]; followsElements?: BoardElement[] }) =>
-    setProject(p => syncCastDaysFromBoard({ ...p, participants: p.participants.map(x => x.id === id ? { ...x, followsCastIds: f.followsCastIds?.length ? f.followsCastIds : undefined, followsElements: f.followsElements?.length ? f.followsElements : undefined } : x) }));
+    setProject(p => syncCastDaysFromBoard(adoptBoardDays({ ...p, participants: p.participants.map(x => x.id === id ? { ...x, followsCastIds: f.followsCastIds?.length ? f.followsCastIds : undefined, followsElements: f.followsElements?.length ? f.followsElements : undefined } : x) })));
 
   const patchP = (id: string, patch: Partial<Participant>) =>
     setProject(p => ({ ...p, participants: p.participants.map(x => x.id === id ? { ...x, ...patch } : x) }));
@@ -86,10 +87,9 @@ export function PointsView({ project, setProject }: { project: Project; setProje
         </div>
         <div className="panel">
           <h2>Where the days come from</h2>
-          <p className="help">Participants are linked to budget lines (cast to their SAG day lines, crew to prep/shoot/wrap lines). You can pull days from the budget, or from the stripboard's day-out-of-days once you've placed day breaks. The board sync also rewrites the cast day counts in the budget, so a schedule change reprices the cast automatically.</p>
+          <p className="help">Participants are linked to budget lines (cast to their SAG day lines, crew to prep/shoot/wrap lines). Cast shoot days and anyone who follows the board come straight from the stripboard's day-out-of-days: every edit to the board rewrites their Shoot line on the top sheet and their days here, so a schedule change reprices the cast on its own. Rehearsal and fitting days sit on a line of their own in the budget and are added to the shoot days for points. Crew days are yours to type, or pull them from the budget lines.</p>
           <div className="row">
             <button className="btn" onClick={() => setProject(syncDaysFromBudget)}>Sync days from budget lines</button>
-            <button className="btn" onClick={() => setProject(syncCastDaysFromBoard)}>Sync cast days from board (DOOD)</button>
             <button className="btn" onClick={addP}>+ Add participant</button>
           </div>
           <AddPosition project={project} setProject={setProject} />
@@ -119,6 +119,7 @@ export function PointsView({ project, setProject }: { project: Project; setProje
                   ...rows.flatMap(row => {
                   const p = row.participant;
                   const following = (p.followsCastIds?.length ?? 0) + (p.followsElements?.length ?? 0) > 0;
+                  const onBoard = p.castId != null && doodDays.has(p.castId); const boardDays = onBoard ? doodDays.get(p.castId!)! : 0;
                   const followLabel = [...(p.followsCastIds ?? []).map(id => project.board.castList.find(c => c.id === id)?.name ?? `#${id}`), ...(p.followsElements ?? []).map(e => e.item)].join(', ');
                   return [
                     <tr key={p.id} className={p.group === 'cast' ? 'hl' : ''}>
@@ -126,7 +127,7 @@ export function PointsView({ project, setProject }: { project: Project; setProje
                       <td><input className="l" value={p.role} onChange={e => patchP(p.id, { role: e.target.value })} /></td>
                       <td><select value={p.group} onChange={e => patchP(p.id, { group: e.target.value as Participant['group'] })}>{(['producer', 'cast', 'crew', 'other'] as Participant['group'][]).map(g => <option key={g} value={g}>{GROUP_LABEL[g]}</option>)}</select></td>
                       <td><select value={p.tierId} onChange={e => patchP(p.id, { tierId: e.target.value })}>{project.tiers.map(t => <option key={t.id} value={t.id}>{t.name} ×{t.multiplier}</option>)}</select></td>
-                      <td className="num" style={{ whiteSpace: 'nowrap' }}><input type="number" value={p.days} disabled={following} title={following ? `Days come from the stripboard: every shoot day with ${followLabel}` : "Days worked. Changing them here changes this person's wage lines on the top sheet."} onChange={e => setProject(q => setParticipantDays(q, p.id, +e.target.value))} />
+                      <td className="num" style={{ whiteSpace: 'nowrap' }}><input type="number" value={p.days} disabled={following || onBoard} title={following ? `Days come from the stripboard: every shoot day with ${followLabel}` : onBoard ? `${boardDays} shoot day${boardDays === 1 ? '' : 's'} from the stripboard${p.days - boardDays ? ` + ${p.days - boardDays} rehearsal / fitting (edit that line on the top sheet)` : ', plus any rehearsal / fitting line on the top sheet'}` : "Days worked. Changing them here changes this person's wage lines on the top sheet."} onChange={e => setProject(q => setParticipantDays(q, p.id, +e.target.value))} />
                         {p.castId == null && <button type="button" className={`btn small${following ? ' follows' : ''}`} title={following ? `On set ${[p.followsCastIds?.length ? `whenever ${p.followsCastIds.map(id => project.board.castList.find(c => c.id === id)?.name ?? `#${id}`).join(' or ')} work` : '', p.followsElements?.length ? `whenever a scene has ${p.followsElements.map(e => e.item).join(' or ')}` : ''].filter(Boolean).join(', or ')}. Click to change.` : 'Tie this person\'s days to the stripboard: on set whenever certain cast, or certain tags (an animal, a picture car, stunts), are in the day'} onClick={() => setFollowsOpen(o => o === p.id ? null : p.id)}>⇢</button>}</td>
                       <td className="num"><input type="number" step={0.25} value={p.bonusMultiplier} onChange={e => patchP(p.id, { bonusMultiplier: +e.target.value })} /></td>
                       <td>{num(row.points)}</td>

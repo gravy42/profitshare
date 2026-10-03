@@ -572,7 +572,7 @@ describe('breakdown tagger', () => {
   });
 });
 
-import { renumberCast, castOrderByScenes, castOrderByAppearance } from './board';
+import { renumberCast, castOrderByScenes, castOrderByAppearance, dropCastMember, unusedCast, adoptBoardDays } from './board';
 
 describe('cast numbering', () => {
   const mk = () => {
@@ -876,5 +876,106 @@ describe('incentives', () => {
     expect(r.duringProduction).toBe(12_000);
     expect(incentiveReport(applyDeal(base)).total).toBe(0);
     expect(recoupableBudget(applyDeal(base))).toBe(recoupableBudget(base));
+  });
+});
+
+describe('removing a character from the cast list', () => {
+  const base = (): Project => {
+    const p = sampleProject();
+    const b = p.board;
+    const cast = [{ id: 1, name: 'A' }, { id: 2, name: 'B' }, { id: 3, name: 'GHOST' }];
+    const scenes: Scene[] = [
+      { id: 's1', number: '1', ie: 'INT', set: 'X', tod: 'DAY', pages: '1', eighths: 8, synopsis: '', location: '', scriptDay: '', cast: [cast[0], cast[1]], elements: {} },
+      { id: 's2', number: '2', ie: 'INT', set: 'Y', tod: 'DAY', pages: '2', eighths: 8, synopsis: '', location: '', scriptDay: '', cast: [cast[1]], elements: {} },
+    ];
+    return { ...p, board: { ...b, castList: cast, scenes, strips: [{ type: 'scene', sceneId: 's1' }, { type: 'scene', sceneId: 's2' }] },
+      participants: [
+        { id: 'pa', name: 'A', role: 'cast', group: 'cast', tierId: 'cast', days: 1, bonusMultiplier: 1, castId: 1 },
+        { id: 'pb', name: 'B', role: 'cast', group: 'cast', tierId: 'cast', days: 2, bonusMultiplier: 1, castId: 2 },
+        { id: 'pt', name: 'Teacher', role: 'crew', group: 'crew', tierId: 'crew', days: 0, bonusMultiplier: 1, followsCastIds: [2, 3] },
+      ] };
+  };
+  it('lists the cast nobody tagged', () => { expect(unusedCast(base().board)).toEqual([3]); });
+  it('drops an unused name without touching anyone else', () => {
+    const p = dropCastMember(base(), 3);
+    expect(p.board.castList.map(c => c.id)).toEqual([1, 2]);
+    expect(p.participants.find(x => x.id === 'pt')!.followsCastIds).toEqual([2]);
+    expect(p.participants.find(x => x.id === 'pb')!.castId).toBe(2);
+  });
+  it('untags scenes and unlinks the participant when a tagged character goes', () => {
+    const p = dropCastMember(base(), 2);
+    expect(p.board.scenes.map(s => s.cast.map(c => c.id))).toEqual([[1], []]);
+    expect(p.participants.find(x => x.id === 'pb')!.castId).toBeUndefined();
+    expect(p.participants.find(x => x.id === 'pt')!.followsCastIds).toEqual([3]);
+    expect(dropCastMember(p, 99)).toBe(p);
+  });
+  it('renumbering carries followers along', () => {
+    const p = renumberCast(base(), [3, 2, 1]);
+    expect(p.participants.find(x => x.id === 'pt')!.followsCastIds).toEqual([2, 1]);
+  });
+});
+
+describe('the board owns shoot days; rehearsal and fitting days live on their own line', () => {
+  const fx = (): Project => {
+    const p = sampleProject();
+    const cast = [{ id: 1, name: 'A' }, { id: 2, name: 'B' }];
+    const sc = (id: string, who: typeof cast): Scene => ({ id, number: id, ie: 'INT', set: 'X', tod: 'DAY', pages: '1', eighths: 8, synopsis: '', location: '', scriptDay: '', cast: who, elements: {} });
+    const board: Board = { ...p.board, castList: cast, scenes: [sc('s1', cast), sc('s2', [cast[1]]), sc('s3', [cast[1]])],
+      strips: [{ type: 'scene', sceneId: 's1' }, { type: 'daybreak', id: 'd1' }, { type: 'scene', sceneId: 's2' }, { type: 'daybreak', id: 'd2' }, { type: 'scene', sceneId: 's3' }] };
+    const wage = { unit: 'DAY', rate: 100, multiplier: 10, fringes: ['FICA1'], tags: [], payType: 'cash' as const };
+    return { ...p, board,
+      participants: [
+        { id: 'pa', name: 'A', role: 'cast', group: 'cast', tierId: 'cast', days: 3, bonusMultiplier: 1, castId: 1 },
+        { id: 'pb', name: 'B', role: 'cast', group: 'cast', tierId: 'cast', days: 5, bonusMultiplier: 1, castId: 2 },
+        { id: 'pt', name: 'Teacher', role: 'crew', group: 'crew', tierId: 'crew', days: 9, bonusMultiplier: 1, followsCastIds: [1] },
+        { id: 'pc', name: 'Gaffer', role: 'crew', group: 'crew', tierId: 'crew', days: 20, bonusMultiplier: 1 },
+      ],
+      lines: [
+        { id: 'a1', accountId: '1402', description: 'Shoot | Rehearsal | Fitting', amount: 3, participantId: 'pa', ...wage },
+        { id: 'b1', accountId: '1402', description: 'Shoot | Rehearsal | Fitting', amount: 5, participantId: 'pb', ...wage },
+        { id: 'b2', accountId: '1402', description: 'Agent fee', amount: 1, unit: 'ALLOW', rate: 500, multiplier: 0.1, fringes: [], tags: [], payType: 'cash', participantId: 'pb' },
+        { id: 't1', accountId: '2005', description: 'Studio teacher', amount: 9, participantId: 'pt', ...wage },
+        { id: 'g1', accountId: '2701', description: 'Shoot', amount: 20, participantId: 'pc', ...wage },
+      ] };
+  };
+  it('splits the combined line so the budget total is unchanged, then the board drives the shoot line', () => {
+    const p = syncCastDaysFromBoard(adoptBoardDays(fx()));
+    const L = (id: string) => p.lines.find(l => l.id === id)!;
+    expect(L('a1')).toMatchObject({ description: 'Shoot', amount: 1, daysFrom: 'board' });   // A works day 1 only
+    expect(L('a1_rf')).toMatchObject({ description: 'Rehearsal | Fitting', amount: 2 });       // 3 budgeted - 1 on the board
+    expect(L('b1')).toMatchObject({ description: 'Shoot', amount: 3, daysFrom: 'board' });
+    expect(L('b1_rf').amount).toBe(2);
+    expect(p.lines.map(l => l.id)).toEqual(['a1', 'a1_rf', 'b1', 'b1_rf', 'b2', 't1', 'g1']);
+    expect(L('b2').amount).toBe(1);
+    // points days = shoot + rehearsal, so nobody loses points at migration
+    expect(p.participants.find(x => x.id === 'pa')!.days).toBe(3);
+    expect(p.participants.find(x => x.id === 'pb')!.days).toBe(5);
+    // the follower's single line is board-owned and recounted; the gaffer is nobody's business
+    expect(L('t1')).toMatchObject({ amount: 1, daysFrom: 'board' });
+    expect(p.participants.find(x => x.id === 'pt')!.days).toBe(1);
+    expect(L('g1').amount).toBe(20);
+    expect(p.participants.find(x => x.id === 'pc')!.days).toBe(20);
+  });
+  it('is idempotent and follows later board edits without touching the rehearsal line', () => {
+    const p1 = syncCastDaysFromBoard(adoptBoardDays(fx()));
+    expect(adoptBoardDays(p1)).toBe(p1);
+    expect(syncCastDaysFromBoard(p1)).toBe(p1);
+    // tag A into scene 3 (day 3): shoot 1 -> 2, rehearsal stays 2, points days 3 -> 4
+    const b = p1.board; const scenes = b.scenes.map(s => s.id === 's3' ? { ...s, cast: [...s.cast, { id: 1, name: 'A' }] } : s);
+    const p2 = syncCastDaysFromBoard({ ...p1, board: { ...b, scenes } });
+    expect(p2.lines.find(l => l.id === 'a1')!.amount).toBe(2);
+    expect(p2.lines.find(l => l.id === 'a1_rf')!.amount).toBe(2);
+    expect(p2.participants.find(x => x.id === 'pa')!.days).toBe(4);
+    expect(p2.participants.find(x => x.id === 'pt')!.days).toBe(2);
+    // editing the rehearsal line by hand is respected on the next sync
+    const p3 = syncCastDaysFromBoard({ ...p2, lines: p2.lines.map(l => l.id === 'a1_rf' ? { ...l, amount: 0 } : l) });
+    expect(p3.participants.find(x => x.id === 'pa')!.days).toBe(2);
+  });
+  it('a plain Shoot line is adopted without a split', () => {
+    const f = fx(); f.lines = f.lines.map(l => l.id === 'a1' ? { ...l, description: 'Shoot' } : l);
+    const p = syncCastDaysFromBoard(adoptBoardDays(f));
+    expect(p.lines.filter(l => l.participantId === 'pa').map(l => l.id)).toEqual(['a1']);
+    expect(p.lines.find(l => l.id === 'a1')).toMatchObject({ amount: 1, daysFrom: 'board' });
+    expect(p.participants.find(x => x.id === 'pa')!.days).toBe(1);
   });
 });

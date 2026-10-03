@@ -119,6 +119,8 @@ td.num { width: 90px; }
 .dood { overflow: auto; max-height: 70vh; }
 .dood td, .dood th { padding: 3px 5px; text-align: center; font-size: 11px; }
 .dood td.l { text-align: left; white-space: nowrap; }
+.dood td.l .x { background: transparent; border: 0; color: inherit; cursor: pointer; opacity: .35; margin-left: 6px; font-size: 13px; line-height: 1; }
+.dood tr:hover td.l .x { opacity: .9; }
 .dood td.w { background: var(--teal); color: #fff; font-weight: 700; }
 .dood td.h { background: #f4e7c8; color: #7a6220; }
 

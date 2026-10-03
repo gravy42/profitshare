@@ -69,7 +69,7 @@ export function addPosition(p: Project, pos: NewPosition): { project: Project; p
   const names = [...follows.map(id => q.board.castList.find(c => c.id === id)!.name), ...els.map(e => e.item)].join(', ');
   const { project } = addLine(q, pos.accountId, {
     description: `${title}${pos.note ? ` ${pos.note}` : ''}${names ? ` (days with ${names})` : ''}`, amount: days, unit: 'DAY', rate: hourly,
-    multiplier: pos.longDay ? hours.long : hours.day, fringes: payrollFringeSet(q), tags: [], payType: pos.payType ?? 'cash', participantId: id,
+    multiplier: pos.longDay ? hours.long : hours.day, fringes: payrollFringeSet(q), tags: [], payType: pos.payType ?? 'cash', participantId: id, ...(following ? { daysFrom: 'board' as const } : {}),
   });
   return { project: { ...project, participants: [...project.participants, participant] }, participant };
 }

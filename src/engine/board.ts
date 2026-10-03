@@ -1,4 +1,4 @@
-import type { Board, BoardElement, Project, Scene, Strip } from './types';
+import type { Board, BoardElement, LineItem, Project, Scene, Strip } from './types';
 import { newId } from './budget';
 
 export const eighthsToText = (e: number) => {
@@ -175,26 +175,76 @@ export function fitDayBreaks(board: Board, days: number): Board {
   return { ...board, strips: out };
 }
 
-/** Push cast work-day counts from the board into participants (matched by castId) and into
- *  cast budget lines linked to those participants (DAY-unit performer lines). */
+/** The stripboard owns a cast member's shoot days and a follower's days: the lines flagged daysFrom:'board' take
+ *  the day-out-of-days count, and the person's points days become the sum of their DAY lines (shoot plus whatever
+ *  rehearsal or fitting days sit on their own line). Lines without the flag are left alone. Idempotent, so it can
+ *  run after every board edit. */
 export function syncCastDaysFromBoard(p: Project): Project {
   const rows = dood(p.board);
   const daysByCast = new Map(rows.map(r => [r.castId, r.total]));
-  const participants = p.participants.map(pt => {
-    if (pt.castId != null && daysByCast.has(pt.castId)) return { ...pt, days: daysByCast.get(pt.castId)! };
-    if (pt.followsCastIds?.length || pt.followsElements?.length) { const d = daysFollowing(p.board, pt); return d > 0 || rows.length ? { ...pt, days: d } : pt; }
-    return pt;
-  });
-  const daysOfParticipant = new Map(participants.filter(x => x.castId != null || x.followsCastIds?.length || x.followsElements?.length).map(x => [x.id, x.days]));
+  const boardDays = new Map<string, number>();
+  for (const pt of p.participants) {
+    if (pt.castId != null && daysByCast.has(pt.castId)) boardDays.set(pt.id, daysByCast.get(pt.castId)!);
+    else if (pt.followsCastIds?.length || pt.followsElements?.length) boardDays.set(pt.id, daysFollowing(p.board, pt));
+  }
+  if (!boardDays.size) return p;
+  let touched = false;
   const lines = p.lines.map(l => {
-    if (!l.participantId || l.unit !== 'DAY' || !daysOfParticipant.has(l.participantId)) return l;
-    return { ...l, amount: daysOfParticipant.get(l.participantId)! };
+    if (l.daysFrom !== 'board' || !l.participantId || !boardDays.has(l.participantId)) return l;
+    const amount = boardDays.get(l.participantId)!;
+    if (l.amount === amount) return l;
+    touched = true; return { ...l, amount };
   });
-  return { ...p, participants, lines };
+  const dayTotals = new Map<string, number>();
+  for (const l of lines) if (l.participantId && l.unit === 'DAY' && boardDays.has(l.participantId)) dayTotals.set(l.participantId, (dayTotals.get(l.participantId) ?? 0) + l.amount);
+  const participants = p.participants.map(pt => {
+    if (!boardDays.has(pt.id)) return pt;
+    const days = dayTotals.has(pt.id) ? dayTotals.get(pt.id)! : boardDays.get(pt.id)!;
+    if (days === pt.days) return pt;
+    touched = true; return { ...pt, days };
+  });
+  return touched ? { ...p, participants, lines } : p;
 }
 
-/** Only the positions that follow cast or tags: recounted after the board's tags change (a script merge, a re-tag).
- *  Cast-linked participants are left alone; pushing cast days into the budget stays a deliberate click. */
+/** Decide which lines the board owns, once per project. A cast member's or follower's first "Shoot" DAY line (or
+ *  first DAY line) gets daysFrom:'board'. A combined "Shoot | Rehearsal | Fitting" line is split: the shoot part
+ *  follows the board, and the rehearsal and fitting days move to a line of their own, sized so the budget total
+ *  does not change the moment this runs. Idempotent. */
+export function adoptBoardDays(p: Project): Project {
+  const rows = dood(p.board);
+  const daysByCast = new Map(rows.map(r => [r.castId, r.total]));
+  const owned = new Set<string>();
+  const boardDays = new Map<string, number>();
+  for (const pt of p.participants) {
+    if (pt.castId != null) { owned.add(pt.id); if (daysByCast.has(pt.castId)) boardDays.set(pt.id, daysByCast.get(pt.castId)!); }
+    else if (pt.followsCastIds?.length || pt.followsElements?.length) { owned.add(pt.id); boardDays.set(pt.id, daysFollowing(p.board, pt)); }
+  }
+  if (!owned.size) return p;
+  const flagged = new Set(p.lines.filter(l => l.daysFrom === 'board' && l.participantId).map(l => l.participantId!));
+  const combined = /shoot/i;
+  const extra = /rehears|fitting/i;
+  let changed = false;
+  const out: LineItem[] = [];
+  const done = new Set<string>();
+  for (const l of p.lines) {
+    const pid = l.participantId;
+    if (!pid || l.unit !== 'DAY' || !owned.has(pid) || flagged.has(pid) || done.has(pid)) { out.push(l); continue; }
+    // the first eligible DAY line for this person: a "Shoot" line wins, otherwise whichever comes first
+    const firstShoot = p.lines.find(x => x.participantId === pid && x.unit === 'DAY' && combined.test(x.description));
+    if (firstShoot && firstShoot !== l) { out.push(l); continue; }
+    done.add(pid); changed = true;
+    if (combined.test(l.description) && extra.test(l.description)) {
+      const shoot = boardDays.get(pid);
+      const rest = shoot == null ? 0 : Math.max(0, l.amount - shoot);
+      out.push({ ...l, description: l.description.replace(/\s*\|\s*rehearsal\s*\|\s*fitting/i, '').replace(/^shoot.*$/i, 'Shoot'), daysFrom: 'board' });
+      out.push({ ...l, id: `${l.id}_rf`, description: 'Rehearsal | Fitting', amount: rest, daysFrom: undefined, notes: 'Days off the board: rehearsals, fittings, a wardrobe test. Edit freely; the Shoot line above follows the stripboard.' });
+    } else {
+      out.push({ ...l, daysFrom: 'board' });
+    }
+  }
+  return changed ? { ...p, lines: out } : p;
+}
+
 export function syncFollowersFromBoard(p: Project): { project: Project; changed: string[] } {
   const changed: string[] = [];
   const participants = p.participants.map(pt => {
@@ -261,9 +311,35 @@ export function renumberCast(p: Project, order: number[]): Project {
   const map = new Map(ids.map((old, i) => [old, i + 1]));
   const castList = ids.map(old => ({ ...b.castList.find(c => c.id === old)!, id: map.get(old)! }));
   const scenes = b.scenes.map(s => ({ ...s, cast: s.cast.map(c => c.id != null ? { ...c, id: map.get(c.id) ?? c.id } : c).sort((x, y) => (x.id ?? 0) - (y.id ?? 0)) }));
-  const participants = p.participants.map(pt => pt.castId != null && map.has(pt.castId) ? { ...pt, castId: map.get(pt.castId)! } : pt);
+  const participants = p.participants.map(pt => ({
+    ...pt,
+    ...(pt.castId != null && map.has(pt.castId) ? { castId: map.get(pt.castId)! } : {}),
+    ...(pt.followsCastIds?.length ? { followsCastIds: pt.followsCastIds.map(id => map.get(id) ?? id) } : {}),
+  }));
   return { ...p, board: { ...b, castList, scenes }, participants };
 }
+
+/** Drop a character from the cast list: their tags come off every scene, a participant linked by that cast
+ *  number is unlinked (the budget line stays), and nobody follows them any more. The other numbers are kept. */
+export function dropCastMember(p: Project, castId: number): Project {
+  const b = p.board;
+  if (!b.castList.some(c => c.id === castId)) return p;
+  const castList = b.castList.filter(c => c.id !== castId);
+  const scenes = b.scenes.map(s => s.cast.some(c => c.id === castId) ? { ...s, cast: s.cast.filter(c => c.id !== castId) } : s);
+  const participants = p.participants.map(pt => {
+    let out = pt;
+    if (pt.castId === castId) { const { castId: _drop, ...rest } = pt; out = rest; }
+    if (pt.followsCastIds?.includes(castId)) out = { ...out, followsCastIds: pt.followsCastIds.filter(id => id !== castId) };
+    return out;
+  });
+  return { ...p, board: { ...b, castList, scenes }, participants };
+}
+
+/** Cast with no scene tags, the leftovers after a breakdown is cleaned up. */
+export const unusedCast = (board: Board): number[] => {
+  const n = castSceneCounts(board);
+  return board.castList.map(c => c.id).filter(id => !n.get(id));
+};
 /** Most scenes first (the way a breakdown numbers its cast), ties by current number. */
 export const castOrderByScenes = (board: Board): number[] => {
   const n = castSceneCounts(board);

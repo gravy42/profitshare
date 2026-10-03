@@ -33,6 +33,7 @@ export interface LineItem {
   tags: string[];
   payType: PayType;
   participantId?: string;   // links this line's days to a person in the points schedule
+  daysFrom?: 'board';       // the stripboard owns this line's day count (a cast member's shoot days, a follower's days)
   notes?: string;
 }
 
