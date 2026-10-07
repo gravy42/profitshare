@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { PrintPortal, ScheduleReport } from './print';
+import { shootDates, shortDate, withCalendar } from '../engine/calendar';
 import type { Board, Project, Scene } from '../engine/types';
 import { autoDayBreaks, fitDayBreaks, clearDayBreaks, dood, eighthsToText, insertDayBreak, moveStrip, removeStrip, shootDays, totalEighths, moveStrips, moveDay, dayOfIndex, castSceneCounts, castOrderByAppearance, castOrderByScenes, renumberCast, splitStrip, unsplitScene, setPartEighths, stripPart, stripEighths, dropCastMember, unusedCast } from '../engine/board';
 import { BREAKDOWN_CATEGORIES, addCast, addElement, autoTag, autoTagBoard, categoryColor, namedAnimals, removeCast, removeElement } from '../engine/breakdown';
@@ -16,6 +17,7 @@ export function BoardView({ project, setProject }: { project: Project; setProjec
   const setBoard = (f: (b: Board) => Board) => setProject(p => ({ ...p, board: f(p.board) }));
   const byId = new Map(board.scenes.map(s => [s.id, s]));
   const days = shootDays(board);
+  const dayDates = shootDates(board, withCalendar(project).calendar!);
   const [printSched, setPrintSched] = useState(false);
   const [drag, setDrag] = useState<number | null>(null);
   const [dragDay, setDragDay] = useState<number | null>(null);          // a whole day being lifted (1-based)
@@ -112,9 +114,9 @@ export function BoardView({ project, setProject }: { project: Project; setProjec
               const heavy = d && d.eighths > target * 1.15;
               return (
                 <div key={strip.id} className={`daybreak ${over === i ? 'dragover' : ''} ${dragDay === dayOfStrip[i] ? 'lifting' : ''}`} {...common}>
-                  <span><span className="handle daygrip" draggable title={`Drag to move all of Day ${dayOfStrip[i]} (drop on a strip to go before that day, on a day bar to go after it)`} onDragStart={e => { e.stopPropagation(); setDragDay(dayOfStrip[i]); }} onDragEnd={() => { setDragDay(null); setOver(null); }}>⋮⋮ day</span> End of Day {dayOfStrip[i]} · {d ? eighthsToText(d.eighths) : '0'} pgs · {d?.castIds.length ?? 0} cast {heavy && <span className="warn">· heavy</span>}</span>
+                  <span><span className="handle daygrip" draggable title={`Drag to move all of Day ${dayOfStrip[i]} (drop on a strip to go before that day, on a day bar to go after it)`} onDragStart={e => { e.stopPropagation(); setDragDay(dayOfStrip[i]); }} onDragEnd={() => { setDragDay(null); setOver(null); }}>⋮⋮ day</span> End of Day {dayOfStrip[i]}{dayDates.get(dayOfStrip[i]) ? <span className="daydate"> · {shortDate(dayDates.get(dayOfStrip[i])!)}</span> : null} · {d ? eighthsToText(d.eighths) : '0'} pgs · {d?.castIds.length ?? 0} cast {heavy && <span className="warn">· heavy</span>}</span>
                   <span className="row" style={{ gap: 6 }}>
-                    <input placeholder="date / label" value={strip.label ?? ''} onChange={e => setBoard(b => ({ ...b, strips: b.strips.map((s, j) => j === i && s.type === 'daybreak' ? { ...s, label: e.target.value } : s) }))} />
+                    <input placeholder="label" title="A note for this day (the date comes from the Calendar tab)" value={strip.label ?? ''} onChange={e => setBoard(b => ({ ...b, strips: b.strips.map((s, j) => j === i && s.type === 'daybreak' ? { ...s, label: e.target.value } : s) }))} />
                     <button className="x" title="remove day break" onClick={() => setBoard(b => removeStrip(b, i))}>×</button>
                   </span>
                 </div>

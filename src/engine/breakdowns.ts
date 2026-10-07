@@ -92,3 +92,8 @@ export function itemsIn(board: Board, category: string): { item: string; scenes:
   }
   return [...m.values()].sort((a, b) => b.scenes - a.scenes || a.item.localeCompare(b.item));
 }
+
+/** Every item in a category, each with its days: the whole department's tracking sheet in one report. */
+export function trackAll(board: Board, category: string): { item: string; days: TrackedDay[] }[] {
+  return itemsIn(board, category).map(({ item }) => ({ item, days: trackElement(board, category, item) }));
+}

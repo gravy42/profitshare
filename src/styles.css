@@ -327,3 +327,4 @@ table.bd tr.jump td:nth-child(2) { color: var(--orange); font-weight: 700; }
 .pitchdoc .section input.heading { font-weight: 700; font-size: 14px; width: 70%; border: 1px solid transparent; background: transparent; color: var(--ink); padding: 4px 6px; border-radius: 6px; }
 .pitchdoc .section input.heading:hover, .pitchdoc .section input.heading:focus { border-color: var(--line); background: var(--card); }
 .pitchdoc tr.grp td { background: var(--soft); font-weight: 700; }
+.daybreak .daydate { color: var(--gold); font-weight: 700; }

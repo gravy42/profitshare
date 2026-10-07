@@ -1,7 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import type { Project } from '../engine/types';
 import { eighthsToText } from '../engine/board';
-import { characterBreakdown, departmentBreakdown, elementCategories, itemsIn, storyDayBreakdown, trackElement } from '../engine/breakdowns';
+import { characterBreakdown, departmentBreakdown, elementCategories, itemsIn, storyDayBreakdown, trackAll, trackElement, type TrackedDay } from '../engine/breakdowns';
 import { shootDates, shortDate, withCalendar } from '../engine/calendar';
 import { BreakdownReport, PrintPortal } from './print';
 
@@ -18,7 +18,8 @@ export function BreakdownsView({ project }: { project: Project }) {
   const [itemCat, setItemCat] = useState<string>(''); const [item, setItem] = useState<string>('');
   const tCat = itemCat || cats.find(c => /animal/i.test(c)) || cats[0] || '';
   const tItems = useMemo(() => itemsIn(b, tCat), [b, tCat]);
-  const tItem = item && tItems.some(x => x.item === item) ? item : (tItems[0]?.item ?? '');
+  const ALL = '*';
+  const tItem = item === ALL ? ALL : (item && tItems.some(x => x.item === item) ? item : (tItems[0]?.item ?? ''));
   const dates = useMemo(() => shootDates(b, withCalendar(project).calendar!), [b, project.calendar]);
   const [printing, setPrinting] = useState<null | { what: string; body: ReactNode }>(null);
   const when = (n: number) => { const d = dates.get(n); return d ? ` · ${shortDate(d)}` : ''; };
@@ -26,7 +27,8 @@ export function BreakdownsView({ project }: { project: Project }) {
   const story = useMemo(() => storyDayBreakdown(b), [b]);
   const chars = useMemo(() => characterBreakdown(b), [b]);
   const dept = useMemo(() => departmentBreakdown(b, category), [b, category]);
-  const tracked = useMemo(() => tCat && tItem ? trackElement(b, tCat, tItem) : [], [b, tCat, tItem]);
+  const tracked = useMemo(() => tCat && tItem && tItem !== ALL ? trackElement(b, tCat, tItem) : [], [b, tCat, tItem]);
+  const trackedAll = useMemo(() => tCat && tItem === ALL ? trackAll(b, tCat) : [], [b, tCat, tItem]);
 
   if (!b.scenes.length) return <div className="panel"><p className="help">Import a board or a script first; breakdowns are cut from the stripboard.</p></div>;
 
@@ -70,12 +72,10 @@ export function BreakdownsView({ project }: { project: Project }) {
       ))}</tbody>
     </table>
   );
-  const trackBody = (
-    <div>
-      <p className="help small">{tItem ? `${tItem}: ${tracked.length} shoot day${tracked.length === 1 ? '' : 's'}, ${eighthsToText(tracked.reduce((n, t) => n + t.eighths, 0))} pages, ${new Set(tracked.flatMap(t => t.scenes.map(s => s.number))).size} scenes.` : 'Nothing tagged in this category.'}</p>
+  const trackTable = (rows: TrackedDay[]) => (
       <table className="bd">
         <thead><tr><th>Shoot day</th><th>Pgs</th><th className="l">Scenes</th><th className="l">Where</th><th className="l">With</th><th>Story days</th></tr></thead>
-        <tbody>{tracked.map(t => (
+        <tbody>{rows.map(t => (
           <tr key={t.day.index}>
             <td><b>Day {t.day.index}</b>{when(t.day.index)}</td>
             <td>{eighthsToText(t.eighths)}</td>
@@ -86,6 +86,17 @@ export function BreakdownsView({ project }: { project: Project }) {
           </tr>
         ))}</tbody>
       </table>
+  );
+  const summary = (name: string, rows: TrackedDay[]) => `${name}: ${rows.length} shoot day${rows.length === 1 ? '' : 's'}, ${eighthsToText(rows.reduce((n, t) => n + t.eighths, 0))} pages, ${new Set(rows.flatMap(t => t.scenes.map(s => s.number))).size} scenes.`;
+  const trackBody = tItem === ALL ? (
+    <div>
+      <p className="help small">{tCat}: {trackedAll.length} item{trackedAll.length === 1 ? '' : 's'} tagged on the board, each with the days it plays.</p>
+      {trackedAll.map(x => <div className="charblock" key={x.item}><div className="dayhead"><b>{x.item}</b> <span className="muted small">· {summary('', x.days).slice(2)}</span></div>{trackTable(x.days)}</div>)}
+    </div>
+  ) : (
+    <div>
+      <p className="help small">{tItem ? summary(tItem, tracked) : 'Nothing tagged in this category.'}</p>
+      {trackTable(tracked)}
     </div>
   );
 
@@ -93,7 +104,7 @@ export function BreakdownsView({ project }: { project: Project }) {
     story: { title: 'Story days by shoot day', body: storyBody },
     character: { title: 'Characters: shoot days and story days', body: charBody },
     department: { title: `${category} by shoot day`, body: deptBody },
-    element: { title: `${tItem} (${tCat}) across the schedule`, body: trackBody },
+    element: { title: tItem === ALL ? `${tCat}: every item across the schedule` : `${tItem} (${tCat}) across the schedule`, body: trackBody },
   };
 
   return (
@@ -107,7 +118,7 @@ export function BreakdownsView({ project }: { project: Project }) {
           {mode === 'department' && <div className="ctl"><label>Department</label><select value={category} onChange={e => setCat(e.target.value)}>{cats.map(c => <option key={c} value={c}>{c}</option>)}</select></div>}
           {mode === 'element' && <>
             <div className="ctl"><label>Category</label><select value={tCat} onChange={e => { setItemCat(e.target.value); setItem(''); }}>{cats.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
-            <div className="ctl"><label>Which one</label><select value={tItem} onChange={e => setItem(e.target.value)}>{tItems.map(x => <option key={x.item} value={x.item}>{x.item} ({x.scenes})</option>)}</select></div>
+            <div className="ctl"><label>Which one</label><select value={tItem} onChange={e => setItem(e.target.value)}><option value={ALL}>All of {tCat} ({tItems.length} items, one block each)</option>{tItems.map(x => <option key={x.item} value={x.item}>{x.item} ({x.scenes})</option>)}</select></div>
           </>}
           <button className="btn small" onClick={() => setPrinting({ what: bodies[mode].title, body: bodies[mode].body })}>Print / save as PDF</button>
         </div>
@@ -115,7 +126,7 @@ export function BreakdownsView({ project }: { project: Project }) {
           {mode === 'story' && 'Each shoot day with the story days it touches, in schedule order. A day with more than one story day is a continuity jump: hair, makeup and wardrobe need a look change on set.'}
           {mode === 'character' && 'One block per character: every day they work, the story days they play that day, and the scenes. Hand this to the actor, costume and hair.'}
           {mode === 'department' && 'Everything tagged in one category, laid out by shoot day, so a department can see what it carries each day. Tags come from the breakdown on the Stripboard tab.'}
-          {mode === 'element' && 'One element across the schedule: which days, how many pages, where, with whom. Built for the animal trainers, a picture-car vendor or a prosthetic, but it works for any tag.'}
+          {mode === 'element' && 'One element across the schedule, or "All" for the whole department one item at a time: which days, how many pages, where, with whom. One report for the animal trainers (Jack the cat), another for the picture-car vendor (every vehicle and the days it plays).'}
           {' '}Dates appear once days are placed on the Calendar tab.
         </p>
       </div>
