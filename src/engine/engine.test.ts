@@ -518,7 +518,7 @@ Nothing.
   });
 });
 
-import { autoTag, addElement, removeElement, addCast, autoTagBoard, namedAnimals } from './breakdown';
+import { autoTag, addElement, removeElement, addCast, autoTagBoard, namedAnimals, renameElement } from './breakdown';
 
 describe('breakdown tagger', () => {
   it('reads a first pass of tags off the scene text, from action only', () => {
@@ -1052,7 +1052,7 @@ describe('calendar', () => {
   });
 });
 
-import { storyDayBreakdown, characterBreakdown, departmentBreakdown, trackElement, itemsIn, elementCategories } from './breakdowns';
+import { storyDayBreakdown, characterBreakdown, departmentBreakdown, sceneItems, trackElement, itemsIn, elementCategories } from './breakdowns';
 describe('breakdowns', () => {
   const sc = (id: string, day: string, cast: number[], els: Record<string, string[]> = {}): Scene => ({ id, number: id.slice(2), ie: 'INT', set: 'X', tod: 'DAY', pages: '1', eighths: 8, synopsis: '', location: 'LA', scriptDay: day, cast: cast.map(c => ({ id: c, name: `C${c}` })), elements: els });
   const board: Board = { castList: [{ id: 1, name: 'SAM' }, { id: 2, name: 'PETE' }],
@@ -1087,5 +1087,30 @@ describe('pitch', () => {
   it('comp stats take medians and skip unknowns', () => {
     const s = compStats([newComp({ budget: 1000000, worldwide: 3000000 }), newComp({ budget: null, worldwide: 14000000 }), newComp({ budget: 2000000, worldwide: 14000000 })]);
     expect(s.n).toBe(3); expect(s.medianMultiple).toBe(5); expect(s.medianWorldwide).toBe(14000000); expect(s.medianBudget).toBe(1500000);
+  });
+});
+
+describe('track: what column', () => {
+  it('lists every item of the category on a scene, the tracked one first', () => {
+    const b = sampleProject().board;
+    const s = { ...b.scenes[0], elements: { ...b.scenes[0].elements, Vehicles: ['PETE\'S SUV', 'Sam\'s green car', "pete's suv"] } };
+    expect(sceneItems(s, 'Vehicles', "SAM'S GREEN CAR")).toEqual(['Sam\'s green car', 'PETE\'S SUV']);
+    const b2 = { ...b, scenes: [s, ...b.scenes.slice(1)] };
+    const t = trackElement(b2, 'Vehicles', "sam's green car");
+    expect(t[0].items[0].toLowerCase()).toBe("sam's green car");
+    expect(t[0].items.length).toBe(2);
+  });
+});
+
+describe('renameElement', () => {
+  it('renames a tag everywhere and folds it into an existing item without duplicates', () => {
+    const b = sampleProject().board;
+    const [a, c] = b.scenes;
+    const b2 = { ...b, scenes: b.scenes.map(s => s.id === a.id ? { ...s, elements: { ...s.elements, Vehicles: ['Sam\'s little green car', 'PETE\'S SUV'] } } : s.id === c.id ? { ...s, elements: { ...s.elements, Vehicles: ['SAM\'S GREEN CAR', 'sam\'s little green car'] } } : s) };
+    const r = renameElement(b2, 'Vehicles', 'Sam\'s little green car', 'SAM\'S GREEN CAR');
+    expect(r.scenes).toBe(2);
+    expect(r.board.scenes.find(s => s.id === a.id)!.elements.Vehicles).toEqual(['SAM\'S GREEN CAR', 'PETE\'S SUV']);
+    expect(r.board.scenes.find(s => s.id === c.id)!.elements.Vehicles).toEqual(['SAM\'S GREEN CAR']);
+    expect(itemsIn(r.board, 'Vehicles').map(x => x.item)).not.toContain('Sam\'s little green car');
   });
 });

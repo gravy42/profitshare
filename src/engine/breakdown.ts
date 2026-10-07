@@ -190,6 +190,26 @@ export function removeElement(board: Board, sceneId: string, cat: string, item: 
     return { ...s, elements };
   }) };
 }
+/**
+ * Rename one tag across the whole board. If `to` already exists in the category the two fold into one
+ * item (the scene keeps a single copy, in the position of whichever came first). Returns how many scenes changed.
+ */
+export function renameElement(board: Board, cat: string, from: string, to: string): { board: Board; scenes: number } {
+  const target = clean(to); if (!target || same(from, target) && from === target) return { board, scenes: 0 };
+  let n = 0;
+  const scenes = board.scenes.map(s => {
+    const list = s.elements[cat]; if (!list || !list.some(x => same(x, from))) return s;
+    n++;
+    const out: string[] = []; let placed = false;
+    for (const x of list) {
+      if (same(x, from) || same(x, target)) { if (!placed) { out.push(target); placed = true; } }
+      else out.push(x);
+    }
+    return { ...s, elements: { ...s.elements, [cat]: out } };
+  });
+  return { board: { ...board, scenes }, scenes: n };
+}
+
 /** Tag a name as cast: joins the cast list if new, joins the scene. */
 export function addCast(board: Board, sceneId: string, name: string): Board {
   const n = clean(name).toUpperCase(); if (!n) return board;

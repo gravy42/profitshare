@@ -263,7 +263,7 @@ export default function App() {
         )}
         {tab === 'board' && <BoardView project={eff} setProject={setProject} />}
         {tab === 'calendar' && <CalendarView project={eff} setProject={setProject} />}
-        {tab === 'breakdowns' && <BreakdownsView project={eff} />}
+        {tab === 'breakdowns' && <BreakdownsView project={eff} setProject={setProject} />}
         {tab === 'points' && <PointsView project={eff} setProject={setProject} />}
         {tab === 'sag' && <SagView project={eff} />}
         {tab === 'incentives' && <IncentivesView project={eff} setProject={setProject} />}

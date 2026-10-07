@@ -1,14 +1,33 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import type { Project } from '../engine/types';
 import { eighthsToText } from '../engine/board';
-import { characterBreakdown, departmentBreakdown, elementCategories, itemsIn, storyDayBreakdown, trackAll, trackElement, type TrackedDay } from '../engine/breakdowns';
+import { characterBreakdown, departmentBreakdown, elementCategories, itemsIn, sceneItems, storyDayBreakdown, trackAll, trackElement, type TrackedDay } from '../engine/breakdowns';
 import { shootDates, shortDate, withCalendar } from '../engine/calendar';
 import { BreakdownReport, PrintPortal } from './print';
+import { renameElement } from '../engine/breakdown';
+
+type SetProject = (f: (p: Project) => Project) => void;
+
+/** Rename one tag across the board, or fold it into another item in the same category (pick a name from the list). */
+function RenameTag({ cat, item, others, setProject, onDone }: { cat: string; item: string; others: string[]; setProject: SetProject; onDone: (to: string) => void }) {
+  const [open, setOpen] = useState(false); const [to, setTo] = useState(item);
+  if (!open) return <button className="btn small" title={`Rename "${item}" everywhere it is tagged, or type another ${cat} item's name to merge the two`} onClick={() => { setTo(item); setOpen(true); }}>Rename / merge</button>;
+  const id = `fold-${cat}-${item}`.replace(/\W+/g, '-');
+  const merging = others.some(o => o.toLowerCase() === to.trim().toLowerCase());
+  return (
+    <form className="row" style={{ gap: 6, display: 'inline-flex' }} onSubmit={e => { e.preventDefault(); const v = to.trim(); if (!v) return; setProject(p => ({ ...p, board: renameElement(p.board, cat, item, v).board })); setOpen(false); onDone(v); }}>
+      <input list={id} value={to} onChange={e => setTo(e.target.value)} autoFocus style={{ width: 220 }} />
+      <datalist id={id}>{others.map(o => <option key={o} value={o} />)}</datalist>
+      <button className="btn small primary" type="submit">{merging ? `Merge into ${to.trim()}` : 'Rename everywhere'}</button>
+      <button className="btn small" type="button" onClick={() => setOpen(false)}>Cancel</button>
+    </form>
+  );
+}
 
 type Mode = 'story' | 'character' | 'department' | 'element';
 
 /** Breakdowns: the schedule re-cut for the people who have to live inside it. Everything prints. */
-export function BreakdownsView({ project }: { project: Project }) {
+export function BreakdownsView({ project, setProject }: { project: Project; setProject: SetProject }) {
   const b = project.board;
   const [mode, setMode] = useState<Mode>('story');
   const cats = useMemo(() => elementCategories(b), [b]);
@@ -72,31 +91,38 @@ export function BreakdownsView({ project }: { project: Project }) {
       ))}</tbody>
     </table>
   );
-  const trackTable = (rows: TrackedDay[]) => (
-      <table className="bd">
-        <thead><tr><th>Shoot day</th><th>Pgs</th><th className="l">Scenes</th><th className="l">Where</th><th className="l">With</th><th>Story days</th></tr></thead>
-        <tbody>{rows.map(t => (
-          <tr key={t.day.index}>
-            <td><b>Day {t.day.index}</b>{when(t.day.index)}</td>
-            <td>{eighthsToText(t.eighths)}</td>
-            <td className="l">{t.scenes.map(s => <div key={s.id}><b>{s.number}</b> {s.ie} {s.set} · {s.tod}<div className="muted small">{s.synopsis}</div></div>)}</td>
-            <td className="l">{t.locations.join(' / ')}</td>
-            <td className="l">{t.cast.join(', ')}</td>
-            <td>{t.storyDays.join(', ')}</td>
-          </tr>
-        ))}</tbody>
+  // One fixed column grid for every tracking table, so the blocks in an "All of" report line up with each other.
+  const trackTable = (rows: TrackedDay[], item: string) => (
+      <table className="bd track">
+        <colgroup><col className="c-day" /><col className="c-pgs" /><col className="c-scenes" /><col className="c-what" /><col className="c-where" /><col className="c-with" /><col className="c-story" /></colgroup>
+        <thead><tr><th>Shoot day</th><th>Pgs</th><th className="l">Scenes</th><th className="l">What</th><th className="l">Where</th><th className="l">With</th><th>Story days</th></tr></thead>
+        <tbody>{rows.map(t => t.scenes.map((s, i) => {
+          // one row per scene so the What column sits beside its scene; the day's cells span the scenes
+          const n = t.scenes.length; const first = i === 0;
+          return (
+            <tr key={`${t.day.index}-${s.id}`} className={i === n - 1 ? 'daylast' : 'daymid'}>
+              {first && <td rowSpan={n}><b>Day {t.day.index}</b>{when(t.day.index)}</td>}
+              {first && <td rowSpan={n}>{eighthsToText(t.eighths)}</td>}
+              <td className="l"><b>{s.number}</b> {s.ie} {s.set} · {s.tod}<div className="muted small">{s.synopsis}</div></td>
+              <td className="l">{sceneItems(s, tCat, item).map((x, j) => <div key={x} className={j ? 'muted' : ''}>{x}</div>)}</td>
+              {first && <td className="l" rowSpan={n}>{t.locations.join(' / ')}</td>}
+              {first && <td className="l" rowSpan={n}>{t.cast.join(', ')}</td>}
+              {first && <td rowSpan={n}>{t.storyDays.join(', ')}</td>}
+            </tr>
+          );
+        }))}</tbody>
       </table>
   );
   const summary = (name: string, rows: TrackedDay[]) => `${name}: ${rows.length} shoot day${rows.length === 1 ? '' : 's'}, ${eighthsToText(rows.reduce((n, t) => n + t.eighths, 0))} pages, ${new Set(rows.flatMap(t => t.scenes.map(s => s.number))).size} scenes.`;
   const trackBody = tItem === ALL ? (
     <div>
       <p className="help small">{tCat}: {trackedAll.length} item{trackedAll.length === 1 ? '' : 's'} tagged on the board, each with the days it plays.</p>
-      {trackedAll.map(x => <div className="charblock" key={x.item}><div className="dayhead"><b>{x.item}</b> <span className="muted small">· {summary('', x.days).slice(2)}</span></div>{trackTable(x.days)}</div>)}
+      {trackedAll.map(x => <div className="charblock" key={x.item}><div className="dayhead row" style={{ justifyContent: 'space-between' }}><span><b>{x.item}</b> <span className="muted small">· {summary('', x.days).slice(2)}</span></span><span className="noprint"><RenameTag cat={tCat} item={x.item} others={tItems.map(t => t.item).filter(t => t !== x.item)} setProject={setProject} onDone={() => {}} /></span></div>{trackTable(x.days, x.item)}</div>)}
     </div>
   ) : (
     <div>
-      <p className="help small">{tItem ? summary(tItem, tracked) : 'Nothing tagged in this category.'}</p>
-      {trackTable(tracked)}
+      <p className="help small row" style={{ justifyContent: 'space-between' }}><span>{tItem ? summary(tItem, tracked) : 'Nothing tagged in this category.'}</span>{tItem && <span className="noprint"><RenameTag cat={tCat} item={tItem} others={tItems.map(t => t.item).filter(t => t !== tItem)} setProject={setProject} onDone={setItem} /></span>}</p>
+      {trackTable(tracked, tItem)}
     </div>
   );
 
@@ -126,7 +152,7 @@ export function BreakdownsView({ project }: { project: Project }) {
           {mode === 'story' && 'Each shoot day with the story days it touches, in schedule order. A day with more than one story day is a continuity jump: hair, makeup and wardrobe need a look change on set.'}
           {mode === 'character' && 'One block per character: every day they work, the story days they play that day, and the scenes. Hand this to the actor, costume and hair.'}
           {mode === 'department' && 'Everything tagged in one category, laid out by shoot day, so a department can see what it carries each day. Tags come from the breakdown on the Stripboard tab.'}
-          {mode === 'element' && 'One element across the schedule, or "All" for the whole department one item at a time: which days, how many pages, where, with whom. One report for the animal trainers (Jack the cat), another for the picture-car vendor (every vehicle and the days it plays).'}
+          {mode === 'element' && 'One element across the schedule, or "All" for the whole department one item at a time: which days, how many pages, where, with whom. One report for the animal trainers (Jack the cat), another for the picture-car vendor (every vehicle and the days it plays). Rename / merge fixes a tag everywhere it appears: type a new name, or pick another item from the list to fold the two into one.'}
           {' '}Dates appear once days are placed on the Calendar tab.
         </p>
       </div>

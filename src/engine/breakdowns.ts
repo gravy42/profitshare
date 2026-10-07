@@ -60,7 +60,15 @@ export function elementCategories(board: Board): string[] {
   return [...n.entries()].sort((a, b) => b[1] - a[1]).map(([k]) => k);
 }
 
-export interface TrackedDay { day: ShootDay; scenes: Scene[]; eighths: number; locations: string[]; storyDays: string[]; cast: string[] }
+export interface TrackedDay { day: ShootDay; scenes: Scene[]; eighths: number; locations: string[]; storyDays: string[]; cast: string[]; /** every item of the category on this day's matching scenes, the tracked one first */ items: string[] }
+
+/** Items of one category tagged on a scene, de-duplicated, the named one first when present. */
+export function sceneItems(s: Scene, category: string, first?: string): string[] {
+  const seen = new Set<string>(); const out: string[] = [];
+  for (const x of s.elements[category] ?? []) { const k = normItem(x); if (!seen.has(k)) { seen.add(k); out.push(x); } }
+  if (first) { const f = normItem(first); out.sort((a, b) => (normItem(a) === f ? 0 : 1) - (normItem(b) === f ? 0 : 1)); }
+  return out;
+}
 
 /** One element (Jack the cat, a picture car, a prosthetic) across the schedule: the days it works, what it does, who it works with. */
 export function trackElement(board: Board, category: string, item: string): TrackedDay[] {
@@ -79,7 +87,9 @@ export function trackElement(board: Board, category: string, item: string): Trac
     }
     i++;
     if (!scenes.length) continue;
-    out.push({ day, scenes, eighths, locations: [...new Set(scenes.map(s => s.location).filter(Boolean))], storyDays: [...new Set(scenes.map(storyDayOf))].sort((a, b) => storyDayKey(a) - storyDayKey(b)), cast: [...new Set(scenes.flatMap(s => s.cast.map(c => names.get(c.id!) ?? c.name)))] });
+    const items: string[] = []; const seen = new Set<string>();
+    for (const s of scenes) for (const x of sceneItems(s, category, item)) { const k = normItem(x); if (!seen.has(k)) { seen.add(k); items.push(x); } }
+    out.push({ day, scenes, eighths, locations: [...new Set(scenes.map(s => s.location).filter(Boolean))], storyDays: [...new Set(scenes.map(storyDayOf))].sort((a, b) => storyDayKey(a) - storyDayKey(b)), cast: [...new Set(scenes.flatMap(s => s.cast.map(c => names.get(c.id!) ?? c.name)))], items });
   }
   return out;
 }
