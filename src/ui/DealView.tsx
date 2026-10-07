@@ -15,31 +15,33 @@ const PREMIUM_LABEL: Record<PremiumChoice, string> = { cash: 'up front, as budge
 /** Every tier under both pay models, side by side, from the same raw budget. Clicking a cell applies that combination. */
 function TierMatrix({ raw, setProject }: { raw: Project; setProject: Set }) {
   const d = withDeal(raw).deal!;
+  // the two bump columns: the budget's own rates plus a percent, so a hybrid (better than usual pay, plus the back end) sits beside the pure models
+  const BUMPS = [10, 15];
   const rows = useMemo(() => SAG_TIERS.map(t => {
-    const at = (model: Deal['pay']['model']) => {
-      const p: Project = { ...raw, sag: { ...raw.sag, targetTier: t.id }, deal: { ...d, pay: { ...d.pay, model, rerateCast: true, crewBasis: t.id } } };
+    const at = (model: Deal['pay']['model'], bump = 0) => {
+      const p: Project = { ...raw, sag: { ...raw.sag, targetTier: t.id }, deal: { ...d, pay: { ...d.pay, model, rerateCast: true, crewBasis: t.id, crewBumpPct: bump } } };
       const e = applyDeal(p); const ts = topSheet(e); const r = sagReport(e);
       return { cash: ts.cashBudget, points: ts.pointsValue, fits: r.fits, headroom: r.headroom, cap: r.targetCap };
     };
-    return { t, budgeted: at('as-budgeted'), scale: at('everyone-at-scale') };
+    return { t, budgeted: at('as-budgeted'), bumps: BUMPS.map(b => at('as-budgeted', b)), scale: at('everyone-at-scale') };
   }), [raw]);
-  const pick = (tier: SagTierId, model: Deal['pay']['model']) => setProject(p => { const q = withDeal(p); return { ...q, sag: { ...q.sag, targetTier: tier }, deal: { ...q.deal!, pay: { ...q.deal!.pay, model, rerateCast: true, crewBasis: tier } } }; });
-  const cur = (tier: SagTierId, model: Deal['pay']['model']) => raw.sag.targetTier === tier && d.pay.model === model && (model === 'as-budgeted' || d.pay.crewBasis === tier);
-  const cell = (tier: SagTierId, model: Deal['pay']['model'], x: { cash: number; points: number; fits: boolean; headroom: number; cap: number | null }) => (
-    <td className={`cell ${cur(tier, model) ? 'cur' : ''} ${x.fits ? 'ok' : 'over'}`} onClick={() => pick(tier, model)} title="Apply this tier and pay model">
+  const pick = (tier: SagTierId, model: Deal['pay']['model'], bump = 0) => setProject(p => { const q = withDeal(p); return { ...q, sag: { ...q.sag, targetTier: tier }, deal: { ...q.deal!, pay: { ...q.deal!.pay, model, rerateCast: true, crewBasis: tier, crewBumpPct: bump } } }; });
+  const cur = (tier: SagTierId, model: Deal['pay']['model'], bump = 0) => raw.sag.targetTier === tier && d.pay.model === model && (model === 'as-budgeted' ? (d.pay.crewBumpPct ?? 0) === bump : d.pay.crewBasis === tier);
+  const cell = (tier: SagTierId, model: Deal['pay']['model'], x: { cash: number; points: number; fits: boolean; headroom: number; cap: number | null }, bump = 0) => (
+    <td key={`${model}-${bump}`} className={`cell ${cur(tier, model, bump) ? 'cur' : ''} ${x.fits ? 'ok' : 'over'}`} onClick={() => pick(tier, model, bump)} title="Apply this tier and pay model">
       <div className="big">{money(x.cash)}</div>
       <div className="sub">{x.cap === null ? 'no cap' : x.fits ? `fits · ${money(x.headroom)} under` : `over by ${money(-x.headroom)}`} · back end {money(x.points)}</div>
     </td>);
   return (
     <div className="panel">
       <h2>Every tier, both ways</h2>
-      <table className="matrix" style={{ maxWidth: 900 }}>
-        <thead><tr><th className="l">SAG tier</th><th className="l">As budgeted<span className="hint">crew at the rates on the lines, cast re-rated at the tier</span></th><th className="l">Everyone at scale<span className="hint">crew and cast both at the tier's rate ÷ 8</span></th></tr></thead>
-        <tbody>{rows.map(({ t, budgeted, scale }) => (
-          <tr key={t.id}><td className="l"><b>{t.name}</b><div className="sub">${t.dayRate}/day · cap {t.cap ? money(raw.sag.dic && t.dicCap ? t.dicCap : t.cap) : 'none'}{raw.sag.dic && t.dicCap && t.cap !== t.dicCap ? ' with DIC' : ''}</div></td>{cell(t.id, 'as-budgeted', budgeted)}{cell(t.id, 'everyone-at-scale', scale)}</tr>
+      <table className="matrix" style={{ maxWidth: 1100 }}>
+        <thead><tr><th className="l">SAG tier</th><th className="l">As budgeted<span className="hint">crew at the rates on the lines, cast re-rated at the tier</span></th>{BUMPS.map(b => <th key={b} className="l">Budget +{b}%<span className="hint">every crew wage line {b}% over its budgeted rate, cast at the tier</span></th>)}<th className="l">Everyone at scale<span className="hint">crew and cast both at the tier's rate ÷ 8</span></th></tr></thead>
+        <tbody>{rows.map(({ t, budgeted, bumps, scale }) => (
+          <tr key={t.id}><td className="l"><b>{t.name}</b><div className="sub">${t.dayRate}/day · cap {t.cap ? money(raw.sag.dic && t.dicCap ? t.dicCap : t.cap) : 'none'}{raw.sag.dic && t.dicCap && t.cap !== t.dicCap ? ' with DIC' : ''}</div></td>{cell(t.id, 'as-budgeted', budgeted)}{bumps.map((x, i) => cell(t.id, 'as-budgeted', x, BUMPS[i]))}{cell(t.id, 'everyone-at-scale', scale)}</tr>
         ))}</tbody>
       </table>
-      <p className="help small" style={{ marginTop: 8 }}>Same budget, same premiums and non-shoot floor, only the tier and the pay model change. The highlighted cell is where the film sits now; click another to move it. "Fits" is total production cost against that tier's cap (with the Diversity in Casting cap when that box is on).</p>
+      <p className="help small" style={{ marginTop: 8 }}>Same budget, same premiums and non-shoot floor, only the tier and the pay model change. The +% columns are the hybrid: everyone paid a little better than the budget says, and everyone on the back end. The highlighted cell is where the film sits now; click another to move it. "Fits" is total production cost against that tier's cap (with the Diversity in Casting cap when that box is on).</p>
     </div>
   );
 }
@@ -109,6 +111,13 @@ export function DealView({ raw, eff, setProject, fresh }: { raw: Project; eff: P
           <label className="row" style={{ gap: 6 }}><input type="radio" checked={d.pay.model === 'as-budgeted'} onChange={() => setPay({ model: 'as-budgeted' })} /> <span><b>As budgeted.</b> Crew at their own rates, cast at scale if re-rated, ATL premiums handled below.</span></label>
           <label className="row" style={{ gap: 6 }}><input type="radio" checked={d.pay.model === 'everyone-at-scale'} onChange={() => setPay({ model: 'everyone-at-scale' })} /> <span><b>Everyone at scale (the <i>Sing Sing</i> deal).</b> One hourly for everyone, above and below the line, overtime on top; the upside split by points.</span></label>
         </div>
+        {d.pay.model === 'as-budgeted' && (
+          <div className="row" style={{ alignItems: 'flex-end', marginTop: 12 }}>
+            <div className="ctl"><label>Crew rates over budget</label>
+              <div className="row" style={{ gap: 6 }}><input type="number" min={0} step={1} value={d.pay.crewBumpPct ?? 0} onChange={e => setPay({ crewBumpPct: Math.max(0, +e.target.value || 0) })} style={{ width: 80 }} /><span>%</span></div>
+              <span className="hint">{(d.pay.crewBumpPct ?? 0) ? `every crew wage line at its budgeted rate + ${d.pay.crewBumpPct}%; the budget's own ladder is kept` : 'crew exactly as budgeted; set a percent to pay everyone a little better than the budget says'}</span></div>
+          </div>
+        )}
         {d.pay.model === 'everyone-at-scale' && (
           <div className="row" style={{ alignItems: 'flex-end', marginTop: 12 }}>
             <div className="ctl"><label>Crew &amp; producers' 8-hour rate</label>

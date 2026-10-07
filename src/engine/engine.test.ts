@@ -1114,3 +1114,19 @@ describe('renameElement', () => {
     expect(itemsIn(r.board, 'Vehicles').map(x => x.item)).not.toContain('Sam\'s little green car');
   });
 });
+
+describe('crew bump', () => {
+  it('raises crew wage lines by the percent, leaves cast and premiums alone, keeps the ladder', () => {
+    const p = withDeal(sampleProject());
+    const crew = p.lines.filter(l => isPayrollLine(l) && !isSagPerformerLine(l) && !PROFIT_SHARE_PRESET_MATCH(l));
+    const cast = p.lines.filter(isSagPerformerLine);
+    expect(crew.length).toBeGreaterThan(1);
+    const e = applyDeal({ ...p, deal: { ...p.deal!, pay: { ...p.deal!.pay, model: 'as-budgeted', crewBumpPct: 10 } } });
+    const by = new Map(e.lines.map(l => [l.id, l]));
+    for (const l of crew) expect(by.get(l.id)!.rate).toBeCloseTo(l.rate * 1.1, 1);
+    for (const l of cast) expect(by.get(l.id)!.rate).toBe(l.rate);
+    const [a, b] = crew; expect(by.get(a.id)!.rate / by.get(b.id)!.rate).toBeCloseTo(a.rate / b.rate, 3);
+    expect(topSheet(e).cashBudget).toBeGreaterThan(topSheet(applyDeal(p)).cashBudget);
+    expect(topSheet(applyDeal({ ...p, deal: { ...p.deal!, pay: { ...p.deal!.pay, crewBumpPct: 0 } } })).cashBudget).toBe(topSheet(applyDeal(p)).cashBudget);
+  });
+});

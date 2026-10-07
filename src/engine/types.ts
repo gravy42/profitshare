@@ -132,6 +132,7 @@ export interface Deal {
     rerateCast: boolean;                  // as-budgeted only: put SAG performer lines on the target tier's scale
     crewBasis: SagTierId | 'custom';      // everyone-at-scale: the 8-hour rate crew and producers share
     crewCustomRate: number;
+    crewBumpPct?: number;                 // as-budgeted only: raise every crew wage line by this percent (0 = the rates on the lines)
     premiums: Record<PremiumGroup, PremiumChoice>;   // producer fees, script purchase, star / cast allowances
   };
   producers: { count: number | null; days: number };   // count null = as many as the budget has Fee lines for

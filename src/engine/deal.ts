@@ -3,7 +3,7 @@
 // budget from raw lines + terms, and every view reads the effective one. Change a term, everything updates.
 import type { Deal, Participant, Project, SagTierId } from './types';
 import { PAID_HOURS, setDayHours } from './budget';
-import { daysFromLines, everyoneAtScale, floorNonShootDays, rerateCast, sagTier } from './sag';
+import { daysFromLines, everyoneAtScale, floorNonShootDays, isPayrollLine, isSagPerformerLine, rerateCast, sagTier } from './sag';
 import type { LineItem, PremiumGroup } from './types';
 
 /** The above-scale above-the-line money, in three groups, so a deal can treat each one differently. */
@@ -17,7 +17,7 @@ export const PROFIT_SHARE_PRESET_MATCH = (l: LineItem) => Object.values(PRESET_G
 
 export function defaultDeal(p: { shootDays: number; sag: { targetTier: SagTierId } }): Deal {
   return {
-    pay: { model: 'as-budgeted', rerateCast: false, crewBasis: p.sag.targetTier, crewCustomRate: 400,
+    pay: { model: 'as-budgeted', rerateCast: false, crewBasis: p.sag.targetTier, crewCustomRate: 400, crewBumpPct: 0,
       premiums: { producers: 'cash', script: 'cash', allowances: 'cash' } },
     producers: { count: null, days: p.shootDays + 40 },
     nonShoot: { enabled: false, cashHourly: 16.9, rest: 'points' },
@@ -83,8 +83,9 @@ export function applyDeal(raw: Project): Project {
   // 3. pay model
   if (d.pay.model === 'everyone-at-scale') {
     p = everyoneAtScale(p, p.sag.targetTier, { premiums: 'keep', producerDays: d.producers.days, crewDayRate: crewDayRateOf(p) });
-  } else if (d.pay.rerateCast) {
-    p = rerateCast(p, p.sag.targetTier);
+  } else {
+    if (d.pay.rerateCast) p = rerateCast(p, p.sag.targetTier);
+    if (d.pay.crewBumpPct) p = bumpCrew(p, d.pay.crewBumpPct);
   }
   // whatever the pay model, days on the schedule are the days on the wage lines
   p = daysFromLines(p);
@@ -102,6 +103,13 @@ export function applyDeal(raw: Project): Project {
   if (d.nonShoot.enabled) p = floorNonShootDays(p, { cashHourly: d.nonShoot.cashHourly, rest: d.nonShoot.rest });
 
   return p;
+}
+
+/** Every crew wage line (payroll, not a SAG performer, not an ATL premium) at its budgeted rate plus `pct` percent.
+ *  The budget's own ladder survives: a DP at twice a PA's rate stays at twice. */
+export function bumpCrew(p: Project, pct: number): Project {
+  const f = 1 + pct / 100;
+  return { ...p, lines: p.lines.map(l => isPayrollLine(l) && !isSagPerformerLine(l) && !PROFIT_SHARE_PRESET_MATCH(l) ? { ...l, rate: Math.round(l.rate * f * 100) / 100 } : l) };
 }
 
 /** Which raw line ids the deal rewrites (rate or pay type differs from raw), so the top sheet can show them as set by the deal. */
