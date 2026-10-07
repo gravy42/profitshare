@@ -16,13 +16,14 @@ import { TopSheetView } from './ui/TopSheetView';
 import { PointsView } from './ui/PointsView';
 import { SagView } from './ui/SagView';
 import { IncentivesView } from './ui/IncentivesView';
+import { CalendarView } from './ui/CalendarView';
 import { BoardView } from './ui/BoardView';
 import { DealView } from './ui/DealView';
 import { applyDeal, dealControlledIds, withDeal } from './engine/deal';
 import { StartView } from './ui/StartView';
 import { money } from './ui/format';
 
-type Tab = 'start' | 'deal' | 'topsheet' | 'board' | 'points' | 'sag' | 'incentives' | 'about';
+type Tab = 'start' | 'deal' | 'topsheet' | 'board' | 'calendar' | 'points' | 'sag' | 'incentives' | 'about';
 
 export default function App() {
   const { project, setProject, undo, replace, canUndo } = useProject();
@@ -227,7 +228,7 @@ export default function App() {
         </span>
       </header>
       <nav className="tabs">
-        {([['start', 'Start'], ['deal', 'Deal'], ['topsheet', 'Top sheet & budget'], ['board', 'Stripboard'], ['points', 'Points & waterfall'], ['sag', 'SAG tier'], ['incentives', 'Incentives'], ['about', 'About']] as [Tab, string][]).map(([k, label]) =>
+        {([['start', 'Start'], ['deal', 'Deal'], ['topsheet', 'Top sheet & budget'], ['board', 'Stripboard'], ['calendar', 'Calendar'], ['points', 'Points & waterfall'], ['sag', 'SAG tier'], ['incentives', 'Incentives'], ['about', 'About']] as [Tab, string][]).map(([k, label]) =>
           <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{label}</button>)}
       </nav>
       <main>
@@ -259,6 +260,7 @@ export default function App() {
             <button className="btn small" onClick={() => { forgetPreviousBoard(); setBackup(null); }}>Forget it</button></div>
         )}
         {tab === 'board' && <BoardView project={eff} setProject={setProject} />}
+        {tab === 'calendar' && <CalendarView project={eff} setProject={setProject} />}
         {tab === 'points' && <PointsView project={eff} setProject={setProject} />}
         {tab === 'sag' && <SagView project={eff} />}
         {tab === 'incentives' && <IncentivesView project={eff} setProject={setProject} />}

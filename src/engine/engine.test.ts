@@ -1006,3 +1006,48 @@ describe('moving several strips, and whole days', () => {
     const b = base(); expect(moveDay(b, 2, 2)).toBe(b); expect(moveDay(b, 0, 2)).toBe(b); expect(moveDay(b, 1, 4)).toBe(b);
   });
 });
+
+import { usHolidays, shootDates, newEvent, stampBoardDates, toIcs, monthRange } from './calendar';
+import type { Calendar } from './types';
+describe('calendar', () => {
+  const board: Board = { castList: [], scenes: [{ id: 's1', number: '1', ie: 'INT', set: 'A', tod: 'DAY', pages: '1', eighths: 8, synopsis: '', location: 'LA', cast: [], elements: {} }],
+    strips: [{ type: 'scene', sceneId: 's1' }, { type: 'daybreak', id: 'd1' }, { type: 'scene', sceneId: 's1' }, { type: 'daybreak', id: 'd2' }, { type: 'scene', sceneId: 's1' }, { type: 'daybreak', id: 'd3' }, { type: 'scene', sceneId: 's1' }], targetEighthsPerDay: 40 } as any;
+  const cal = (over: Partial<Calendar> = {}): Calendar => ({ from: '2026-11', to: '2027-07', dayOne: '2026-11-25', workDays: [1, 2, 3, 4, 5], skipHolidays: true, events: [], ...over });
+  it('knows the 2026 holidays a crew takes off', () => {
+    const h = new Map(usHolidays(2026).map(x => [x.label, x.date]));
+    expect(h.get('Thanksgiving')).toBe('2026-11-26');
+    expect(h.get('Christmas Day')).toBe('2026-12-25');
+    expect(h.get("New Year's Day")).toBe('2026-01-01');
+    expect(new Map(usHolidays(2027).map(x => [x.label, x.date])).get('Independence Day')).toBe('2027-07-05'); // the 4th is a Sunday
+  });
+  it('lands shoot days on work dates, skipping weekends and holidays', () => {
+    // Wed Nov 25 2026 → Day 1; Thu 26 and Fri 27 are Thanksgiving; weekend; Mon Nov 30 → Day 2; Tue Dec 1 → Day 3; Wed Dec 2 → Day 4
+    const d = shootDates(board, cal());
+    expect([...d.values()]).toEqual(['2026-11-25', '2026-11-30', '2026-12-01', '2026-12-02']);
+  });
+  it('a company day off pushes the schedule, a pinned day break wins', () => {
+    const d = shootDates(board, cal({ events: [newEvent('2026-11-30', 'dark day', 'off')] }));
+    expect(d.get(2)).toBe('2026-12-01');
+    const pinned = { ...board, strips: board.strips.map(s => s.type === 'daybreak' && s.id === 'd2' ? { ...s, date: '2026-12-10' } : s) };
+    const d2 = shootDates(pinned, cal());
+    expect(d2.get(2)).toBe('2026-12-10');
+    expect(d2.get(3)).toBe('2026-12-11');
+  });
+  it('places days by hand: a pinned shoot event wins, and without a Day 1 the rest stay unplaced', () => {
+    const byHand = cal({ dayOne: undefined, events: [newEvent('2027-03-29', 'Shoot Day 2', 'shoot', undefined, 2)] });
+    const d = shootDates(board, byHand);
+    expect([...d.entries()]).toEqual([[2, '2027-03-29']]);
+    // with a Day 1 too, the walk skips the hand-placed date
+    const mixed = cal({ dayOne: '2027-03-26', events: [newEvent('2027-03-29', 'Shoot Day 3', 'shoot', undefined, 3)] });
+    const d2 = shootDates(board, mixed);
+    expect(d2.get(1)).toBe('2027-03-26'); expect(d2.get(2)).toBe('2027-03-30'); expect(d2.get(3)).toBe('2027-03-29'); expect(d2.get(4)).toBe('2027-03-31');
+    expect(monthRange('', '')).toEqual([]);
+  });
+  it('stamps the computed dates onto the day breaks and writes an .ics', () => {
+    const p = stampBoardDates({ ...sampleProject(), board, calendar: cal() } as any);
+    expect(p.board.strips.filter(s => s.type === 'daybreak').map((s: any) => s.date)).toEqual(['2026-11-25', '2026-11-30', '2026-12-01']);
+    const ics = toIcs(p);
+    expect(ics).toContain('DTSTART;VALUE=DATE:20261125');
+    expect((ics.match(/BEGIN:VEVENT/g) || []).length).toBe(4);
+  });
+});

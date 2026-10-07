@@ -242,3 +242,39 @@ tr.followsrow > td { padding: 6px 8px 8px 34px; background: var(--soft); }
 .matrix td.cell .big { font-size: 18px; font-weight: 800; }
 .matrix td .sub { font-size: 12px; color: var(--muted); }
 .matrix th .hint { display: block; font-weight: 400; text-transform: none; letter-spacing: 0; }
+
+/* Calendar */
+.months { display: grid; grid-template-columns: repeat(auto-fill, minmax(520px, 1fr)); gap: 16px; margin-bottom: 16px; }
+@media (max-width: 1100px) { .months { grid-template-columns: 1fr; } }
+.cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; }
+.cal .wd { font-size: 11px; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); font-weight: 700; text-align: center; padding: 2px 0 4px; }
+.cal .cell { min-width: 0; min-height: 64px; border: 1px solid var(--line); border-radius: 8px; padding: 4px 5px; font-size: 12px; cursor: pointer; background: var(--card); display: flex; flex-direction: column; gap: 3px; }
+.cal .cell:hover { border-color: var(--teal); }
+.cal .cell.blank { border-color: transparent; background: transparent; cursor: default; }
+.cal .cell.weekend { background: var(--soft); }
+.cal .cell.shoot { border-color: var(--plum); box-shadow: inset 0 0 0 1px var(--plum); }
+.cal .cell.off { background: repeating-linear-gradient(135deg, var(--soft), var(--soft) 6px, var(--card) 6px, var(--card) 12px); }
+.cal .cell.today .num { color: var(--orange); }
+.cal .cell.editing { grid-column: span 2; }
+.cal .num { font-weight: 700; display: flex; justify-content: space-between; gap: 4px; align-items: baseline; }
+.cal .hol { font-weight: 400; font-size: 10px; color: var(--muted); text-align: right; line-height: 1.1; }
+.cal .chip { border-radius: 6px; padding: 2px 5px; font-size: 11px; line-height: 1.25; display: flex; justify-content: space-between; align-items: flex-start; gap: 4px; }
+.cal .chip small { display: block; font-size: 10px; opacity: .8; white-space: normal; }
+.cal .shootchip { background: var(--plum); color: #fff; }
+.cal .shootchip > span { min-width: 0; display: block; }
+.cal .chip .x { background: transparent; border: 0; color: inherit; opacity: .6; cursor: pointer; padding: 0 2px; line-height: 1; }
+.cal .chip .x:hover { opacity: 1; }
+.ev.prep { background: #e7f1ef; color: var(--good); }
+.ev.shoot { background: #efe6f7; color: var(--plum); }
+.ev.wrap { background: #fdeee0; color: #b8631f; }
+.ev.post { background: #e9ecf6; color: #3f4f8a; }
+.ev.travel { background: #fff4d6; color: #8a6a12; }
+.ev.hold { background: #f1efe9; color: var(--muted); }
+.ev.off { background: #f7e7e1; color: var(--bad); }
+.ev.note { background: var(--soft); color: var(--ink); }
+:root[data-theme="dark"] .ev.prep, :root[data-theme="dark"] .ev.shoot, :root[data-theme="dark"] .ev.wrap, :root[data-theme="dark"] .ev.post, :root[data-theme="dark"] .ev.travel, :root[data-theme="dark"] .ev.test, :root[data-theme="dark"] .ev.off { filter: brightness(.75) saturate(1.2); }
+.cal .adder { display: flex; flex-direction: column; gap: 4px; margin-top: 2px; }
+.cal .adder input, .cal .adder select { font-size: 12px; padding: 3px 5px; border: 1px solid var(--line); border-radius: 6px; background: var(--card); color: var(--ink); width: 100%; }
+.cal .chip.cont { padding: 1px 5px; font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+.cal .shootchip small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ev.test { background: #e6f3fb; color: #1f6a9a; }

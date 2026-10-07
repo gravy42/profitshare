@@ -168,6 +168,28 @@ export interface Incentives {
   perks: Record<string, number>;     // local perks switched on, by id → dollars saved (0 = on, no estimate yet)
 }
 
+// ---------- production calendar ----------
+
+export type CalEventKind = 'prep' | 'shoot' | 'test' | 'wrap' | 'post' | 'travel' | 'hold' | 'off' | 'note';
+
+export interface CalEvent {
+  id: string;
+  date: string;             // 'YYYY-MM-DD'
+  end?: string;             // inclusive, for a span
+  label: string;
+  kind: CalEventKind;
+  dayIndex?: number;        // a 'shoot' event can pin one of the board's shoot days to this date
+}
+
+export interface Calendar {
+  from: string;             // first month shown, 'YYYY-MM' ('' until the user picks one)
+  to: string;               // last month shown
+  dayOne?: string;          // optional: auto-place the board's shoot days forward from this date over work days
+  workDays: number[];       // 0 = Sunday … 6 = Saturday
+  skipHolidays: boolean;    // shoot days jump over US holidays
+  events: CalEvent[];
+}
+
 // ---------- the whole project ----------
 
 export interface Project {
@@ -189,5 +211,6 @@ export interface Project {
   board: Board;
   deal?: Deal;
   incentives?: Incentives;
+  calendar?: Calendar;
   notes?: string;
 }
