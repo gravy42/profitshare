@@ -6,12 +6,28 @@ import { EVENT_KINDS, daysInMonth, dow, eventsOn, holidaysBetween, monthName, mo
 type SetProject = (f: (p: Project) => Project) => void;
 const WD = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+/** Month + year as two selects: <input type="month"> is a plain text box in Safari, which is where this got typed as "November". */
+function MonthPick({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [y, m] = value && /^\d{4}-\d{2}$/.test(value) ? value.split('-') : ['', ''];
+  const thisYear = new Date().getFullYear();
+  const years = Array.from({ length: 8 }, (_, i) => String(thisYear - 1 + i));
+  const emit = (yy: string, mm: string) => { if (yy && mm) onChange(`${yy}-${mm}`); };
+  return (
+    <span className="row" style={{ gap: 4 }}>
+      <select value={m} onChange={e => emit(y || String(thisYear), e.target.value)}><option value="">month</option>{MONTHS.map((n, i) => <option key={n} value={String(i + 1).padStart(2, '0')}>{n}</option>)}</select>
+      <select value={y} onChange={e => emit(e.target.value, m || '01')}><option value="">year</option>{years.map(yy => <option key={yy} value={yy}>{yy}</option>)}</select>
+    </span>
+  );
+}
+
 /** A month-by-month production calendar. You pick the months, you place the days; the board supplies what each shoot day holds. */
 export function CalendarView({ project, setProject }: { project: Project; setProject: SetProject }) {
   const p = withCalendar(project);
   const cal = p.calendar!;
   const set = (f: (c: NonNullable<Project['calendar']>) => NonNullable<Project['calendar']>) => setProject(q => { const w = withCalendar(q); return { ...w, calendar: f(w.calendar!) }; });
   const [editing, setEditing] = useState<string | null>(null);
+  const [range, setRange] = useState<{ from: string; to: string }>({ from: cal.from, to: cal.to });
   const [draft, setDraft] = useState<{ label: string; kind: CalEventKind; end: string; dayIndex: number }>({ label: '', kind: 'shoot', end: '', dayIndex: 0 });
 
   const days = useMemo(() => shootDays(p.board), [p.board]);
@@ -50,8 +66,9 @@ export function CalendarView({ project, setProject }: { project: Project; setPro
       <div className="panel">
         <h2>Production calendar</h2>
         <div className="row" style={{ alignItems: 'flex-end' }}>
-          <div className="ctl"><label>Show from</label><input type="month" value={cal.from} onChange={e => set(c => ({ ...c, from: e.target.value, to: c.to && c.to < e.target.value ? e.target.value : c.to }))} /></div>
-          <div className="ctl"><label>to</label><input type="month" value={cal.to} min={cal.from || undefined} onChange={e => set(c => ({ ...c, to: e.target.value }))} /></div>
+          <div className="ctl"><label>Show from</label><MonthPick value={range.from} onChange={v => setRange(r => ({ ...r, from: v, to: r.to && r.to < v ? v : r.to }))} /></div>
+          <div className="ctl"><label>to</label><MonthPick value={range.to} onChange={v => setRange(r => ({ ...r, to: v }))} /></div>
+          <button className="btn small primary" disabled={!range.from || !range.to} onClick={() => set(c => ({ ...c, from: range.from, to: range.to }))}>{months.length ? 'Update calendar' : 'Show calendar'}</button>
           <div className="ctl"><label>Work week</label>
             <div className="row" style={{ gap: 3 }}>{[1, 2, 3, 4, 5, 6, 0].map(d => <button key={d} className={`btn small ${cal.workDays.includes(d) ? 'primary' : ''}`} onClick={() => set(c => ({ ...c, workDays: c.workDays.includes(d) ? c.workDays.filter(x => x !== d) : [...c.workDays, d] }))}>{WD[d]}</button>)}</div></div>
           <label className="row" style={{ gap: 6 }}><input type="checkbox" checked={cal.skipHolidays} onChange={e => set(c => ({ ...c, skipHolidays: e.target.checked }))} /> Skip US holidays</label>
@@ -72,7 +89,7 @@ export function CalendarView({ project, setProject }: { project: Project; setPro
         </p>
       </div>
 
-      {months.length === 0 && <div className="notice">Pick the first and last month to show, above. Nothing is placed until you put it there.</div>}
+      {months.length === 0 && <div className="notice">Pick the first and last month above and press Show calendar. Nothing is placed until you put it there.</div>}
 
       <div className="months">
         {months.map(ym => {
