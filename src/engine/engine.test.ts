@@ -1051,3 +1051,41 @@ describe('calendar', () => {
     expect((ics.match(/BEGIN:VEVENT/g) || []).length).toBe(4);
   });
 });
+
+import { storyDayBreakdown, characterBreakdown, departmentBreakdown, trackElement, itemsIn, elementCategories } from './breakdowns';
+describe('breakdowns', () => {
+  const sc = (id: string, day: string, cast: number[], els: Record<string, string[]> = {}): Scene => ({ id, number: id.slice(2), ie: 'INT', set: 'X', tod: 'DAY', pages: '1', eighths: 8, synopsis: '', location: 'LA', scriptDay: day, cast: cast.map(c => ({ id: c, name: `C${c}` })), elements: els });
+  const board: Board = { castList: [{ id: 1, name: 'SAM' }, { id: 2, name: 'PETE' }],
+    scenes: [sc('sc1', '1', [1], { Animals: ['Jack the cat'], Wardrobe: ['hoodie'] }), sc('sc2', '12', [1, 2], { Animals: ['jack the cat'] }), sc('sc3', '12', [2])],
+    strips: [{ type: 'scene', sceneId: 'sc1' }, { type: 'scene', sceneId: 'sc2' }, { type: 'daybreak', id: 'd1' }, { type: 'scene', sceneId: 'sc3' }], targetEighthsPerDay: 40 } as any;
+  it('shows the story days a shoot day touches and flags the jump', () => {
+    const s = storyDayBreakdown(board);
+    expect(s[0].storyDays).toEqual(['1', '12']); expect(s[1].storyDays).toEqual(['12']);
+    const c = characterBreakdown(board);
+    expect(c.find(x => x.name === 'SAM')!.jumps).toBe(1); expect(c.find(x => x.name === 'PETE')!.days.length).toBe(2);
+  });
+  it('lays a department out by day and tracks one element across the schedule', () => {
+    expect(departmentBreakdown(board, 'Wardrobe')[0].items.map(x => x.item)).toEqual(['hoodie']);
+    const t = trackElement(board, 'Animals', 'Jack the cat');
+    expect(t.length).toBe(1); expect(t[0].scenes.map(s => s.number)).toEqual(['1', '2']); expect(t[0].eighths).toBe(16); expect(t[0].cast).toEqual(['SAM', 'PETE']);
+    expect(itemsIn(board, 'Animals')).toEqual([{ item: 'Jack the cat', scenes: 2 }]);
+    expect(elementCategories(board)[0]).toBe('Animals');
+  });
+});
+
+import { projections, compStats, newComp, adoptProjectionsAsScenarios, withPitch } from './pitch';
+describe('pitch', () => {
+  it('runs three cases through the deal waterfall and can hand them to the Points tab', () => {
+    const base = withPitch(sampleProject());
+    const p: Project = { ...base, pitch: { ...base.pitch!, feePct: 20, revenue: [{ id: 'a', source: 'dom', low: 100000, mid: 1000000, high: 5000000 }, { id: 'b', source: 'intl', low: 0, mid: 250000, high: 1000000 }] } };
+    const pr = projections(p);
+    expect(pr.mid.gross).toBe(1250000); expect(pr.mid.fees).toBe(250000); expect(pr.mid.net).toBe(1000000);
+    expect(pr.mid.investors + pr.mid.pool).toBeCloseTo(1000000, 2);
+    expect(pr.high.multiple).toBeGreaterThan(pr.low.multiple);
+    expect(adoptProjectionsAsScenarios(p).waterfall.scenarios).toEqual([80000, 1000000, 4800000]);
+  });
+  it('comp stats take medians and skip unknowns', () => {
+    const s = compStats([newComp({ budget: 1000000, worldwide: 3000000 }), newComp({ budget: null, worldwide: 14000000 }), newComp({ budget: 2000000, worldwide: 14000000 })]);
+    expect(s.n).toBe(3); expect(s.medianMultiple).toBe(5); expect(s.medianWorldwide).toBe(14000000); expect(s.medianBudget).toBe(1500000);
+  });
+});

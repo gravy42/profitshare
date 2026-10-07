@@ -278,3 +278,52 @@ tr.followsrow > td { padding: 6px 8px 8px 34px; background: var(--soft); }
 .cal .chip.cont { padding: 1px 5px; font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
 .cal .shootchip small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ev.test { background: #e6f3fb; color: #1f6a9a; }
+
+/* Breakdowns */
+table.bd td { vertical-align: top; }
+table.bd tr.jump td:nth-child(2) { color: var(--orange); font-weight: 700; }
+.charblock { margin-bottom: 14px; }
+.dayhead { font-size: 13px; padding: 6px 0 4px; border-bottom: 2px solid var(--line); margin-bottom: 4px; }
+.sc { margin-right: 10px; white-space: nowrap; }
+
+/* Print: the browser's Save as PDF is the export. A mounted .print-root hides the app and prints alone. */
+.print-root { display: none; }
+@media print {
+  @page { margin: 12mm; }
+  body[data-print] #root { display: none !important; }
+  html, body[data-print] { background: #fff !important; color: #000; }
+  .print-root { display: block; font: 10.5px/1.3 -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; color: #000; }
+  .print-root .report { padding: 0; }
+  .print-root .ph { display: flex; justify-content: space-between; border-bottom: 2px solid #000; padding-bottom: 4px; margin-bottom: 8px; font-size: 12px; }
+  .print-root table.sched { table-layout: fixed; }
+  .print-root table { width: 100%; border-collapse: collapse; font-size: 10px; margin-bottom: 8px; page-break-inside: auto; }
+  .print-root th, .print-root td { border-bottom: 1px solid #bbb; padding: 2px 5px; text-align: right; vertical-align: top; color: #000; font-variant-numeric: tabular-nums; }
+  .print-root th.l, .print-root td.l, .print-root th:first-child, .print-root td:first-child { text-align: left; }
+  .print-root thead th { font-size: 9px; text-transform: uppercase; letter-spacing: .3px; border-bottom: 1px solid #000; background: #fff; position: static; }
+  .print-root tr { page-break-inside: avoid; }
+  .print-root .day, .print-root .cat, .print-root .charblock { page-break-inside: avoid; margin-bottom: 10px; }
+  .print-root .dayhead { font-size: 11px; border-bottom: 1px solid #000; padding: 4px 0 2px; margin-bottom: 2px; }
+  .print-root .legend td { border: 0; text-align: left; font-size: 9px; padding: 1px 6px 4px 0; white-space: nowrap; }
+  .print-root .small { font-size: 9px; }
+  .print-root .muted { color: #555; }
+  .print-root .note { color: #555; font-style: italic; }
+  .print-root .banner td { background: #eee; font-weight: 700; }
+  .print-root tr.sub td { font-weight: 700; border-top: 1px solid #000; }
+  .print-root tr.acct td { font-weight: 700; background: #f3f3f3; }
+  .print-root tr.total td { font-weight: 800; font-size: 12px; border-top: 2px solid #000; border-bottom: 2px solid #000; }
+  .print-root .totals { max-width: 420px; margin-left: auto; margin-top: 12px; }
+  .print-root .tag { border: 1px solid #999; border-radius: 8px; padding: 0 5px; font-size: 9px; background: #fff; color: #000; }
+  .print-root tr.jump td:nth-child(2) { font-weight: 700; }
+}
+
+/* Pitch */
+.pitchdoc textarea { width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; background: var(--card); color: var(--ink); font: inherit; font-size: 13px; resize: vertical; }
+.pitchdoc .ctl > input { width: 100%; }
+.pitchdoc table.comps td input, .pitchdoc table.proj td input { width: 100%; }
+.pitchdoc tr.sub td { font-weight: 700; border-top: 1px solid var(--line); }
+.pitchdoc .stat { flex: 1; min-width: 200px; }
+.print-root .lead { font-size: 13px; font-weight: 700; margin: 4px 0 8px; }
+.pitchdoc .section { margin-bottom: 12px; }
+.pitchdoc .section input.heading { font-weight: 700; font-size: 14px; width: 70%; border: 1px solid transparent; background: transparent; color: var(--ink); padding: 4px 6px; border-radius: 6px; }
+.pitchdoc .section input.heading:hover, .pitchdoc .section input.heading:focus { border-color: var(--line); background: var(--card); }
+.pitchdoc tr.grp td { background: var(--soft); font-weight: 700; }

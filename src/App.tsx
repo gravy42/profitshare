@@ -17,13 +17,15 @@ import { PointsView } from './ui/PointsView';
 import { SagView } from './ui/SagView';
 import { IncentivesView } from './ui/IncentivesView';
 import { CalendarView } from './ui/CalendarView';
+import { BreakdownsView } from './ui/BreakdownsView';
+import { PitchView } from './ui/PitchView';
 import { BoardView } from './ui/BoardView';
 import { DealView } from './ui/DealView';
 import { applyDeal, dealControlledIds, withDeal } from './engine/deal';
 import { StartView } from './ui/StartView';
 import { money } from './ui/format';
 
-type Tab = 'start' | 'deal' | 'topsheet' | 'board' | 'calendar' | 'points' | 'sag' | 'incentives' | 'about';
+type Tab = 'start' | 'deal' | 'topsheet' | 'board' | 'calendar' | 'breakdowns' | 'points' | 'sag' | 'incentives' | 'pitch' | 'about';
 
 export default function App() {
   const { project, setProject, undo, replace, canUndo } = useProject();
@@ -228,7 +230,7 @@ export default function App() {
         </span>
       </header>
       <nav className="tabs">
-        {([['start', 'Start'], ['deal', 'Deal'], ['topsheet', 'Top sheet & budget'], ['board', 'Stripboard'], ['calendar', 'Calendar'], ['points', 'Points & waterfall'], ['sag', 'SAG tier'], ['incentives', 'Incentives'], ['about', 'About']] as [Tab, string][]).map(([k, label]) =>
+        {([['start', 'Start'], ['deal', 'Deal'], ['topsheet', 'Top sheet & budget'], ['board', 'Stripboard'], ['calendar', 'Calendar'], ['breakdowns', 'Breakdowns'], ['points', 'Points & waterfall'], ['sag', 'SAG tier'], ['incentives', 'Incentives'], ['pitch', 'Pitch'], ['about', 'About']] as [Tab, string][]).map(([k, label]) =>
           <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{label}</button>)}
       </nav>
       <main>
@@ -261,9 +263,11 @@ export default function App() {
         )}
         {tab === 'board' && <BoardView project={eff} setProject={setProject} />}
         {tab === 'calendar' && <CalendarView project={eff} setProject={setProject} />}
+        {tab === 'breakdowns' && <BreakdownsView project={eff} />}
         {tab === 'points' && <PointsView project={eff} setProject={setProject} />}
         {tab === 'sag' && <SagView project={eff} />}
         {tab === 'incentives' && <IncentivesView project={eff} setProject={setProject} />}
+        {tab === 'pitch' && <PitchView project={eff} setProject={setProject} />}
         {tab === 'about' && <About onStart={() => setTab('start')} />}
         <footer>ProfitShare · open source, MIT · your data stays in this browser until you press Save · not legal, tax or financial advice</footer>
       </main>

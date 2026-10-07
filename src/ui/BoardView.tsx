@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { PrintPortal, ScheduleReport } from './print';
 import type { Board, Project, Scene } from '../engine/types';
 import { autoDayBreaks, fitDayBreaks, clearDayBreaks, dood, eighthsToText, insertDayBreak, moveStrip, removeStrip, shootDays, totalEighths, moveStrips, moveDay, dayOfIndex, castSceneCounts, castOrderByAppearance, castOrderByScenes, renumberCast, splitStrip, unsplitScene, setPartEighths, stripPart, stripEighths, dropCastMember, unusedCast } from '../engine/board';
 import { BREAKDOWN_CATEGORIES, addCast, addElement, autoTag, autoTagBoard, categoryColor, namedAnimals, removeCast, removeElement } from '../engine/breakdown';
@@ -15,6 +16,7 @@ export function BoardView({ project, setProject }: { project: Project; setProjec
   const setBoard = (f: (b: Board) => Board) => setProject(p => ({ ...p, board: f(p.board) }));
   const byId = new Map(board.scenes.map(s => [s.id, s]));
   const days = shootDays(board);
+  const [printSched, setPrintSched] = useState(false);
   const [drag, setDrag] = useState<number | null>(null);
   const [dragDay, setDragDay] = useState<number | null>(null);          // a whole day being lifted (1-based)
   const [over, setOver] = useState<number | null>(null);
@@ -80,6 +82,7 @@ export function BoardView({ project, setProject }: { project: Project; setProjec
           <div className="row">
             <div className="ctl" style={{ minWidth: 80 }}><label>Shoot days</label><input type="number" min={1} value={project.shootDays} onChange={e => setProject(p => ({ ...p, shootDays: Math.max(1, +e.target.value || 1) }))} style={{ width: 80 }} /></div>
             <div className="ctl" style={{ minWidth: 90 }}><label>Pages / day</label><input type="number" step={0.5} value={target / 8} onChange={e => { setTarget(+e.target.value * 8); setBoard(b => ({ ...b, targetEighthsPerDay: +e.target.value * 8 })); }} /></div>
+            <button className="btn" title="The board as a shooting schedule, one block per day, as a PDF" onClick={() => setPrintSched(true)}>Print schedule</button>
             <button className="btn" onClick={() => setBoard(b => autoDayBreaks(b, target))}>Auto day breaks</button>
             <button className="btn" title={`Split into exactly ${project.shootDays} days, keeping order, with the heaviest day as light as possible`} onClick={() => setBoard(b => fitDayBreaks(b, project.shootDays))}>Fit to {project.shootDays} days</button>
             <button className="btn" onClick={() => setBoard(clearDayBreaks)}>Clear day breaks</button>
@@ -177,6 +180,7 @@ export function BoardView({ project, setProject }: { project: Project; setProjec
         </div>
       </div>
       {doodOpen && <DoodPopout project={project} setProject={setProject} onClose={() => setDoodOpen(false)} />}
+      {printSched && <PrintPortal title={`${project.name} · Shooting schedule`} landscape onDone={() => setPrintSched(false)}><ScheduleReport p={project} /></PrintPortal>}
     </div>
   );
 }

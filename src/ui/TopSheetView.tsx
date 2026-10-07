@@ -7,6 +7,7 @@ import {
 } from '../engine/budget';
 import { money, PAY_LABEL } from './format';
 import { weeklyWageLines, weeksToDays } from '../engine/sag';
+import { BudgetReport, PrintPortal, TopSheetReport } from './print';
 
 const PAY: PayType[] = ['cash', 'deferred', 'points'];
 const UNITS = ['-', 'DAY', 'WEEK', 'HOUR', 'ALLOW', 'ITEM', 'MONTH', 'FLAT', 'FEET', 'MILE'];
@@ -23,6 +24,7 @@ export function TopSheetView({ project, raw, controlled, setProject }: { project
   const [filter, setFilter] = useState('');
   const [editing, setEditing] = useState(false);
   const [hideEmpty, setHideEmpty] = useState(false);
+  const [printing, setPrinting] = useState<null | 'top' | 'full'>(null);
   const toggle = (k: string) => setOpen(o => ({ ...o, [k]: !o[k] }));
   const toggleAcct = (k: string) => setOpenAcct(o => ({ ...o, [k]: !o[k] }));
   const f = filter.trim().toLowerCase();
@@ -114,6 +116,8 @@ export function TopSheetView({ project, raw, controlled, setProject }: { project
         <div className="row" style={{ justifyContent: 'space-between' }}>
           <h2>Top sheet</h2>
           <div className="row">
+            <button className="btn small" title="The top sheet as a PDF (the browser's print dialog saves to PDF)" onClick={() => setPrinting('top')}>Print top sheet</button>
+            <button className="btn small" title="Every account and line with money on it, as a PDF" onClick={() => setPrinting('full')}>Print full budget</button>
             <div className="bar" style={{ width: 220 }} title="up front / deferred / points">
               <i className="c" style={{ width: `${100 * rollupCashTotal(ts.subtotal) / total}%` }} />
               <i className="d" style={{ width: `${100 * ts.deferredTotal / total}%` }} />
@@ -150,6 +154,8 @@ export function TopSheetView({ project, raw, controlled, setProject }: { project
         </table>
       </div>
       <FringesPanel project={rawP} setProject={setProject} />
+      {printing === 'top' && <PrintPortal title={`${project.name} · Top sheet`} onDone={() => setPrinting(null)}><TopSheetReport p={project} /></PrintPortal>}
+      {printing === 'full' && <PrintPortal title={`${project.name} · Budget`} onDone={() => setPrinting(null)}><BudgetReport p={project} /></PrintPortal>}
     </div>
   );
 }

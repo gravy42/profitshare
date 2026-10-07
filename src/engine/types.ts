@@ -190,6 +190,38 @@ export interface Calendar {
   events: CalEvent[];
 }
 
+// ---------- pitch: comps, audience, projections ----------
+
+export interface Comp {
+  id: string;
+  title: string;
+  year: string;
+  distributor: string;
+  budget: number | null;      // production budget, null when unknown
+  domestic: number | null;
+  worldwide: number | null;
+  note: string;               // how it was released or sold
+  source: string;             // URL
+  group?: string;             // which argument the comp belongs to: 'Festival path', 'Creator-led path', 'Women showed up'…
+}
+
+export interface RevenueLine { id: string; source: string; low: number; mid: number; high: number }
+
+/** A heading and a few paragraphs of argument, in the filmmaker's words: the thesis, the path to market, the audience. */
+export interface PitchSection { id: string; heading: string; body: string }
+
+export interface Pitch {
+  logline: string;
+  why: string;                // why this film, why now, in the filmmaker's words
+  audience: { primary: string; secondary: string; notes: string };
+  sections: PitchSection[];   // the argument, in order
+  comps: Comp[];
+  revenue: RevenueLine[];     // gross receipts to the film by source, three cases
+  feePct: number;             // sales agent / distribution fees and expenses taken off the top, as a % of gross
+  deck: string;               // link or file name of the pitch deck
+  sources: string[];          // market research links
+}
+
 // ---------- the whole project ----------
 
 export interface Project {
@@ -212,5 +244,6 @@ export interface Project {
   deal?: Deal;
   incentives?: Incentives;
   calendar?: Calendar;
+  pitch?: Pitch;
   notes?: string;
 }
