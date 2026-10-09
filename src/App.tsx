@@ -249,6 +249,7 @@ export default function App() {
           <button className="btn ghost" onClick={importBoard}>Import board or script (.sex / .fdx / .pdf)</button>
         </span>}
       </header>
+      <hr className="rule" aria-hidden="true" />
       {!(fresh && tab === 'start') && <nav className="tabs">
         {([['start', 'Start'], ['deal', 'Deal'], ['topsheet', 'Top sheet & budget'], ['board', 'Stripboard'], ['calendar', 'Calendar'], ['breakdowns', 'Breakdowns'], ['points', 'Points & waterfall'], ['sag', 'SAG tier'], ['incentives', 'Incentives'], ['pitch', 'Pitch'], ['about', 'About']] as [Tab, string][]).map(([k, label]) =>
           <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{label}</button>)}
