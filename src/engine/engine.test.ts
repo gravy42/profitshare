@@ -106,7 +106,7 @@ describe('board', () => {
     expect(seed.board.scenes.length).toBe(26);
     expect(totalEighths(seed.board)).toBe(558);
     expect(seed.board.strips[0]).toEqual({ type: 'scene', sceneId: 'sc3' });   // gas station first, not scene 1
-    expect(seed.board.strips.some(s => s.type === 'daybreak')).toBe(false);
+    expect(shootDays(seed.board).length).toBe(12);   // ships with its day breaks placed (Oct 9), so the board opens as a schedule
   });
   it('auto day breaks respect the target and DOOD counts days', () => {
     const b = autoDayBreaks(seed.board, 48);
@@ -277,15 +277,17 @@ describe('building a budget from scratch', () => {
   });
 });
 
-import { fitDayBreaks } from './board';
+import { fitDayBreaks, clearDayBreaks } from './board';
 describe('fit day breaks', () => {
   it('splits into exactly the shoot days with the lightest possible heaviest day', () => {
-    const b = fitDayBreaks(seed.board, 12);
+    const bare = clearDayBreaks(seed.board);
+    const b = fitDayBreaks(bare, 12);
     const days = shootDays(b);
     expect(days.length).toBe(12);
     const heaviest = Math.max(...days.map(d => d.eighths));
     expect(heaviest).toBeLessThanOrEqual(60);            // 7 4/8 pages; greedy-at-6 needed 16 days
-    expect(b.strips.filter(s => s.type === 'scene').map(s => (s as any).sceneId)).toEqual(seed.board.strips.map(s => (s as any).sceneId));
+    expect(b.strips.filter(s => s.type === 'scene').map(s => (s as any).sceneId)).toEqual(bare.strips.map(s => (s as any).sceneId));
+    expect(b.strips.filter(s => s.type === 'scene').map(s => (s as any).sceneId)).toEqual(seed.board.strips.filter(s => s.type === 'scene').map(s => (s as any).sceneId));
   });
 });
 

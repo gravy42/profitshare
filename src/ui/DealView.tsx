@@ -28,19 +28,19 @@ function TierMatrix({ raw, setProject }: { raw: Project; setProject: Set }) {
   const pick = (tier: SagTierId, model: Deal['pay']['model'], bump = 0) => setProject(p => { const q = withDeal(p); return { ...q, sag: { ...q.sag, targetTier: tier }, deal: { ...q.deal!, pay: { ...q.deal!.pay, model, rerateCast: true, crewBasis: tier, crewBumpPct: bump } } }; });
   const cur = (tier: SagTierId, model: Deal['pay']['model'], bump = 0) => raw.sag.targetTier === tier && d.pay.model === model && (model === 'as-budgeted' ? (d.pay.crewBumpPct ?? 0) === bump : d.pay.crewBasis === tier);
   const cell = (tier: SagTierId, model: Deal['pay']['model'], x: { cash: number; points: number; fits: boolean; headroom: number; cap: number | null }, bump = 0) => (
-    <td key={`${model}-${bump}`} className={`cell ${cur(tier, model, bump) ? 'cur' : ''} ${x.fits ? 'ok' : 'over'}`} onClick={() => pick(tier, model, bump)} title="Apply this tier and pay model">
+    <td key={`${model}-${bump}`} className={`cell ${cur(tier, model, bump) ? 'cur' : ''} ${x.fits ? 'ok' : 'over'}`} role="button" tabIndex={0} aria-pressed={cur(tier, model, bump)} aria-label={`${sagTier(tier).name}, ${model === 'as-budgeted' ? (bump ? `budget plus ${bump} percent` : 'as budgeted') : 'everyone at scale'}: ${money(x.cash)}, ${x.cap === null ? 'no cap' : x.fits ? 'fits' : 'over the cap'}`} onClick={() => pick(tier, model, bump)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(tier, model, bump); } }} title="Apply this tier and pay model (Enter or Space from the keyboard)">
       <div className="big">{money(x.cash)}</div>
       <div className="sub">{x.cap === null ? 'no cap' : x.fits ? `fits · ${money(x.headroom)} under` : `over by ${money(-x.headroom)}`} · back end {money(x.points)}</div>
     </td>);
   return (
     <div className="panel">
       <h2>Every tier, both ways</h2>
-      <table className="matrix" style={{ maxWidth: 1100 }}>
+      <div className="scrollx"><table className="matrix" style={{ maxWidth: 1100 }}>
         <thead><tr><th className="l">SAG tier</th><th className="l">As budgeted<span className="hint">crew at the rates on the lines, cast re-rated at the tier</span></th>{BUMPS.map(b => <th key={b} className="l">Budget +{b}%<span className="hint">every crew wage line {b}% over its budgeted rate, cast at the tier</span></th>)}<th className="l">Everyone at scale<span className="hint">crew and cast both at the tier's rate ÷ 8</span></th></tr></thead>
         <tbody>{rows.map(({ t, budgeted, bumps, scale }) => (
           <tr key={t.id}><td className="l"><b>{t.name}</b><div className="sub">${t.dayRate}/day · cap {t.cap ? money(raw.sag.dic && t.dicCap ? t.dicCap : t.cap) : 'none'}{raw.sag.dic && t.dicCap && t.cap !== t.dicCap ? ' with DIC' : ''}</div></td>{cell(t.id, 'as-budgeted', budgeted)}{bumps.map((x, i) => cell(t.id, 'as-budgeted', x, BUMPS[i]))}{cell(t.id, 'everyone-at-scale', scale)}</tr>
         ))}</tbody>
-      </table>
+      </table></div>
       <p className="help small" style={{ marginTop: 8 }}>Same budget, same premiums and non-shoot floor, only the tier and the pay model change. The +% columns are the hybrid: everyone paid a little better than the budget says, and everyone on the back end. The highlighted cell is where the film sits now; click another to move it. "Fits" is total production cost against that tier's cap (with the Diversity in Casting cap when that box is on).</p>
     </div>
   );
@@ -72,10 +72,12 @@ export function DealView({ raw, eff, setProject, fresh }: { raw: Project; eff: P
       {fresh && <div className="notice">Set the terms of the film here. Everything on the other tabs is computed from your budget plus these terms, live, and you can come back and change any of them at any time.</div>}
       <div className="grid3" style={{ marginBottom: 16 }}>
         <div className="stat"><div className="label">Budget to raise</div><div className="value">{money(ts.cashBudget)}</div><div className="sub">investors recoup {money(recoupableBudget(eff))} of it{incentiveProceeds(eff) > 0 ? ` (${money(incentiveProceeds(eff))} comes back in incentives)` : ''}</div></div>
-        <div className={`stat ${r.fits ? 'good' : 'bad'}`}><div className="label">SAG: {r.target.name}</div><div className="value">{r.targetCap === null ? 'no cap' : r.fits ? 'fits' : 'over'}</div>
-          <div className="sub">{r.targetCap === null ? 'Basic Agreement' : `${r.fits ? 'headroom' : 'over by'} ${money(Math.abs(r.headroom))} of ${money(r.targetCap)}`} · qualifies for {r.qualifying.name}</div></div>
+        <div className={`stat ${r.fits ? 'good' : 'bad'}`}><div className="label">SAG target: {r.target.name}</div><div className="value">{r.targetCap === null ? 'no cap' : r.fits ? 'fits' : 'over'}</div>
+          <div className="sub">{r.targetCap === null ? 'Basic Agreement' : `${r.fits ? 'headroom' : 'over by'} ${money(Math.abs(r.headroom))} of ${money(r.targetCap)}`}{r.qualifying.id !== r.target.id ? ` · as drawn it qualifies for ${r.qualifying.name}` : ' · the tier it qualifies for'}</div></div>
         <div className="stat"><div className="label">On the back end</div><div className="value">{money(ts.pointsValue)}</div><div className="sub">value traded for points · {eff.participants.length} participants</div></div>
       </div>
+
+      <TierMatrix raw={raw} setProject={setProject} />
 
       <div className="panel">
         <h2>The film</h2>
@@ -100,7 +102,7 @@ export function DealView({ raw, eff, setProject, fresh }: { raw: Project; eff: P
             </select></div>
           <label className="row" style={{ gap: 6 }}><input type="checkbox" checked={raw.sag.dic} onChange={e => setSag({ dic: e.target.checked })} /> Diversity in Casting incentive</label>
           <label className="row" style={{ gap: 6 }}><input type="checkbox" checked={raw.sag.includeContingency} onChange={e => setSag({ includeContingency: e.target.checked })} /> Count contingency in total production cost</label>
-          {d.pay.model === 'as-budgeted' && <label className="row" style={{ gap: 6 }}><input type="checkbox" checked={d.pay.rerateCast} onChange={e => setPay({ rerateCast: e.target.checked })} /> Re-rate cast lines at {raw.sag.targetTier} scale</label>}
+          {d.pay.model === 'as-budgeted' && <label className="row" style={{ gap: 6 }}><input type="checkbox" checked={d.pay.rerateCast} onChange={e => setPay({ rerateCast: e.target.checked })} /> Re-rate cast lines at {sagTier(raw.sag.targetTier).name} scale</label>}
         </div>
         <p className="help small" style={{ marginTop: 8 }}>The tier sets the bar the budget has to clear and the scale the cast get. It doesn't lower anything by itself. The SAG tab shows the full table.</p>
       </div>
@@ -122,19 +124,17 @@ export function DealView({ raw, eff, setProject, fresh }: { raw: Project; eff: P
           <div className="row" style={{ alignItems: 'flex-end', marginTop: 12 }}>
             <div className="ctl"><label>Crew &amp; producers' 8-hour rate</label>
               <select value={d.pay.crewBasis} onChange={e => setPay({ crewBasis: e.target.value as any })}>
-                {SAG_TIERS.map(t => <option key={t.id} value={t.id}>{t.id} scale · ${t.dayRate}</option>)}
+                {SAG_TIERS.map(t => <option key={t.id} value={t.id}>{t.name} scale · ${t.dayRate}</option>)}
                 <option value="custom">custom…</option>
               </select>
               {d.pay.crewBasis === 'custom' && <input type="number" value={d.pay.crewCustomRate} onChange={e => setPay({ crewCustomRate: +e.target.value || 0 })} style={{ width: 110 }} />}
-              <span className="hint">${(crewRate / 8).toFixed(2)}/hr → {money(perDay(crewRate, hours.day))} per {raw.dayHours ?? 12}-hr crew day · cast at {raw.sag.targetTier}: {money(perDay(sagTier(raw.sag.targetTier).dayRate, hours.sag))}</span></div>
+              <span className="hint">${(crewRate / 8).toFixed(2)}/hr → {money(perDay(crewRate, hours.day))} per {raw.dayHours ?? 12}-hr crew day · cast at {sagTier(raw.sag.targetTier).name}: {money(perDay(sagTier(raw.sag.targetTier).dayRate, hours.sag))}</span></div>
             <div className="ctl" style={{ minWidth: 90 }}><label>Producers</label><input type="number" min={0} value={d.producers.count ?? rawProducers} onChange={e => setDeal(x => ({ ...x, producers: { ...x.producers, count: Math.max(0, +e.target.value || 0) } }))} style={{ width: 80 }} /><span className="hint">{d.producers.count === null ? `as budgeted (${rawProducers})` : 'paid at the crew rate'}</span></div>
             <div className="ctl" style={{ minWidth: 90 }}><label>Producer days</label><input type="number" min={0} value={d.producers.days} title="Sets every producer's days; a single producer can be changed on the points schedule afterwards" onChange={e => { const days = Math.max(0, +e.target.value || 0); setDeal(x => ({ ...x, producers: { ...x.producers, days } })); setProject(q => ({ ...q, participants: q.participants.map(pt => pt.group === 'producer' && pt.id.startsWith('p_producer') ? { ...pt, days } : pt) })); }} style={{ width: 80 }} /><span className="hint">shoot + prep / wrap / post, for every producer</span></div>
           </div>
         )}
         <p className="help small" style={{ marginTop: 8 }}>SAG scale covers an 8-hour day. Under everyone-at-scale, crew hourly is that rate ÷ 8 with California overtime (1.5× after 8, 2× after 12); cast get the target tier's rate ÷ 8 with SAG overtime (1.5× hours 9–10, 2× after). Cast can't be paid below the tier the film lands in, so equal pay means bringing crew up, never cast down.</p>
       </div>
-
-      <TierMatrix raw={raw} setProject={setProject} />
 
       <div className="panel">
         <h2>Above-scale ATL money</h2>
@@ -145,7 +145,11 @@ export function DealView({ raw, eff, setProject, fresh }: { raw: Project; eff: P
             {groupTotals.map(({ g, count, total }) => (
               <tr key={g}>
                 <td className="l">{PRESET_GROUPS[g].label}</td><td>{count}</td><td>{money(total)}</td>
-                <td className="l"><select value={d.pay.premiums[g]} onChange={e => setPay({ premiums: { ...d.pay.premiums, [g]: e.target.value as PremiumChoice } })}>
+                <td className="l"><select value={d.pay.premiums[g]} onChange={e => {
+                  const c = e.target.value as PremiumChoice;
+                  if (c === 'delete' && !window.confirm(`Take ${count} line${count === 1 ? '' : 's'} worth ${money(total)} off the budget? (${PRESET_GROUPS[g].label}. The lines stay in the file; pick another choice here to bring them back.)`)) return;
+                  setPay({ premiums: { ...d.pay.premiums, [g]: c } });
+                }}>
                   {(Object.keys(PREMIUM_LABEL) as PremiumChoice[]).map(c => <option key={c} value={c}>{PREMIUM_LABEL[c]}</option>)}
                 </select></td>
               </tr>
@@ -154,8 +158,8 @@ export function DealView({ raw, eff, setProject, fresh }: { raw: Project; eff: P
         </table>
       </div>
 
-      <div className="panel">
-        <h2>Prep, wrap and post days</h2>
+      <details className="panel fold" open={d.nonShoot.enabled}>
+        <summary><h2>Prep, wrap and post days <span className="hint">{d.nonShoot.enabled ? `floor $${d.nonShoot.cashHourly}/hr, balance to ${d.nonShoot.rest}` : 'paid as budgeted'}</span></h2></summary>
         <div className="row" style={{ alignItems: 'flex-end' }}>
           <label className="row" style={{ gap: 6 }}><input type="checkbox" checked={d.nonShoot.enabled} onChange={e => setDeal(x => ({ ...x, nonShoot: { ...x.nonShoot, enabled: e.target.checked } }))} /> Pay non-shoot days at a floor rate, balance to the back end</label>
           {d.nonShoot.enabled && <>
@@ -165,10 +169,10 @@ export function DealView({ raw, eff, setProject, fresh }: { raw: Project; eff: P
           </>}
         </div>
         <p className="help small" style={{ marginTop: 8 }}>{nonShootDays} non-shoot crew and producer days in the budget right now. Shoot days are never touched; the days still count as worked, so nobody's points change. The floor isn't zero because a worked day at $0 is a wage-law problem for a W-2 crew member (California's 2026 state minimum is $16.90; Los Angeles city is higher). Check with your payroll company and attorney.</p>
-      </div>
+      </details>
 
-      <div className="panel">
-        <h2>Financing and the waterfall</h2>
+      <details className="panel fold" open={(raw.waterfall.nonRecoupable ?? 0) > 0}>
+        <summary><h2>Financing and the waterfall <span className="hint">{raw.waterfall.model === 'off-the-gross' ? `off the gross, pool ${raw.waterfall.grossSharePct}%` : 'recoup first'} · investors recoup {money(recoupableBudget(eff))}{(raw.waterfall.nonRecoupable ?? 0) > 0 ? ` after ${money(raw.waterfall.nonRecoupable!)} in grants` : ''}</span></h2></summary>
         <div className="row" style={{ alignItems: 'flex-end' }}>
           <div className="ctl"><label>Grants / fiscal sponsorship ($)</label><input type="number" step={10000} value={raw.waterfall.nonRecoupable ?? 0} onChange={e => setW({ nonRecoupable: Math.max(0, +e.target.value || 0) })} /><div className="hint">never paid back; investors put in the other {money(recoupableBudget(eff))}</div></div>
           <div className="ctl"><label>Model</label>
@@ -181,7 +185,7 @@ export function DealView({ raw, eff, setProject, fresh }: { raw: Project; eff: P
           <div className="ctl"><label>Revenue scenarios ($)</label><input value={raw.waterfall.scenarios.join(', ')} onChange={e => setW({ scenarios: e.target.value.split(',').map(s => +s.replace(/[^\d.]/g, '')).filter(n => n > 0) })} /></div>
         </div>
         <p className="help small" style={{ marginTop: 8 }}>The Points tab shows who gets what at each scenario. Tier multipliers and per-person bonuses live there too.</p>
-      </div>
+      </details>
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { fitDayBreaks } from '../engine/board';
 import type { Account, Board, Category, LineItem, Participant, PointsTier, Project, Waterfall } from '../engine/types';
 import budgetJson from './sample-budget.json';
 import boardJson from './sample-board.json';
@@ -110,7 +111,8 @@ export function deriveParticipants(lines: LineItem[], accounts: { number: string
  *  every name and number in it is fictional. */
 export function sampleProject(): Project {
   const b = budgetJson as any;
-  const board: Board = { ...(boardJson as any), targetEighthsPerDay: 48 };
+  // the strips come in shooting order; the day breaks for its 12 days are placed so the board reads as a schedule the moment it opens
+  const board: Board = fitDayBreaks({ ...(boardJson as any), targetEighthsPerDay: 48 }, b.shootDays);
   const rawLines: LineItem[] = b.lines.map((l: any) => ({ ...l }) as LineItem);
   const { participants, lines } = deriveParticipants(rawLines, b.accounts, board, b.shootDays);
   return {
@@ -120,7 +122,7 @@ export function sampleProject(): Project {
     participants, tiers: DEFAULT_TIERS.map(t => ({ ...t })), waterfall: { ...DEFAULT_WATERFALL },
     sag: { targetTier: 'MLB', dic: false, includeContingency: true },
     board,
-    notes: 'Sample project. The strips are in shooting order (grouped by location) with no day breaks placed yet.',
+    notes: 'Sample project. The strips are in shooting order (grouped by location) with day breaks placed for its 12 days; drag them, or Clear day breaks and place your own.',
   };
 }
 
@@ -132,12 +134,12 @@ export function standardChartOfAccounts(): { categories: Category[]; accounts: A
   return { categories: b.categories.map((c: Category) => ({ ...c })), accounts: b.accounts.map((a: Account) => ({ ...a })) };
 }
 
-export interface BlankOptions { name?: string; shootDays?: number; chartOfAccounts?: 'standard' | 'empty' }
+export interface BlankOptions { name?: string; version?: string; shootDays?: number; chartOfAccounts?: 'standard' | 'empty' }
 
 export function blankProject(opts: BlankOptions = {}): Project {
   const coa = opts.chartOfAccounts === 'empty' ? { categories: [], accounts: [] } : standardChartOfAccounts();
   return {
-    schemaVersion: 1, name: opts.name?.trim() || 'Untitled', version: 'v1', currency: 'USD', shootDays: opts.shootDays || 20, contingencyPct: 10,
+    schemaVersion: 1, name: opts.name?.trim() || 'Untitled', version: opts.version?.trim() || 'v1', currency: 'USD', shootDays: opts.shootDays || 20, contingencyPct: 10,
     categories: coa.categories, accounts: coa.accounts, fringes: CA_FRINGES_2026.map(f => ({ ...f })), lines: [], participants: [],
     tiers: DEFAULT_TIERS.map(t => ({ ...t })), waterfall: { ...DEFAULT_WATERFALL },
     sag: { targetTier: 'MLB', dic: false, includeContingency: true },

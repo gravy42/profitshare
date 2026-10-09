@@ -31,13 +31,29 @@ export default function App() {
   const { project, setProject, undo, replace, canUndo } = useProject();
   const [hadSaved] = useState(hadSavedProject);
   const [tab, setTab] = useState<Tab>(hadSaved ? 'topsheet' : 'start');
-  const [msg, setMsg] = useState<string | null>(null);
+  // a message to the user: short confirmations fade after a few seconds, anything worth re-reading (an import report, a repricing) stays until dismissed
+  const [msg, setMsg] = useState<{ text: string; sticky: boolean } | null>(null);
+  const msgTimer = useRef<number | null>(null);
   const eff = applyDeal(project);                 // the budget with the deal terms applied; every view reads this
   const controlled = dealControlledIds(project, eff);
   const ts = topSheet(eff);
   const sag = sagReport(eff);
 
-  const flash = (m: string) => { setMsg(m); setTimeout(() => setMsg(null), 6000); };
+  const flash = (m: string, sticky = m.length > 140) => {
+    if (msgTimer.current) { clearTimeout(msgTimer.current); msgTimer.current = null; }
+    setMsg({ text: m, sticky });
+    if (!sticky) msgTimer.current = window.setTimeout(() => setMsg(null), 7000);
+  };
+  // Cmd-Z / Ctrl-Z outside a text field is Undo, the same as the button
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== 'z' || e.shiftKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
+      if (canUndo) { e.preventDefault(); undo(); }
+    };
+    window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k);
+  }, [canUndo, undo]);
 
   // ---- file intake: one path for the buttons and for drag-and-drop ----
   type Kind = 'project' | 'budget' | 'board' | 'script' | 'mbd' | 'unknown';
@@ -186,17 +202,17 @@ export default function App() {
     return () => { window.removeEventListener('dragenter', enter); window.removeEventListener('dragover', over); window.removeEventListener('dragleave', leave); window.removeEventListener('drop', drop); };
   });
 
-  // Replacing a project needs a second click, unless this browser had nothing saved and the user is still on the start screen.
-  const [armed, setArmed] = useState(false);
+  // Replacing a project needs a second click on the same button, unless this browser had nothing saved and the user is still on the start screen.
+  const [armed, setArmed] = useState<string | null>(null);
   const [fresh, setFresh] = useState(!hadSaved);
-  const guard = (go: () => void) => {
-    if (fresh || armed) { setArmed(false); setFresh(false); go(); }
-    else { setArmed(true); flash('Press the button again to replace the current project (Save first if you want to keep it).'); }
+  const guard = (id: string, go: () => void) => {
+    if (fresh || armed === id) { setArmed(null); setFresh(false); go(); }
+    else { setArmed(id); flash(`Press that button again to replace ${project.name || 'the current project'} (Save first if you want to keep it).`); }
   };
-  const startBlank = (o: BlankOptions) => guard(() => { replace(blankProject(o)); setTab('deal'); flash('Blank budget ready. Set the terms here, then build lines on the Top sheet.'); });
-  const startSample = () => guard(() => { replace(sampleProject()); setTab('deal'); flash('Sample project loaded: SALT FLAT, an invented 12-day feature. These are its terms; change any of them.'); });
-  const startImport = () => guard(() => { replace(blankProject({ chartOfAccounts: 'empty' })); void importBudget(); });
-  const startOpen = () => guard(() => void openJson());
+  const startBlank = (o: BlankOptions) => guard('blank', () => { replace(blankProject(o)); setTab('deal'); flash('Blank budget ready. Set the terms here, then build lines on the Top sheet.'); });
+  const startSample = () => guard('sample', () => { replace(sampleProject()); setTab('deal'); flash('Sample project loaded: SALT FLAT, an invented 12-day feature. These are its terms; change any of them.'); });
+  const startImport = () => guard('import', () => { replace(blankProject({ chartOfAccounts: 'empty' })); void importBudget(); });
+  const startOpen = () => guard('open', () => void openJson());
   const copyJson = async () => {
     const text = JSON.stringify(project);
     try { await navigator.clipboard.writeText(text); flash('Project JSON copied to the clipboard'); }
@@ -206,35 +222,39 @@ export default function App() {
   return (
     <div className="app">
       {dragging && <div className="dropzone"><div><b>Drop to import</b><span>Budgets (.xlsx, .csv), boards (.sex), scripts (.fdx, .pdf, .fountain, .txt), saved projects (.json). Several at once is fine.</span></div></div>}
-      <header className="top">
+      <header className={`top ${fresh && tab === 'start' ? 'empty' : ''}`}>
         <h1>ProfitShare</h1>
-        <span className="proj">
+        {!(fresh && tab === 'start') && <span className="proj">
           <input value={project.name} onChange={e => setProject(p => ({ ...p, name: e.target.value }))} /> {' '}
           <input value={project.version} style={{ width: 90 }} onChange={e => setProject(p => ({ ...p, version: e.target.value }))} />
-        </span>
+        </span>}
         <span className="spacer" />
-        <span className="kpi">
+        {!(fresh && tab === 'start') && <span className="kpi">
           <span>Budget to raise<b>{money(ts.cashBudget)}</b></span>
           <span>Deal<b>{project.deal?.pay.model === 'everyone-at-scale' ? 'everyone at scale' : 'as budgeted'}</b></span>
           <span>Points value<b>{money(ts.pointsValue)}</b></span>
-          <span>SAG<b>{sag.qualifying.id}{sag.dic ? '+DIC' : ''}</b></span>
-        </span>
-        <span className="btns">
-          <button className="btn ghost" onClick={undo} disabled={!canUndo}>Undo</button>
-          <button className="btn ghost" onClick={() => { setArmed(false); setTab('start'); }}>New…</button>
+          <span title={`Qualifies for ${sag.qualifying.name}${sag.dic ? ' with the Diversity in Casting cap' : ''}; the tier you are aiming at is on the Deal tab`}>SAG<b>{sag.qualifying.id}{sag.dic ? '+DIC' : ''}</b></span>
+        </span>}
+        {fresh && tab === 'start' ? (
+          <span className="btns">
+            <button className="btn ghost" onClick={openJson}>Open a saved project</button>
+          </span>
+        ) : <span className="btns">
+          <button className="btn ghost" onClick={undo} disabled={!canUndo} title="Undo the last change (⌘Z)">Undo</button>
+          <button className="btn ghost" onClick={() => { setArmed(null); setTab('start'); }}>New…</button>
           <button className="btn ghost" onClick={openJson}>Open</button>
           <button className="btn ghost" onClick={() => downloadJson(project)}>Save</button>
           <button className="btn ghost" onClick={copyJson} title="Copy the project as JSON (for places where downloads are blocked)">Copy JSON</button>
           <button className="btn ghost" onClick={importBudget} title="Shamel Studio .xlsx, Movie Magic Budgeting Excel/CSV export, or any sheet with Account / Description / Amount / Rate / Total columns">Import budget (.xlsx / .csv)</button>
           <button className="btn ghost" onClick={importBoard}>Import board or script (.sex / .fdx / .pdf)</button>
-        </span>
+        </span>}
       </header>
-      <nav className="tabs">
+      {!(fresh && tab === 'start') && <nav className="tabs">
         {([['start', 'Start'], ['deal', 'Deal'], ['topsheet', 'Top sheet & budget'], ['board', 'Stripboard'], ['calendar', 'Calendar'], ['breakdowns', 'Breakdowns'], ['points', 'Points & waterfall'], ['sag', 'SAG tier'], ['incentives', 'Incentives'], ['pitch', 'Pitch'], ['about', 'About']] as [Tab, string][]).map(([k, label]) =>
           <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{label}</button>)}
-      </nav>
+      </nav>}
       <main>
-        {msg && <div className="notice">{msg}</div>}
+        {msg && <div className="notice row msg"><span>{msg.text}</span><button className="x" title="dismiss" onClick={() => setMsg(null)}>×</button></div>}
         {pendingProject && (
           <div className="notice row">
             <span>Replace the open project with <b>{pendingProject.name}</b>? Save the current one first if you want to keep it.</span>
@@ -250,8 +270,8 @@ export default function App() {
             <button className="btn small" onClick={() => setPendingScript(null)}>Cancel</button>
           </div>
         )}
-        {tab === 'start' && <StartView onBlank={startBlank} onImportBudget={startImport} onOpen={startOpen} onSample={startSample} armed={armed} />}
-        {tab === 'deal' && <DealView raw={project} eff={eff} setProject={setProject} fresh={!hadSaved} />}
+        {tab === 'start' && <StartView onBlank={startBlank} onImportBudget={startImport} onOpen={startOpen} onSample={startSample} armed={armed} fresh={fresh} />}
+        {tab === 'deal' && <DealView raw={project} eff={eff} setProject={setProject} fresh={!hadSaved && !msg} />}
         {tab === 'topsheet' && <>
           {controlled.size > 0 && <div className="notice">{controlled.size} line{controlled.size > 1 ? 's are' : ' is'} set by the deal (marked <span className="tag points">deal</span>): rates, hours or pay type come from the Deal tab. Days and descriptions are still yours to edit.</div>}
           <TopSheetView project={eff} raw={project} controlled={controlled} setProject={setProject} />
@@ -261,7 +281,7 @@ export default function App() {
             <button className="btn primary small" onClick={restoreBoard}>Restore that board</button>
             <button className="btn small" onClick={() => { forgetPreviousBoard(); setBackup(null); }}>Forget it</button></div>
         )}
-        {tab === 'board' && <BoardView project={eff} setProject={setProject} />}
+        {tab === 'board' && <BoardView project={eff} raw={project} setProject={setProject} notify={flash} />}
         {tab === 'calendar' && <CalendarView project={eff} setProject={setProject} />}
         {tab === 'breakdowns' && <BreakdownsView project={eff} setProject={setProject} />}
         {tab === 'points' && <PointsView project={eff} setProject={setProject} />}
@@ -269,7 +289,7 @@ export default function App() {
         {tab === 'incentives' && <IncentivesView project={eff} setProject={setProject} />}
         {tab === 'pitch' && <PitchView project={eff} setProject={setProject} />}
         {tab === 'about' && <About onStart={() => setTab('start')} />}
-        <footer>ProfitShare · open source, MIT · your data stays in this browser until you press Save · not legal, tax or financial advice</footer>
+        <footer>ProfitShare · open source, MIT · autosaved in this browser; Save downloads a .json to keep or share · not legal, tax or financial advice</footer>
       </main>
     </div>
   );

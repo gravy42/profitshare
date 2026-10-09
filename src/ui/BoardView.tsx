@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
 import { PrintPortal, ScheduleReport } from './print';
 import { shootDates, shortDate, withCalendar } from '../engine/calendar';
+import { applyDeal, withDeal } from '../engine/deal';
+import { topSheet } from '../engine/budget';
+import { adoptBoardDays, syncCastDaysFromBoard } from '../engine/board';
+import { money } from './format';
 import type { Board, Project, Scene } from '../engine/types';
 import { autoDayBreaks, fitDayBreaks, clearDayBreaks, dood, eighthsToText, insertDayBreak, moveStrip, removeStrip, shootDays, totalEighths, moveStrips, moveDay, dayOfIndex, castSceneCounts, castOrderByAppearance, castOrderByScenes, renumberCast, splitStrip, unsplitScene, setPartEighths, stripPart, stripEighths, dropCastMember, unusedCast } from '../engine/board';
 import { BREAKDOWN_CATEGORIES, addCast, addElement, autoTag, autoTagBoard, categoryColor, namedAnimals, removeCast, removeElement } from '../engine/breakdown';
@@ -12,7 +16,7 @@ const stripClass = (s: Scene) => {
   return `strip ${night ? 'night' : 'day'}-${s.ie === 'EXT' ? 'ext' : 'int'}`;
 };
 
-export function BoardView({ project, setProject }: { project: Project; setProject: SetProject }) {
+export function BoardView({ project, raw, setProject, notify }: { project: Project; raw?: Project; setProject: SetProject; notify?: (m: string, sticky?: boolean) => void }) {
   const board = project.board;
   const setBoard = (f: (b: Board) => Board) => setProject(p => ({ ...p, board: f(p.board) }));
   const byId = new Map(board.scenes.map(s => [s.id, s]));
@@ -25,9 +29,13 @@ export function BoardView({ project, setProject }: { project: Project; setProjec
   const [selected, setSelected] = useState<Set<number>>(new Set());    // strip indices picked to move together
   const [lastPick, setLastPick] = useState<number | null>(null);
   const [target, setTarget] = useState(board.targetEighthsPerDay);
+  const [pagesText, setPagesText] = useState(String(board.targetEighthsPerDay / 8));   // typed freely, committed on blur / Enter so 5.5 never passes through 5
+  const commitPages = () => { const v = parseFloat(pagesText); if (!(v > 0)) { setPagesText(String(target / 8)); return; } const t = Math.round(v * 8); setTarget(t); setPagesText(String(t / 8)); setBoard(b => ({ ...b, targetEighthsPerDay: t })); };
   const [showDood, setShowDood] = useState(true);
   const [openId, setOpenId] = useState<string | null>(null);
   const [doodOpen, setDoodOpen] = useState(false);
+  const [howto, setHowto] = useState<boolean>(() => { try { return localStorage.getItem('profitshare.boardHowto') !== 'closed'; } catch { return true; } });
+  const rememberHowto = (open: boolean) => { setHowto(open); try { localStorage.setItem('profitshare.boardHowto', open ? 'open' : 'closed'); } catch { /* private window */ } };
   const total = totalEighths(board);
   const hasText = board.scenes.some(s => s.text);
   const tagCount = (s: Scene) => Object.values(s.elements).reduce((n, v) => n + v.length, 0);
@@ -37,6 +45,18 @@ export function BoardView({ project, setProject }: { project: Project; setProjec
   const dayOfStrip: number[] = board.strips.map(s => { const d = dayIdx; if (s.type === 'daybreak') dayIdx++; return d; });
 
   const clearSel = () => { setSelected(new Set()); setLastPick(null); };
+  /** What a new board does to the money: the board owns cast and follower days, so a schedule change reprices the film. */
+  const priceOf = (b: Board) => { const base = raw ?? project; return topSheet(applyDeal(syncCastDaysFromBoard(adoptBoardDays({ ...withDeal(base), board: b })))).cashBudget; };
+  /** Apply a whole-board change and say what it did, in dollars, with the way back. */
+  const reschedule = (what: string, f: (b: Board) => Board) => {
+    const next = f(board);
+    const before = priceOf(board), after = priceOf(next);
+    const breaksBefore = board.strips.filter(x => x.type === 'daybreak').length, breaksAfter = next.strips.filter(x => x.type === 'daybreak').length;
+    setBoard(() => next);
+    const delta = after - before;
+    const dayWord = (n: number) => `${n} day break${n === 1 ? '' : 's'}`;
+    notify?.(`${what}: ${breaksAfter === breaksBefore ? dayWord(breaksAfter) : `${dayWord(breaksAfter)} (was ${breaksBefore})`}; cast days recounted; Budget to raise ${delta === 0 ? 'unchanged' : `${delta > 0 ? '+' : '−'}${money(Math.abs(delta))}`}. Undo (⌘Z) brings the old board back.`, true);
+  };
   /** Drop a strip (or the selection it belongs to) so it lands where strip `to` is; `to` = strips.length appends. */
   const onDrop = (to: number) => {
     if (drag !== null) {
@@ -80,19 +100,27 @@ export function BoardView({ project, setProject }: { project: Project; setProjec
     <div>
       <div className="panel">
         <div className="row" style={{ justifyContent: 'space-between' }}>
-          <h2>Stripboard · {board.scenes.length} scenes · {eighthsToText(total)} pages · {days.length} days</h2>
+          <h2>Stripboard <span className="figures"><b>{board.scenes.length}</b> scenes · <b>{eighthsToText(total)}</b> pages · <b>{days.length}</b> {days.length === 1 ? 'day' : 'days'}{days.length !== project.shootDays ? <span className="warn"> of {project.shootDays} planned</span> : null}</span></h2>
           <div className="row">
             <div className="ctl" style={{ minWidth: 80 }}><label>Shoot days</label><input type="number" min={1} value={project.shootDays} onChange={e => setProject(p => ({ ...p, shootDays: Math.max(1, +e.target.value || 1) }))} style={{ width: 80 }} /></div>
-            <div className="ctl" style={{ minWidth: 90 }}><label>Pages / day</label><input type="number" step={0.5} value={target / 8} onChange={e => { setTarget(+e.target.value * 8); setBoard(b => ({ ...b, targetEighthsPerDay: +e.target.value * 8 })); }} /></div>
+            <div className="ctl" style={{ minWidth: 90 }}><label>Pages / day</label><input type="number" step={0.5} min={0.5} value={pagesText} onChange={e => setPagesText(e.target.value)} onBlur={commitPages} onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} title="The target for Auto day breaks; commits when you leave the field" /></div>
             <button className="btn" title="The board as a shooting schedule, one block per day, as a PDF" onClick={() => setPrintSched(true)}>Print schedule</button>
-            <button className="btn" onClick={() => setBoard(b => autoDayBreaks(b, target))}>Auto day breaks</button>
-            <button className="btn" title={`Split into exactly ${project.shootDays} days, keeping order, with the heaviest day as light as possible`} onClick={() => setBoard(b => fitDayBreaks(b, project.shootDays))}>Fit to {project.shootDays} days</button>
-            <button className="btn" onClick={() => setBoard(clearDayBreaks)}>Clear day breaks</button>
+            <button className="btn" title={`Place a day break whenever the running pages pass ${target / 8} a day, keeping your order`} onClick={() => reschedule('Auto day breaks', b => autoDayBreaks(b, target))}>Auto day breaks</button>
+            <button className={`btn ${days.length <= 1 && project.shootDays > 1 ? 'primary' : ''}`} title={`Split into exactly ${project.shootDays} days, keeping order, with the heaviest day as light as possible`} onClick={() => reschedule(`Fit to ${project.shootDays} days`, b => fitDayBreaks(b, project.shootDays))}>Fit to {project.shootDays} days</button>
+            <button className="btn" disabled={days.length <= 1} title="Take every day break off the board (Undo brings them back)" onClick={() => reschedule('Clear day breaks', clearDayBreaks)}>Clear day breaks</button>
             {hasText && <button className="btn" title="First-pass breakdown of every scene from the script text: props, vehicles, wardrobe, sounds, extras and the rest. Keeps tags you've added." onClick={() => setBoard(autoTagBoard)}>Auto-tag all scenes</button>}
             <span className="small muted" title="Cast shoot days and followers (a studio teacher, an animal wrangler) are rewritten on the top sheet and in the points schedule after every edit here. Rehearsal and fitting days live on their own budget line.">cast days flow to the budget automatically</span>
           </div>
         </div>
+        {days.length <= 1 && board.scenes.length > 1 && (
+          <div className="notice">
+            <b>No day breaks yet.</b> The {board.scenes.length} strips are in order but on one day. <b>Fit to {project.shootDays} days</b> places the breaks for a {project.shootDays}-day schedule and you can drag them after; or drop one yourself with a strip's ⏎ button.
+          </div>
+        )}
+        <details className="howto" open={howto} onToggle={e => rememberHowto((e.target as HTMLDetailsElement).open)}>
+          <summary className="help small">How the board works</summary>
         <p className="help">Drag strips to reorder; tick the boxes (shift-click for a run) to pick several and drag them as one block; grab ⋮⋮ day on a day bar to lift the whole day and drop it before a strip or after another day bar. Open a strip's ⌄ to read the scene and tag it: select any words in the script and pick a category, the way Final Draft's tagger works. Drop a day break with the ⏎ button on any strip (it goes in above it). ½ splits a strip so one scene shoots over two days: drag the second part below a day break, set each part's pages, and the cast and tags count on both days. Auto day breaks keeps your scene order and splits at the target; Fit to {project.shootDays} days keeps the order and balances the pages across the schedule; {eighthsToText(total)} pages over {project.shootDays} days is {(total / 8 / project.shootDays).toFixed(1)} pages a day.</p>
+        </details>
         <div className="row" style={{ justifyContent: 'space-between' }}>
           <div className="legend"><span className="di">Day int</span><span className="ni">Night int</span><span className="de">Day ext</span><span className="ne">Night ext</span></div>
           {selected.size > 0 && <span className="small"><b>{selected.size} picked</b> · drag any of them to move the group · <button className="btn small" onClick={clearSel}>clear</button></span>}
@@ -130,7 +158,7 @@ export function BoardView({ project, setProject }: { project: Project; setProjec
             const e = stripEighths(board, strip, byId);
             return (
               <div key={`${strip.sceneId}:${i}`}>
-                <div className={`${stripClass(s)} ${over === i ? 'dragover' : ''} ${isOpen ? 'open' : ''} ${selected.has(i) ? 'sel' : ''} ${dragDay === dayOfStrip[i] ? 'lifting' : ''}`} {...common} title={s.synopsis}>
+                <div className={`${stripClass(s)} ${over === i ? 'dragover' : ''} ${isOpen ? 'open' : ''} ${selected.has(i) ? 'sel' : ''} ${dragDay === dayOfStrip[i] ? 'lifting' : ''}`} {...common}>
                   <span className="handle" title={selected.size > 1 && selected.has(i) ? `drag moves all ${selected.size} picked strips` : 'drag to move; tick the box to pick several and move them together'}><input type="checkbox" className="pick" checked={selected.has(i)} onChange={() => undefined} onClick={e => { e.stopPropagation(); pick(i, e.shiftKey); }} onMouseDown={e => e.stopPropagation()} />⋮⋮</span>
                   <span className="num">{s.number}{parts > 1 && <span className="part" title={`part ${part} of ${parts}: this scene shoots over ${parts} days`}>{part}/{parts}</span>}</span>
                   <span>{s.ie}</span>
@@ -140,11 +168,11 @@ export function BoardView({ project, setProject }: { project: Project; setProjec
                     ? <span className="small" title={`this part's pages, in eighths (scene is ${eighthsToText(s.eighths)})`}><input className="eighths" type="number" min={0} max={s.eighths} value={e} onChange={ev => setBoard(b => setPartEighths(b, i, +ev.target.value || 0))} onMouseDown={ev => ev.stopPropagation()} />/8</span>
                     : <span className="small">{eighthsToText(s.eighths)} pg</span>}
                   <span className="cast" title={s.cast.map(c => c.name).join(', ')}>{s.cast.map(c => c.id ?? c.name.slice(0, 3)).join(', ')}</span>
-                  <button className="btn small" title={isOpen ? 'close' : 'read and tag this scene'} onClick={() => setOpenId(isOpen ? null : s.id)}>{isOpen ? '⌃' : '⌄'}{tagCount(s) ? ` ${tagCount(s)}` : ''}</button>
+                  <button className="btn small act" aria-label={isOpen ? `Close scene ${s.number}` : `Read and tag scene ${s.number}${tagCount(s) ? ` (${tagCount(s)} tags)` : ''}`} title={isOpen ? 'Close the scene' : 'Read the scene and tag it'} onClick={() => setOpenId(isOpen ? null : s.id)}><span className="glyph">{isOpen ? '⌃' : '⌄'}</span><span className="word">{isOpen ? 'close' : 'tag'}</span>{tagCount(s) ? <span className="count">{tagCount(s)}</span> : null}</button>
                   <span className="row" style={{ gap: 4 }}>
-                    <button className="btn small" title="insert day break above" onClick={() => setBoard(b => insertDayBreak(b, i))}>⏎</button>
-                    <button className="btn small" title={parts > 1 ? 'split this part again (a third day)' : 'shoot this scene over two days: splits the strip in two'} onClick={() => setBoard(b => splitStrip(b, i))}>½</button>
-                    {parts > 1 && <button className="btn small" title="put the scene back on one strip" onClick={() => setBoard(b => unsplitScene(b, s.id))}>⊕</button>}
+                    <button className="btn small act" aria-label={`Day break above scene ${s.number}`} title="Start a new day here (a day break above this strip)" onClick={() => setBoard(b => insertDayBreak(b, i))}><span className="glyph">⏎</span><span className="word">day</span></button>
+                    <button className="btn small act" aria-label={parts > 1 ? `Split scene ${s.number} again` : `Shoot scene ${s.number} over two days`} title={parts > 1 ? 'Split this part again (a third day)' : 'Shoot this scene over two days: splits the strip in two'} onClick={() => setBoard(b => splitStrip(b, i))}><span className="glyph">½</span><span className="word">split</span></button>
+                    {parts > 1 && <button className="btn small act" aria-label={`Put scene ${s.number} back on one strip`} title="Put the scene back on one strip" onClick={() => setBoard(b => unsplitScene(b, s.id))}><span className="glyph">⊕</span><span className="word">join</span></button>}
                   </span>
                 </div>
                 {isOpen && <Tagger scene={s} board={board} setBoard={setBoard} />}
@@ -268,6 +296,7 @@ function Tagger({ scene: s, board, setBoard }: { scene: Scene; board: Board; set
     parts.push({ text: s.text.slice(last) });
   }
   const onSelect = () => {
+    if (!s.text) return;   // the placeholder is not a scene
     const sel = window.getSelection(); const t = sel?.toString().replace(/\s+/g, ' ').trim() ?? '';
     if (!t || t.length > 60 || !sel || sel.rangeCount === 0) { setPick(null); return; }
     const r = sel.getRangeAt(0).getBoundingClientRect();
