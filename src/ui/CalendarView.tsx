@@ -39,6 +39,15 @@ export function CalendarView({ project, setProject }: { project: Project; setPro
   const placed = days.length - unplaced.length;
   const first = [...dates.values()].sort()[0]; const lastDate = [...dates.values()].sort().slice(-1)[0];
   const today = ymd(new Date());
+  // how many months are on screen at once: the whole range as a grid, one month, or three side by side
+  const [view, setView] = useState<'all' | 1 | 3>(() => { try { const v = localStorage.getItem('profitshare.calView'); return v === '1' ? 1 : v === '3' ? 3 : 'all'; } catch { return 'all'; } });
+  const pickView = (v: 'all' | 1 | 3) => { setView(v); try { localStorage.setItem('profitshare.calView', String(v)); } catch { /* private window */ } };
+  const [page, setPage] = useState<number | null>(null);
+  const span = view === 'all' ? months.length : view;
+  const startAt = page ?? Math.max(0, months.indexOf((first ?? today).slice(0, 7)));
+  const start = Math.max(0, Math.min(startAt, Math.max(0, months.length - span)));
+  const shown = view === 'all' ? months : months.slice(start, start + span);
+  const pageLabel = shown.length === 0 ? '' : shown.length === 1 ? monthName(shown[0]) : `${monthName(shown[0])} → ${monthName(shown[shown.length - 1])}`;
 
   const open = (date: string) => {
     setEditing(date);
@@ -75,6 +84,20 @@ export function CalendarView({ project, setProject }: { project: Project; setPro
           <button className="btn small" disabled={!placed} title="Write each placed shoot day's date onto its day break on the stripboard" onClick={() => setProject(q => stampBoardDates(withCalendar(q)))}>Stamp dates on the board</button>
           <button className="btn small" disabled={!placed && !cal.events.length} onClick={download} title="Shoot days and events as an .ics file for Google / Apple / Outlook">Download .ics</button>
         </div>
+        {months.length > 0 && (
+          <div className="row" style={{ alignItems: 'center', marginTop: 10, gap: 10 }}>
+            <div className="row" style={{ gap: 4 }}>
+              {([['all', 'All months'], [1, 'One month'], [3, 'Three months']] as ['all' | 1 | 3, string][]).map(([v, l]) => <button key={String(v)} className={`btn small ${view === v ? 'primary' : ''}`} onClick={() => pickView(v)}>{l}</button>)}
+            </div>
+            {view !== 'all' && months.length > span && (
+              <div className="row" style={{ gap: 4, alignItems: 'center' }}>
+                <button className="btn small" disabled={start === 0} onClick={() => setPage(Math.max(0, start - span))} title="Earlier">◀</button>
+                <b style={{ minWidth: 180, textAlign: 'center' }}>{pageLabel}</b>
+                <button className="btn small" disabled={start + span >= months.length} onClick={() => setPage(Math.min(months.length - span, start + span))} title="Later">▶</button>
+              </div>
+            )}
+          </div>
+        )}
         <details style={{ marginTop: 8 }}>
           <summary className="help small" style={{ cursor: 'pointer' }}>Optional: auto-place the shoot days from a Day 1</summary>
           <div className="row" style={{ alignItems: 'flex-end', marginTop: 6 }}>
@@ -91,8 +114,8 @@ export function CalendarView({ project, setProject }: { project: Project; setPro
 
       {months.length === 0 && <div className="notice">Pick the first and last month above and press Show calendar. Nothing is placed until you put it there.</div>}
 
-      <div className="months">
-        {months.map(ym => {
+      <div className={`months ${view === 1 ? 'one' : view === 3 ? 'three' : ''}`}>
+        {shown.map(ym => {
           const n = daysInMonth(ym); const lead = dow(ym + '-01');
           const cells: (string | null)[] = [...Array(lead).fill(null), ...Array.from({ length: n }, (_, i) => `${ym}-${String(i + 1).padStart(2, '0')}`)];
           while (cells.length % 7) cells.push(null);
