@@ -94,9 +94,9 @@ export function CalendarView({ project, setProject }: { project: Project; setPro
             </div>
             {view !== 'all' && months.length > span && (
               <div className="row" style={{ gap: 4, alignItems: 'center' }}>
-                <button className="btn small" disabled={start === 0} onClick={() => setPage(Math.max(0, start - span))} title="Earlier">◀</button>
+                <button className="btn small" disabled={start === 0} onClick={() => setPage(Math.max(0, start - 1))} title="Earlier (one month)">◀</button>
                 <b style={{ minWidth: 180, textAlign: 'center' }}>{pageLabel}</b>
-                <button className="btn small" disabled={start + span >= months.length} onClick={() => setPage(Math.min(months.length - span, start + span))} title="Later">▶</button>
+                <button className="btn small" disabled={start + span >= months.length} onClick={() => setPage(Math.min(months.length - span, start + 1))} title="Later (one month)">▶</button>
               </div>
             )}
           </div>
