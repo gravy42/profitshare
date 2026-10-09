@@ -83,7 +83,7 @@ None of this is legal, tax or financial advice. Check the numbers with your payr
 
 ## Contributing
 
-Issues and pull requests are welcome. Engine changes need a test; the sample budget must still total $811,758.05 and round-trip through the importers.
+[CHANGELOG.md](CHANGELOG.md) is kept by day, newest first, so you can see what changed and why before you start. Issues and pull requests are welcome. Engine changes need a test; the sample budget must still total $811,758.05 and round-trip through the importers.
 
 ## License
 
