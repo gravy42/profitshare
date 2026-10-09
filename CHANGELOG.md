@@ -6,6 +6,7 @@ The app is local-first: your project lives in your browser and in the `.profitsh
 
 ## 2026-10-09
 
+- **PRODUCT.md.** The project's product record for the impeccable skill and for anyone new: who it's for (a filmmaker budgeting her own film), who reads the outputs (investors and production companies, cast/crew and reps, SAG-AFTRA and the CFC), the positioning (models the back end, not just the raise), operating context, capabilities, constraints, evidence on hand, principles. Written from `/impeccable init`.
 - **Calendar: click a shoot day to open it.** The purple Day chip opens a popout with the cast working that day (numbered), everything tagged on the day's scenes by department, a scenes table (D/N, story day, pages, cast, synopsis), and the sides: each scene as written, in script formatting. ←/→ steps through the days; "Print sides / save as PDF" prints the packet. Clicking the date number still opens the add-an-event box. (b6e76d8)
 - **Calendar: three months stack full width**, one above the other, same cell size as the one-month view. The ◀ ▶ arrows now step one month at a time in both the one- and three-month views. (b6e76d8, fc32182)
 - **Design skill for contributors.** [impeccable](https://github.com/pbakaus/impeccable) 4.5.2 (Apache 2.0) is installed project-scoped under `.claude/skills/impeccable` with its agents, no hooks; `/impeccable <command> <target>` in Claude Code. (0c0633a)
