@@ -843,7 +843,7 @@ describe('incentives', () => {
     expect(zone.parts[1].amount).toBeCloseTo(zone.qualified * 0.05, 2);
     expect(zone.parts[2].amount).toBeCloseTo((zone.qualifiedWages + zone.qualifiedFringes) * 0.5 * 0.10, 2);
     expect(zone.parts[3].amount).toBeCloseTo(zone.qualified * 0.01, 2);
-    expect(zone.costs.find(c => /refund/.test(c.label))!.amount).toBeCloseTo(zone.gross * 0.10, 2);
+    expect(zone.costs.find(c => /refund/.test(c.label))!.amount).toBeCloseTo(zone.gross * 0.05, 2);
     expect(zone.costs.some(c => /bridge/.test(c.label))).toBe(false);
   });
   it('the federal bill: 20% of labor plus 5% independent, above the line in or out', () => {

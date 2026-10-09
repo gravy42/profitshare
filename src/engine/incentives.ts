@@ -6,9 +6,19 @@
 //    films, +5% out of the Los Angeles zone, +10% local-hire labor outside the zone, +5% VFX, up to +2% Career
 //    Pathways trainees; first $20M of qualified expenditures; $1M minimum budget; 75% of principal photography
 //    days (or of the budget) in California; above-the-line wages don't qualify; independent films may sell the
-//    credit or take it as a refund (90% over five years); principal photography must start within 180 days of the
-//    credit allocation letter (CAL). Program funding $750M a year, $75M of it for independents.
+//    credit or take it as a refund; principal photography must start within 180 days of the credit allocation
+//    letter (CAL). Program funding $750M a year, $75M of it for independents.
 //    film.ca.gov · wrapbook.com/production-incentives/us/independent-project-ca · ep.com/production-incentives/us/california
+//  SB 186 (Ch. 344, Stats. 2026, signed Sept 19, 2026, effective at once): the 4.0 refund election is now 95% over
+//    two years (was 90% over five); 2.0 / 3.0 credits carry forward 15 years (was 9); and for taxable years from
+//    Jan 1, 2027 a credit bought from an independent film is exempt from the buyer's $5M-a-year credit limit, which
+//    is what should firm up the price brokers pay. gov.ca.gov · castandcrew.com · lexcircuit.com
+//  AB 2319 (signed the same day): a separate post-production credit, 35% of editorial post spent in California
+//    (+5% outside the LA zone, +10% local-hire wages outside it, +15% music scoring, +5% if half the photography
+//    days were in CA), for pictures with a $1M budget that did NOT take the production credit; needs at least 75%
+//    of editorial post, or $1M of it, whichever is GREATER, done in California; $10M for its first year; first
+//    allocations July 1, 2027. Not modeled: a film in the 4.0 program already has its post in the production
+//    credit, and the $1M post floor is above most independent post budgets. wrapbook.com/blog/ab-2319
 //  Motion Picture, Television, and Entertainment Revitalization Act, introduced Sept 24, 2026 (Friedman, Moran,
 //    Scott, Schiff et al.): a transferable 20% credit on labor for American workers, +5% each for independent
 //    productions, rural opportunity zones or disaster areas, $10M of wages across ten states, and growing domestic
@@ -22,7 +32,7 @@ import { lineFringes, lineSubtotal, topSheet } from './budget';
 import { isPayrollLine, isSagPerformerLine } from './sag';
 
 export const CA_BASE = 0.35, CA_OUT_OF_ZONE = 0.05, CA_LOCAL_HIRE = 0.10, CA_VFX = 0.05, CA_TRAINEE = 0.005, CA_TRAINEE_MAX = 4;
-export const CA_QUALIFIED_CAP = 20_000_000, CA_MIN_BUDGET = 1_000_000, CA_REFUND_SHARE = 0.90, CA_REFUND_YEARS = 5;
+export const CA_QUALIFIED_CAP = 20_000_000, CA_MIN_BUDGET = 1_000_000, CA_REFUND_SHARE = 0.95, CA_REFUND_YEARS = 2;   // SB 186 (Sept 2026)
 export const CA_CAREER_PATHWAYS_FEE = 0.0025;                 // of the allocation
 export const CA_DAYS_TO_START = 180;                           // from the CAL
 export const FED_BASE = 0.20, FED_BONUS = 0.05, FED_MAX = 0.30, FED_MIN_BUDGET = 1_000_000;
