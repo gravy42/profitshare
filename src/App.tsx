@@ -12,6 +12,7 @@ import { syncFollowersFromBoard } from './engine/board';
 import { weeklyWageLines, weeksToDays } from './engine/sag';
 import { sampleProject, blankProject, deriveParticipants, standardChartOfAccounts, type BlankOptions } from './data/seed';
 import type { Board, Project } from './engine/types';
+import { readTheme, saveTheme, THEME_LABELS, type ThemeChoice } from './theme';
 import { TopSheetView } from './ui/TopSheetView';
 import { PointsView } from './ui/PointsView';
 import { SagView } from './ui/SagView';
@@ -242,6 +243,7 @@ export default function App() {
         {fresh && tab === 'start' ? (
           <span className="btns">
             <button className="btn ghost" onClick={openJson}>Open a saved project</button>
+            <ThemeSwitch />
           </span>
         ) : <span className="btns">
           <button className="btn ghost" onClick={undo} disabled={!canUndo} title="Undo the last change (⌘Z)">Undo</button>
@@ -251,6 +253,7 @@ export default function App() {
           <button className="btn ghost" onClick={copyJson} title="Copy the project as JSON (for places where downloads are blocked)">Copy JSON</button>
           <button className="btn ghost" onClick={importBudget} title="Shamel Studio .xlsx, Movie Magic Budgeting Excel/CSV export, or any sheet with Account / Description / Amount / Rate / Total columns">Import budget (.xlsx / .csv)</button>
           <button className="btn ghost" onClick={importBoard}>Import board or script (.sex / .fdx / .pdf)</button>
+          <ThemeSwitch />
         </span>}
       </header>
       <hr className="rule" aria-hidden="true" />
@@ -294,9 +297,28 @@ export default function App() {
         {tab === 'incentives' && <IncentivesView project={eff} setProject={setProject} />}
         {tab === 'pitch' && <PitchView project={eff} setProject={setProject} />}
         {tab === 'about' && <About onStart={() => setTab('start')} />}
-        <footer>ProfitShare · open source, MIT · autosaved in this browser; Save downloads a .json to keep or share · not legal, tax or financial advice</footer>
+        <footer>
+          <span>ProfitShare · open source, MIT · autosaved in this browser; Save downloads a .json to keep or share · not legal, tax or financial advice</span>
+          <span className="signoff">from the world of <a href="https://www.blissfulspinster.com" target="_blank" rel="noreferrer">ALONE GIRL</a></span>
+        </footer>
       </main>
     </div>
+  );
+}
+
+/** Night / Day / System as three keys; the chosen one is the painted key, pressed. */
+function ThemeSwitch() {
+  const [theme, setTheme] = useState<ThemeChoice>(() => readTheme());
+  const choose = (t: ThemeChoice) => { saveTheme(t); setTheme(t); };
+  return (
+    <span className="themeswitch" role="radiogroup" aria-label="Look">
+      {(['dark', 'light', 'system'] as ThemeChoice[]).map(t => (
+        <button key={t} type="button" role="radio" aria-checked={theme === t} className="btn ghost small" onClick={() => choose(t)}
+          title={t === 'system' ? 'Follow the system setting' : t === 'dark' ? 'Night: midnight and periwinkle, the film\'s look' : 'Day: paper and ink'}>
+          {THEME_LABELS[t]}
+        </button>
+      ))}
+    </span>
   );
 }
 
