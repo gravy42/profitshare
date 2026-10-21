@@ -39,11 +39,15 @@ export default function App() {
   const ts = topSheet(eff);
   const sag = sagReport(eff);
 
+  const flashedAt = useRef(0);
   const flash = (m: string, sticky = m.length > 140) => {
     if (msgTimer.current) { clearTimeout(msgTimer.current); msgTimer.current = null; }
+    flashedAt.current = Date.now();
     setMsg({ text: m, sticky });
     if (!sticky) msgTimer.current = window.setTimeout(() => setMsg(null), 7000);
   };
+  // a message describes one change; the next change that comes without its own message takes the old one down, so what is on screen is never stale
+  useEffect(() => { if (msg && Date.now() - flashedAt.current > 400) setMsg(null); }, [project]);   // eslint-disable-line react-hooks/exhaustive-deps
   // Cmd-Z / Ctrl-Z outside a text field is Undo, the same as the button
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
@@ -233,7 +237,7 @@ export default function App() {
           <span>Budget to raise<b>{money(ts.cashBudget)}</b></span>
           <span>Deal<b>{project.deal?.pay.model === 'everyone-at-scale' ? 'everyone at scale' : 'as budgeted'}</b></span>
           <span>Points value<b>{money(ts.pointsValue)}</b></span>
-          <span title={`Qualifies for ${sag.qualifying.name}${sag.dic ? ' with the Diversity in Casting cap' : ''}; the tier you are aiming at is on the Deal tab`}>SAG<b>{sag.qualifying.id}{sag.dic ? '+DIC' : ''}</b></span>
+          <span title={`The SAG-AFTRA tier the budget qualifies for as drawn${sag.dic ? ', with the Diversity in Casting cap' : ''}; the tier you are aiming at is on the Deal tab`}>Qualifies as<b>{sag.qualifying.name}{sag.dic ? ' + DIC' : ''}</b></span>
         </span>}
         {fresh && tab === 'start' ? (
           <span className="btns">
@@ -255,7 +259,7 @@ export default function App() {
           <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{label}</button>)}
       </nav>}
       <main>
-        {msg && <div className="notice row msg"><span>{msg.text}</span><button className="x" title="dismiss" onClick={() => setMsg(null)}>×</button></div>}
+        <div role="status" aria-live="polite">{msg && <div className="notice row msg"><span>{msg.text}</span><button className="x" title="dismiss" aria-label="Dismiss this message" onClick={() => setMsg(null)}>×</button></div>}</div>
         {pendingProject && (
           <div className="notice row">
             <span>Replace the open project with <b>{pendingProject.name}</b>? Save the current one first if you want to keep it.</span>

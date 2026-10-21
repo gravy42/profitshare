@@ -5,7 +5,7 @@ import { applyDeal, withDeal } from '../engine/deal';
 import { topSheet } from '../engine/budget';
 import { adoptBoardDays, syncCastDaysFromBoard } from '../engine/board';
 import { money } from './format';
-import type { Board, Project, Scene } from '../engine/types';
+import type { Board, Project, Scene, Strip } from '../engine/types';
 import { autoDayBreaks, fitDayBreaks, clearDayBreaks, dood, eighthsToText, insertDayBreak, moveStrip, removeStrip, shootDays, totalEighths, moveStrips, moveDay, dayOfIndex, castSceneCounts, castOrderByAppearance, castOrderByScenes, renumberCast, splitStrip, unsplitScene, setPartEighths, stripPart, stripEighths, dropCastMember, unusedCast } from '../engine/board';
 import { BREAKDOWN_CATEGORIES, addCast, addElement, autoTag, autoTagBoard, categoryColor, namedAnimals, removeCast, removeElement } from '../engine/breakdown';
 
@@ -55,13 +55,16 @@ export function BoardView({ project, raw, setProject, notify }: { project: Proje
     setBoard(() => next);
     const delta = after - before;
     const dayWord = (n: number) => `${n} day break${n === 1 ? '' : 's'}`;
-    notify?.(`${what}: ${breaksAfter === breaksBefore ? dayWord(breaksAfter) : `${dayWord(breaksAfter)} (was ${breaksBefore})`}; cast days recounted; Budget to raise ${delta === 0 ? 'unchanged' : `${delta > 0 ? '+' : '−'}${money(Math.abs(delta))}`}. Undo (⌘Z) brings the old board back.`, true);
+    const breaks = breaksAfter === breaksBefore ? '' : `${dayWord(breaksAfter)} (was ${breaksBefore}); `;
+    if (delta === 0 && !breaks) notify?.(`${what}. Nothing repriced: the same days and cast days as before. Undo (⌘Z) brings the old order back.`, false);
+    else notify?.(`${what}: ${breaks}cast days recounted; Budget to raise ${delta === 0 ? 'unchanged' : `${delta > 0 ? '+' : '−'}${money(Math.abs(delta))}`}. Undo (⌘Z) brings the old board back.`, true);
   };
   /** Drop a strip (or the selection it belongs to) so it lands where strip `to` is; `to` = strips.length appends. */
   const onDrop = (to: number) => {
     if (drag !== null) {
       const block = selected.has(drag) ? [...selected] : [drag];
-      setBoard(b => moveStrips(b, block, to));
+      const names = block.map(i => board.strips[i]).filter((x): x is Extract<Strip, { type: 'scene' }> => x.type === 'scene').map(x => byId.get(x.sceneId)?.number).filter(Boolean);
+      reschedule(block.length > 1 ? `Moved ${block.length} strips (sc ${names.join(', ')})` : `Moved scene ${names[0] ?? ''}`, b => moveStrips(b, block, to));
       clearSel();
     }
     setDrag(null); setOver(null);
@@ -72,7 +75,7 @@ export function BoardView({ project, raw, setProject, notify }: { project: Proje
       const n = days.length;
       const pos = where.end ? n : where.afterDay != null ? where.afterDay : dayOfIndex(board, where.beforeDayOf ?? 0) - 1;   // block slot in the current order
       const toDay = pos - (pos > dragDay - 1 ? 1 : 0) + 1;
-      setBoard(b => moveDay(b, dragDay, toDay));
+      reschedule(`Moved Day ${dragDay} to Day ${toDay}`, b => moveDay(b, dragDay, toDay));
       clearSel();
     }
     setDragDay(null); setOver(null);
@@ -145,7 +148,7 @@ export function BoardView({ project, raw, setProject, notify }: { project: Proje
                   <span><span className="handle daygrip" draggable title={`Drag to move all of Day ${dayOfStrip[i]} (drop on a strip to go before that day, on a day bar to go after it)`} onDragStart={e => { e.stopPropagation(); setDragDay(dayOfStrip[i]); }} onDragEnd={() => { setDragDay(null); setOver(null); }}>⋮⋮ day</span> End of Day {dayOfStrip[i]}{dayDates.get(dayOfStrip[i]) ? <span className="daydate"> · {shortDate(dayDates.get(dayOfStrip[i])!)}</span> : null} · {d ? eighthsToText(d.eighths) : '0'} pgs · {d?.castIds.length ?? 0} cast {heavy && <span className="warn">· heavy</span>}</span>
                   <span className="row" style={{ gap: 6 }}>
                     <input placeholder="label" title="A note for this day (the date comes from the Calendar tab)" value={strip.label ?? ''} onChange={e => setBoard(b => ({ ...b, strips: b.strips.map((s, j) => j === i && s.type === 'daybreak' ? { ...s, label: e.target.value } : s) }))} />
-                    <button className="x" title="remove day break" onClick={() => setBoard(b => removeStrip(b, i))}>×</button>
+                    <button className="x" title={`Remove this day break (Day ${dayOfStrip[i]} joins Day ${dayOfStrip[i] + 1})`} aria-label={`Remove the day break after Day ${dayOfStrip[i]}`} onClick={() => reschedule(`Removed the day break after Day ${dayOfStrip[i]}`, b => removeStrip(b, i))}>×</button>
                   </span>
                 </div>
               );
@@ -170,9 +173,9 @@ export function BoardView({ project, raw, setProject, notify }: { project: Proje
                   <span className="cast" title={s.cast.map(c => c.name).join(', ')}>{s.cast.map(c => c.id ?? c.name.slice(0, 3)).join(', ')}</span>
                   <button className="btn small act" aria-label={isOpen ? `Close scene ${s.number}` : `Read and tag scene ${s.number}${tagCount(s) ? ` (${tagCount(s)} tags)` : ''}`} title={isOpen ? 'Close the scene' : 'Read the scene and tag it'} onClick={() => setOpenId(isOpen ? null : s.id)}><span className="glyph">{isOpen ? '⌃' : '⌄'}</span><span className="word">{isOpen ? 'close' : 'tag'}</span>{tagCount(s) ? <span className="count">{tagCount(s)}</span> : null}</button>
                   <span className="row" style={{ gap: 4 }}>
-                    <button className="btn small act" aria-label={`Day break above scene ${s.number}`} title="Start a new day here (a day break above this strip)" onClick={() => setBoard(b => insertDayBreak(b, i))}><span className="glyph">⏎</span><span className="word">day</span></button>
-                    <button className="btn small act" aria-label={parts > 1 ? `Split scene ${s.number} again` : `Shoot scene ${s.number} over two days`} title={parts > 1 ? 'Split this part again (a third day)' : 'Shoot this scene over two days: splits the strip in two'} onClick={() => setBoard(b => splitStrip(b, i))}><span className="glyph">½</span><span className="word">split</span></button>
-                    {parts > 1 && <button className="btn small act" aria-label={`Put scene ${s.number} back on one strip`} title="Put the scene back on one strip" onClick={() => setBoard(b => unsplitScene(b, s.id))}><span className="glyph">⊕</span><span className="word">join</span></button>}
+                    <button className="btn small act" aria-label={`Day break above scene ${s.number}`} title="Start a new day here (a day break above this strip)" onClick={() => reschedule(`Day break above scene ${s.number}`, b => insertDayBreak(b, i))}><span className="glyph">⏎</span><span className="word">day</span></button>
+                    <button className="btn small act" aria-label={parts > 1 ? `Split scene ${s.number} again` : `Shoot scene ${s.number} over two days`} title={parts > 1 ? 'Split this part again (a third day)' : 'Shoot this scene over two days: splits the strip in two'} onClick={() => reschedule(`Scene ${s.number} split over two days`, b => splitStrip(b, i))}><span className="glyph">½</span><span className="word">split</span></button>
+                    {parts > 1 && <button className="btn small act" aria-label={`Put scene ${s.number} back on one strip`} title="Put the scene back on one strip" onClick={() => reschedule(`Scene ${s.number} back on one strip`, b => unsplitScene(b, s.id))}><span className="glyph">⊕</span><span className="word">join</span></button>}
                   </span>
                 </div>
                 {isOpen && <Tagger scene={s} board={board} setBoard={setBoard} />}
@@ -197,7 +200,7 @@ export function BoardView({ project, raw, setProject, notify }: { project: Proje
             <div className="row" style={{ justifyContent: 'space-between' }}><h2>Days</h2><button className="btn small" onClick={() => setShowDood(v => !v)}>{showDood ? 'hide DOOD' : 'show DOOD'}</button></div>
             <table className="dayrows">
               <thead><tr><th>Day</th><th>Scenes</th><th>Pages</th><th>Cast</th></tr></thead>
-              <tbody>{days.map(d => <tr key={d.index} className={`${d.eighths > target * 1.15 ? 'hl' : ''} ${dragDay === d.index ? 'lifting' : ''}`} draggable title="drag to reorder the days" onDragStart={() => setDragDay(d.index)} onDragEnd={() => setDragDay(null)} onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); if (dragDay !== null) { const from = dragDay; setBoard(b => moveDay(b, from, d.index)); setDragDay(null); clearSel(); } }}><td><span className="handle">⋮⋮ </span>{d.index}{d.label ? ` · ${d.label}` : ''}</td><td>{d.scenes.length}</td><td>{eighthsToText(d.eighths)}</td><td>{d.castIds.length}</td></tr>)}</tbody>
+              <tbody>{days.map(d => <tr key={d.index} className={`${d.eighths > target * 1.15 ? 'hl' : ''} ${dragDay === d.index ? 'lifting' : ''}`} draggable title="drag to reorder the days" onDragStart={() => setDragDay(d.index)} onDragEnd={() => setDragDay(null)} onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); if (dragDay !== null) { const from = dragDay; reschedule(`Moved Day ${from} to Day ${d.index}`, b => moveDay(b, from, d.index)); setDragDay(null); clearSel(); } }}><td><span className="handle">⋮⋮ </span>{d.index}{d.label ? ` · ${d.label}` : ''}</td><td>{d.scenes.length}</td><td>{eighthsToText(d.eighths)}</td><td>{d.castIds.length}</td></tr>)}</tbody>
             </table>
           </div>
           {showDood && (
@@ -274,6 +277,13 @@ function DoodPopout({ project, setProject, onClose }: { project: Project; setPro
   );
 }
 const esc = (x: string) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+/** The tag menu in four rows a person can scan, instead of eighteen buttons in a cloud. Categories already on the scene come first in their row. */
+const TAG_GROUPS: { label: string; keys: string[] }[] = [
+  { label: 'People', keys: ['Cast', 'Background Actors', 'Stunts', 'Additional Labor', 'Security'] },
+  { label: 'Things', keys: ['Props', 'Vehicles', 'Animals', 'Wardrobe', 'Makeup/Hair', 'Set Dressing', 'Greenery', 'Special Equipment'] },
+  { label: 'On set', keys: ['Special Effects', 'Sound', 'Music'] },
+  { label: 'Post & other', keys: ['Visual Effects', 'Notes'] },
+];
 
 /** The scene as written, with everything tagged on it lit up; select words to tag them. */
 function Tagger({ scene: s, board, setBoard }: { scene: Scene; board: Board; setBoard: (f: (b: Board) => Board) => void }) {
@@ -334,8 +344,18 @@ function Tagger({ scene: s, board, setBoard }: { scene: Scene; board: Board; set
       {pick && (
         <div className="tagmenu" style={{ left: pick.x, top: pick.y }}>
           <span className="muted small">“{pick.text}” is</span>
-          <button style={{ borderColor: 'var(--plum)' }} onClick={() => tagAs('Cast')}>Cast</button>
-          {BREAKDOWN_CATEGORIES.map(c => <button key={c.key} style={{ borderColor: c.color }} onClick={() => tagAs(c.key)}>{c.key}</button>)}
+          {[...TAG_GROUPS, { label: 'More', keys: BREAKDOWN_CATEGORIES.map(c => c.key as string).filter(k => !TAG_GROUPS.some(g => g.keys.includes(k))) }].filter(g => g.keys.length).map(g => {
+            const used = new Set(Object.keys(s.elements));
+            const keys = [...g.keys].sort((a, b) => (used.has(b) ? 1 : 0) - (used.has(a) ? 1 : 0));
+            return (
+              <div className="taggroup" key={g.label}>
+                <span className="muted small">{g.label}</span>
+                {keys.map(k => k === 'Cast'
+                  ? <button key={k} style={{ borderColor: 'var(--plum)' }} onClick={() => tagAs('Cast')}>Cast</button>
+                  : <button key={k} className={used.has(k) ? 'used' : ''} style={{ borderColor: categoryColor(k) }} onClick={() => tagAs(k)}>{k}</button>)}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

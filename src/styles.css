@@ -376,9 +376,8 @@ table.bd.track tr.daymid td:not([rowspan]) { border-bottom: 1px dashed var(--lin
 header.top.empty { padding: 18px 20px; }
 /* strip actions: the glyph always, the word on hover or keyboard focus */
 .strip .act { display: inline-flex; align-items: center; gap: 3px; min-height: 24px; }
-.strip .act .word { display: none; font-size: 11px; }
-.strip:hover .act .word, .strip .act:focus-visible .word, .strip.open .act .word { display: inline; }
-.strip .act .count { font-size: 10.5px; font-weight: 700; padding: 0 5px; border-radius: 8px; background: var(--strip-ink); color: #fff; }
+.strip .act .word { display: inline; font-size: 11px; }   /* the word rides with the glyph; it hides only where there is no room (see the narrow rules) */
+.strip .act .count { font-size: 11px; font-weight: 700; padding: 0 5px; border-radius: 8px; background: var(--strip-ink); color: #fff; }
 .strip .act:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
 .strip { grid-template-columns: 26px 54px 34px 1fr 80px 70px 80px auto auto; }
 /* the board's own numbers earn real size */
@@ -415,7 +414,7 @@ details.howto[open] > summary { margin-bottom: 4px; }
   .strip { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; }
   .strip > .set { flex: 1 1 100%; order: -1; white-space: normal; }
   .strip > .cast { flex: 1; min-width: 0; }
-  .strip .act .word { display: inline; }
+  .strip .act .word { display: none; }
   .board { grid-template-columns: minmax(0, 1fr); }
   .board > div { min-width: 0; }
   table { max-width: 100%; }
@@ -426,3 +425,36 @@ details.howto[open] > summary { margin-bottom: 4px; }
   .matrix { min-width: 720px; }   /* the matrix scrolls sideways inside its panel rather than squeezing */
 }
 .scrollx { overflow-x: auto; max-width: 100%; }
+
+/* ---- second critique (Oct 9) ---- */
+/* the Deal tab opens on one sentence; every number in it is a link to the terms that move it */
+.lede .sentence { font-size: 22px; line-height: 1.35; margin: 4px 0 10px; max-width: 980px; letter-spacing: -.2px; }
+.lede .sentence a { color: var(--ink); text-decoration: underline; text-decoration-color: var(--gold); text-decoration-thickness: 2px; text-underline-offset: 4px; }
+.lede .sentence a:hover { text-decoration-color: var(--ink); }
+.lede .sentence .num { font-variant-numeric: tabular-nums; font-weight: 800; }
+.lede .sentence .over { color: var(--bad); font-weight: 700; }
+.lede .next { gap: 10px; margin-bottom: 8px; align-items: center; }
+.lede .help { margin: 0; }
+/* the cell the film sits in says so */
+.matrix td.cell .you { display: inline-block; margin-left: 8px; padding: 1px 7px; border-radius: 8px; background: var(--plum); color: #fff; font-size: 10.5px; font-weight: 700; letter-spacing: .3px; vertical-align: middle; }
+/* help prose waits behind "why" */
+details.why { margin-top: 8px; }
+details.why > summary { cursor: pointer; font-size: 12px; font-weight: 700; color: var(--plum-ink); list-style: none; display: inline-block; }
+details.why > summary::-webkit-details-marker { display: none; }
+details.why > summary::before { content: '▸ '; color: var(--muted); }
+details.why[open] > summary::before { content: '▾ '; }
+details.why > p { margin: 6px 0 0; }
+/* the tag menu in rows */
+.tagmenu { flex-direction: column; align-items: stretch; gap: 6px; max-width: 520px; }
+.taggroup { position: relative; display: flex; flex-wrap: wrap; gap: 5px; align-items: center; padding-left: 86px; min-height: 24px; }
+.taggroup > .muted { position: absolute; left: 0; top: 5px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; font-size: 10.5px; }
+.taggroup button.used { font-weight: 700; box-shadow: inset 0 0 0 1px currentColor; }
+/* strips stay light paper in both themes, so their controls draw in light too */
+.strip .pick { color-scheme: light; }
+.daybreak input::placeholder { color: rgba(255,255,255,.66); }
+/* the ATL money table scrolls rather than breaking words */
+table.atl th, table.atl td { white-space: nowrap; overflow-wrap: normal; }
+@media (max-width: 760px) {
+  .lede .sentence { font-size: 18px; }
+  .tagmenu { max-width: 94vw; }
+}
