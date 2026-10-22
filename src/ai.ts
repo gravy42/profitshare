@@ -5,7 +5,6 @@
 import type { Project } from './engine/types';
 import { withPitch, compGroups, compStats, projections } from './engine/pitch';
 import { topSheet } from './engine/budget';
-import { applyDeal } from './engine/deal';
 import { sagReport } from './engine/sag';
 import { shootDays, parkedScenes } from './engine/board';
 import { recoupableBudget } from './engine/waterfall';
@@ -82,7 +81,7 @@ export async function ask(system: string, prompt: string, opts: { maxTokens?: nu
 /** What the model is told about the film: the pitch so far, the money, the schedule, the deal. Pure; tested. */
 export function projectBrief(p0: Project): string {
   const p = withPitch(p0); const pitch = p.pitch!;
-  const e = applyDeal(p); const ts = topSheet(e); const sag = sagReport(e);
+  const e = p; const ts = topSheet(e); const sag = sagReport(e);   // the views hand over the project with the deal applied; applying it again inflated the budget the model was told
   const days = shootDays(p.board); const parked = parkedScenes(p.board);
   const pr = projections(p);
   const sets = [...new Set(p.board.scenes.filter(s => !s.unit).map(s => s.set))];

@@ -672,3 +672,22 @@ details.panel.ai > summary h2 { margin: 0; flex: 0 0 auto; }
 .deck .signoff .credit { opacity: .7; }
 /* the deck at full size, off screen, while the PDF is rendered */
 .deckrender { position: fixed; left: 0; top: 0; width: 13.333in; z-index: -1; opacity: 0; pointer-events: none; }
+/* research slides: a long finding shares the slide with one other and keeps to its column; the source is a domain */
+.deck .findings .finding p.detail { font-size: 13pt; line-height: 1.4; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 6; overflow: hidden; }
+.deck .findings.wide .finding p.detail { -webkit-line-clamp: 18; }
+.deck .findings .finding h3 { font-size: 13pt; line-height: 1.25; }
+.deck .findings .finding .src { font-size: 10pt; margin: 0; }
+.deck .findings .finding { margin-bottom: 10pt; }
+.deck .findings.wide > .finding { flex: 1 1 45%; }
+/* the ask: the whole budget, then where it comes from, then what the investor ask becomes if the rest does not land */
+.deck .s-ask .big { font-size: 36pt; margin-bottom: 6pt; }
+.deck .s-ask .big .of { font-family: var(--dk-body); font-size: 14pt; color: var(--dk-muted); margin-left: 10pt; }
+.deck .s-ask .cols.two > div:first-child { flex: 1.1 1 0; }
+.deck .s-ask .stack { margin: 0 0 8pt; }
+.deck .s-ask .stack td { font-size: 13pt; padding: 4pt 8pt; vertical-align: top; }
+.deck .s-ask .stack .terms { display: block; font-size: 10pt; color: var(--dk-muted); }
+.deck .s-ask .stack tr.investors td { color: var(--dk-accent); font-weight: 700; border-bottom: 0; }
+.deck .s-ask .contingent { font-size: 12pt; color: var(--dk-ink); margin-bottom: 8pt; }
+.deck .s-ask .prose { max-width: none; }
+.deck .s-ask .prose p { font-size: 14pt; }
+.print-root .deck .s-ask .stack td { font-size: 13pt; padding: 4pt 8pt; }

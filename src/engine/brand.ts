@@ -1,6 +1,7 @@
 // Read a brand or design-system document (its text, from a PDF) into the deck's design: colours by the role they
 // are given on the page, the type faces it names, a name for the system. Pure, so it is tested without pdf.js.
 import type { DeckRules, PitchDesign } from './types';
+import { defaultDeckRules } from './pitch';
 
 export interface BrandColors extends Partial<PitchDesign['colors']> { line?: string; inkBright?: string; card?: string }
 export interface BrandFound {
@@ -127,6 +128,6 @@ export function applyBrand(d: PitchDesign, b: BrandFound): PitchDesign {
     fonts: { title: b.fonts.title ? `"${b.fonts.title}", var(--font-title)` : d.fonts.title, body: b.fonts.body ? `"${b.fonts.body}", var(--font-body)` : d.fonts.body },
     ...(c.line ? { line: c.line } : {}),
     ...(c.card ? { card: c.card } : {}),
-    deck: { layout: 'plain', eyebrow: false, bleed: 0.55, signoff: '', ...d.deck, ...b.rules },
+    deck: { ...defaultDeckRules(), ...d.deck, ...b.rules },
   };
 }

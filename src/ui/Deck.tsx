@@ -1,11 +1,13 @@
 import type { CSSProperties } from 'react';
 import type { Project } from '../engine/types';
-import { withPitch, defaultDesign } from '../engine/pitch';
+import { withPitch, defaultDesign, defaultDeckRules } from '../engine/pitch';
 import { deckSlides, type Slide } from '../engine/deck';
 import { money } from './format';
 import { shortDate } from '../engine/calendar';
 
 const CASE_LABEL: Record<string, string> = { low: 'Low', mid: 'Mid', high: 'High' };
+/** A source line shows where a finding came from, not the whole address. */
+const host = (url: string) => { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return url; } };
 
 /** The design system as CSS variables on the deck root; the app's own fonts fill in when none are set. */
 export function deckStyle(p: Project): CSSProperties {
@@ -21,7 +23,7 @@ export function deckStyle(p: Project): CSSProperties {
 export function Deck({ p, byline, preview }: { p: Project; byline?: string; preview?: boolean }) {
   const slides = deckSlides(p, byline);
   const design = withPitch(p).pitch!.design;
-  const rules = design?.deck;
+  const rules = design?.deck ?? defaultDeckRules();
   const n = slides.length;
   return (
     <div className={`deck ${preview ? 'preview' : ''} ${rules?.eyebrow ? 'eyebrows' : ''}`} style={deckStyle(p)}>
@@ -119,7 +121,7 @@ function SlideBody({ s }: { s: Slide }) {
             </tbody>
           </table>
           <div className="stats vertical">
-            <div><b>{money(s.investors)}</b><span>investors put in{s.incentives ? `, after ${money(s.incentives)} in incentives` : ''}</span></div>
+            <div><b>{money(s.investors)}</b><span>investors put in{s.grants || s.incentives ? `, after ${[s.grants ? `${money(s.grants)} in sponsorship and grants` : '', s.incentives ? `${money(s.incentives)} in credits` : ''].filter(Boolean).join(' and ')}` : ''}</span></div>
             <div><b>{money(s.pointsValue)}</b><span>wages and fees traded for points</span></div>
             {s.deferred > 0 && <div><b>{money(s.deferred)}</b><span>deferred, paid from first proceeds</span></div>}
           </div>
@@ -145,7 +147,25 @@ function SlideBody({ s }: { s: Slide }) {
       </>
     );
     case 'team': return (<><H2>The team</H2><div className={`cols ${s.members.length > 3 ? 'wrap' : ''}`}>{s.members.map(m => <div key={m.name}><h3>{m.name}</h3><p className="muted">{m.role}</p><p>{m.bio}</p></div>)}</div></>);
-    case 'research': return (<><H2>What the research says</H2><div className="cols two wrap">{s.items.map((r, i) => <div key={i}><h3>{r.title}</h3><p>{r.body}</p>{r.url && <p className="muted small">{r.url}</p>}</div>)}</div></>);
-    case 'ask': return (<><H2>The ask</H2><p className="big">{money(s.cashBudget)}</p><div className="prose">{s.body ? s.body.split(/\n{2,}/).map((para, i) => <p key={i}>{para}</p>) : <p className="muted">[add: what you are raising, on what terms, and how to reach you]</p>}</div></>);
+    case 'research': return (<><H2>What the research says</H2><div className={`cols two wrap findings ${s.wide ? 'wide' : ''}`}>{s.items.map((r, i) => <div key={i} className="finding"><h3>{r.title}</h3><p className="detail">{r.body}</p>{r.url && <p className="muted small src">{host(r.url)}</p>}</div>)}</div></>);
+    case 'ask': return (
+      <>
+        <H2>The ask</H2>
+        <div className={`cols ${s.sources.length > 1 ? 'two' : ''}`}>
+          <div>
+            <p className="big">{money(s.cashBudget)}<span className="of"> to make the film</span></p>
+            {s.sources.length > 1 && (
+              <table className="stack">
+                <tbody>
+                  {s.sources.map(f => <tr key={f.label} className={f.label === 'Investors' ? 'investors' : ''}><td className="l">{f.label}<span className="terms">{f.terms}</span></td><td>{money(f.amount)}</td></tr>)}
+                </tbody>
+              </table>
+            )}
+            {s.without.length > 0 && <p className="contingent">The investor ask of {money(s.investors)} assumes the rest of the stack lands: {s.without.map(w => `${w.label} it is ${money(w.investors)}`).join('; ')}.</p>}
+          </div>
+          <div className="prose">{s.body ? s.body.split(/\n{2,}/).map((para, i) => <p key={i}>{para}</p>) : <p className="muted">[add: what you are raising, on what terms, and how to reach you]</p>}</div>
+        </div>
+      </>
+    );
   }
 }
