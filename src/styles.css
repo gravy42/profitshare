@@ -514,3 +514,8 @@ table.atl th, table.atl td { white-space: nowrap; overflow-wrap: normal; }
 .themeswitch .btn[aria-checked="true"]::before { box-shadow: var(--shadow-key-pressed); }
 .themeswitch .lbl { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; font-weight: 600; color: var(--dusk); margin-right: 2px; }
 @media (max-width: 760px) { .themeswitch { flex: 1 1 100%; } }
+
+/* ---- projects in this browser (Start tab) ---- */
+.panel.projects table.projlist td.l b { font-weight: 700; }
+.panel.projects tr.hl td { background: var(--tag-points-bg); }
+.panel.projects .btn.ghost { min-width: 28px; }

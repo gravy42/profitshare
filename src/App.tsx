@@ -29,7 +29,7 @@ import { money } from './ui/format';
 type Tab = 'start' | 'deal' | 'topsheet' | 'board' | 'calendar' | 'breakdowns' | 'points' | 'sag' | 'incentives' | 'pitch' | 'about';
 
 export default function App() {
-  const { project, setProject, undo, replace, canUndo } = useProject();
+  const { project, setProject, undo, replace, canUndo, projects, activeId, newProject, openProject, deleteProject } = useProject();
   const [hadSaved] = useState(hadSavedProject);
   const [tab, setTab] = useState<Tab>(hadSaved ? 'topsheet' : 'start');
   // a message to the user: short confirmations fade after a few seconds, anything worth re-reading (an import report, a repricing) stays until dismissed
@@ -72,15 +72,12 @@ export default function App() {
     return /^\s*(\d+[A-Z]?\s+)?(INT|EXT|I\/E)[.\s]/m.test(await f.text()) ? 'script' : 'budget';
   };
 
-  const [pendingProject, setPendingProject] = useState<{ project: Project; name: string } | null>(null);
   const loadProjectFile = async (f: File) => {
     const p = withDeal(JSON.parse(await f.text()));
     if (p?.schemaVersion !== 1) throw new Error(`${f.name} is not a ProfitShare project`);
-    const current = project;
-    const empty = current.lines.length === 0 && current.board.scenes.length === 0;
-    if (fresh || empty) { replace(p); setFresh(false); setTab('deal'); return `Opened ${f.name}`; }
-    setPendingProject({ project: p, name: f.name });
-    return `${f.name} is ready; it will replace the project you have open.`;
+    const was = fresh ? '' : `; ${project.name || 'the project you had open'} stays under Projects on the Start tab`;
+    replace(p); setTab(fresh ? 'deal' : 'topsheet');
+    return `Opened ${f.name} as its own project${was}`;
   };
   const loadBudgetFile = async (f: File) => {
     const imp = parseBudgetFile(await f.arrayBuffer(), f.name, standardChartOfAccounts());
@@ -94,7 +91,6 @@ export default function App() {
       // headers and prop lists become notes on the lines they belong to
       return foldMemoLines(weeksToDays(next));
     });
-    setFresh(false);
     const via = imp.source === 'shamel' ? 'Shamel Studio' : 'spreadsheet';
     setTab('deal');
     return `${imp.lines.length} budget lines from ${f.name} (${via}${imp.reportedTotal ? `, file total ${money(imp.reportedTotal)}` : ''}${weekly ? `; ${weekly} weekly wage line${weekly > 1 ? 's' : ''} rewritten as days, same money` : ''}${memo ? `; ${memo} memo row${memo > 1 ? 's' : ''} folded into notes` : ''})${imp.warnings.length ? `. ${imp.warnings.length} note${imp.warnings.length > 1 ? 's' : ''}: ${imp.warnings.slice(0, 3).join('; ')}` : ''}`;
@@ -104,7 +100,6 @@ export default function App() {
     const had = project.board.scenes.length;
     if (had) keepBoard(project.board, `before ${f.name} replaced it`);
     setProject(p => ({ ...p, board }));
-    setFresh(false);
     setTab('board');
     setBackup(previousBoard());
     return `${board.scenes.length} scenes from ${f.name} (board order kept)${had ? `. The board you had is kept: Undo brings it back, or the Restore button on the Stripboard` : ''}`;
@@ -161,7 +156,6 @@ export default function App() {
       return `${f.name} is ready (${board.scenes.length} scenes, ${c} speaking part${c === 1 ? '' : 's'}${writerTags ? `, ${writerTags} tags from the script's tagger` : ''}). Merge it into the board you have, or replace the board?`;
     }
     setProject(p => ({ ...p, board, name: imp.title && (!p.name || /^untitled/i.test(p.name)) ? imp.title : p.name }));
-    setFresh(false);
     setTab('board');
     return `${f.name}: ${note}`;
   };
@@ -207,17 +201,15 @@ export default function App() {
     return () => { window.removeEventListener('dragenter', enter); window.removeEventListener('dragover', over); window.removeEventListener('dragleave', leave); window.removeEventListener('drop', drop); };
   });
 
-  // Replacing a project needs a second click on the same button, unless this browser had nothing saved and the user is still on the start screen.
-  const [armed, setArmed] = useState<string | null>(null);
-  const [fresh, setFresh] = useState(!hadSaved);
-  const guard = (id: string, go: () => void) => {
-    if (fresh || armed === id) { setArmed(null); setFresh(false); go(); }
-    else { setArmed(id); flash(`Press that button again to replace ${project.name || 'the current project'} (Save first if you want to keep it).`); }
-  };
-  const startBlank = (o: BlankOptions) => guard('blank', () => { replace(blankProject(o)); setTab('deal'); flash('Blank budget ready. Set the terms here, then build lines on the Top sheet.'); });
-  const startSample = () => guard('sample', () => { replace(sampleProject()); setTab('deal'); flash('Sample project loaded: SALT FLAT, an invented 12-day feature. These are its terms; change any of them.'); });
-  const startImport = () => guard('import', () => { replace(blankProject({ chartOfAccounts: 'empty' })); void importBudget(); });
-  const startOpen = () => guard('open', () => void openJson());
+  // No project open (nothing in this browser yet, or New project): the start screen with the bare header. Every Start button
+  // makes a new project; whatever was open before stays in the Projects list, so nothing needs a second click any more.
+  const fresh = activeId === null;
+  const startBlank = (o: BlankOptions) => { replace(blankProject(o)); setTab('deal'); flash('Blank budget ready. Set the terms here, then build lines on the Top sheet.'); };
+  const startSample = () => { replace(sampleProject()); setTab('deal'); flash('Sample project loaded: SALT FLAT, an invented 12-day feature. These are its terms; change any of them.'); };
+  const startImport = () => { replace(blankProject({ chartOfAccounts: 'empty' })); void importBudget(); };
+  const startOpen = () => void openJson();
+  const startNew = () => { newProject(); setTab('start'); flash(`${project.name || 'The project'} is saved in this browser; find it under Projects on the Start tab.`); };
+  const switchTo = (id: string) => { if (openProject(id)) { setTab('topsheet'); const m = projects.find(x => x.id === id); flash(`Opened ${m?.name ?? 'the project'}${m?.version ? ` (${m.version})` : ''}.`); } };
   const copyJson = async () => {
     const text = JSON.stringify(project);
     try { await navigator.clipboard.writeText(text); flash('Project JSON copied to the clipboard'); }
@@ -247,7 +239,8 @@ export default function App() {
           </span>
         ) : <span className="btns">
           <button className="btn ghost" onClick={undo} disabled={!canUndo} title="Undo the last change (⌘Z)">Undo</button>
-          <button className="btn ghost" onClick={() => { setArmed(null); setTab('start'); }}>New…</button>
+          <button className="btn ghost" onClick={() => setTab('start')} title="Every project this browser holds">Projects{projects.length > 1 ? ` (${projects.length})` : ''}</button>
+          <button className="btn ghost" onClick={startNew} title="Close this project (it stays saved here) and start another">New project</button>
           <button className="btn ghost" onClick={openJson}>Open</button>
           <button className="btn ghost" onClick={() => downloadJson(project)}>Save</button>
           <button className="btn ghost" onClick={copyJson} title="Copy the project as JSON (for places where downloads are blocked)">Copy JSON</button>
@@ -263,13 +256,6 @@ export default function App() {
       </nav>}
       <main>
         <div role="status" aria-live="polite">{msg && <div className="notice row msg"><span>{msg.text}</span><button className="x" title="dismiss" aria-label="Dismiss this message" onClick={() => setMsg(null)}>×</button></div>}</div>
-        {pendingProject && (
-          <div className="notice row">
-            <span>Replace the open project with <b>{pendingProject.name}</b>? Save the current one first if you want to keep it.</span>
-            <button className="btn primary small" onClick={() => { replace(pendingProject.project); setPendingProject(null); setTab('topsheet'); flash(`Opened ${pendingProject.name}`); }}>Replace</button>
-            <button className="btn small" onClick={() => setPendingProject(null)}>Cancel</button>
-          </div>
-        )}
         {pendingScript && (
           <div className="notice row">
             <span><b>{pendingScript.name}</b> has {pendingScript.board.scenes.length} scenes and this project already has a board with {project.board.scenes.length}. <b>Merge</b> matches scenes by number and adds the script text, cast and a first pass of tags to the strips you have, keeping your day breaks, strip order, cast numbers, locations and every tag. <b>Replace</b> starts the board over from the script.</span>
@@ -278,7 +264,7 @@ export default function App() {
             <button className="btn small" onClick={() => setPendingScript(null)}>Cancel</button>
           </div>
         )}
-        {tab === 'start' && <StartView onBlank={startBlank} onImportBudget={startImport} onOpen={startOpen} onSample={startSample} armed={armed} fresh={fresh} />}
+        {tab === 'start' && <StartView onBlank={startBlank} onImportBudget={startImport} onOpen={startOpen} onSample={startSample} fresh={fresh} projects={projects} activeId={activeId} onOpenProject={switchTo} onDeleteProject={deleteProject} />}
         {tab === 'deal' && <DealView raw={project} eff={eff} setProject={setProject} fresh={!hadSaved && !msg} />}
         {tab === 'topsheet' && <>
           {controlled.size > 0 && <div className="notice">{controlled.size} line{controlled.size > 1 ? 's are' : ' is'} set by the deal (marked <span className="tag points">deal</span>): rates, hours or pay type come from the Deal tab. Days and descriptions are still yours to edit.</div>}
@@ -298,7 +284,7 @@ export default function App() {
         {tab === 'pitch' && <PitchView project={eff} setProject={setProject} />}
         {tab === 'about' && <About onStart={() => setTab('start')} />}
         <footer>
-          <span>ProfitShare · open source, MIT · autosaved in this browser; Save downloads a .json to keep or share · not legal, tax or financial advice</span>
+          <span>ProfitShare · open source, MIT · every project is autosaved in this browser (Projects on the Start tab); Save downloads a .json to keep or share · not legal, tax or financial advice</span>
           <span className="signoff">from the world of <a href="https://www.blissfulspinster.com" target="_blank" rel="noreferrer">ALONE GIRL</a></span>
         </footer>
       </main>

@@ -35,7 +35,7 @@ Then:
 - **Stripboard.** Drag to reorder, insert day breaks, or auto-break at a pages-per-day target without changing your scene order. Day summaries, day-out-of-days with work and hold days, and a one-click sync of cast work days into the cast budget lines and the points schedule.
 - **Points and waterfall.** Two waterfalls: recoup-first, and off-the-gross where the pool takes a share from dollar one. Tiers are multipliers on days worked, with a per-person bonus multiplier. Payouts at three revenue scenarios, investor multiples, and each person's wages next to their points.
 - **SAG tier.** Total production cost the way SAG measures it (deferred pay counts, points do not). Ultra Low, Moderate Low, Low Budget and Basic caps, with and without the Diversity in Casting incentive, checked against the effective budget.
-- **Local-first.** No accounts, no server, no telemetry. Autosaves to your browser; Save and Open a `.json` project file to keep it or hand it to a collaborator.
+- **Local-first.** No accounts, no server, no telemetry. Every project you start or open is autosaved in your browser on its own (*Projects* on the Start tab lists them; *New project* closes the one you have open and keeps it); Save and Open a `.json` project file to keep it or hand it to a collaborator.
 
 ## Run it locally
 

@@ -4,6 +4,10 @@ ProfitShare is built in the open by Cris Graves, with Claude doing the typing, w
 
 The app is local-first: your project lives in your browser and in the `.profitshare.json` files you download. Nothing here changes a saved file without saying so.
 
+## 2026-10-22
+
+- **Several projects in one browser.** *New project* in the header closes the project you have open, keeps it, and shows the start screen; *Projects* (with a count) goes to the Start tab, where "Projects in this browser" lists every project with its version, shoot days, lines, scenes, Budget to raise and when it was last saved, with Open and a two-click Delete. Every Start action (from scratch, import, Open .json, the sample) makes a new project, so nothing needs a second click to "replace" any more, and opening a .json while something is open no longer asks. Each project lives in its own slot in the browser; each tab keeps to the project it opened (a second tab on a second project no longer writes over the first), and a new tab opens the last one you used. The old single slot is adopted as the first project on first load. Tests: 84.
+
 ## 2026-10-21
 
 - **Fixed points.** A participant's points can be a block set by the deal instead of days × tier × bonus: "fix" next to the bonus on the Points schedule turns the Points cell into a number you type, "fixed" turns it back. It's for the people whose share is bought with money rather than days, a name actor who traded a premium for points or a producer whose fee went to the back end, so a two-day role can hold a real share without a bonus of 59×. Everyone else still earns points by days. Tests: 83.
