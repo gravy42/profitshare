@@ -280,5 +280,30 @@ export interface Project {
   incentives?: Incentives;
   calendar?: Calendar;
   pitch?: Pitch;
+  callSheets?: CallSheets;  // locations, contacts, default calls and what each shoot day's sheet says
   notes?: string;
+}
+
+// ---------- call sheets ----------
+
+/** A place the film shoots: which sets on the board are there, the address, where to park, the nearest hospital,
+ *  and coordinates so the sheet can give sunrise and sunset without asking the network. */
+export interface Location { id: string; name: string; sets: string; address: string; parking: string; hospital: string; notes: string; lat?: number; lng?: number }
+
+export interface CallContact { role: string; name: string; phone: string }
+
+/** What one shoot day's sheet says beyond the defaults: every field optional, so a sheet is never blank. Times are "HH:MM". */
+export interface CallSheetDay {
+  crewCall?: string; shootingCall?: string; lunch?: string; wrap?: string;
+  weather?: string; notes?: string; safety?: string; meals?: string;
+  cast: Record<number, { status?: string; pickup?: string; call?: string; makeup?: string; onSet?: string; note?: string }>;   // by cast number
+  depts: Record<string, string>;   // department → call time
+}
+
+export interface CallSheets {
+  company: string;
+  contacts: CallContact[];         // UPM, 1st AD, 2nd AD, producer: who the header lists
+  locations: Location[];
+  crewCall: string; shootingCall: string; lunch: string; wrap: string;   // the defaults every day starts from
+  days: Record<number, CallSheetDay>;   // by shoot day index
 }

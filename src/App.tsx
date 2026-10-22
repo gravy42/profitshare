@@ -20,6 +20,7 @@ import { IncentivesView } from './ui/IncentivesView';
 import { CalendarView } from './ui/CalendarView';
 import { BreakdownsView } from './ui/BreakdownsView';
 import { PitchView } from './ui/PitchView';
+import { CallSheetsView } from './ui/CallSheetsView';
 import { BoardView } from './ui/BoardView';
 import { DealView } from './ui/DealView';
 import { applyDeal, dealControlledIds, withDeal } from './engine/deal';
@@ -27,7 +28,7 @@ import { StartView, type StarterSettings } from './ui/StartView';
 import { starterProject, applyStarter } from './engine/starter';
 import { money } from './ui/format';
 
-type Tab = 'start' | 'deal' | 'topsheet' | 'board' | 'calendar' | 'breakdowns' | 'points' | 'sag' | 'incentives' | 'pitch' | 'about';
+type Tab = 'start' | 'deal' | 'topsheet' | 'board' | 'calendar' | 'callsheets' | 'breakdowns' | 'points' | 'sag' | 'incentives' | 'pitch' | 'about';
 
 export default function App() {
   const { project, setProject, undo, replace, canUndo, projects, activeId, newProject, openProject, deleteProject } = useProject();
@@ -278,7 +279,7 @@ export default function App() {
       </header>
       <hr className="rule" aria-hidden="true" />
       {!(fresh && tab === 'start') && <nav className="tabs">
-        {([['start', 'Start'], ['deal', 'Deal'], ['topsheet', 'Top sheet & budget'], ['board', 'Stripboard'], ['calendar', 'Calendar'], ['breakdowns', 'Breakdowns'], ['points', 'Points & waterfall'], ['sag', 'SAG tier'], ['incentives', 'Incentives'], ['pitch', 'Pitch'], ['about', 'About']] as [Tab, string][]).map(([k, label]) =>
+        {([['start', 'Start'], ['deal', 'Deal'], ['topsheet', 'Top sheet & budget'], ['board', 'Stripboard'], ['calendar', 'Calendar'], ['callsheets', 'Call sheets'], ['breakdowns', 'Breakdowns'], ['points', 'Points & waterfall'], ['sag', 'SAG tier'], ['incentives', 'Incentives'], ['pitch', 'Pitch'], ['about', 'About']] as [Tab, string][]).map(([k, label]) =>
           <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{label}</button>)}
       </nav>}
       <main>
@@ -304,6 +305,7 @@ export default function App() {
         )}
         {tab === 'board' && <BoardView project={eff} raw={project} setProject={setProject} notify={flash} onStarter={drawStarter} />}
         {tab === 'calendar' && <CalendarView project={eff} setProject={setProject} />}
+        {tab === 'callsheets' && <CallSheetsView project={eff} setProject={setProject} />}
         {tab === 'breakdowns' && <BreakdownsView project={eff} setProject={setProject} />}
         {tab === 'points' && <PointsView project={eff} setProject={setProject} />}
         {tab === 'sag' && <SagView project={eff} />}
