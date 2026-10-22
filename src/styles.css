@@ -558,8 +558,8 @@ details.panel.ai > summary h2 { margin: 0; flex: 0 0 auto; }
 .deck { --dk-pad: 0.6in; font-family: var(--dk-body); color: var(--dk-ink); }
 .deck .slide { position: relative; width: 13.333in; height: 7.5in; box-sizing: border-box; padding: var(--dk-pad) var(--dk-pad) 0.8in; background: var(--dk-bg); color: var(--dk-ink); display: flex; flex-direction: column; overflow: hidden; break-after: page; page-break-after: always; }
 .deck .slide:last-child { break-after: auto; page-break-after: auto; }
-.deck .slide .logo { position: absolute; top: 0.35in; right: var(--dk-pad); max-height: 0.5in; max-width: 1.6in; opacity: .9; }
-.deck .slide footer { position: absolute; left: var(--dk-pad); right: var(--dk-pad); bottom: 0.3in; display: flex; justify-content: space-between; font-size: 11pt; color: var(--dk-muted); border-top: 1px solid var(--dk-muted); padding-top: 6px; }
+.deck .slide .logo { max-height: 0.5in; max-width: 1.6in; opacity: .9; }
+.deck .slide footer { display: flex; justify-content: space-between; font-size: 11pt; color: var(--dk-muted); border-top: 1px solid var(--dk-muted); padding-top: 6px; }
 .deck h1 { font-family: var(--dk-title); font-size: 56pt; line-height: 1; margin: 0 0 18pt; color: var(--dk-accent); font-weight: 400; }
 .deck h2 { font-family: var(--dk-title); font-size: 30pt; line-height: 1.1; margin: 0 0 16pt; color: var(--dk-accent); font-weight: 400; }
 .deck h3 { font-size: 14pt; margin: 0 0 6pt; color: var(--dk-accent2); font-weight: 700; }
@@ -630,3 +630,31 @@ details.panel.ai > summary h2 { margin: 0; flex: 0 0 auto; }
 .deck .slide.s-images figure img { display: block; width: 100%; height: 5.05in; object-fit: cover; }
 .deck .slide.s-images .grid.g4 figure img { height: 2.3in; }
 .deck .slide.s-images figcaption { height: 0.25in; line-height: 0.25in; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+
+/* ---- deck layout rules: split photo slides, eyebrows, closing ---- */
+.deck .slide { padding: 0; }
+.deck .slide > .body { position: relative; flex: 1 1 auto; min-width: 0; height: 100%; box-sizing: border-box; padding: var(--dk-pad) var(--dk-pad) 0.8in; display: flex; flex-direction: column; }
+.deck .slide.split { flex-direction: row; }
+.deck .slide.split > .photo { flex: 0 0 var(--dk-bleed); width: var(--dk-bleed); height: 100%; overflow: hidden; }
+.deck .slide.split > .photo img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 0; }
+.deck .slide.split > .body { padding-left: 0.5in; }
+.deck .slide.split .prose { max-width: none; }
+.deck .slide.split .prose p { font-size: 14pt; }
+.deck .slide.split .center h1 { font-size: 44pt; }
+.deck .slide.split .logline { font-size: 18pt; }
+.deck .slide > .body > footer { position: absolute; left: var(--dk-pad); right: var(--dk-pad); bottom: 0.3in; }
+.deck .slide.split > .body > footer { left: 0.5in; }
+.deck .slide > .body > .logo { position: absolute; top: 0.35in; right: var(--dk-pad); }
+.deck .colon { display: none; }
+.deck.eyebrows h2 { font-family: var(--dk-body); font-size: 15pt; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--dk-ink); margin: 0 0 12pt; }
+.deck.eyebrows h2 .colon { display: inline; }
+.deck.eyebrows figure img, .deck.eyebrows .photo img { border-radius: 0; }
+.deck .slide.s-closing { display: block; }
+.deck .slide.s-closing > .photo { position: absolute; inset: 0; }
+.deck .slide.s-closing > .photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.deck .slide.s-closing > .body { position: relative; height: 100%; justify-content: flex-end; padding-bottom: var(--dk-pad); }
+.deck .slide.s-closing .closing { margin: 0; }
+.deck .signoff { display: inline-block; font-family: var(--dk-title); font-size: 26pt; color: var(--dk-ink); background: color-mix(in srgb, var(--dk-bg) 85%, transparent); padding: 10pt 16pt; margin: 0; }
+.deck .slide .lead { color: var(--dk-ink); }
+.deck .slide.s-closing.split > .photo { position: absolute; inset: 0; width: 100%; height: 100%; flex: none; }
+.deck .slide.s-closing.split > .body { padding-left: var(--dk-pad); }

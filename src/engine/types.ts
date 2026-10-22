@@ -239,6 +239,18 @@ export interface PitchDesign {
   fonts: { title: string; body: string };   // CSS font-family stacks; the deck falls back to the app's own
   logoDataUrl?: string;       // a small image, embedded
   notes: string;              // rules of the system in a sentence or two, for whoever edits the deck
+  line?: string;              // hairlines and dividers, when the system names one
+  card?: string;              // the index-card colour, when the system has one
+  deck?: DeckRules;           // how the slides are laid out
+}
+/** Layout rules a brand system sets for its slides. */
+export interface DeckRules {
+  layout: 'split' | 'plain';  // split: a photo bleeds the left of a text slide, the text column sits right; plain: text on the ground
+  eyebrow: boolean;           // the slide's first word as a small caps label ending in a colon, instead of a big heading
+  bleed: number;              // how much of the slide the photo takes in the split layout, 0.4 to 0.6
+  coverImageId?: string;      // a look book picture for the cover slide
+  closingImageId?: string;    // a look book picture for the closing slide
+  signoff: string;            // "from the world of ALONE GIRL": the closing slide's tag; empty for the film's own name
 }
 export interface LookImage { id: string; dataUrl: string; caption: string; section: 'tone' | 'world' | 'character' | 'reference'; credit?: string }
 export interface ResearchItem { id: string; kind: 'market' | 'audience' | 'comp' | 'press' | 'other'; title: string; body: string; url?: string }

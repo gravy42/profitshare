@@ -11,8 +11,9 @@ import { shootDates, withCalendar } from './calendar';
 import { incentiveProceeds } from './incentives';
 
 export type Slide =
-  | { kind: 'title'; title: string; version: string; logline: string; byline: string }
-  | { kind: 'text'; heading: string; body: string }
+  | { kind: 'title'; title: string; version: string; logline: string; byline: string; image?: LookImage }
+  | { kind: 'text'; heading: string; body: string; image?: LookImage }
+  | { kind: 'closing'; image?: LookImage; signoff: string; title: string }
   | { kind: 'images'; heading: string; images: LookImage[] }
   | { kind: 'audience'; primary: string; secondary: string; notes: string }
   | { kind: 'comps'; groups: { group: string; rows: { title: string; year: string; distributor: string; budget: number | null; worldwide: number | null; multiple: number | null }[]; medianMultiple: number | null }[] }
@@ -33,11 +34,23 @@ export function deckSlides(p0: Project, byline = ''): Slide[] {
   const cal = withCalendar(p).calendar!; const dates = shootDates(p.board, cal);
   const dated = [...dates.values()].filter(Boolean).sort();
   const out: Slide[] = [];
-  out.push({ kind: 'title', title: p.name, version: p.version, logline: pitch.logline, byline });
-  if (pitch.why.trim()) out.push({ kind: 'text', heading: 'Why this film, why now', body: pitch.why });
-  for (const sec of pitch.sections) if (sec.heading.trim() || sec.body.trim()) out.push({ kind: 'text', heading: sec.heading, body: sec.body });
-  for (const ls of LOOK_SECTIONS) {
-    const imgs = (pitch.lookbook ?? []).filter(i => i.section === ls.id);
+  const rules = pitch.design?.deck;
+  const lookbook = pitch.lookbook ?? [];
+  const byId = (id?: string) => (id ? lookbook.find(i => i.id === id) : undefined);
+  const cover = byId(rules?.coverImageId), closing = byId(rules?.closingImageId);
+  // in the split layout, text slides each take a picture: the look book in order, cover and closing pictures left out,
+  // and those pictures do not get a slide of their own as well
+  const split = rules?.layout === 'split';
+  const pool = split ? lookbook.filter(i => i.id !== cover?.id && i.id !== closing?.id && i.section !== 'reference') : [];
+  let pi = 0;
+  const nextImage = () => (pool.length ? pool[pi++ % pool.length] : undefined);
+  const used = new Set<string>();
+  out.push({ kind: 'title', title: p.name, version: p.version, logline: pitch.logline, byline, image: cover });
+  if (pitch.why.trim()) { const image = nextImage(); if (image) used.add(image.id); out.push({ kind: 'text', heading: 'Why this film, why now', body: pitch.why, image }); }
+  for (const sec of pitch.sections) if (sec.heading.trim() || sec.body.trim()) { const image = nextImage(); if (image) used.add(image.id); out.push({ kind: 'text', heading: sec.heading, body: sec.body, image }); }
+  // references are for the filmmaker (a brand book's pages, a lighting reference); the deck shows tone, world and characters
+  for (const ls of LOOK_SECTIONS.filter(x => x.id !== 'reference')) {
+    const imgs = lookbook.filter(i => i.section === ls.id && !used.has(i.id) && i.id !== cover?.id && i.id !== closing?.id);
     for (const group of chunk(imgs, 4)) out.push({ kind: 'images', heading: ls.label, images: group });
   }
   if (pitch.audience.primary || pitch.audience.secondary || pitch.audience.notes) out.push({ kind: 'audience', ...pitch.audience });
@@ -56,5 +69,6 @@ export function deckSlides(p0: Project, byline = ''): Slide[] {
   const research = (pitch.research ?? []).filter(r => r.title.trim() || r.body.trim());
   for (const group of chunk(research, 4)) out.push({ kind: 'research', items: group });
   if ((pitch.ask ?? '').trim() || p.lines.length) out.push({ kind: 'ask', body: pitch.ask ?? '', cashBudget: ts.cashBudget });
+  if (closing || rules?.signoff) out.push({ kind: 'closing', image: closing, signoff: rules?.signoff ?? '', title: p.name });
   return out;
 }

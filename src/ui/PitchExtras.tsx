@@ -2,7 +2,9 @@
 // system, research, the team and the ask. PitchView composes them.
 import { useEffect, useRef, useState } from 'react';
 import type { LookImage, PitchDesign, Project, ResearchItem, TeamMember } from '../engine/types';
-import { withPitch, defaultDesign, newLookImage, newResearch, newTeamMember, LOOK_SECTIONS, RESEARCH_KINDS, projectBytes } from '../engine/pitch';
+import { withPitch, defaultDesign, defaultDeckRules, newLookImage, newResearch, newTeamMember, LOOK_SECTIONS, RESEARCH_KINDS, projectBytes } from '../engine/pitch';
+import { parseBrandText, applyBrand } from '../engine/brand';
+import { pdfText, pdfPages } from './brandPdf';
 import { aiSettings, saveAiSettings, forgetAi, listModels, ask, projectBrief, draftPrompt, SYSTEM, DEFAULT_MODEL, type DraftWhat } from '../ai';
 
 type SetProject = (f: (p: Project) => Project) => void;
@@ -113,7 +115,7 @@ export function LookBookPanel({ project, setPitch }: { project: Project; setPitc
           <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={e => { if (e.target.files) void add(e.target.files); e.target.value = ''; }} />
         </span>
       </div>
-      <p className="help">Stills, references, frames, the poster comp: the film in pictures. Drop images here (or Add pictures); each is resized to 1600 px and kept inside the project, so the .json carries the whole pitch. The deck gives each section a slide of up to four pictures with their captions. {bytes > 3_500_000 && <b className="warn">The project is {mb(bytes)}; the browser keeps about 5 MB a site, so Save the .json and keep the look book under twenty pictures.</b>}</p>
+      <p className="help">Stills, references, frames, the poster comp: the film in pictures. Drop images here (or Add pictures); each is resized to 1600 px and kept inside the project, so the .json carries the whole pitch. The deck gives tone, the world and characters a slide of up to four pictures each with their captions; references stay with you. {bytes > 3_500_000 && <b className="warn">The project is {mb(bytes)}; the browser keeps about 5 MB a site, so Save the .json and keep the look book under twenty pictures.</b>}</p>
       {imgs.length === 0 && <div className="droptarget"><b>Drop pictures here</b></div>}
       <div className="lookgrid">
         {imgs.map((img, i) => (
@@ -138,13 +140,43 @@ export function LookBookPanel({ project, setPitch }: { project: Project; setPitc
 
 export function DesignPanel({ project, setPitch }: { project: Project; setPitch: SetPitch }) {
   const d = withPitch(project).pitch!.design ?? defaultDesign();
+  const rules = d.deck ?? defaultDeckRules();
   const set = (f: (x: PitchDesign) => PitchDesign) => setPitch(x => ({ ...x, design: f(x.design ?? defaultDesign()) }));
+  const setRules = (f: (r: NonNullable<PitchDesign['deck']>) => NonNullable<PitchDesign['deck']>) => set(x => ({ ...x, deck: f(x.deck ?? defaultDeckRules()) }));
   const logoRef = useRef<HTMLInputElement>(null);
+  const pdfRef = useRef<HTMLInputElement>(null);
+  const [withPages, setWithPages] = useState(false);
+  const [status, setStatus] = useState('');
+  const lookbook = withPitch(project).pitch!.lookbook ?? [];
+  const loadPdf = async (f: File) => {
+    setStatus('Reading…');
+    try {
+      const data = await f.arrayBuffer();
+      const text = await pdfText(data.slice(0));
+      const found = parseBrandText(text, f.name.replace(/\.pdf$/i, '').replace(/[_-]+/g, ' '));
+      set(x => applyBrand(x, found));
+      let pages = 0;
+      if (withPages) {
+        const urls = await pdfPages(data.slice(0));
+        pages = urls.length;
+        setPitch(x => ({ ...x, lookbook: [...(x.lookbook ?? []), ...urls.map((u, i) => ({ ...newLookImage(u, 'reference'), caption: `${found.name || 'Brand system'} · page ${i + 1}` }))] }));
+      }
+      const roles = Object.entries(found.colors).filter(([, v]) => v).map(([k, v]) => `${k} ${v}`).join(', ');
+      setStatus(`Read "${found.name}": ${found.swatches.length} named colours (${roles || 'no roles recognised, darkest as ground and lightest as ink'})${found.night && found.day ? '; night and day sets found, the deck takes night' : ''}${found.faces.length ? `; faces: ${found.faces.join(', ')}` : '; no type face recognised'}${pages ? `; ${pages} pages added to the look book as references` : ''}. Check the swatch and change anything it got wrong.`);
+    } catch (e) { setStatus(`Could not read that PDF: ${(e as Error).message}`); }
+  };
   const colors: { k: keyof PitchDesign['colors']; label: string }[] = [{ k: 'bg', label: 'Background' }, { k: 'ink', label: 'Text' }, { k: 'accent', label: 'Accent' }, { k: 'accent2', label: 'Second accent' }, { k: 'muted', label: 'Muted' }];
   return (
     <div className="panel design">
       <h2>Design system</h2>
-      <p className="help">The look of the deck: your colours, your type, your mark. Fonts are CSS family names (a font has to be installed on the machine that prints the deck, or the deck's own fallback is used). The preview on the right is a slide corner.</p>
+      <p className="help">The look of the deck: your colours, your type, your mark, and how the slides are built. Fonts are CSS family names (a font has to be installed on the machine that prints the deck, or the deck's own fallback is used). The preview on the right is a slide corner.</p>
+      <div className="row brandpdf">
+        <button className="btn small" onClick={() => pdfRef.current?.click()}>Load a brand system PDF</button>
+        <input ref={pdfRef} type="file" accept="application/pdf" hidden onChange={e => { const f = e.target.files?.[0]; if (f) void loadPdf(f); e.target.value = ''; }} />
+        <label className="small"><input type="checkbox" checked={withPages} onChange={e => setWithPages(e.target.checked)} /> also add its pages to the look book as references</label>
+        <span className="hint">Reads the colours by the role the page gives them (surface, ink, accent, signal, muted, line), a night set and a day set when there are both, and the type faces it names.</span>
+      </div>
+      {status && <p className="small" style={{ marginTop: 6 }}>{status}</p>}
       <div className="row" style={{ alignItems: 'flex-start', gap: 18 }}>
         <div style={{ flex: '1 1 420px' }}>
           <div className="row">
@@ -161,6 +193,19 @@ export function DesignPanel({ project, setPitch }: { project: Project; setPitch:
             <div className="ctl"><label>Logo</label><span className="row" style={{ gap: 6 }}><button className="btn small" onClick={() => logoRef.current?.click()}>{d.logoDataUrl ? 'Replace' : 'Add a logo'}</button>{d.logoDataUrl && <button className="btn small ghost" onClick={() => set(x => { const { logoDataUrl: _l, ...rest } = x; return rest; })}>Remove</button>}</span>
               <input ref={logoRef} type="file" accept="image/*" hidden onChange={async e => { const f = e.target.files?.[0]; if (f) { const u = await resizeImage(f, 600, 0.9); set(x => ({ ...x, logoDataUrl: u })); } e.target.value = ''; }} /></div>
             <div className="ctl" style={{ flex: 1 }}><label>Rules, in a sentence or two</label><input value={d.notes} placeholder="Night palette for the deck; gold only for numbers; the typewriter face for titles." onChange={e => set(x => ({ ...x, notes: e.target.value }))} /></div>
+          </div>
+          <h3 style={{ margin: '12px 0 4px' }}>Slides</h3>
+          <div className="row">
+            <div className="ctl"><label>Layout</label>
+              <select value={rules.layout} onChange={e => setRules(r => ({ ...r, layout: e.target.value as 'split' | 'plain' }))}><option value="plain">Plain: text on the ground</option><option value="split">Split: a photo bleeds the left, text column right</option></select></div>
+            {rules.layout === 'split' && <div className="ctl"><label>Photo takes</label><select value={rules.bleed} onChange={e => setRules(r => ({ ...r, bleed: +e.target.value }))}><option value={0.4}>40%</option><option value={0.5}>50%</option><option value={0.55}>55%</option><option value={0.6}>60%</option></select></div>}
+            <div className="ctl"><label>Headings</label>
+              <select value={rules.eyebrow ? 'eyebrow' : 'big'} onChange={e => setRules(r => ({ ...r, eyebrow: e.target.value === 'eyebrow' }))}><option value="big">Big title in the title face</option><option value="eyebrow">Eyebrow: small caps label ending in a colon</option></select></div>
+          </div>
+          <div className="row">
+            <div className="ctl"><label>Cover picture</label><select value={rules.coverImageId ?? ''} onChange={e => setRules(r => ({ ...r, coverImageId: e.target.value || undefined }))}><option value="">none (title on the ground)</option>{lookbook.map((i, n) => <option key={i.id} value={i.id}>{i.caption || `picture ${n + 1}`}</option>)}</select></div>
+            <div className="ctl"><label>Closing picture</label><select value={rules.closingImageId ?? ''} onChange={e => setRules(r => ({ ...r, closingImageId: e.target.value || undefined }))}><option value="">none</option>{lookbook.map((i, n) => <option key={i.id} value={i.id}>{i.caption || `picture ${n + 1}`}</option>)}</select></div>
+            <div className="ctl" style={{ flex: 1 }}><label>Sign-off on the closing slide</label><input value={rules.signoff} placeholder={`from the world of ${project.name || 'the film'}`} onChange={e => setRules(r => ({ ...r, signoff: e.target.value }))} /></div>
           </div>
         </div>
         <div className="swatch" style={{ background: d.colors.bg, color: d.colors.ink, fontFamily: d.fonts.body || undefined }}>

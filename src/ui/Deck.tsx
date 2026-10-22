@@ -11,8 +11,9 @@ const CASE_LABEL: Record<string, string> = { low: 'Low', mid: 'Mid', high: 'High
 export function deckStyle(p: Project): CSSProperties {
   const d = withPitch(p).pitch!.design ?? defaultDesign();
   return {
-    '--dk-bg': d.colors.bg, '--dk-ink': d.colors.ink, '--dk-accent': d.colors.accent, '--dk-accent2': d.colors.accent2, '--dk-muted': d.colors.muted,
+    '--dk-bg': d.colors.bg, '--dk-ink': d.colors.ink, '--dk-accent': d.colors.accent, '--dk-accent2': d.colors.accent2, '--dk-muted': d.colors.muted, '--dk-line': d.line ?? d.colors.muted,
     '--dk-title': d.fonts.title || 'var(--font-title, inherit)', '--dk-body': d.fonts.body || 'var(--font-body, inherit)',
+    '--dk-bleed': `${Math.round((d.deck?.bleed ?? 0.55) * 100)}%`,
   } as CSSProperties;
 }
 
@@ -20,19 +21,29 @@ export function deckStyle(p: Project): CSSProperties {
 export function Deck({ p, byline, preview }: { p: Project; byline?: string; preview?: boolean }) {
   const slides = deckSlides(p, byline);
   const design = withPitch(p).pitch!.design;
+  const rules = design?.deck;
   const n = slides.length;
   return (
-    <div className={`deck ${preview ? 'preview' : ''}`} style={deckStyle(p)}>
-      {slides.map((s, i) => (
-        <section className={`slide s-${s.kind}`} key={i}>
-          {design?.logoDataUrl && s.kind !== 'title' && <img className="logo" src={design.logoDataUrl} alt="" />}
-          <SlideBody s={s} />
-          <footer><span>{p.name}</span><span>{i + 1} / {n}</span></footer>
-        </section>
-      ))}
+    <div className={`deck ${preview ? 'preview' : ''} ${rules?.eyebrow ? 'eyebrows' : ''}`} style={deckStyle(p)}>
+      {slides.map((s, i) => {
+        const photo = (s.kind === 'title' || s.kind === 'text' || s.kind === 'closing') && s.image;
+        return (
+          <section className={`slide s-${s.kind} ${photo ? 'split' : ''}`} key={i}>
+            {photo && <div className="photo"><img src={photo.dataUrl} alt={photo.caption} /></div>}
+            <div className="body">
+              {design?.logoDataUrl && s.kind !== 'title' && s.kind !== 'closing' && <img className="logo" src={design.logoDataUrl} alt="" />}
+              <SlideBody s={s} />
+              {s.kind !== 'closing' && <footer><span>{p.name}</span><span>{i + 1} / {n}</span></footer>}
+            </div>
+          </section>
+        );
+      })}
     </div>
   );
 }
+
+/** An eyebrow deck turns a heading into its label: "The plan" → "THE PLAN:". */
+const H2 = ({ children }: { children: string }) => <h2>{children}<span className="colon">:</span></h2>;
 
 function SlideBody({ s }: { s: Slide }) {
   switch (s.kind) {
@@ -43,10 +54,11 @@ function SlideBody({ s }: { s: Slide }) {
         <p className="byline">{s.byline || s.version}</p>
       </div>
     );
-    case 'text': return (<><h2>{s.heading}</h2><div className="prose">{s.body.split(/\n{2,}/).map((para, i) => <p key={i}>{para}</p>)}</div></>);
+    case 'text': return (<><H2>{s.heading}</H2><div className="prose">{s.body.split(/\n{2,}/).map((para, i) => <p key={i}>{para}</p>)}</div></>);
+    case 'closing': return (<div className="center closing"><p className="signoff">{s.signoff || s.title}</p></div>);
     case 'images': return (
       <>
-        <h2>{s.heading}</h2>
+        <H2>{s.heading}</H2>
         <div className={`grid g${Math.min(4, Math.max(1, s.images.length))}`}>
           {s.images.map(img => <figure key={img.id}><img src={img.dataUrl} alt={img.caption} />{(img.caption || img.credit) && <figcaption>{img.caption}{img.credit ? <span className="credit"> · {img.credit}</span> : null}</figcaption>}</figure>)}
         </div>
@@ -54,7 +66,7 @@ function SlideBody({ s }: { s: Slide }) {
     );
     case 'audience': return (
       <>
-        <h2>Who it's for</h2>
+        <H2>Who it's for</H2>
         <div className="cols">
           <div><h3>Primary</h3><p>{s.primary}</p></div>
           <div><h3>Secondary</h3><p>{s.secondary}</p></div>
@@ -64,7 +76,7 @@ function SlideBody({ s }: { s: Slide }) {
     );
     case 'comps': return (
       <>
-        <h2>Comparable films</h2>
+        <H2>Comparable films</H2>
         {s.groups.map(g => (
           <div key={g.group} className="compgroup">
             {s.groups.length > 1 && <h3>{g.group}</h3>}
@@ -81,7 +93,7 @@ function SlideBody({ s }: { s: Slide }) {
     );
     case 'plan': return (
       <>
-        <h2>The plan</h2>
+        <H2>The plan</H2>
         <div className="stats">
           <div><b>{s.days}</b><span>shoot days{s.first && s.last ? `, ${shortDate(s.first)} to ${shortDate(s.last)}` : ''}</span></div>
           <div><b>{s.scenes}</b><span>scenes{s.parked ? ` (+${s.parked} VFX / second unit)` : ''}</span></div>
@@ -95,7 +107,7 @@ function SlideBody({ s }: { s: Slide }) {
     );
     case 'numbers': return (
       <>
-        <h2>The numbers</h2>
+        <H2>The numbers</H2>
         <div className="cols two">
           <table>
             <tbody>
@@ -114,7 +126,7 @@ function SlideBody({ s }: { s: Slide }) {
     );
     case 'deal': return (
       <>
-        <h2>The deal</h2>
+        <H2>The deal</H2>
         <p className="lead">Investors recoup {s.recoupPct}% first{s.model === 'off-the-gross' ? ' while the pool takes a share from dollar one' : ''}; then {s.poolPct}% of net to the people who made the film, by points, and the rest to the investors.</p>
         <div className="cols two">
           <table>
@@ -130,8 +142,8 @@ function SlideBody({ s }: { s: Slide }) {
         </div>
       </>
     );
-    case 'team': return (<><h2>The team</h2><div className={`cols ${s.members.length > 3 ? 'wrap' : ''}`}>{s.members.map(m => <div key={m.name}><h3>{m.name}</h3><p className="muted">{m.role}</p><p>{m.bio}</p></div>)}</div></>);
-    case 'research': return (<><h2>What the research says</h2><div className="cols two wrap">{s.items.map((r, i) => <div key={i}><h3>{r.title}</h3><p>{r.body}</p>{r.url && <p className="muted small">{r.url}</p>}</div>)}</div></>);
-    case 'ask': return (<><h2>The ask</h2><p className="big">{money(s.cashBudget)}</p><div className="prose">{s.body ? s.body.split(/\n{2,}/).map((para, i) => <p key={i}>{para}</p>) : <p className="muted">[add: what you are raising, on what terms, and how to reach you]</p>}</div></>);
+    case 'team': return (<><H2>The team</H2><div className={`cols ${s.members.length > 3 ? 'wrap' : ''}`}>{s.members.map(m => <div key={m.name}><h3>{m.name}</h3><p className="muted">{m.role}</p><p>{m.bio}</p></div>)}</div></>);
+    case 'research': return (<><H2>What the research says</H2><div className="cols two wrap">{s.items.map((r, i) => <div key={i}><h3>{r.title}</h3><p>{r.body}</p>{r.url && <p className="muted small">{r.url}</p>}</div>)}</div></>);
+    case 'ask': return (<><H2>The ask</H2><p className="big">{money(s.cashBudget)}</p><div className="prose">{s.body ? s.body.split(/\n{2,}/).map((para, i) => <p key={i}>{para}</p>) : <p className="muted">[add: what you are raising, on what terms, and how to reach you]</p>}</div></>);
   }
 }

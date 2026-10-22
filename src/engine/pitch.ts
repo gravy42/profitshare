@@ -1,4 +1,4 @@
-import type { Comp, LookImage, Pitch, PitchDesign, PitchSection, Project, ResearchItem, RevenueLine, TeamMember } from './types';
+import type { Comp, DeckRules, LookImage, Pitch, PitchDesign, PitchSection, Project, ResearchItem, RevenueLine, TeamMember } from './types';
 import { recoupableBudget, investorsAt, poolAt } from './waterfall';
 
 export const defaultPitch = (): Pitch => ({
@@ -16,7 +16,8 @@ export const defaultPitch = (): Pitch => ({
   sources: [],
 });
 
-export const defaultDesign = (): PitchDesign => ({ name: '', colors: { bg: '#15151b', ink: '#f3efe4', accent: '#e8b84a', accent2: '#91a9d9', muted: '#a9a39a' }, fonts: { title: '', body: '' }, notes: '' });
+export const defaultDesign = (): PitchDesign => ({ name: '', colors: { bg: '#15151b', ink: '#f3efe4', accent: '#e8b84a', accent2: '#91a9d9', muted: '#a9a39a' }, fonts: { title: '', body: '' }, notes: '', deck: defaultDeckRules() });
+export const defaultDeckRules = (): DeckRules => ({ layout: 'plain', eyebrow: false, bleed: 0.55, signoff: '' });
 
 export const withPitch = (p: Project): Project => {
   const b = p.pitch;
