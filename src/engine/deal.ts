@@ -107,9 +107,11 @@ export function applyDeal(raw: Project): Project {
 
 /** Every crew wage line (payroll, not a SAG performer, not an ATL premium) at its budgeted rate plus `pct` percent.
  *  The budget's own ladder survives: a DP at twice a PA's rate stays at twice. */
+/** Above-the-line wage accounts (story, producers, director): their fees are deals, not crew rates, so the crew bump leaves them alone. */
+const ATL_WAGE_ACCOUNT = /^1[123]\d\d$/;
 export function bumpCrew(p: Project, pct: number): Project {
   const f = 1 + pct / 100;
-  return { ...p, lines: p.lines.map(l => isPayrollLine(l) && !isSagPerformerLine(l) && !PROFIT_SHARE_PRESET_MATCH(l) ? { ...l, rate: Math.round(l.rate * f * 100) / 100 } : l) };
+  return { ...p, lines: p.lines.map(l => isPayrollLine(l) && !isSagPerformerLine(l) && !PROFIT_SHARE_PRESET_MATCH(l) && !ATL_WAGE_ACCOUNT.test(l.accountId) ? { ...l, rate: Math.round(l.rate * f * 100) / 100 } : l) };
 }
 
 /** Which raw line ids the deal rewrites (rate or pay type differs from raw), so the top sheet can show them as set by the deal. */
