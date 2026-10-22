@@ -6,10 +6,15 @@
 // came out as bare headings over midnight), so each slide is captured with its pictures hidden, and the pictures
 // are then cropped the way the layout crops them (object-fit: cover) and placed on the page by the PDF library at
 // the exact spot the layout gave them. The JPEGs go in as JPEGs, so the file is smaller and the pictures sharper.
-import { toJpeg } from 'html-to-image';
-import { PDFDocument, type PDFImage } from 'pdf-lib';
+// A slide with words over its picture (a cover, a look slide's caption band, the closing sign-off) is captured as a
+// PNG on a transparent ground instead, so the ground, then the picture, then the words go down in that order.
+import { toJpeg, toPng } from 'html-to-image';
+import { PDFDocument, rgb, type PDFImage } from 'pdf-lib';
 
 const W = 13.333 * 72, H = 7.5 * 72;
+
+/** "rgb(9, 40, 39)" as fractions; midnight when the browser gives nothing back. */
+const parseRgb = (css: string): [number, number, number] => { const m = /rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(css); return m ? [+m[1] / 255, +m[2] / 255, +m[3] / 255] : [0.08, 0.08, 0.1]; };
 
 interface Box { img: HTMLImageElement; x: number; y: number; w: number; h: number }   // fractions of the slide
 
@@ -41,12 +46,17 @@ export async function deckToPdf(root: HTMLElement, onProgress?: (done: number, t
       const r = im.getBoundingClientRect();
       return { img: im, x: (r.left - sr.left) / sr.width, y: (r.top - sr.top) / sr.height, w: r.width / sr.width, h: r.height / sr.height };
     }).filter(b => b.w > 0 && b.h > 0);
+    const overlay = el.matches('.hero, .s-closing');   // words sit over the picture: ground, picture, then the words
+    const ground = parseRgb(getComputedStyle(el).backgroundColor);
     for (const b of boxes) b.img.style.visibility = 'hidden';
+    if (overlay) el.style.background = 'transparent';
     let data: string;
-    try { data = await toJpeg(el, { pixelRatio: 2, quality: 0.9, width: el.offsetWidth, height: el.offsetHeight, style: { transform: 'none', margin: '0' } }); }
-    finally { for (const b of boxes) b.img.style.visibility = ''; }
+    const opts = { pixelRatio: 2, width: el.offsetWidth, height: el.offsetHeight, style: { transform: 'none', margin: '0' } };
+    try { data = overlay ? await toPng(el, opts) : await toJpeg(el, { ...opts, quality: 0.9 }); }
+    finally { for (const b of boxes) b.img.style.visibility = ''; if (overlay) el.style.background = ''; }
     const page = pdf.addPage([W, H]);
-    page.drawImage(await pdf.embedJpg(data), { x: 0, y: 0, width: W, height: H });
+    if (overlay) page.drawRectangle({ x: 0, y: 0, width: W, height: H, color: rgb(ground[0], ground[1], ground[2]) });
+    else page.drawImage(await pdf.embedJpg(data), { x: 0, y: 0, width: W, height: H });
     for (const b of boxes) {
       const wPx = b.w * sr.width, hPx = b.h * sr.height;
       const key = `${b.img.src.length}:${b.img.src.slice(-40)}:${Math.round(wPx)}x${Math.round(hPx)}`;
@@ -58,6 +68,7 @@ export async function deckToPdf(root: HTMLElement, onProgress?: (done: number, t
       }
       page.drawImage(pic, { x: b.x * W, y: H - (b.y + b.h) * H, width: b.w * W, height: b.h * H });
     }
+    if (overlay) page.drawImage(await pdf.embedPng(data), { x: 0, y: 0, width: W, height: H });
     onProgress?.(i + 1, slides.length);
   }
   const bytes = await pdf.save();

@@ -10,7 +10,7 @@ import { shootDates, withCalendar } from './calendar';
 import { incentiveReport } from './incentives';
 
 export type Slide = { image?: LookImage } & (   // in the split layout any slide but a look slide can carry a photo on its left
-  | { kind: 'title'; title: string; version: string; logline: string; byline: string }
+  | { kind: 'title'; title: string; version: string; logline: string; byline: string; art?: boolean }   // art: the picture is the cover and carries the title
   | { kind: 'text'; heading: string; body: string }
   | { kind: 'closing'; signoff: string; title: string }
   | { kind: 'images'; heading: string; images: LookImage[] }
@@ -94,7 +94,7 @@ export function deckSlides(p0: Project, byline = ''): Slide[] {
   // the prose slides take the pictures; a table or a column of findings needs the whole page, so the data slides go full width
   const takes = (k: Slide['kind']) => k === 'title' || k === 'text' || k === 'team';
   const push = (s: Slide) => { out.push(takes(s.kind) ? { ...s, image: s.image ?? take() } : s); };
-  push({ kind: 'title', title: p.name, version: p.version, logline: pitch.logline, byline, image: cover });
+  push({ kind: 'title', title: p.name, version: p.version, logline: pitch.logline, byline, image: cover, art: !!cover });
   if (pitch.why.trim()) push({ kind: 'text', heading: 'Why this film, why now', body: pitch.why });
   for (const sec of pitch.sections) if (sec.heading.trim() || sec.body.trim()) push({ kind: 'text', heading: sec.heading, body: sec.body });
   if (pitch.audience.primary || pitch.audience.secondary || pitch.audience.notes) push({ kind: 'audience', primary: unlabel(pitch.audience.primary, 'primary'), secondary: unlabel(pitch.audience.secondary, 'secondary'), notes: unlabel(pitch.audience.notes, 'how we reach them') });
@@ -112,11 +112,18 @@ export function deckSlides(p0: Project, byline = ''): Slide[] {
   if (team.length) push({ kind: 'team', members: team });
   const research = (pitch.research ?? []).filter(r => r.title.trim() || r.body.trim());
   for (const group of researchSlides(research)) push({ kind: 'research', ...group });
-  // the look: in the split layout, the pictures no slide took, one to a slide, up to six; in the plain layout, four to a slide by section
+  // the look: in the split layout, a few of the pictures no slide took, one to a slide and full bleed, taking the sections in
+  // turn so six cards on a wall do not make six slides; in the plain layout, four to a slide by section
   const atAsk = out.length;
   if (split) {
-    const left = pool.filter(i => !used.has(i.id)).slice(0, 6);
-    for (const img of left) out.push({ kind: 'images', heading: LOOK_SECTIONS.find(x => x.id === img.section)?.label ?? 'The look', images: [img] });
+    const left = pool.filter(i => !used.has(i.id));
+    const want = Math.max(0, Math.min(6, Math.round(rules.lookSlides ?? 3)));
+    // spread the picks through each section (the first, the middle, the last of it) so a run of similar pictures gives one slide, not three
+    const spread = (xs: LookImage[]) => xs.length <= want ? xs : Array.from({ length: want }, (_, k) => xs[Math.floor(k * xs.length / want)]);
+    const bySection = LOOK_SECTIONS.map(ls => spread(left.filter(i => i.section === ls.id)));
+    const picks: LookImage[] = [];
+    for (let round = 0; picks.length < want && bySection.some(x => x.length > round); round++) for (const xs of bySection) if (xs[round] && picks.length < want) picks.push(xs[round]);
+    for (const img of picks) out.push({ kind: 'images', heading: LOOK_SECTIONS.find(x => x.id === img.section)?.label ?? 'The look', images: [img] });
   } else {
     for (const ls of LOOK_SECTIONS.filter(x => x.id !== 'reference')) {
       const imgs = lookbook.filter(i => i.section === ls.id && i.id !== cover?.id && i.id !== closing?.id);

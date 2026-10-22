@@ -691,3 +691,7 @@ details.panel.ai > summary h2 { margin: 0; flex: 0 0 auto; }
 .deck .s-ask .prose { max-width: none; }
 .deck .s-ask .prose p { font-size: 14pt; }
 .print-root .deck .s-ask .stack td { font-size: 13pt; padding: 4pt 8pt; }
+/* a cover picture is the title slide: the art carries the title, the logline sits on the band */
+.deck .slide.s-title.hero > .body > footer { display: none; }
+.deck .slide.s-title.hero .signoff.logline { font-size: 15pt; max-width: 7in; line-height: 1.4; }
+.deck .slide.s-title.hero .center { margin: 0; }

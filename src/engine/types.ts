@@ -248,7 +248,8 @@ export interface DeckRules {
   layout: 'split' | 'plain';  // split: a photo bleeds the left of a text slide, the text column sits right; plain: text on the ground
   eyebrow: boolean;           // the slide's first word as a small caps label ending in a colon, instead of a big heading
   bleed: number;              // how much of the slide the photo takes in the split layout, 0.4 to 0.6
-  coverImageId?: string;      // a look book picture for the cover slide
+  coverImageId?: string;      // a look book picture for the cover slide: it fills the slide (the art carries the title), the logline on a band at the foot
+  lookSlides?: number;        // full-bleed look slides from the pictures no slide took, 0 to 6 (default 3), one per section in turn
   closingImageId?: string;    // a look book picture for the closing slide
   signoff: string;            // "from the world of ALONE GIRL": the closing slide's tag; empty for the film's own name
 }

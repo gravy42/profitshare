@@ -29,10 +29,10 @@ export function Deck({ p, byline, preview }: { p: Project; byline?: string; prev
     <div className={`deck ${preview ? 'preview' : ''} ${rules?.eyebrow ? 'eyebrows' : ''}`} style={deckStyle(p)}>
       {slides.map((s, i) => {
         const photo = s.image;
-        const hero = s.kind === 'images' && s.images.length === 1;
+        const hero = (s.kind === 'images' && s.images.length === 1) || (s.kind === 'title' && s.art);   // a cover picture fills the slide the way a look slide does
         return (
           <section className={`slide s-${s.kind} ${photo ? 'split' : ''} ${hero ? 'hero' : ''}`} key={i}>
-            {hero && <div className="photo"><img src={s.images[0].dataUrl} alt={s.images[0].caption} /></div>}
+            {hero && s.kind === 'images' && <div className="photo"><img src={s.images[0].dataUrl} alt={s.images[0].caption} /></div>}
             {photo && <div className="photo"><img src={photo.dataUrl} alt={photo.caption} /></div>}
             <div className="body">
               {design?.logoDataUrl && s.kind !== 'title' && s.kind !== 'closing' && <img className="logo" src={design.logoDataUrl} alt="" />}
@@ -51,7 +51,9 @@ const H2 = ({ children }: { children: string }) => <h2>{children}<span className
 
 function SlideBody({ s }: { s: Slide }) {
   switch (s.kind) {
-    case 'title': return (
+    case 'title': return s.art ? (
+      <div className="center closing">{s.logline && <p className="signoff caption logline">{s.logline}</p>}</div>   // the art carries the title and the byline; only the logline goes on the band
+    ) : (
       <div className="center">
         <h1>{s.title}</h1>
         {s.logline && <p className="logline">{s.logline}</p>}
