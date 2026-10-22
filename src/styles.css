@@ -563,13 +563,13 @@ details.panel.ai > summary h2 { margin: 0; flex: 0 0 auto; }
 .deck h1 { font-family: var(--dk-title); font-size: 56pt; line-height: 1; margin: 0 0 18pt; color: var(--dk-accent); font-weight: 400; }
 .deck h2 { font-family: var(--dk-title); font-size: 30pt; line-height: 1.1; margin: 0 0 16pt; color: var(--dk-accent); font-weight: 400; }
 .deck h3 { font-size: 14pt; margin: 0 0 6pt; color: var(--dk-accent2); font-weight: 700; }
-.deck p { font-size: 15pt; line-height: 1.45; margin: 0 0 10pt; }
+.deck p { font-size: calc(15pt * var(--fit, 1)); line-height: 1.45; margin: 0 0 10pt; }
 .deck .prose { max-width: 10.5in; columns: 1; }
-.deck .prose p { font-size: 16pt; }
+.deck .prose p { font-size: calc(16pt * var(--fit, 1)); }
 .deck .center { margin: auto 0; max-width: 10.5in; }
 .deck .logline { font-size: 22pt; line-height: 1.35; margin: 0 0 24pt; }
 .deck .byline { font-size: 14pt; color: var(--dk-muted); }
-.deck .lead { font-size: 18pt; max-width: 11in; }
+.deck .lead { font-size: calc(18pt * var(--fit, 1)); max-width: 11in; }
 .deck .big { font-family: var(--dk-title); font-size: 44pt; color: var(--dk-accent); margin: 0 0 12pt; }
 .deck .muted { color: var(--dk-muted); }
 .deck .small { font-size: 11pt; }
@@ -588,7 +588,7 @@ details.panel.ai > summary h2 { margin: 0; flex: 0 0 auto; }
 .deck figure img { width: 100%; height: 100%; min-height: 0; object-fit: cover; border-radius: 4px; }
 .deck figcaption { font-size: 11pt; color: var(--dk-muted); flex: 0 0 auto; }
 .deck figcaption .credit { opacity: .7; }
-.deck table { width: 100%; border-collapse: collapse; font-size: 13pt; }
+.deck table { width: 100%; border-collapse: collapse; font-size: calc(13pt * var(--fit, 1)); }
 .deck th, .deck td { padding: 5pt 8pt; text-align: right; border-bottom: 1px solid color-mix(in srgb, var(--dk-muted) 45%, transparent); font-variant-numeric: tabular-nums; }
 .deck th.l, .deck td.l { text-align: left; }
 .deck thead th { font-size: 10pt; text-transform: uppercase; letter-spacing: .4pt; color: var(--dk-muted); }
@@ -639,7 +639,7 @@ details.panel.ai > summary h2 { margin: 0; flex: 0 0 auto; }
 .deck .slide.split > .photo img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 0; }
 .deck .slide.split > .body { padding-left: 0.5in; }
 .deck .slide.split .prose { max-width: none; }
-.deck .slide.split .prose p { font-size: 14pt; }
+.deck .slide.split .prose p { font-size: calc(14pt * var(--fit, 1)); }
 .deck .slide.split .center h1 { font-size: 44pt; }
 .deck .slide.split .logline { font-size: 18pt; }
 .deck .slide > .body > footer { position: absolute; left: var(--dk-pad); right: var(--dk-pad); bottom: 0.3in; }
@@ -673,7 +673,7 @@ details.panel.ai > summary h2 { margin: 0; flex: 0 0 auto; }
 /* the deck at full size, off screen, while the PDF is rendered */
 .deckrender { position: fixed; left: 0; top: 0; width: 13.333in; z-index: -1; opacity: 0; pointer-events: none; }
 /* research slides: a long finding shares the slide with one other and keeps to its column; the source is a domain */
-.deck .findings .finding p.detail { font-size: 13pt; line-height: 1.4; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 6; overflow: hidden; }
+.deck .findings .finding p.detail { font-size: calc(13pt * var(--fit, 1)); line-height: 1.4; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 6; overflow: hidden; }
 .deck .findings.wide .finding p.detail { -webkit-line-clamp: 18; }
 .deck .findings .finding h3 { font-size: 13pt; line-height: 1.25; }
 .deck .findings .finding .src { font-size: 10pt; margin: 0; }
@@ -684,19 +684,19 @@ details.panel.ai > summary h2 { margin: 0; flex: 0 0 auto; }
 .deck .s-ask .big .of { font-family: var(--dk-body); font-size: 14pt; color: var(--dk-muted); margin-left: 10pt; }
 .deck .s-ask .cols.two > div:first-child { flex: 1.1 1 0; }
 .deck .s-ask .stack { margin: 0 0 8pt; }
-.deck .s-ask .stack td { font-size: 13pt; padding: 4pt 8pt; vertical-align: top; }
+.deck .s-ask .stack td { font-size: calc(13pt * var(--fit, 1)); padding: 4pt 8pt; vertical-align: top; }
 .deck .s-ask .stack .terms { display: block; font-size: 10pt; color: var(--dk-muted); }
 .deck .s-ask .stack tr.investors td { color: var(--dk-accent); font-weight: 700; border-bottom: 0; }
-.deck .s-ask .contingent { font-size: 12pt; color: var(--dk-ink); margin-bottom: 8pt; }
+.deck .s-ask .contingent { font-size: calc(12pt * var(--fit, 1)); color: var(--dk-ink); margin-bottom: 8pt; }
 .deck .s-ask .prose { max-width: none; }
-.deck .s-ask .prose p { font-size: 14pt; }
-.print-root .deck .s-ask .stack td { font-size: 13pt; padding: 4pt 8pt; }
+.deck .s-ask .prose p { font-size: calc(14pt * var(--fit, 1)); }
+.print-root .deck .s-ask .stack td { font-size: calc(13pt * var(--fit, 1)); padding: 4pt 8pt; }
 /* a cover picture is the title slide: the art carries the title, the logline sits on the band */
 .deck .slide.s-title.hero > .body > footer { display: none; }
 .deck .slide.s-title.hero .signoff.logline { font-size: 15pt; max-width: 7in; line-height: 1.4; }
 .deck .slide.s-title.hero .center { margin: 0; }
 /* comps: ten films in two groups have to fit above the footer */
-.deck .s-comps table { font-size: 12pt; }
+.deck .s-comps table { font-size: calc(12pt * var(--fit, 1)); }
 .deck .s-comps th, .deck .s-comps td { padding: 3pt 8pt; }
 .deck .s-comps .compgroup { margin-bottom: 8pt; }
 .deck .s-comps h3 { margin-bottom: 4pt; }

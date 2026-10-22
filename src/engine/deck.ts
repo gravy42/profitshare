@@ -137,6 +137,7 @@ export function deckSlides(p0: Project, byline = ''): Slide[] {
   const beforePlan = out.findIndex(s => s.kind === 'audience' || s.kind === 'comps' || s.kind === 'plan');
   out.splice(beforePlan < 0 ? out.length : beforePlan, 0, ...look);
   if ((pitch.ask ?? '').trim() || p.lines.length) push({ kind: 'ask', body: pitch.ask ?? '', cashBudget: ts.cashBudget, ...fundingStack(p) });
-  if (closing || rules?.signoff) out.push({ kind: 'closing', image: closing, signoff: rules?.signoff ?? '', title: p.name });
+  // a closing slide needs a picture; a sign-off with no picture goes in the last slide's footer instead of on a page of its own
+  if (closing) out.push({ kind: 'closing', image: closing, signoff: rules?.signoff ?? '', title: p.name });
   return out;
 }

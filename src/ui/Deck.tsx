@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react';
+import { useLayoutEffect, useRef, type CSSProperties } from 'react';
 import type { Project } from '../engine/types';
 import { withPitch, defaultDesign, defaultDeckRules } from '../engine/pitch';
 import { deckSlides, type Slide } from '../engine/deck';
@@ -25,8 +25,11 @@ export function Deck({ p, byline, preview }: { p: Project; byline?: string; prev
   const design = withPitch(p).pitch!.design;
   const rules = design?.deck ?? defaultDeckRules();
   const n = slides.length;
+  const root = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => { const el = root.current; if (!el) return; fitSlides(el); void document.fonts?.ready.then(() => fitSlides(el)); });
+  const signoff = rules?.signoff?.trim();
   return (
-    <div className={`deck ${preview ? 'preview' : ''} ${rules?.eyebrow ? 'eyebrows' : ''}`} style={deckStyle(p)}>
+    <div className={`deck ${preview ? 'preview' : ''} ${rules?.eyebrow ? 'eyebrows' : ''}`} style={deckStyle(p)} ref={root}>
       {slides.map((s, i) => {
         const photo = s.image;
         const hero = (s.kind === 'images' && s.images.length === 1) || (s.kind === 'title' && s.art);   // a cover picture fills the slide the way a look slide does
@@ -37,13 +40,26 @@ export function Deck({ p, byline, preview }: { p: Project; byline?: string; prev
             <div className="body">
               {design?.logoDataUrl && s.kind !== 'title' && s.kind !== 'closing' && <img className="logo" src={design.logoDataUrl} alt="" />}
               <SlideBody s={s} />
-              {s.kind !== 'closing' && <footer><span>{p.name}</span><span>{i + 1} / {n}</span></footer>}
+              {s.kind !== 'closing' && <footer><span>{i === n - 1 && signoff ? signoff : p.name}</span><span>{i + 1} / {n}</span></footer>}
             </div>
           </section>
         );
       })}
     </div>
   );
+}
+
+/** Text that runs past a slide's footer is set smaller until it fits (down to 70%), through the --fit variable the
+ *  body sizes read. Measured in the browser, so the preview and the PDF render get the same size. */
+export function fitSlides(root: HTMLElement) {
+  for (const slide of root.querySelectorAll<HTMLElement>('.slide')) {
+    const body = slide.querySelector<HTMLElement>(':scope > .body'); const footer = body?.querySelector<HTMLElement>(':scope > footer');
+    if (!body || !footer || footer.getBoundingClientRect().height === 0) continue;   // a look slide or a cover hides its footer
+    slide.style.setProperty('--fit', '1');
+    const content = [...body.children].filter(c => c !== footer && !c.classList.contains('logo')) as HTMLElement[];
+    const overflows = () => { const limit = footer.getBoundingClientRect().top - 6; return content.some(c => c.getBoundingClientRect().bottom > limit); };
+    for (let fit = 1; fit > 0.7 && overflows(); fit -= 0.05) slide.style.setProperty('--fit', fit.toFixed(2));
+  }
 }
 
 /** An eyebrow deck turns a heading into its label: "The plan" → "THE PLAN:". */
