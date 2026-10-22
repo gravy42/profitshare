@@ -7,7 +7,7 @@ import budgetJson from '../data/sample-budget.json';
 import { lineFringes, lineSubtotal, topSheet, setPayType, rollupCashTotal } from './budget';
 const rollupCash = (ts: ReturnType<typeof topSheet>) => rollupCashTotal(ts.subtotal);
 import { sagReport, rerateCast, qualifyingTier } from './sag';
-import { poolAt, waterfallReport, syncDaysFromBudget } from './waterfall';
+import { poolAt, waterfallReport, syncDaysFromBudget, participantPoints, totalPoints } from './waterfall';
 import { autoDayBreaks, moveStrips, moveDay, dayBlocks, dayOfIndex, boardElements, daysFollowing, daysWithElements, dood, insertDayBreak, moveStrip, shootDays, syncCastDaysFromBoard, totalEighths, splitStrip, unsplitScene, setPartEighths, stripPart } from './board';
 import { parseSex } from './importers/sex';
 import { fdxHasTags, fdxTitle, parseFdx } from './importers/fdx';
@@ -1133,5 +1133,19 @@ describe('crew bump', () => {
     const [a, b] = crew; expect(by.get(a.id)!.rate / by.get(b.id)!.rate).toBeCloseTo(a.rate / b.rate, 3);
     expect(topSheet(e).cashBudget).toBeGreaterThan(topSheet(applyDeal(p)).cashBudget);
     expect(topSheet(applyDeal({ ...p, deal: { ...p.deal!, pay: { ...p.deal!.pay, crewBumpPct: 0 } } })).cashBudget).toBe(topSheet(applyDeal(p)).cashBudget);
+  });
+});
+
+describe('fixed points', () => {
+  it('a fixed block replaces days × tier × bonus and shares the pool with everyone else', () => {
+    const p = sampleProject();
+    const first = p.participants[0];
+    const before = participantPoints(first, p.tiers);
+    const fixed = { ...first, fixedPoints: 500 };
+    expect(participantPoints(fixed, p.tiers)).toBe(500);
+    expect(participantPoints({ ...fixed, fixedPoints: undefined }, p.tiers)).toBe(before);
+    expect(participantPoints({ ...fixed, fixedPoints: 0 }, p.tiers)).toBe(before);   // 0 means "not fixed"
+    const q = { ...p, participants: p.participants.map(x => x.id === first.id ? fixed : x) };
+    expect(totalPoints(q)).toBeCloseTo(totalPoints(p) - before + 500, 6);
   });
 });

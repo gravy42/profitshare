@@ -46,6 +46,7 @@ export interface Participant {
   tierId: string;           // PointsTier.id
   days: number;             // days worked (drives points). Can be synced from the board or budget lines.
   bonusMultiplier: number;  // per-person nudge on top of the tier (1 = none)
+  fixedPoints?: number;     // a fixed block of points set by the deal (a name actor's premium, a producer's fee), instead of days × tier × bonus
   castId?: number;          // cast number on the board, for syncing days from the DOOD
   followsCastIds?: number[]; // works whenever any of these cast members work (a studio teacher with the minors)
   followsElements?: BoardElement[]; // works whenever a scene carries one of these tags (an animal wrangler with the cat, a picture-car wrangler)

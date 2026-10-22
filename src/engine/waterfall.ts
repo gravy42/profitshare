@@ -2,8 +2,9 @@ import type { Participant, PointsTier, Project, Waterfall } from './types';
 import { incentiveProceeds } from './incentives';
 import { topSheet } from './budget';
 
-/** Points for one participant: days × tier multiplier × personal bonus. */
+/** Points for one participant: days × tier multiplier × personal bonus, or a fixed block when the deal sets one. */
 export function participantPoints(pt: Participant, tiers: PointsTier[]): number {
+  if (pt.fixedPoints != null && pt.fixedPoints > 0) return pt.fixedPoints;
   const tier = tiers.find(t => t.id === pt.tierId);
   return pt.days * (tier?.multiplier ?? 1) * (pt.bonusMultiplier || 1);
 }
