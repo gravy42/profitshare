@@ -1,10 +1,8 @@
 import { useState } from 'react';
 import type { ProjectMeta } from '../store';
-import type { SagTierId } from '../engine/types';
-import { SAG_TIERS } from '../engine/sag';
 import { money } from './format';
-
-export interface StarterSettings { tier: SagTierId; rates: 'scale' | 'ballpark'; pagesPerDay: number; crew: 'lean' | 'full'; dayHours: 10 | 12 }
+import { StarterForm, type StarterSettings } from './StarterForm';
+export type { StarterSettings } from './StarterForm';
 
 export interface StartActions {
   onBlank: (opts: { name: string; version: string; shootDays: number; chartOfAccounts: 'standard' | 'empty' }) => void;
@@ -75,19 +73,7 @@ export function StartView({ onBlank, onImportBudget, onOpen, onSample, onScript,
           <div className="card script">
             <h3>From a script</h3>
             <p>Only have the screenplay? Drop it here and ProfitShare breaks it down (scenes, eighths, cast, a first pass of tags), schedules it, and draws a first budget around it: a generic indie crew with prep and wrap, cast at SAG scale, department allowances, post, insurance and legal. Every line says how it was sized. It's a starting place, not a quote.</p>
-            <div className="row">
-              <div className="ctl"><label>SAG tier</label>
-                <select value={starter.tier} onChange={e => setStarter({ ...starter, tier: e.target.value as SagTierId, crew: e.target.value === 'ULB' || e.target.value === 'MLB' ? 'lean' : 'full' })}>{SAG_TIERS.map(t => <option key={t.id} value={t.id}>{t.name}{t.cap ? ` (to ${money(t.cap)})` : ''}</option>)}</select></div>
-              <div className="ctl"><label>Pages / day</label><input type="number" min={1} max={12} step={0.5} value={starter.pagesPerDay} onChange={e => setStarter({ ...starter, pagesPerDay: +e.target.value || 5 })} style={{ width: 70 }} /></div>
-              <div className="ctl"><label>Day</label>
-                <select value={starter.dayHours} onChange={e => setStarter({ ...starter, dayHours: +e.target.value as 10 | 12 })}><option value={10}>10 hours</option><option value={12}>12 hours</option></select></div>
-            </div>
-            <div className="row">
-              <div className="ctl"><label>Crew rates</label>
-                <select value={starter.rates} onChange={e => setStarter({ ...starter, rates: e.target.value as 'scale' | 'ballpark' })}><option value="ballpark">Ballpark LA non-union (heads and keys above crew)</option><option value="scale">Everyone at the tier's scale (the Sing Sing baseline)</option></select></div>
-              <div className="ctl"><label>Crew</label>
-                <select value={starter.crew} onChange={e => setStarter({ ...starter, crew: e.target.value as 'lean' | 'full' })}><option value="lean">Lean (about 32)</option><option value="full">Full (about 45)</option></select></div>
-            </div>
+            <StarterForm starter={starter} setStarter={setStarter} />
             <div className="droptarget"><b>Drop the script anywhere on this page</b><span>or</span><button className="btn primary" onClick={onScript}>Pick a script (.fdx / .pdf / .fountain / .txt)</button></div>
           </div>
           <div className="card">

@@ -1,4 +1,6 @@
 import { Fragment, useState, type MouseEvent } from 'react';
+import { StarterForm, type StarterSettings } from './StarterForm';
+import { shootDays } from '../engine/board';
 import type { FringeDef, LineItem, PayType, Project, Section } from '../engine/types';
 import {
   addAccount, addCategory, addLine, lineFringes, lineSubtotal, removeAccount, removeCategory, removeFringe, removeLine,
@@ -15,7 +17,7 @@ const SECTION_LABEL: Record<Section, string> = { ATL: 'above the line', PRODUCTI
 
 type Setter = (f: (p: Project) => Project) => void;
 
-export function TopSheetView({ project, raw, controlled, setProject }: { project: Project; raw?: Project; controlled?: Set<string>; setProject: Setter }) {
+export function TopSheetView({ project, raw, controlled, setProject, starter, setStarter, onStarter }: { project: Project; raw?: Project; controlled?: Set<string>; setProject: Setter; starter?: StarterSettings; setStarter?: (s: StarterSettings) => void; onStarter?: () => void }) {
   const rawP = raw ?? project;
   const locked = controlled ?? new Set<string>();
   const ts = topSheet(project);
@@ -130,6 +132,14 @@ export function TopSheetView({ project, raw, controlled, setProject }: { project
             <button className={`btn small ${editing ? 'primary' : ''}`} onClick={() => setEditing(e => !e)} title="Rename, add or remove categories and accounts">{editing ? 'Done editing accounts' : 'Edit accounts'}</button>
           </div>
         </div>
+        {empty && project.board.scenes.length > 0 && starter && setStarter && onStarter && (
+          <div className="notice starter">
+            <p><b>Nothing in the budget yet, but the stripboard has {project.board.scenes.length} scenes{shootDays(project.board).length > 1 ? ` over ${shootDays(project.board).length} days` : ''}.</b> ProfitShare can draw a first budget around it: a generic indie crew with prep and wrap, the cast at SAG scale with their days from the board, what the tags imply, department allowances, post, insurance and legal. Every line says how it was sized; it's a starting place, not a quote.</p>
+            <StarterForm starter={starter} setStarter={setStarter} pages={shootDays(project.board).length <= 1} dayLength={false}>
+              <button className="btn primary" onClick={onStarter}>Draw a first budget from the board</button>
+            </StarterForm>
+          </div>
+        )}
         <p className="help">
           {empty
             ? <>Nothing in the budget yet. Open a category, then an account, and press <b>+ line</b>. Every line is amount × rate × multiplier, with fringes on top. <b>Edit accounts</b> lets you rename, add or remove categories and accounts.</>

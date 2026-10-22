@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { starterProject } from './starter';
-import { sampleProject } from '../data/seed';
+import { starterProject, applyStarter } from './starter';
+import { sampleProject, blankProject } from '../data/seed';
 import { clearDayBreaks, shootDays, adoptBoardDays, syncCastDaysFromBoard } from './board';
 import { applyDeal, withDeal } from './deal';
 import { topSheet } from './budget';
@@ -59,5 +59,19 @@ describe('starter budget from a script', () => {
     expect(report.extras.join(' ')).toMatch(/animal wrangler/);
     expect(p.participants.find(x => x.name === 'Animal Wrangler')!.followsElements).toEqual([{ category: 'Animals', item: 'cat' }]);
     expect(p.lines.some(l => l.accountId === '1501' && l.daysFrom === 'board')).toBe(true);
+  });
+});
+
+describe('starter into an existing project', () => {
+  it('keeps the board\'s own day breaks, the name and the day length, and adds the accounts the template needs', () => {
+    const s = sampleProject();
+    const base = { ...blankProject({ name: 'MY FILM', version: 'Blue', chartOfAccounts: 'empty' }), board: s.board, dayHours: 10 as const };
+    const { project: p, report } = applyStarter(base, { title: 'ignored', tier: 'LBA', rates: 'ballpark', pagesPerDay: 3, crew: 'full' });
+    expect(report.shootDays).toBe(shootDays(s.board).length);   // the 12 breaks the sample ships with, not pages ÷ 3
+    expect(p.name).toBe('MY FILM'); expect(p.version).toBe('Blue'); expect(p.dayHours).toBe(10);
+    expect(p.accounts.length).toBeGreaterThan(100);              // the empty chart was filled from the standard one
+    expect(p.lines.every(l => p.accounts.some(a => a.number === l.accountId))).toBe(true);
+    const dp = p.lines.find(l => l.accountId === '2601' && l.description === 'Shoot')!;
+    expect(dp.multiplier).toBe(11);                               // a 10-hour shoot day
   });
 });

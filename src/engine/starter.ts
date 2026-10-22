@@ -6,7 +6,7 @@ import type { Board, BoardElement, LineItem, Participant, Project, Scene, SagTie
 import { blankProject } from '../data/seed';
 import { PAID_HOURS, newId } from './budget';
 import { SAG_TIERS, scaleHourly } from './sag';
-import { fitDayBreaks, shootDays, dood, daysWithElements } from './board';
+import { fitDayBreaks, shootDays, dood, daysWithElements, adoptBoardDays, syncCastDaysFromBoard } from './board';
 import { applyDeal, defaultDeal } from './deal';
 import { topSheet } from './budget';
 
@@ -138,22 +138,41 @@ const itemsOf = (scenes: Scene[], category: string): BoardElement[] => {
   return out;
 };
 
-/** Build the project. The board comes in already parsed and tagged; day breaks are placed here. */
-export function starterProject(board0: Board, opts: StarterOptions): { project: Project; report: StarterReport } {
+/** A new project from a parsed, tagged board: day breaks are placed here. */
+export function starterProject(board: Board, opts: StarterOptions): { project: Project; report: StarterReport } {
+  const base = blankProject({ name: opts.title, version: opts.version ?? 'Draft 1', chartOfAccounts: 'standard' });
+  return applyStarter({ ...base, board, dayHours: opts.dayHours ?? 12 }, opts);
+}
+
+/** Draw the starter budget into a project that already has a board (and maybe a name, a chart of accounts, a day
+ *  length). Lines and participants are replaced; the board keeps its day breaks when it has any, otherwise they are
+ *  placed at opts.pagesPerDay. Accounts the template needs that the chart lacks are added from the standard chart. */
+export function applyStarter(base0: Project, opts: StarterOptions): { project: Project; report: StarterReport } {
   const tier = SAG_TIERS.find(t => t.id === opts.tier) ?? SAG_TIERS[1];
-  const hours = PAID_HOURS[opts.dayHours ?? 12];
+  const hours = PAID_HOURS[base0.dayHours ?? opts.dayHours ?? 12];
+  const board0 = base0.board;
   const PREP_HOURS = PAID_HOURS[10].day;   // prep and wrap days are ten-hour days whatever the shoot day is
   const POST_HOURS = 8;                     // an editor's day has no overtime in it
   const lean = (opts.crew ?? ((opts.tier === 'ULB' || opts.tier === 'MLB') ? 'lean' : 'full')) === 'lean';
   const eighths = board0.scenes.reduce((n, s) => n + s.eighths, 0);
   const pages = eighths / 8;
   const days = Math.max(1, Math.ceil(pages / Math.max(0.5, opts.pagesPerDay)));
-  const board = fitDayBreaks({ ...board0, targetEighthsPerDay: Math.round(opts.pagesPerDay * 8) }, days);
+  const hasBreaks = board0.strips.some(s => s.type === 'daybreak');
+  const board = hasBreaks ? board0 : fitDayBreaks({ ...board0, targetEighthsPerDay: Math.round(opts.pagesPerDay * 8) }, days);
   const D = shootDays(board).length;
-  const base = blankProject({ name: opts.title, version: opts.version ?? 'Draft 1', shootDays: D, chartOfAccounts: 'standard' });
+  // the chart: the project's own if it has one, with any account the template needs added from the standard chart
+  const std = blankProject({ chartOfAccounts: 'standard' });
+  let base: Project = base0.accounts.length ? base0 : { ...base0, categories: std.categories, accounts: std.accounts };
+  if (!base.fringes.length) base = { ...base, fringes: std.fringes };
+  const ensureAccount = (number: string) => {
+    if (base.accounts.some(a => a.number === number)) return;
+    const a = std.accounts.find(x => x.number === number); if (!a) return;
+    if (!base.categories.some(c => c.number === a.categoryNumber)) { const c = std.categories.find(x => x.number === a.categoryNumber)!; base = { ...base, categories: [...base.categories, c].sort((x, y) => x.number.localeCompare(y.number, undefined, { numeric: true })) }; }
+    base = { ...base, accounts: [...base.accounts, a].sort((x, y) => x.number.localeCompare(y.number, undefined, { numeric: true })) };
+  };
   const sag = { ...base.sag, targetTier: tier.id };
   const deal0 = defaultDeal({ shootDays: D, sag });
-  const p: Project = { ...base, board, dayHours: opts.dayHours ?? 12, sag, deal: { ...deal0, pay: { ...deal0.pay, model: 'as-budgeted', crewBasis: tier.id, rerateCast: true } } };
+  const p: Project = { ...base, board, shootDays: D, dayHours: base0.dayHours ?? opts.dayHours ?? 12, sag, deal: { ...deal0, pay: { ...deal0.pay, model: 'as-budgeted', crewBasis: tier.id, rerateCast: true } } };
   const lines: LineItem[] = [];
   const participants: Participant[] = [];
   const extras: string[] = [];
@@ -163,7 +182,7 @@ export function starterProject(board0: Board, opts: StarterOptions): { project: 
     const day = slot.day ?? BALLPARK_DEFAULT[slot.role];
     return slot.role === 'crew' || slot.role === 'general' ? Math.max(scaleH, 56.13) : r2(day / 11);   // ballpark days are quoted for a 10-hour day
   };
-  const sized = (what: string) => `Starting place from the script: ${what}. Change it; every number here is a guess sized to ${D} shoot days and ${Math.round(pages)} pages.`;
+  const sized = (what: string) => `Starting place from the script: ${what}. Change it; every number here is a guess sized to ${D} shoot days and ${Math.round(pages)} pages.`;   // eslint-disable-line
   const wage = (acct: string, desc: string, amount: number, hourly: number, pid: string, mult = hours.day, fr = PAYROLL, note?: string, extra: Partial<LineItem> = {}) => {
     if (amount <= 0 && !extra.daysFrom && !fr.includes('SAG AFTRA')) return;   // a cast line stays even at 0 days: the board fills it
     lines.push({ id: newId('L'), accountId: acct, description: desc, amount, unit: 'DAY', rate: hourly, multiplier: mult, fringes: fr, tags: ['starter'], payType: 'cash', participantId: pid, ...(note ? { notes: note } : {}), ...extra });
@@ -285,10 +304,12 @@ export function starterProject(board0: Board, opts: StarterOptions): { project: 
     allow(a.acct, a.desc, total, a.note ? `${a.note} ${sized(how)}` : sized(how));
   }
 
-  // lines grouped by account in chart order
-  const order = new Map(p.accounts.map((a, i) => [a.number, i]));
+  // lines grouped by account in chart order; any account the chart lacks comes in from the standard chart
+  for (const l of lines) ensureAccount(l.accountId);
+  const order = new Map(base.accounts.map((a, i) => [a.number, i]));
   lines.sort((x, y) => (order.get(x.accountId) ?? 9999) - (order.get(y.accountId) ?? 9999));
-  const project: Project = { ...p, lines, participants, notes: `Built from the script by ProfitShare's starter: a generic LA indie feature crew and allowances sized to ${Math.round(pages)} pages over ${D} shoot days, cast at ${tier.name} scale, crew ${opts.rates === 'scale' ? 'at scale' : 'at ballpark non-union rates'}, ${lean ? 'a lean crew' : 'a full crew'}. Every line carries a note on how it was sized; the lines are tagged "starter" so you can tell them from your own.` };
+  const project0: Project = { ...p, categories: base.categories, accounts: base.accounts, lines, participants, notes: `Built from the script by ProfitShare's starter: a generic LA indie feature crew and allowances sized to ${Math.round(pages)} pages over ${D} shoot days, cast at ${tier.name} scale, crew ${opts.rates === 'scale' ? 'at scale' : 'at ballpark non-union rates'}, ${lean ? 'a lean crew' : 'a full crew'}. Every line carries a note on how it was sized; the lines are tagged "starter" so you can tell them from your own.` };
+  const project = syncCastDaysFromBoard(adoptBoardDays(project0));   // the board owns the cast days from here on
   const ts = topSheet(applyDeal(project));
   return { project, report: { pages: Math.round(pages * 10) / 10, scenes: board.scenes.length, shootDays: D, cast: board.castList.length, crew: crewCount, lines: lines.length, cashBudget: ts.cashBudget, sets, extras } };
 }

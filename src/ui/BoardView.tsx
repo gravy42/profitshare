@@ -16,7 +16,7 @@ const stripClass = (s: Scene) => {
   return `strip ${night ? 'night' : 'day'}-${s.ie === 'EXT' ? 'ext' : 'int'}`;
 };
 
-export function BoardView({ project, raw, setProject, notify }: { project: Project; raw?: Project; setProject: SetProject; notify?: (m: string, sticky?: boolean) => void }) {
+export function BoardView({ project, raw, setProject, notify, onStarter }: { project: Project; raw?: Project; setProject: SetProject; notify?: (m: string, sticky?: boolean) => void; onStarter?: () => void }) {
   const board = project.board;
   const setBoard = (f: (b: Board) => Board) => setProject(p => ({ ...p, board: f(p.board) }));
   const byId = new Map(board.scenes.map(s => [s.id, s]));
@@ -112,6 +112,7 @@ export function BoardView({ project, raw, setProject, notify }: { project: Proje
             <button className={`btn ${days.length <= 1 && project.shootDays > 1 ? 'primary' : ''}`} title={`Split into exactly ${project.shootDays} days, keeping order, with the heaviest day as light as possible`} onClick={() => reschedule(`Fit to ${project.shootDays} days`, b => fitDayBreaks(b, project.shootDays))}>Fit to {project.shootDays} days</button>
             <button className="btn" disabled={days.length <= 1} title="Take every day break off the board (Undo brings them back)" onClick={() => reschedule('Clear day breaks', clearDayBreaks)}>Clear day breaks</button>
             {hasText && <button className="btn" title="First-pass breakdown of every scene from the script text: props, vehicles, wardrobe, sounds, extras and the rest. Keeps tags you've added." onClick={() => setBoard(autoTagBoard)}>Auto-tag all scenes</button>}
+            {onStarter && project.lines.length === 0 && board.scenes.length > 0 && <button className="btn primary" title="Draw a first budget around this board: crew, cast at SAG scale, what the tags imply, allowances. The settings are on the Top sheet." onClick={onStarter}>Budget from this board</button>}
             <span className="small muted" title="Cast shoot days and followers (a studio teacher, an animal wrangler) are rewritten on the top sheet and in the points schedule after every edit here. Rehearsal and fitting days live on their own budget line.">cast days flow to the budget automatically</span>
           </div>
         </div>

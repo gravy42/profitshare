@@ -24,7 +24,7 @@ import { BoardView } from './ui/BoardView';
 import { DealView } from './ui/DealView';
 import { applyDeal, dealControlledIds, withDeal } from './engine/deal';
 import { StartView, type StarterSettings } from './ui/StartView';
-import { starterProject } from './engine/starter';
+import { starterProject, applyStarter } from './engine/starter';
 import { money } from './ui/format';
 
 type Tab = 'start' | 'deal' | 'topsheet' | 'board' | 'calendar' | 'breakdowns' | 'points' | 'sag' | 'incentives' | 'pitch' | 'about';
@@ -158,6 +158,15 @@ export default function App() {
     const tierName = SAG_TIERS.find(t => t.id === starter.tier)?.name ?? starter.tier;
     return `${title}: ${report.scenes} scenes, ${report.pages} pages, ${report.cast} speaking parts, broken down and scheduled over ${report.shootDays} shoot day${report.shootDays === 1 ? "" : "s"} at ${starter.pagesPerDay} pages a day. A first budget is drawn around it: ${report.crew} crew (${starter.crew}), cast at ${tierName} scale, ${report.lines} lines${report.extras.length ? `, and from the tags: ${report.extras.join(', ')}` : ''}. Budget to raise ${money(report.cashBudget)}. Every line is tagged "starter" and carries a note on how it was sized; none of it is a quote.`;
   };
+  /** Draw the starter budget into the project that is open (its board, its name, its day length). */
+  const drawStarter = () => {
+    if (!project.board.scenes.length) { flash('Nothing to size from: the stripboard has no scenes. Drop a script first.'); return; }
+    if (project.lines.length && !window.confirm(`Replace the ${project.lines.length} budget lines you have with a starter budget drawn from the board? Undo (⌘Z) brings them back.`)) return;
+    const { project: p, report } = applyStarter(project, { title: project.name, tier: starter.tier, rates: starter.rates, pagesPerDay: starter.pagesPerDay, crew: starter.crew, dayHours: project.dayHours ?? starter.dayHours });
+    setProject(() => p); setTab('deal');
+    const tierName = SAG_TIERS.find(t => t.id === starter.tier)?.name ?? starter.tier;
+    flash(`${project.name || 'The project'}: a first budget drawn around the board. ${report.scenes} scenes over ${report.shootDays} shoot day${report.shootDays === 1 ? '' : 's'}, ${report.cast} cast at ${tierName} scale, ${report.crew} crew (${starter.crew}), ${report.lines} lines${report.extras.length ? `, and from the tags: ${report.extras.join(', ')}` : ''}. Budget to raise ${money(report.cashBudget)}. Every line is tagged "starter" and carries a note on how it was sized; none of it is a quote.`, true);
+  };
   const pickScript = async () => { const f = await pickFile('.fdx,.pdf,.fountain,.txt,.text'); if (f) { try { flash(await startFromScript(f), true); } catch (e) { flash(`Could not read that script: ${(e as Error).message}`); } } };
   const loadScriptFile = async (f: File) => {
     const imp = await parseScript(f);
@@ -286,14 +295,14 @@ export default function App() {
         {tab === 'deal' && <DealView raw={project} eff={eff} setProject={setProject} fresh={!hadSaved && !msg} />}
         {tab === 'topsheet' && <>
           {controlled.size > 0 && <div className="notice">{controlled.size} line{controlled.size > 1 ? 's are' : ' is'} set by the deal (marked <span className="tag points">deal</span>): rates, hours or pay type come from the Deal tab. Days and descriptions are still yours to edit.</div>}
-          <TopSheetView project={eff} raw={project} controlled={controlled} setProject={setProject} />
+          <TopSheetView project={eff} raw={project} controlled={controlled} setProject={setProject} starter={starter} setStarter={setStarter} onStarter={drawStarter} />
         </>}
         {tab === 'board' && backup && backup.board.scenes.length > 0 && (
           <div className="notice row"><span>The board from before <b>{backup.reason.replace(/^before /, '')}</b> ({backup.board.scenes.length} scenes, {backup.board.strips.filter(s => s.type === 'daybreak').length} day breaks, kept {new Date(backup.when).toLocaleString()}) is still here.</span>
             <button className="btn primary small" onClick={restoreBoard}>Restore that board</button>
             <button className="btn small" onClick={() => { forgetPreviousBoard(); setBackup(null); }}>Forget it</button></div>
         )}
-        {tab === 'board' && <BoardView project={eff} raw={project} setProject={setProject} notify={flash} />}
+        {tab === 'board' && <BoardView project={eff} raw={project} setProject={setProject} notify={flash} onStarter={drawStarter} />}
         {tab === 'calendar' && <CalendarView project={eff} setProject={setProject} />}
         {tab === 'breakdowns' && <BreakdownsView project={eff} setProject={setProject} />}
         {tab === 'points' && <PointsView project={eff} setProject={setProject} />}
