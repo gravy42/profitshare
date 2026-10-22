@@ -41,7 +41,7 @@ describe('call sheets', () => {
   });
   it('gives sunrise and sunset to the minute and formats times', () => {
     // Los Angeles, March 8 2027 (standard time): the almanac says about 6:11 AM and 5:53 PM
-    const r = sunrise('2027-03-08', 34.05, -118.24)!, s = sunset('2027-03-08', 34.05, -118.24)!;
+    const r = sunrise('2027-03-08', 34.05, -118.24, 'America/Los_Angeles')!, s = sunset('2027-03-08', 34.05, -118.24, 'America/Los_Angeles')!;   // the zone named, so the test reads the same on a UTC build machine
     expect(r).toMatch(/^6:(0[89]|1[0-5]) AM$/); expect(s).toMatch(/^5:(4[89]|5[0-7]) PM$/);   // the approximation is within a few minutes of the almanac
     expect(sunrise('2027-06-21', 89.9, 0)).toBeNull();
     expect(fmtTime('07:00')).toBe('7:00 AM'); expect(fmtTime('13:30')).toBe('1:30 PM'); expect(fmtTime('00:15')).toBe('12:15 AM');

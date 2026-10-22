@@ -60,7 +60,7 @@ export function castStatus(workDays: number[], dayIndex: number): 'SW' | 'W' | '
 
 // ---- sunrise and sunset (NOAA's approximation), local time of the browser; to the minute at any city ----
 const rad = (d: number) => d * Math.PI / 180, deg = (r: number) => r * 180 / Math.PI;
-function sunEvent(date: string, lat: number, lng: number, rising: boolean): string | null {
+function sunEvent(date: string, lat: number, lng: number, rising: boolean, timeZone?: string): string | null {
   const d = parseYmd(date);
   const start = Date.UTC(d.getFullYear(), 0, 0); const n = Math.floor((Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - start) / 86400000);
   const lngHour = lng / 15;
@@ -76,10 +76,10 @@ function sunEvent(date: string, lat: number, lng: number, rising: boolean): stri
   const T = H + RA - 0.06571 * t - 6.622;
   const UT = (((T - lngHour) % 24) + 24) % 24;
   const utc = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0) + UT * 3600000);
-  return utc.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  return utc.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone });   // the browser's own zone unless one is given
 }
-export const sunrise = (date: string, lat: number, lng: number) => sunEvent(date, lat, lng, true);
-export const sunset = (date: string, lat: number, lng: number) => sunEvent(date, lat, lng, false);
+export const sunrise = (date: string, lat: number, lng: number, timeZone?: string) => sunEvent(date, lat, lng, true, timeZone);
+export const sunset = (date: string, lat: number, lng: number, timeZone?: string) => sunEvent(date, lat, lng, false, timeZone);
 
 // ---- times: "07:00" in, "7:00 AM" out; an offset in minutes on a call ----
 export const fmtTime = (hhmm: string): string => { const m = /^(\d{1,2}):(\d{2})$/.exec(hhmm.trim()); if (!m) return hhmm; const h = +m[1]; return `${((h + 11) % 12) + 1}:${m[2]} ${h < 12 ? 'AM' : 'PM'}`; };
