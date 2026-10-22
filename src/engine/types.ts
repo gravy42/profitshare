@@ -253,7 +253,7 @@ export interface DeckRules {
   closingImageId?: string;    // a look book picture for the closing slide
   signoff: string;            // "from the world of ALONE GIRL": the closing slide's tag; empty for the film's own name
 }
-export interface LookImage { id: string; dataUrl: string; caption: string; section: 'tone' | 'world' | 'character' | 'reference'; credit?: string }
+export interface LookImage { id: string; dataUrl: string; caption: string; section: 'tone' | 'world' | 'character' | 'reference'; credit?: string; slide?: boolean }   // slide: chosen for a full-bleed look slide
 export interface ResearchItem { id: string; kind: 'market' | 'audience' | 'comp' | 'press' | 'other'; title: string; body: string; url?: string }
 export interface TeamMember { id: string; name: string; role: string; bio: string }
 

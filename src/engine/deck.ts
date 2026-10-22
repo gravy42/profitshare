@@ -90,7 +90,8 @@ export function deckSlides(p0: Project, byline = ''): Slide[] {
   const pool = lookbook.filter(i => i.id !== cover?.id && i.id !== closing?.id && i.section !== 'reference' && !seen.has(i.dataUrl) && !!seen.add(i.dataUrl));
   let pi = 0;
   const used = new Set<string>();
-  const take = (): LookImage | undefined => { if (!split || !pool.length) return undefined; const img = pool[pi++ % pool.length]; used.add(img.id); return img; };
+  const beside = pool.filter(i => !i.slide);   // pictures marked for a look slide of their own are not handed to the text slides
+  const take = (): LookImage | undefined => { if (!split || !beside.length) return undefined; const img = beside[pi++ % beside.length]; used.add(img.id); return img; };
   // the prose slides take the pictures; a table or a column of findings needs the whole page, so the data slides go full width
   const takes = (k: Slide['kind']) => k === 'title' || k === 'text' || k === 'team';
   const push = (s: Slide) => { out.push(takes(s.kind) ? { ...s, image: s.image ?? take() } : s); };
@@ -117,11 +118,12 @@ export function deckSlides(p0: Project, byline = ''): Slide[] {
   const atAsk = out.length;
   if (split) {
     const left = pool.filter(i => !used.has(i.id));
-    const want = Math.max(0, Math.min(6, Math.round(rules.lookSlides ?? 3)));
+    const chosen = pool.filter(i => i.slide);   // pictures marked "look slide" in the look book are the look slides, in look book order
+    const want = chosen.length ? 0 : Math.max(0, Math.min(6, Math.round(rules.lookSlides ?? 3)));
     // spread the picks through each section (the first, the middle, the last of it) so a run of similar pictures gives one slide, not three
     const spread = (xs: LookImage[]) => xs.length <= want ? xs : Array.from({ length: want }, (_, k) => xs[Math.floor(k * xs.length / want)]);
     const bySection = LOOK_SECTIONS.map(ls => spread(left.filter(i => i.section === ls.id)));
-    const picks: LookImage[] = [];
+    const picks: LookImage[] = [...chosen];
     for (let round = 0; picks.length < want && bySection.some(x => x.length > round); round++) for (const xs of bySection) if (xs[round] && picks.length < want) picks.push(xs[round]);
     for (const img of picks) out.push({ kind: 'images', heading: LOOK_SECTIONS.find(x => x.id === img.section)?.label ?? 'The look', images: [img] });
   } else {

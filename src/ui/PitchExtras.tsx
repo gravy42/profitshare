@@ -1,7 +1,7 @@
 // The parts of the Pitch tab that feed the investor deck: AI assist (opt-in, your own key), the look book, the design
 // system, research, the team and the ask. PitchView composes them.
 import { useEffect, useRef, useState } from 'react';
-import type { LookImage, PitchDesign, Project, ResearchItem, TeamMember } from '../engine/types';
+import type { DeckRules, LookImage, PitchDesign, Project, ResearchItem, TeamMember } from '../engine/types';
 import { withPitch, defaultDesign, defaultDeckRules, newLookImage, newResearch, newTeamMember, LOOK_SECTIONS, RESEARCH_KINDS, projectBytes } from '../engine/pitch';
 import { parseBrandText, applyBrand } from '../engine/brand';
 import { pdfText, pdfPages } from './brandPdf';
@@ -163,6 +163,8 @@ export function LookBookPanel({ project, setPitch }: { project: Project; setPitc
     finally { setBusy(false); }
   };
   const patch = (id: string, f: Partial<LookImage>) => setPitch(x => ({ ...x, lookbook: (x.lookbook ?? []).map(i => i.id === id ? { ...i, ...f } : i) }));
+  const cover = pitch.design?.deck?.coverImageId;
+  const setRules = (f: (r: DeckRules) => DeckRules) => setPitch(x => { const d = x.design ?? defaultDesign(); return { ...x, design: { ...d, deck: f(d.deck ?? defaultDeckRules()) } }; });
   const move = (id: string, dir: -1 | 1) => setPitch(x => { const a = [...(x.lookbook ?? [])]; const i = a.findIndex(y => y.id === id); const j = i + dir; if (i < 0 || j < 0 || j >= a.length) return x; [a[i], a[j]] = [a[j], a[i]]; return { ...x, lookbook: a }; });
   return (
     <div className="panel lookbook" onDragOver={e => { if ([...e.dataTransfer.items].some(i => i.kind === 'file' && /^image\//.test(i.type))) { e.preventDefault(); e.stopPropagation(); } }} onDrop={e => { const fs = [...e.dataTransfer.files].filter(f => /^image\//.test(f.type)); if (fs.length) { e.preventDefault(); e.stopPropagation(); void add(fs); } }}>
@@ -176,7 +178,7 @@ export function LookBookPanel({ project, setPitch }: { project: Project; setPitc
           <input ref={pdfRef} type="file" accept="application/pdf" hidden onChange={e => { const f = e.target.files?.[0]; if (f) void addPdf(f); e.target.value = ''; }} />
         </span>
       </div>
-      <p className="help">Stills, references, frames, the poster comp: the film in pictures. Drop images here (or Add pictures); each is resized to 1600 px. Pictures are kept in the browser's big store (as many as you like) and go inside the .json when you Save, so the file carries the whole pitch. The deck gives tone, the world and characters a slide of up to four pictures each with their captions; references stay with you. {bytes > 3_500_000 && <b className="warn">The project text alone is {mb(bytes)}; the browser keeps about 5 MB of it a site, so Save the .json.</b>}{bad && <b className="warn"> {bad}</b>}</p>
+      <p className="help">Stills, references, frames, the poster comp: the film in pictures. Drop images here (or Add pictures); each is resized to 1600 px. Pictures are kept in the browser's big store (as many as you like) and go inside the .json when you Save, so the file carries the whole pitch. In the split layout the pictures sit beside the slides in this order (the arrows move them); mark a picture <b>Look slide</b> for a full-bleed slide of its own, and <b>Cover</b> for the title slide. In the plain layout they go four to a slide by section. References stay with you. {bytes > 3_500_000 && <b className="warn">The project text alone is {mb(bytes)}; the browser keeps about 5 MB of it a site, so Save the .json.</b>}{bad && <b className="warn"> {bad}</b>}</p>
       {imgs.length === 0 && <div className="droptarget"><b>Drop pictures here</b></div>}
       <div className="lookgrid">
         {imgs.map((img, i) => (
@@ -186,6 +188,8 @@ export function LookBookPanel({ project, setPitch }: { project: Project; setPitc
             <div className="row" style={{ gap: 4 }}>
               <select value={img.section} onChange={e => patch(img.id, { section: e.target.value as LookImage['section'] })}>{LOOK_SECTIONS.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}</select>
               <input value={img.credit ?? ''} placeholder="credit" style={{ width: 90 }} onChange={e => patch(img.id, { credit: e.target.value })} />
+              <button className={`btn small ${img.slide ? 'primary' : ''}`} title="A full-bleed slide of its own in the deck; with none marked the deck picks a few" onClick={() => patch(img.id, { slide: !img.slide })}>{img.slide ? 'Look slide ✓' : 'Look slide'}</button>
+              <button className={`btn small ${cover === img.id ? 'primary' : ''}`} title="The cover: fills the title slide, the logline on a band at the foot" onClick={() => setRules(r => ({ ...r, coverImageId: cover === img.id ? undefined : img.id }))}>{cover === img.id ? 'Cover ✓' : 'Cover'}</button>
               <button className="btn small" disabled={i === 0} onClick={() => move(img.id, -1)} aria-label="earlier">←</button>
               <button className="btn small" disabled={i === imgs.length - 1} onClick={() => move(img.id, 1)} aria-label="later">→</button>
               <button className="x" aria-label="remove picture" onClick={() => setPitch(x => ({ ...x, lookbook: (x.lookbook ?? []).filter(y => y.id !== img.id) }))}>×</button>

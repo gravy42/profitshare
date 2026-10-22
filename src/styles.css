@@ -695,3 +695,9 @@ details.panel.ai > summary h2 { margin: 0; flex: 0 0 auto; }
 .deck .slide.s-title.hero > .body > footer { display: none; }
 .deck .slide.s-title.hero .signoff.logline { font-size: 15pt; max-width: 7in; line-height: 1.4; }
 .deck .slide.s-title.hero .center { margin: 0; }
+/* comps: ten films in two groups have to fit above the footer */
+.deck .s-comps table { font-size: 12pt; }
+.deck .s-comps th, .deck .s-comps td { padding: 3pt 8pt; }
+.deck .s-comps .compgroup { margin-bottom: 8pt; }
+.deck .s-comps h3 { margin-bottom: 4pt; }
+.print-root .deck .s-comps th, .print-root .deck .s-comps td { padding: 3pt 8pt; }

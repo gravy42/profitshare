@@ -22,6 +22,12 @@ describe('the investor deck', () => {
     expect(split.filter(s => s.kind === 'images')).toHaveLength(2);          // title, why and team took three of the five; the other two are look slides of one
     expect(split.filter(s => s.kind === 'images').every(s => s.kind === 'images' && s.images.length === 1)).toBe(true);
     expect(split.find(s => s.kind === 'comps' || s.kind === 'research')?.image).toBeUndefined();   // a data slide keeps the whole page
+    const marked = { ...q, pitch: { ...q.pitch, lookbook: q.pitch.lookbook.map((im, n) => n === 4 ? { ...im, slide: true } : im) } };
+    const chosen = deckSlides(marked, '');
+    const looks = chosen.filter(s => s.kind === 'images');
+    expect(looks).toHaveLength(1);                                           // a marked picture is the look slide, and only it
+    expect(looks[0].kind === 'images' && looks[0].images[0].id).toBe(marked.pitch.lookbook[4].id);
+    expect(chosen.filter(s => s.image?.id === marked.pitch.lookbook[4].id)).toHaveLength(0);   // and it sits beside no text slide
     q.pitch.design = { ...defaultDesign(), deck: { ...defaultDeckRules(), layout: 'plain' } };
     const slides = deckSlides(q, 'a film by A. Director');
     const kinds = slides.map(s => s.kind);
