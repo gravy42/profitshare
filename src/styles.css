@@ -701,34 +701,74 @@ details.panel.ai > summary h2 { margin: 0; flex: 0 0 auto; }
 .deck .s-comps .compgroup { margin-bottom: 8pt; }
 .deck .s-comps h3 { margin-bottom: 4pt; }
 .print-root .deck .s-comps th, .print-root .deck .s-comps td { padding: 3pt 8pt; }
-/* ---- call sheets: the editor's day picker and the sheet itself, one page a day ---- */
+/* ---- call sheets: the editor's day picker and the sheet itself, front and back ---- */
 .daypick { flex-wrap: wrap; gap: 6px; }
 table.compact input, table.compact select { width: 100%; min-width: 0; font-size: 12px; padding: 3px 5px; }
 table.compact td { padding: 2px 4px; }
 table.locs input { min-width: 80px; }
-.sheetwrap { background: #fff; color: #000; padding: 14px; border: 1px solid var(--line); overflow: auto; }
-.callsheet { font: 10.5px/1.3 -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; color: #000; max-width: 7.6in; }
+.sheetwrap { background: #e9e6df; padding: 14px; border: 1px solid var(--line); overflow: auto; display: flex; flex-direction: column; gap: 14px; }
+.callsheet { --cs-bg: #000; --cs-ink: #fff; --cs-accent: #000; --cs-on-accent: #fff; --cs-title: inherit; font: 9.5px/1.25 -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; color: #000; background: #fff; width: 7.6in; box-sizing: border-box; padding: 0; margin: 0 auto; }
+.sheetwrap .callsheet { padding: 0.35in; box-shadow: 0 2px 10px rgba(0,0,0,.25); }
 .callsheet .muted { color: #555; }
-.callsheet .small { font-size: 9px; }
-.callsheet .cshead { display: flex; justify-content: space-between; gap: 16px; border-bottom: 2px solid #000; padding-bottom: 6px; margin-bottom: 8px; }
-.callsheet .cshead .co { font-weight: 700; text-transform: uppercase; letter-spacing: .4px; font-size: 10px; }
-.callsheet .cshead .title { font-size: 20px; font-weight: 800; letter-spacing: .5px; margin: 2px 0; }
-.callsheet .cshead .calls { text-align: right; }
-.callsheet .cshead .dayof { font-weight: 700; font-size: 12px; }
-.callsheet .cshead .date { font-size: 12px; }
-.callsheet .cshead .big { font-size: 18px; font-weight: 800; margin: 4px 0 2px; }
-.callsheet .csgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 8px; }
-.callsheet h4 { margin: 0 0 3px; font-size: 9px; text-transform: uppercase; letter-spacing: .4px; border-bottom: 1px solid #000; }
-.callsheet .loc { margin-bottom: 4px; }
-.callsheet p { margin: 0 0 4px; }
-.callsheet table { width: 100%; border-collapse: collapse; font-size: 10px; margin-bottom: 8px; }
-.callsheet th, .callsheet td { border-bottom: 1px solid #bbb; padding: 2px 5px; text-align: right; vertical-align: top; color: #000; font-variant-numeric: tabular-nums; }
+.callsheet .small { font-size: 8.5px; }
+.callsheet h4 { margin: 0 0 2px; font-size: 8px; text-transform: uppercase; letter-spacing: .4px; border-bottom: 1px solid #000; }
+.callsheet p { margin: 0 0 3px; }
+.callsheet table { width: 100%; border-collapse: collapse; font-size: 8.5px; margin-bottom: 4px; }
+.callsheet th, .callsheet td { border: 1px solid #999; padding: 1px 3px; text-align: center; vertical-align: top; color: #000; font-variant-numeric: tabular-nums; }
 .callsheet th.l, .callsheet td.l { text-align: left; }
-.callsheet thead th { font-size: 9px; text-transform: uppercase; letter-spacing: .3px; border-bottom: 1px solid #000; background: #fff; }
-.callsheet tr.sub td { font-weight: 700; border-top: 1px solid #000; }
-.callsheet .depts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px 12px; margin-bottom: 8px; }
-.callsheet .dept .small { font-size: 8px; line-height: 1.25; color: #333; }
-.callsheet .dept .call { float: right; font-weight: 700; }
-.callsheet .advance { margin-top: 4px; }
-.print-root .callsheet { max-width: none; page-break-after: always; }
-.print-root .callsheet:last-child { page-break-after: auto; }
+.callsheet thead th { font-size: 8px; text-transform: uppercase; letter-spacing: .3px; background: #e6e6e6; border-color: #999; }
+.callsheet tr.sub td { font-weight: 700; }
+.callsheet tr.move td { background: #ddd; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; font-size: 8px; }
+.callsheet tr.band td, .callsheet th.band { background: #ddd; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; font-size: 8px; text-align: center; }
+.callsheet .syn { font-style: italic; color: #333; }
+/* the front's header: who, the call box, when */
+.callsheet .cshead { display: grid; grid-template-columns: 1fr 2.4in 1fr; gap: 10px; align-items: stretch; margin-bottom: 4px; }
+.callsheet .cshead .who .logo { max-height: 0.5in; max-width: 1.6in; display: block; margin-bottom: 3px; }
+.callsheet .cshead .co { font-weight: 700; text-transform: uppercase; letter-spacing: .4px; font-size: 9px; }
+.callsheet .cshead .title { font-family: var(--cs-title); font-size: 18px; font-weight: 800; letter-spacing: .5px; margin: 1px 0; }
+.callsheet .callbox { border: 2px solid #000; text-align: center; padding: 3px 6px; }
+.callsheet .callbox .lbl { font-weight: 800; text-transform: uppercase; font-size: 11px; letter-spacing: .5px; }
+.callsheet .callbox .big { font-size: 30px; font-weight: 800; line-height: 1.1; }
+.callsheet .callbox .trio { display: flex; justify-content: space-around; border-top: 1px solid #000; margin-top: 3px; padding-top: 3px; font-size: 9px; }
+.callsheet .cshead .when { text-align: right; }
+.callsheet .cshead .date { font-weight: 700; font-size: 11px; }
+.callsheet .cshead .dayof { font-weight: 800; font-size: 12px; margin: 2px 0; }
+.callsheet .banner { border: 1px solid #000; padding: 2px 6px; font-size: 7.5px; font-style: italic; text-align: center; text-transform: uppercase; letter-spacing: .3px; margin-bottom: 4px; }
+.callsheet .strip { display: grid; grid-template-columns: repeat(6, 1fr); border: 1px solid #000; margin-bottom: 6px; }
+.callsheet .strip > div { padding: 2px 4px; border-right: 1px solid #999; font-size: 8.5px; min-height: 0.45in; }
+.callsheet .strip > div:last-child { border-right: 0; }
+.callsheet .strip h4 { border-bottom: 1px solid #999; text-align: center; background: #e6e6e6; margin: -2px -4px 2px; padding: 1px 0; }
+.callsheet .twocol { display: grid; grid-template-columns: 1fr 1.2fr; gap: 8px; }
+.callsheet .instr td.dept { font-weight: 700; text-transform: uppercase; font-size: 7px; width: 0.95in; background: #f3f3f3; }
+.callsheet .instr td { font-size: 8px; }
+.callsheet table.advance tr.dayrow td { background: #f3f3f3; }
+.callsheet footer.csfoot { display: flex; flex-direction: row; justify-content: space-between; align-items: baseline; gap: 10px; border-top: 2px solid #000; padding: 3px 0 0; margin-top: 4px; font-size: 9px; color: #000; }
+/* the back: every crew call in three columns */
+.callsheet .backhead { display: flex; gap: 14px; align-items: baseline; border-bottom: 2px solid #000; margin-bottom: 6px; padding-bottom: 2px; }
+.callsheet .backhead .big { font-size: 22px; font-weight: 800; }
+.callsheet .backhead .ttl { font-size: 16px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; font-family: var(--cs-title); }
+.callsheet .crewcols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 8px; }
+.callsheet table.crew th { text-align: center; }
+.callsheet table.crew { font-size: 8px; }
+.callsheet table.crew td { padding: 0 3px; }
+.callsheet table.crew td.role { font-weight: 700; }
+.callsheet table.crew td.call { width: 22%; }
+.callsheet .backrow { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 6px; }
+.callsheet .backrow > div { border: 1px solid #000; padding: 3px 5px; min-height: 0.5in; }
+.callsheet .backrow h4 { text-align: center; }
+.callsheet .quote { font-style: italic; text-align: center; }
+/* the brand dress: the pitch's design on the header and the call box, the rest stays black on white for the copier */
+.callsheet.brand .cshead .who, .callsheet.brand .cshead .when, .callsheet.brand .backhead { background: var(--cs-bg); color: var(--cs-ink); padding: 6px 8px; }
+.callsheet.brand .cshead .when { text-align: right; }
+.callsheet.brand .cshead .title, .callsheet.brand .backhead .ttl, .callsheet.brand .backhead .big { color: var(--cs-accent); }
+.callsheet.brand .callbox { border-color: var(--cs-accent); background: var(--cs-accent); color: var(--cs-on-accent); }
+.callsheet.brand .callbox .trio { border-top-color: var(--cs-on-accent); }
+.callsheet.brand .banner { border-color: var(--cs-accent); color: var(--cs-bg); }
+.callsheet.brand thead th, .callsheet.brand tr.move td, .callsheet.brand tr.band td, .callsheet.brand th.band, .callsheet.brand .strip h4 { background: var(--cs-bg); color: var(--cs-ink); border-color: var(--cs-bg); }
+.callsheet.brand .csfoot, .callsheet.brand .backhead { border-color: var(--cs-accent); }
+.callsheet.brand h4 { border-bottom-color: var(--cs-accent); }
+.callsheet.brand .cshead .co { color: var(--cs-accent); }
+.callsheet, .callsheet * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.print-root .callsheet { width: auto; max-width: none; margin: 0; }
+.print-root .callsheet.front { page-break-before: always; page-break-after: always; }   /* a break before the first page is ignored, so no blank leaf anywhere */
+.print-root .callsheet.back { page-break-before: auto; page-break-after: auto; }

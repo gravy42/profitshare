@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { sampleProject } from '../data/seed';
-import { buildSheet, castStatus, departmentOf, locationFor, locationsFromBoard, newLocation, setGroup, sunrise, sunset, fmtTime, addMinutes } from './callsheet';
+import { buildSheet, castStatus, departmentOf, instructionsFor, locationFor, locationsFromBoard, newExtra, newLocation, setGroup, sunrise, sunset, fmtTime, addMinutes } from './callsheet';
 import { shootDays } from './board';
 
 describe('call sheets', () => {
@@ -14,13 +14,30 @@ describe('call sheets', () => {
     expect(s.cast.every(c => c.call === '07:00' && c.onSet === '08:00')).toBe(true);     // the defaults
     expect(s.cast.every(c => ['SW', 'W', 'WF', 'SWF'].includes(c.status))).toBe(true);
     expect(s.depts.length).toBeGreaterThan(0);
-    expect(s.advance.length).toBe(days.length > 1 ? days[1].scenes.length : 0);
+    expect(s.advance.length).toBe(Math.min(2, days.length - 1));                              // the next two days
+    expect(s.advance[0].scenes.length).toBe(days[1].scenes.length);
+    expect(s.logistics.parking).toBe(''); expect(s.banner.length).toBeGreaterThan(20);
     const typed = { ...p, callSheets: { company: 'Out To Lunch', contacts: [], locations: [], crewCall: '06:30', shootingCall: '07:30', lunch: '12:30', wrap: '18:30', days: { 1: { crewCall: '05:00', weather: 'Rain', cast: { [s.cast[0].castId]: { pickup: '04:15', note: 'drives self' } }, depts: { Camera: '04:30' } } } } };
     const t = buildSheet(typed, 1)!;
     expect(t.crewCall).toBe('05:00'); expect(t.shootingCall).toBe('07:30'); expect(t.weather).toBe('Rain');
     expect(t.cast[0]).toMatchObject({ pickup: '04:15', call: '05:00', note: 'drives self' });
     expect(t.depts.find(d => d.dept === 'Camera')?.call).toBe('04:30');
+    expect(t.depts.find(d => d.dept === 'Camera')?.people.every(x => x.call === '04:30')).toBe(true);   // the department's call reaches each person
+    const loc = newLocation({ name: 'Mesa', sets: days[0].scenes[0].set, parking: 'the lot', hospital: 'Desert General' });
+    const withLoc = buildSheet({ ...p, callSheets: { ...typed.callSheets, locations: [loc], days: { 1: { ...typed.callSheets.days[1], extras: [{ ...newExtra('stunt'), name: 'A. Double', role: 'Sam stunt double' }], instructions: 'Camera: freedom mounts\nbring the generator', crew: { [p.participants.find(x => x.group === 'crew')!.id]: 'O/C' } } } } }, 1)!;
+    expect(withLoc.logistics).toMatchObject({ parking: 'the lot', hospital: 'Desert General' });   // the first location fills the strip
+    expect(withLoc.extras.find(e => e.kind === 'stunt')?.name).toBe('A. Double');
+    expect(withLoc.instructions.find(i => i.dept === 'Camera')?.items).toEqual(['freedom mounts']);
+    expect(withLoc.instructions.find(i => i.dept === 'Production')?.items).toEqual(['bring the generator']);
+    expect(withLoc.depts.flatMap(d => d.people).find(x => x.call === 'O/C')).toBeTruthy();
     expect(buildSheet(p, 99)).toBeNull();
+  });
+  it('turns the scene tags into special instructions by department', () => {
+    const out = instructionsFor([{ number: '12', elements: { Props: ['license plates', 'roadkill'], Vehicles: ["Abigail's jeep"], 'Background Actors': ['12 diner patrons'] } }, { number: '13', elements: { Stunts: ['Lexi hangs out of the sunroof'] } }], 'Grip & electric: freedom mounts');
+    expect(out.map(x => x.dept)).toEqual(['Art dept / props', 'Picture vehicles', 'Stunts', 'Grip & electric']);
+    expect(out[0].items).toEqual(['Sc 12: license plates, roadkill']);
+    expect(out.find(x => x.dept === 'Grip & electric')?.items).toEqual(['freedom mounts']);
+    expect(out.some(x => x.items.some(i => /patrons/.test(i)))).toBe(false);   // background has its own table
   });
   it('codes the SAG day and sorts crew into departments', () => {
     expect(castStatus([2, 3, 5], 2)).toBe('SW'); expect(castStatus([2, 3, 5], 3)).toBe('W'); expect(castStatus([2, 3, 5], 5)).toBe('WF'); expect(castStatus([4], 4)).toBe('SWF'); expect(castStatus([4], 1)).toBe('');

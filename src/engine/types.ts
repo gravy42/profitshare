@@ -292,12 +292,21 @@ export interface Location { id: string; name: string; sets: string; address: str
 
 export interface CallContact { role: string; name: string; phone: string }
 
+/** A stunt performer, stand-in, photo double or background group on a day's sheet. */
+export interface CallExtra { id: string; kind: 'stunt' | 'standin' | 'background'; name: string; role: string; call: string; onSet: string; note: string }
+
 /** What one shoot day's sheet says beyond the defaults: every field optional, so a sheet is never blank. Times are "HH:MM". */
 export interface CallSheetDay {
-  crewCall?: string; shootingCall?: string; lunch?: string; wrap?: string;
+  crewCall?: string; shootingCall?: string; rehearsal?: string; lunch?: string; wrap?: string;
   weather?: string; notes?: string; safety?: string; meals?: string;
-  cast: Record<number, { status?: string; pickup?: string; call?: string; makeup?: string; onSet?: string; note?: string }>;   // by cast number
+  parking?: string; basecamp?: string; bathrooms?: string; lunchAt?: string; trucks?: string; hospital?: string;   // the logistics strip; parking and hospital default to the day's first location
+  bulletins?: string;              // safety bulletins for today's work
+  quote?: string;                  // quote of the day on the back
+  instructions?: string;           // special instructions typed, one a line, "Camera: freedom mounts"; the scene tags supply the rest
+  cast: Record<number, { status?: string; pickup?: string; call?: string; makeup?: string; wardrobe?: string; onSet?: string; note?: string }>;   // by cast number
   depts: Record<string, string>;   // department → call time
+  crew?: Record<string, string>;   // participant id → that person's call, or "O/C" for on call
+  extras?: CallExtra[];
 }
 
 export interface CallSheets {
@@ -305,5 +314,9 @@ export interface CallSheets {
   contacts: CallContact[];         // UPM, 1st AD, 2nd AD, producer: who the header lists
   locations: Location[];
   crewCall: string; shootingCall: string; lunch: string; wrap: string;   // the defaults every day starts from
+  rehearsal?: string;
+  banner?: string;                 // the line under the header: the safety-meeting rule, no forced calls, no visitors
+  basecamp?: string; bathrooms?: string; lunchAt?: string; trucks?: string;   // logistics defaults
+  brand?: boolean;                 // style the sheet with the pitch's design system (colours, type, logo)
   days: Record<number, CallSheetDay>;   // by shoot day index
 }
