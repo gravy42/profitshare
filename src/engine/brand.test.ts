@@ -65,3 +65,12 @@ describe('reading a brand system', () => {
     expect(out.fonts.title).toMatch(/^"Adler"/); expect(out.line).toBe('#3D697A');
   });
 });
+
+describe('slide rules in words', () => {
+  it('reads split layout, the bleed, eyebrows and the sign-off', async () => {
+    const { deckRulesFromText } = await import('./brand');
+    const r = deckRulesFromText('DECKSLIDE · SPLIT LAYOUT, ALWAYS NIGHT. Photo bleeds 50 to 60%, text column right with a 48px outer margin. One eyebrow per slide; the slide\'s first word is the eyebrow. The sign-off tag, from the world of ALONE GIRL, goes on anything that is not already the film.');
+    expect(r).toMatchObject({ layout: 'split', eyebrow: true, bleed: 0.55, signoff: 'from the world of ALONE GIRL' });
+    expect(deckRulesFromText('Colours and type only.')).toEqual({});
+  });
+});

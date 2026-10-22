@@ -662,3 +662,13 @@ details.panel.ai > summary h2 { margin: 0; flex: 0 0 auto; }
 .proposal.whole { margin-top: 10px; padding: 12px 14px; border: 1px dashed var(--line); border-radius: 6px; background: var(--card); max-height: 60vh; overflow: auto; }
 .proposal.whole h4 { margin: 10px 0 4px; font-size: 13px; color: var(--plum-ink); }
 .proposal.whole p { margin: 0 0 6px; font-size: 13px; }
+/* a look slide with one picture bleeds the whole page; its caption sits on a band at the foot, like the closing slide */
+.deck .slide.hero { display: block; }
+.deck .slide.hero > .photo { position: absolute; inset: 0; width: 100%; height: 100%; }
+.deck .slide.hero > .photo img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 0; }
+.deck .slide.hero > .body { position: relative; height: 100%; justify-content: flex-end; padding-bottom: var(--dk-pad); }
+.deck .slide.hero > .body > footer { display: none; }
+.deck .signoff.caption { font-family: var(--dk-body); font-size: 14pt; }
+.deck .signoff .credit { opacity: .7; }
+/* the deck at full size, off screen, while the PDF is rendered */
+.deckrender { position: fixed; left: 0; top: 0; width: 13.333in; z-index: -1; opacity: 0; pointer-events: none; }

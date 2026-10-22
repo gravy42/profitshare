@@ -26,9 +26,11 @@ export function Deck({ p, byline, preview }: { p: Project; byline?: string; prev
   return (
     <div className={`deck ${preview ? 'preview' : ''} ${rules?.eyebrow ? 'eyebrows' : ''}`} style={deckStyle(p)}>
       {slides.map((s, i) => {
-        const photo = (s.kind === 'title' || s.kind === 'text' || s.kind === 'closing') && s.image;
+        const photo = s.image;
+        const hero = s.kind === 'images' && s.images.length === 1;
         return (
-          <section className={`slide s-${s.kind} ${photo ? 'split' : ''}`} key={i}>
+          <section className={`slide s-${s.kind} ${photo ? 'split' : ''} ${hero ? 'hero' : ''}`} key={i}>
+            {hero && <div className="photo"><img src={s.images[0].dataUrl} alt={s.images[0].caption} /></div>}
             {photo && <div className="photo"><img src={photo.dataUrl} alt={photo.caption} /></div>}
             <div className="body">
               {design?.logoDataUrl && s.kind !== 'title' && s.kind !== 'closing' && <img className="logo" src={design.logoDataUrl} alt="" />}
@@ -56,7 +58,7 @@ function SlideBody({ s }: { s: Slide }) {
     );
     case 'text': return (<><H2>{s.heading}</H2><div className="prose">{s.body.split(/\n{2,}/).map((para, i) => <p key={i}>{para}</p>)}</div></>);
     case 'closing': return (<div className="center closing"><p className="signoff">{s.signoff || s.title}</p></div>);
-    case 'images': return (
+    case 'images': if (s.images.length === 1) return (<div className="center closing">{(s.images[0].caption || s.images[0].credit) && <p className="signoff caption">{s.images[0].caption}{s.images[0].credit ? <span className="credit"> · {s.images[0].credit}</span> : null}</p>}</div>); return (
       <>
         <H2>{s.heading}</H2>
         <div className={`grid g${Math.min(4, Math.max(1, s.images.length))}`}>

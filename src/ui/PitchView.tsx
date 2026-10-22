@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { Comp, Project, RevenueLine } from '../engine/types';
 import { CASES, DEFAULT_GROUP, adoptProjectionsAsScenarios, compGroups, compMultiple, compStats, newComp, newRevenueLine, newSection, projections, withPitch } from '../engine/pitch';
 import { recoupableBudget } from '../engine/waterfall';
@@ -8,6 +8,7 @@ import { money } from './format';
 import { BreakdownReport, PrintPortal } from './print';
 import { AiPanel, Draft, LookBookPanel, DesignPanel, ResearchPanel, TeamPanel } from './PitchExtras';
 import { Deck } from './Deck';
+import { deckToPdf, downloadBlob } from './deckPdf';
 import { aiReady } from '../ai';
 import { deckSlides } from '../engine/deck';
 
@@ -24,7 +25,20 @@ export function PitchView({ project, setProject }: { project: Project; setProjec
   const moveSec = (id: string, dir: -1 | 1) => set(x => { const i = x.sections.findIndex(c => c.id === id); const j = i + dir; if (i < 0 || j < 0 || j >= x.sections.length) return x; const a = x.sections.slice(); [a[i], a[j]] = [a[j], a[i]]; return { ...x, sections: a }; });
   const setRev = (id: string, patch: Partial<RevenueLine>) => set(x => ({ ...x, revenue: x.revenue.map(r => r.id === id ? { ...r, ...patch } : r) }));
   const [printing, setPrinting] = useState(false);
-  const [deck, setDeck] = useState<'off' | 'preview' | 'print'>('off');
+  const [deck, setDeck] = useState<'off' | 'preview' | 'print' | 'render'>('off');
+  const [progress, setProgress] = useState('');
+  const renderRef = useRef<HTMLDivElement>(null);
+  const makePdf = async () => {
+    setDeck('render'); setProgress('Rendering…');
+    await new Promise(r => setTimeout(r, 300));   // let the full-size slides mount
+    try {
+      const root = renderRef.current; if (!root) throw new Error('nothing to render');
+      const blob = await deckToPdf(root, (d, t) => setProgress(`Slide ${d} of ${t}…`));
+      downloadBlob(blob, `${p.name.replace(/[^\w-]+/g, '_')}_investor_deck.pdf`);
+      setProgress('');
+    } catch (e) { setProgress(`Could not build the PDF: ${(e as Error).message}`); }
+    finally { setDeck(d => (d === 'render' ? 'off' : d)); }
+  };
   const [ai, setAi] = useState(aiReady());
   const [byline, setByline] = useState('');
   const ts = topSheet(p); const budget = recoupableBudget(p); const pr = projections(p); const stats = compStats(pitch.comps);
@@ -140,8 +154,11 @@ export function PitchView({ project, setProject }: { project: Project; setProjec
         <div className="row">
           <div className="ctl"><label>Byline on the title slide</label><input value={byline} placeholder={`a film by …`} onChange={e => setByline(e.target.value)} style={{ width: 260 }} /></div>
           <button className="btn small" onClick={() => setDeck(d => d === 'preview' ? 'off' : 'preview')}>{deck === 'preview' ? 'Hide the preview' : 'Preview the deck'}</button>
-          <button className="btn small primary" onClick={() => setDeck('print')}>Print / save as PDF</button>
+          <button className="btn small primary" disabled={deck === 'render'} onClick={makePdf}>{deck === 'render' ? progress || 'Rendering…' : 'Download the PDF'}</button>
+          <button className="btn small ghost" onClick={() => setDeck('print')} title="The browser's print dialog instead (set the paper to 13.33 × 7.5 in landscape and turn on backgrounds; Safari ignores the page size the deck asks for)">Print instead</button>
+          {progress && deck !== 'render' && <span className="small warn">{progress}</span>}
         </div>
+        {deck === 'render' && <div className="deckrender" ref={renderRef} aria-hidden="true"><Deck p={p} byline={byline} /></div>}
         {deck === 'preview' && <Deck p={p} byline={byline} preview />}
       </div>
     </div>

@@ -1,6 +1,6 @@
 // Read a brand or design-system document (its text, from a PDF) into the deck's design: colours by the role they
 // are given on the page, the type faces it names, a name for the system. Pure, so it is tested without pdf.js.
-import type { PitchDesign } from './types';
+import type { DeckRules, PitchDesign } from './types';
 
 export interface BrandColors extends Partial<PitchDesign['colors']> { line?: string; inkBright?: string; card?: string }
 export interface BrandFound {
@@ -11,6 +11,7 @@ export interface BrandFound {
   fonts: Partial<PitchDesign['fonts']>;
   swatches: { name: string; hex: string }[];   // every named colour on the pages, for the status line
   faces: string[];                            // every type face recognised
+  rules: Partial<DeckRules>;                  // slide rules the document states: split layout, eyebrows, the bleed
 }
 
 const HEX = /#([0-9a-f]{6})\b/gi;
@@ -80,7 +81,7 @@ export function parseBrandText(text: string, fallbackName = ''): BrandFound {
   const name = (footer ?? above ?? lines.find(l => l.length <= 40 && words(l).length >= 2) ?? fallbackName).replace(/\s+/g, ' ').trim() || fallbackName;
 
   const named = namedColors(lines);
-  const found: BrandFound = { name, colors: {}, fonts: {}, swatches: named.filter(n => n.name).map(n => ({ name: n.name, hex: n.hex })), faces: [] };
+  const found: BrandFound = { name, colors: {}, fonts: {}, swatches: named.filter(n => n.name).map(n => ({ name: n.name, hex: n.hex })), faces: [], rules: deckRulesFromText(text) };
   const nightAt = lines.findIndex(l => /colou?r[,:]?\s*(night|dark)/i.test(l));
   const dayAt = lines.findIndex(l => /colou?r[,:]?\s*(day|light)/i.test(l));
   if (nightAt >= 0 && dayAt >= 0) {
@@ -103,6 +104,19 @@ export function parseBrandText(text: string, fallbackName = ''): BrandFound {
   return found;
 }
 
+/** Slide rules a brand document states in words: "split layout", "photo bleeds 50 to 60%", "one eyebrow per slide". */
+export function deckRulesFromText(text: string): Partial<DeckRules> {
+  const t = text.replace(/\s+/g, ' ');
+  const out: Partial<DeckRules> = {};
+  if (/\bsplit[- ]layout\b/i.test(t) || /photo bleeds/i.test(t)) out.layout = 'split';
+  if (/\beyebrow/i.test(t)) out.eyebrow = true;
+  const m = /bleeds?\s+(\d{2})\s*(?:to|-|–)\s*(\d{2})\s*%/i.exec(t) ?? /bleeds?\s+(\d{2})\s*%/i.exec(t);
+  if (m) { const a = +m[1], b = m[2] ? +m[2] : a; const mid = Math.round(((a + b) / 2) / 5) * 5; if (mid >= 40 && mid <= 60) out.bleed = mid / 100; }
+  const so = /sign-?off[^.]*?[“"]([^”"]{4,60})[”"]/i.exec(t) ?? /tag,?\s+[“"]?(from the world of [^”",.]{2,40})/i.exec(t);
+  if (so) out.signoff = so[1].trim();
+  return out;
+}
+
 /** The deck's colours and faces from what was found; what the document is silent on keeps the person's own setting. */
 export function applyBrand(d: PitchDesign, b: BrandFound): PitchDesign {
   const c = b.colors;
@@ -113,5 +127,6 @@ export function applyBrand(d: PitchDesign, b: BrandFound): PitchDesign {
     fonts: { title: b.fonts.title ? `"${b.fonts.title}", var(--font-title)` : d.fonts.title, body: b.fonts.body ? `"${b.fonts.body}", var(--font-body)` : d.fonts.body },
     ...(c.line ? { line: c.line } : {}),
     ...(c.card ? { card: c.card } : {}),
+    deck: { layout: 'plain', eyebrow: false, bleed: 0.55, signoff: '', ...d.deck, ...b.rules },
   };
 }
