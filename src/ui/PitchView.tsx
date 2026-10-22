@@ -32,7 +32,7 @@ export function PitchView({ project, setProject }: { project: Project; setProjec
 
   const body = (
     <div className="pitchdoc">
-      <AiPanel onChange={setAi} />
+      <AiPanel onChange={setAi} project={p} setPitch={set} />
       <div className="panel"><h2>The film</h2>
         <div className="ctl"><label>Logline <Draft what="logline" project={p} ready={ai} onUse={t => set(x => ({ ...x, logline: t }))} /></label><textarea rows={2} value={pitch.logline} onChange={e => set(x => ({ ...x, logline: e.target.value }))} placeholder="One or two sentences." /></div>
         <div className="ctl" style={{ marginTop: 8 }}><label>Why this film, why now <Draft what="why" project={p} ready={ai} onUse={t => set(x => ({ ...x, why: t }))} /></label><textarea rows={4} value={pitch.why} onChange={e => set(x => ({ ...x, why: e.target.value }))} placeholder="In your words." /></div>

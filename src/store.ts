@@ -4,6 +4,7 @@ import { blankProject } from './data/seed';
 import { withDeal, applyDeal } from './engine/deal';
 import { adoptBoardDays, syncCastDaysFromBoard } from './engine/board';
 import { topSheet } from './engine/budget';
+import { idbAvailable, idbGet, idbSet, idbDel, STORES } from './idb';
 
 /** Every project that comes in: deal defaults, then the board takes ownership of cast and follower days. */
 const normalize = (p: Project): Project => syncCastDaysFromBoard(adoptBoardDays(withDeal(p)));
@@ -39,12 +40,43 @@ export function metaOf(p: Project, id: string): ProjectMeta {
   return { id, name: p.name, version: p.version, savedAt: new Date().toISOString(), shootDays: p.shootDays, lines: p.lines.length, scenes: p.board.scenes.length, cashBudget };
 }
 
+// ---- pictures live in IndexedDB, not in the slot ----
+// A look book is megabytes; localStorage holds about 5 MB a site in UTF-16, which is four or five pictures and then
+// silence. So the slot keeps the project with every picture's data blanked, and the pictures sit in IndexedDB under
+// their ids. Loading a slot puts them back (asynchronously); Save (the .json) always has them inline.
+const stored = new Set<string>();   // image ids known to be in IndexedDB this session, so autosave does not rewrite megabytes every 300ms
+export const IMAGE_IN_DB = 'idb:';   // what a blanked picture's dataUrl says in the slot
+/** The project with picture data moved out: write the pictures to IndexedDB and blank them in the copy that goes to the slot. */
+export function stripImages(p: Project): Project {
+  const lb = p.pitch?.lookbook;
+  if (!lb?.length || !idbAvailable()) return p;
+  const lookbook = lb.map(img => {
+    if (!img.dataUrl.startsWith('data:')) return img;
+    if (!stored.has(img.id)) { stored.add(img.id); void idbSet(STORES.images, img.id, img.dataUrl).catch(() => stored.delete(img.id)); }
+    return { ...img, dataUrl: IMAGE_IN_DB + img.id };
+  });
+  return { ...p, pitch: { ...p.pitch!, lookbook } };
+}
+/** The pictures back from IndexedDB; a picture that is gone stays blank (and the look book shows it as missing). */
+export async function hydrateImages(p: Project): Promise<Project> {
+  const lb = p.pitch?.lookbook;
+  if (!lb?.some(i => i.dataUrl.startsWith(IMAGE_IN_DB)) || !idbAvailable()) return p;
+  const lookbook = await Promise.all(lb.map(async img => {
+    if (!img.dataUrl.startsWith(IMAGE_IN_DB)) return img;
+    const data = await idbGet<string>(STORES.images, img.id).catch(() => undefined);
+    if (data) { stored.add(img.id); return { ...img, dataUrl: data }; }
+    return { ...img, dataUrl: '' };
+  }));
+  return { ...p, pitch: { ...p.pitch!, lookbook } };
+}
+
 /** Write one project to its slot and refresh its row in the index (newest first). */
 export function saveSlot(id: string, p: Project, kv: KV | null = ls()): void {
-  try { kv?.setItem(slotKey(id), JSON.stringify(p)); } catch { return; }
+  try { kv?.setItem(slotKey(id), JSON.stringify(stripImages(p))); } catch { return; }
   const rest = readIndex(kv).filter(m => m.id !== id);
   writeIndex([metaOf(p, id), ...rest], kv);
 }
+/** The slot's project, pictures still blanked: follow with hydrateImages(). */
 export function loadSlot(id: string, kv: KV | null = ls()): Project | null {
   try {
     const raw = kv?.getItem(slotKey(id));
@@ -53,6 +85,8 @@ export function loadSlot(id: string, kv: KV | null = ls()): Project | null {
   return null;
 }
 export function deleteSlot(id: string, kv: KV | null = ls()): void {
+  const p = loadSlot(id, kv);
+  for (const img of p?.pitch?.lookbook ?? []) if (img.dataUrl.startsWith(IMAGE_IN_DB)) { stored.delete(img.id); void idbDel(STORES.images, img.id).catch(() => undefined); }
   try { kv?.removeItem(slotKey(id)); } catch { /* ignore */ }
   writeIndex(readIndex(kv).filter(m => m.id !== id), kv);
   if (kv?.getItem(ACTIVE_KEY) === id) { try { kv.removeItem(ACTIVE_KEY); } catch { /* ignore */ } }
@@ -110,6 +144,17 @@ export function useProject() {
   const past = useRef<Project[]>([]);
   const [dirty, setDirty] = useState(false);
   const idRef = useRef(activeId); idRef.current = activeId;
+  // pictures come back from IndexedDB after the slot loads; swapping them in is not an edit
+  const hydrate = useCallback((p: Project) => {
+    void hydrateImages(p).then(h => {
+      if (h === p) return;
+      const data = new Map((h.pitch?.lookbook ?? []).map(i => [i.id, i.dataUrl]));
+      setProjectState(cur => cur === p ? h : (cur.pitch?.lookbook?.some(i => i.dataUrl.startsWith(IMAGE_IN_DB))
+        ? { ...cur, pitch: { ...cur.pitch!, lookbook: cur.pitch!.lookbook!.map(i => i.dataUrl.startsWith(IMAGE_IN_DB) && data.has(i.id) ? { ...i, dataUrl: data.get(i.id)! } : i) } }
+        : cur));
+    });
+  }, []);
+  useEffect(() => { hydrate(project); }, []);   // eslint-disable-line react-hooks/exhaustive-deps
 
   /** Give the in-memory project a slot of its own (the first edit on the start screen, or an Open / Start action). */
   const adopt = useCallback((p: Project): string => { const id = newProjectId(); saveSlot(id, p); setProjects(readIndex()); setActiveId(id); return id; }, []);
@@ -150,8 +195,8 @@ export function useProject() {
   /** Switch to another project the browser holds. */
   const openProject = useCallback((id: string): boolean => {
     const p = loadSlot(id); if (!p) return false;
-    past.current = []; setActiveId(id); setProjectState(p); setDirty(false); return true;
-  }, []);
+    past.current = []; setActiveId(id); setProjectState(p); setDirty(false); hydrate(p); return true;
+  }, [hydrate]);
 
   const deleteProject = useCallback((id: string) => {
     deleteSlot(id); setProjects(readIndex());

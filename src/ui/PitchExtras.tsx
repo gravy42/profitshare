@@ -5,7 +5,8 @@ import type { LookImage, PitchDesign, Project, ResearchItem, TeamMember } from '
 import { withPitch, defaultDesign, defaultDeckRules, newLookImage, newResearch, newTeamMember, LOOK_SECTIONS, RESEARCH_KINDS, projectBytes } from '../engine/pitch';
 import { parseBrandText, applyBrand } from '../engine/brand';
 import { pdfText, pdfPages } from './brandPdf';
-import { aiSettings, saveAiSettings, forgetAi, listModels, ask, projectBrief, draftPrompt, SYSTEM, DEFAULT_MODEL, type DraftWhat } from '../ai';
+import { aiSettings, saveAiSettings, forgetAi, listModels, ask, projectBrief, draftPrompt, SYSTEM, DEFAULT_MODEL, aiDocs, addAiDoc, removeAiDoc, draftWholePitch, type AiDoc, type DraftWhat, type WholePitch } from '../ai';
+import { newSection } from '../engine/pitch';
 
 type SetProject = (f: (p: Project) => Project) => void;
 type Pitch = NonNullable<Project['pitch']>;
@@ -14,12 +15,34 @@ export type SetPitch = (f: (x: Pitch) => Pitch) => void;
 // ---------- AI assist ----------
 
 /** Key and model, kept in this browser only. */
-export function AiPanel({ onChange }: { onChange: (ready: boolean) => void }) {
+export function AiPanel({ onChange, project, setPitch }: { onChange: (ready: boolean) => void; project: Project; setPitch: SetPitch }) {
   const [s, setS] = useState(aiSettings());
   const [models, setModels] = useState<{ id: string; name: string }[]>([]);
   const [status, setStatus] = useState<string>('');
   const [open, setOpen] = useState(!s.key);
+  const [docs, setDocs] = useState<AiDoc[]>([]);
+  const [docStatus, setDocStatus] = useState('');
+  const docRef = useRef<HTMLInputElement>(null);
+  const [whole, setWhole] = useState<WholePitch | null>(null);
+  const [drafting, setDrafting] = useState(false);
+  useEffect(() => { void aiDocs().then(setDocs); }, []);
   useEffect(() => { onChange(!!s.key); }, [s.key]);   // eslint-disable-line react-hooks/exhaustive-deps
+  const addDoc = async (f: File) => { setDocStatus('Keeping…'); try { await addAiDoc(f); setDocs(await aiDocs()); setDocStatus(''); } catch (e) { setDocStatus((e as Error).message); } };
+  const draftAll = async () => {
+    setDrafting(true); setStatus('');
+    try { setWhole(await draftWholePitch(project)); }
+    catch (e) { setStatus(`Could not draft: ${(e as Error).message}`); }
+    finally { setDrafting(false); }
+  };
+  const useWhole = (w: WholePitch) => {
+    setPitch(x => ({ ...x,
+      logline: w.logline || x.logline, why: w.why || x.why,
+      audience: { primary: w.audience[0] || x.audience.primary, secondary: w.audience[1] || x.audience.secondary, notes: w.audience[2] || x.audience.notes },
+      sections: w.sections.length ? w.sections.map(sec => ({ ...newSection(sec.heading), body: sec.body })) : x.sections,
+      ask: w.ask || x.ask }));
+    setWhole(null);
+  };
+  const mb = (n: number) => `${(n / 1048576).toFixed(1)} MB`;
   const save = (next: typeof s) => { setS(next); saveAiSettings(next); };
   const test = async () => {
     setStatus('Checking…');
@@ -41,6 +64,27 @@ export function AiPanel({ onChange }: { onChange: (ready: boolean) => void }) {
         {s.key && <button className="btn small ghost" onClick={() => { forgetAi(); setS({ key: '', model: DEFAULT_MODEL }); setModels([]); setStatus('Forgotten.'); }}>Forget the key</button>}
       </div>
       {status && <p className="small" style={{ marginTop: 6 }}>{status}</p>}
+      <h3 style={{ margin: '14px 0 4px' }}>Documents the AI reads</h3>
+      <p className="help">Your look book, a treatment, an old deck: PDFs the model reads alongside the brief every time it drafts, so the logline, the story and the style come from your own pages. They stay in this browser only (not in the project file) and go to Anthropic with each Draft, so keep them to what you'd hand an investor. Up to about 30 MB and 100 pages each.</p>
+      <div className="row" style={{ alignItems: 'center' }}>
+        {docs.map(d => <span className="chip" key={d.id}>{d.name} <span className="muted small">{mb(d.size)}</span><button title="forget this document" aria-label={`Forget ${d.name}`} onClick={async () => { await removeAiDoc(d.id); setDocs(await aiDocs()); }}>×</button></span>)}
+        <button className="btn small" onClick={() => docRef.current?.click()}>Add a PDF</button>
+        <input ref={docRef} type="file" accept="application/pdf" hidden onChange={e => { const f = e.target.files?.[0]; if (f) void addDoc(f); e.target.value = ''; }} />
+        {docStatus && <span className="small warn">{docStatus}</span>}
+      </div>
+      <h3 style={{ margin: '14px 0 4px' }}>Draft the whole pitch</h3>
+      <p className="help">One pass over everything written on this tab: the logline, why this film, the three audience boxes, three to five sections of the case, and the ask, from the brief and the documents above. You see it all before any of it lands.</p>
+      <div className="row"><button className="btn small primary" disabled={!s.key || drafting} onClick={draftAll}>{drafting ? 'Drafting…' : 'Draft the whole pitch'}</button></div>
+      {whole && (
+        <div className="proposal whole">
+          <h4>Logline</h4><p>{whole.logline}</p>
+          <h4>Why this film, why now</h4>{whole.why.split(/\n{2,}/).map((x, i) => <p key={i}>{x}</p>)}
+          <h4>Who it's for</h4><p><b>Primary.</b> {whole.audience[0]}</p><p><b>Secondary.</b> {whole.audience[1]}</p><p><b>How we reach them.</b> {whole.audience[2]}</p>
+          {whole.sections.map((sec, i) => <div key={i}><h4>{sec.heading}</h4>{sec.body.split(/\n{2,}/).map((x, j) => <p key={j}>{x}</p>)}</div>)}
+          <h4>The ask</h4><p>{whole.ask}</p>
+          <div className="row"><button className="btn small primary" onClick={() => useWhole(whole)}>Use all of it</button><button className="btn small" onClick={() => setWhole(null)}>Discard</button><span className="hint">It replaces what is in those boxes (the sections too, when it wrote any). Undo (⌘Z) brings the old text back; edit everything before it goes anywhere.</span></div>
+        </div>
+      )}
     </details>
   );
 }
@@ -93,15 +137,30 @@ export function LookBookPanel({ project, setPitch }: { project: Project; setPitc
   const fileRef = useRef<HTMLInputElement>(null);
   const [section, setSection] = useState<LookImage['section']>('tone');
   const bytes = projectBytes(project);
+  const [bad, setBad] = useState('');
   const add = async (files: FileList | File[]) => {
-    const list = [...files].filter(f => /^image\//.test(f.type));
+    const list = [...files].filter(f => /^image\//.test(f.type) || /\.(heic|heif)$/i.test(f.name));
     if (!list.length) return;
-    setBusy(true);
+    setBusy(true); setBad('');
+    const failed: string[] = [];
     try {
       const urls: string[] = [];
-      for (const f of list) urls.push(await resizeImage(f));
-      setPitch(x => ({ ...x, lookbook: [...(x.lookbook ?? []), ...urls.map(u => newLookImage(u, section))] }));
+      for (const f of list) {
+        if (/heic|heif/i.test(f.type) || /\.(heic|heif)$/i.test(f.name)) { failed.push(`${f.name} (HEIC: export it as JPEG from Photos first)`); continue; }
+        try { urls.push(await resizeImage(f)); } catch { failed.push(f.name); }
+      }
+      if (urls.length) setPitch(x => ({ ...x, lookbook: [...(x.lookbook ?? []), ...urls.map(u => newLookImage(u, section))] }));
+      if (failed.length) setBad(`Could not read ${failed.join(', ')}.`);
     } finally { setBusy(false); }
+  };
+  const pdfRef = useRef<HTMLInputElement>(null);
+  const addPdf = async (f: File) => {
+    setBusy(true); setBad('');
+    try {
+      const urls = await pdfPages(await f.arrayBuffer(), 1600, 40);
+      setPitch(x => ({ ...x, lookbook: [...(x.lookbook ?? []), ...urls.map((u, i) => ({ ...newLookImage(u, section), caption: `${f.name.replace(/\.pdf$/i, '')} · page ${i + 1}` }))] }));
+    } catch (e) { setBad(`Could not read ${f.name}: ${(e as Error).message}`); }
+    finally { setBusy(false); }
   };
   const patch = (id: string, f: Partial<LookImage>) => setPitch(x => ({ ...x, lookbook: (x.lookbook ?? []).map(i => i.id === id ? { ...i, ...f } : i) }));
   const move = (id: string, dir: -1 | 1) => setPitch(x => { const a = [...(x.lookbook ?? [])]; const i = a.findIndex(y => y.id === id); const j = i + dir; if (i < 0 || j < 0 || j >= a.length) return x; [a[i], a[j]] = [a[j], a[i]]; return { ...x, lookbook: a }; });
@@ -112,15 +171,17 @@ export function LookBookPanel({ project, setPitch }: { project: Project; setPitc
         <span className="row" style={{ gap: 8 }}>
           <select value={section} onChange={e => setSection(e.target.value as LookImage['section'])} title="Which part of the deck new pictures go to">{LOOK_SECTIONS.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}</select>
           <button className="btn small" disabled={busy} onClick={() => fileRef.current?.click()}>{busy ? 'Adding…' : 'Add pictures'}</button>
-          <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={e => { if (e.target.files) void add(e.target.files); e.target.value = ''; }} />
+          <input ref={fileRef} type="file" accept="image/*,.heic,.heif" multiple hidden onChange={e => { if (e.target.files) void add(e.target.files); e.target.value = ''; }} />
+          <button className="btn small" disabled={busy} title="Every page of a PDF (a look book, a deck) as a picture" onClick={() => pdfRef.current?.click()}>Add the pages of a PDF</button>
+          <input ref={pdfRef} type="file" accept="application/pdf" hidden onChange={e => { const f = e.target.files?.[0]; if (f) void addPdf(f); e.target.value = ''; }} />
         </span>
       </div>
-      <p className="help">Stills, references, frames, the poster comp: the film in pictures. Drop images here (or Add pictures); each is resized to 1600 px and kept inside the project, so the .json carries the whole pitch. The deck gives tone, the world and characters a slide of up to four pictures each with their captions; references stay with you. {bytes > 3_500_000 && <b className="warn">The project is {mb(bytes)}; the browser keeps about 5 MB a site, so Save the .json and keep the look book under twenty pictures.</b>}</p>
+      <p className="help">Stills, references, frames, the poster comp: the film in pictures. Drop images here (or Add pictures); each is resized to 1600 px. Pictures are kept in the browser's big store (as many as you like) and go inside the .json when you Save, so the file carries the whole pitch. The deck gives tone, the world and characters a slide of up to four pictures each with their captions; references stay with you. {bytes > 3_500_000 && <b className="warn">The project text alone is {mb(bytes)}; the browser keeps about 5 MB of it a site, so Save the .json.</b>}{bad && <b className="warn"> {bad}</b>}</p>
       {imgs.length === 0 && <div className="droptarget"><b>Drop pictures here</b></div>}
       <div className="lookgrid">
         {imgs.map((img, i) => (
           <figure key={img.id}>
-            <img src={img.dataUrl} alt={img.caption} />
+            {img.dataUrl.startsWith('data:') ? <img src={img.dataUrl} alt={img.caption} /> : <div className="missing">{img.dataUrl ? 'loading…' : 'picture missing from this browser; it is still in any .json you saved'}</div>}
             <input value={img.caption} placeholder="caption" onChange={e => patch(img.id, { caption: e.target.value })} />
             <div className="row" style={{ gap: 4 }}>
               <select value={img.section} onChange={e => patch(img.id, { section: e.target.value as LookImage['section'] })}>{LOOK_SECTIONS.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}</select>

@@ -35,7 +35,7 @@ export function deckSlides(p0: Project, byline = ''): Slide[] {
   const dated = [...dates.values()].filter(Boolean).sort();
   const out: Slide[] = [];
   const rules = pitch.design?.deck;
-  const lookbook = pitch.lookbook ?? [];
+  const lookbook = (pitch.lookbook ?? []).filter(i => i.dataUrl.startsWith('data:'));   // pictures still loading or missing stay off the slides
   const byId = (id?: string) => (id ? lookbook.find(i => i.id === id) : undefined);
   const cover = byId(rules?.coverImageId), closing = byId(rules?.closingImageId);
   // in the split layout, text slides each take a picture: the look book in order, cover and closing pictures left out,
