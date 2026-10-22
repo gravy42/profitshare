@@ -1,4 +1,4 @@
-import type { Comp, Pitch, PitchSection, Project, RevenueLine } from './types';
+import type { Comp, LookImage, Pitch, PitchDesign, PitchSection, Project, ResearchItem, RevenueLine, TeamMember } from './types';
 import { recoupableBudget, investorsAt, poolAt } from './waterfall';
 
 export const defaultPitch = (): Pitch => ({
@@ -16,12 +16,27 @@ export const defaultPitch = (): Pitch => ({
   sources: [],
 });
 
-export const withPitch = (p: Project): Project => (p.pitch ? (p.pitch.sections ? p : { ...p, pitch: { ...p.pitch, sections: [] } }) : { ...p, pitch: defaultPitch() });
+export const defaultDesign = (): PitchDesign => ({ name: '', colors: { bg: '#15151b', ink: '#f3efe4', accent: '#e8b84a', accent2: '#91a9d9', muted: '#a9a39a' }, fonts: { title: '', body: '' }, notes: '' });
+
+export const withPitch = (p: Project): Project => {
+  const b = p.pitch;
+  if (b && b.sections && b.lookbook && b.research && b.team && b.ask != null) return p;
+  const base = b ?? defaultPitch();
+  return { ...p, pitch: { ...base, sections: base.sections ?? [], lookbook: base.lookbook ?? [], research: base.research ?? [], team: base.team ?? [], ask: base.ask ?? '' } };
+};
 
 const uid = (prefix: string) => `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
 export const newComp = (partial: Partial<Comp> = {}): Comp => ({ id: uid('comp'), title: '', year: '', distributor: '', budget: null, domestic: null, worldwide: null, note: '', source: '', ...partial });
 export const newRevenueLine = (source = ''): RevenueLine => ({ id: uid('rv'), source, low: 0, mid: 0, high: 0 });
 export const newSection = (heading = ''): PitchSection => ({ id: uid('sec'), heading, body: '' });
+export const newLookImage = (dataUrl: string, section: LookImage['section'] = 'tone'): LookImage => ({ id: uid('img'), dataUrl, caption: '', section });
+export const newResearch = (kind: ResearchItem['kind'] = 'market'): ResearchItem => ({ id: uid('rs'), kind, title: '', body: '', url: '' });
+export const newTeamMember = (): TeamMember => ({ id: uid('tm'), name: '', role: '', bio: '' });
+export const LOOK_SECTIONS: { id: LookImage['section']; label: string }[] = [{ id: 'tone', label: 'Tone' }, { id: 'world', label: 'The world' }, { id: 'character', label: 'Characters' }, { id: 'reference', label: 'References' }];
+export const RESEARCH_KINDS: { id: ResearchItem['kind']; label: string }[] = [{ id: 'market', label: 'Market' }, { id: 'audience', label: 'Audience' }, { id: 'comp', label: 'Comparable' }, { id: 'press', label: 'Press' }, { id: 'other', label: 'Other' }];
+
+/** Rough size of the project as saved, so the look book can warn before the browser's storage (about 5 MB a site) fills. */
+export const projectBytes = (p: Project): number => JSON.stringify(p).length;
 
 export const DEFAULT_GROUP = 'Comparable films';
 /** Comps grouped by the argument they support, in first-seen order; ungrouped comps come first. */

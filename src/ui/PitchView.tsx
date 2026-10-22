@@ -6,6 +6,10 @@ import { topSheet } from '../engine/budget';
 import { incentiveProceeds } from '../engine/incentives';
 import { money } from './format';
 import { BreakdownReport, PrintPortal } from './print';
+import { AiPanel, Draft, LookBookPanel, DesignPanel, ResearchPanel, TeamPanel } from './PitchExtras';
+import { Deck } from './Deck';
+import { aiReady } from '../ai';
+import { deckSlides } from '../engine/deck';
 
 type SetProject = (f: (p: Project) => Project) => void;
 const CASE_LABEL = { low: 'Low', mid: 'Mid', high: 'High' } as const;
@@ -20,14 +24,18 @@ export function PitchView({ project, setProject }: { project: Project; setProjec
   const moveSec = (id: string, dir: -1 | 1) => set(x => { const i = x.sections.findIndex(c => c.id === id); const j = i + dir; if (i < 0 || j < 0 || j >= x.sections.length) return x; const a = x.sections.slice(); [a[i], a[j]] = [a[j], a[i]]; return { ...x, sections: a }; });
   const setRev = (id: string, patch: Partial<RevenueLine>) => set(x => ({ ...x, revenue: x.revenue.map(r => r.id === id ? { ...r, ...patch } : r) }));
   const [printing, setPrinting] = useState(false);
+  const [deck, setDeck] = useState<'off' | 'preview' | 'print'>('off');
+  const [ai, setAi] = useState(aiReady());
+  const [byline, setByline] = useState('');
   const ts = topSheet(p); const budget = recoupableBudget(p); const pr = projections(p); const stats = compStats(pitch.comps);
   const incentives = incentiveProceeds(p);
 
   const body = (
     <div className="pitchdoc">
+      <AiPanel onChange={setAi} />
       <div className="panel"><h2>The film</h2>
-        <div className="ctl"><label>Logline</label><textarea rows={2} value={pitch.logline} onChange={e => set(x => ({ ...x, logline: e.target.value }))} placeholder="One or two sentences." /></div>
-        <div className="ctl" style={{ marginTop: 8 }}><label>Why this film, why now</label><textarea rows={4} value={pitch.why} onChange={e => set(x => ({ ...x, why: e.target.value }))} placeholder="In your words." /></div>
+        <div className="ctl"><label>Logline <Draft what="logline" project={p} ready={ai} onUse={t => set(x => ({ ...x, logline: t }))} /></label><textarea rows={2} value={pitch.logline} onChange={e => set(x => ({ ...x, logline: e.target.value }))} placeholder="One or two sentences." /></div>
+        <div className="ctl" style={{ marginTop: 8 }}><label>Why this film, why now <Draft what="why" project={p} ready={ai} onUse={t => set(x => ({ ...x, why: t }))} /></label><textarea rows={4} value={pitch.why} onChange={e => set(x => ({ ...x, why: e.target.value }))} placeholder="In your words." /></div>
         <div className="row" style={{ marginTop: 8 }}>
           <div className="stat"><div className="label">Budget to raise</div><div className="value">{money(ts.cashBudget)}</div><div className="sub">{p.shootDays} shoot days · SAG {p.sag.targetTier}</div></div>
           <div className="stat"><div className="label">Investors put in</div><div className="value">{money(budget)}</div><div className="sub">after {money((p.waterfall.nonRecoupable ?? 0))} grants{incentives ? ` and ${money(incentives)} incentives` : ''}</div></div>
@@ -35,7 +43,7 @@ export function PitchView({ project, setProject }: { project: Project; setProjec
         </div>
       </div>
 
-      <div className="panel"><h2>Who it's for</h2>
+      <div className="panel"><div className="row" style={{ justifyContent: 'space-between' }}><h2>Who it's for</h2><Draft what="audience" project={p} ready={ai} label="Draft all three" onUse={t => { const [primary = '', secondary = '', notes = ''] = t.split(/\n{2,}/); set(x => ({ ...x, audience: { primary, secondary, notes } })); }} /></div>
         <div className="grid3">
           <div className="ctl"><label>Primary audience</label><textarea rows={4} value={pitch.audience.primary} onChange={e => set(x => ({ ...x, audience: { ...x.audience, primary: e.target.value } }))} /></div>
           <div className="ctl"><label>Secondary</label><textarea rows={4} value={pitch.audience.secondary} onChange={e => set(x => ({ ...x, audience: { ...x.audience, secondary: e.target.value } }))} /></div>
@@ -55,6 +63,7 @@ export function PitchView({ project, setProject }: { project: Project; setProjec
               </span>
             </div>
             <textarea rows={5} value={sec.body} placeholder="A few paragraphs, in your words." onChange={e => setSec(sec.id, { body: e.target.value })} />
+            <Draft what="section" extra={sec.heading} project={p} ready={ai && !!sec.heading.trim()} label={`Draft "${sec.heading.trim() || 'this section'}"`} onUse={t => setSec(sec.id, { body: t })} />
           </div>
         ))}
         <div className="row"><button className="btn small" onClick={() => set(x => ({ ...x, sections: [...x.sections, newSection()] }))}>Add a section</button><span className="hint">The argument: why women will show up, the path to market, whatever you need an investor to believe. Each section prints under its heading.</span></div>
@@ -116,9 +125,24 @@ export function PitchView({ project, setProject }: { project: Project; setProjec
         </div>
       </div>
 
-      <div className="panel"><h2>Deck and sources</h2>
-        <div className="ctl"><label>Pitch deck</label><input value={pitch.deck} onChange={e => set(x => ({ ...x, deck: e.target.value }))} placeholder="link or file name" /></div>
-        <div className="ctl" style={{ marginTop: 8 }}><label>Research links, one per line</label><textarea rows={4} value={pitch.sources.join('\n')} onChange={e => set(x => ({ ...x, sources: e.target.value.split('\n').map(s => s.trim()).filter(Boolean) }))} /></div>
+      <div className="panel"><h2>The ask <Draft what="ask" project={p} ready={ai} onUse={t => set(x => ({ ...x, ask: t }))} /></h2>
+        <textarea rows={4} value={pitch.ask ?? ''} onChange={e => set(x => ({ ...x, ask: e.target.value }))} placeholder="What you are raising, on what terms, what an investor gets, how to reach you. It closes the deck." />
+        <div className="ctl" style={{ marginTop: 8 }}><label>Research links, one per line (the old list; findings with detail go under Research below)</label><textarea rows={3} value={pitch.sources.join('\n')} onChange={e => set(x => ({ ...x, sources: e.target.value.split('\n').map(x => x.trim()).filter(Boolean) }))} /></div>
+      </div>
+
+      <LookBookPanel project={p} setPitch={set} />
+      <DesignPanel project={p} setPitch={set} />
+      <ResearchPanel project={p} setPitch={set} />
+      <TeamPanel project={p} setPitch={set} />
+
+      <div className="panel deckpanel"><h2>Investor deck</h2>
+        <p className="help">Every slide is drawn from this tab and the rest of the project: the logline and the case, the look book by section, the audience, the comps, the plan (days, dates, sets, cast, crew, the SAG tier), the numbers from the top sheet, the deal and the three cases, the team, the research, the ask. Styled by the design system above. {deckSlides(p).length} slides as it stands; 16:9 pages, Print saves a PDF.</p>
+        <div className="row">
+          <div className="ctl"><label>Byline on the title slide</label><input value={byline} placeholder={`a film by …`} onChange={e => setByline(e.target.value)} style={{ width: 260 }} /></div>
+          <button className="btn small" onClick={() => setDeck(d => d === 'preview' ? 'off' : 'preview')}>{deck === 'preview' ? 'Hide the preview' : 'Preview the deck'}</button>
+          <button className="btn small primary" onClick={() => setDeck('print')}>Print / save as PDF</button>
+        </div>
+        {deck === 'preview' && <Deck p={p} byline={byline} preview />}
       </div>
     </div>
   );
@@ -130,10 +154,11 @@ export function PitchView({ project, setProject }: { project: Project; setProjec
           <h2>Pitch</h2>
           <button className="btn small" onClick={() => setPrinting(true)}>Print / save as PDF</button>
         </div>
-        <p className="help small">Everything on this page is yours to write and edit; nothing here is computed from the script. The budget, back end and investor split are read live from the Deal, so when the budget moves the projection moves with it.</p>
+        <p className="help small">Everything on this page is yours to write and edit; nothing here is computed from the script (AI assist, if you turn it on with your own key, only drafts; you decide what stays). The budget, back end and investor split are read live from the Deal, so when the budget moves the projection moves with it.</p>
       </div>
       {body}
       {printing && <PrintPortal title={`${p.name} · Pitch`} onDone={() => setPrinting(false)}><BreakdownReport p={p} what="Investor summary"><PitchReport p={p} /></BreakdownReport></PrintPortal>}
+      {deck === 'print' && <PrintPortal title={`${p.name} · Investor deck`} page="deck" onDone={() => setDeck('off')}><Deck p={p} byline={byline} /></PrintPortal>}
     </div>
   );
 }

@@ -226,7 +226,23 @@ export interface Pitch {
   feePct: number;             // sales agent / distribution fees and expenses taken off the top, as a % of gross
   deck: string;               // link or file name of the pitch deck
   sources: string[];          // market research links
+  design?: PitchDesign;       // the look of the deck: colours, type, a logo
+  lookbook?: LookImage[];     // the film in pictures: tone, world, character, references
+  research?: ResearchItem[];  // market, audience and comp research, pasted in
+  team?: TeamMember[];
+  ask?: string;               // the ask, in the filmmaker's words: what you are raising, on what terms, how to reach you
 }
+
+export interface PitchDesign {
+  name: string;               // "Alone Girl Universe"
+  colors: { bg: string; ink: string; accent: string; accent2: string; muted: string };
+  fonts: { title: string; body: string };   // CSS font-family stacks; the deck falls back to the app's own
+  logoDataUrl?: string;       // a small image, embedded
+  notes: string;              // rules of the system in a sentence or two, for whoever edits the deck
+}
+export interface LookImage { id: string; dataUrl: string; caption: string; section: 'tone' | 'world' | 'character' | 'reference'; credit?: string }
+export interface ResearchItem { id: string; kind: 'market' | 'audience' | 'comp' | 'press' | 'other'; title: string; body: string; url?: string }
+export interface TeamMember { id: string; name: string; role: string; bio: string }
 
 // ---------- the whole project ----------
 

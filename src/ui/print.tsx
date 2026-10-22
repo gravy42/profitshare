@@ -11,14 +11,18 @@ import { money } from './format';
  * Printing is the PDF export: the browser's print dialog saves to PDF on every platform with no library.
  * While a PrintPortal is mounted the app is hidden (print CSS) and only the report prints.
  */
-export function PrintPortal({ title, landscape, onDone, children }: { title: string; landscape?: boolean; onDone: () => void; children: ReactNode }) {
+export function PrintPortal({ title, landscape, page, onDone, children }: { title: string; landscape?: boolean; page?: 'deck'; onDone: () => void; children: ReactNode }) {
   useEffect(() => {
     const prev = document.title; document.title = title;
-    document.body.dataset.print = landscape ? 'landscape' : 'portrait';
+    document.body.dataset.print = page ?? (landscape ? 'landscape' : 'portrait');
+    // the page box for this print: a 16:9 deck page with no margin, or the report's letter page
+    const style = document.createElement('style'); style.id = 'print-page';
+    style.textContent = page === 'deck' ? '@page { size: 13.333in 7.5in; margin: 0; }' : landscape ? '@page { size: letter landscape; margin: 12mm; }' : '@page { size: letter; margin: 12mm; }';
+    document.head.appendChild(style);
     const after = () => { document.body.removeAttribute('data-print'); document.title = prev; onDone(); };
     window.addEventListener('afterprint', after);
     const t = setTimeout(() => window.print(), 80);
-    return () => { clearTimeout(t); window.removeEventListener('afterprint', after); document.body.removeAttribute('data-print'); document.title = prev; };
+    return () => { clearTimeout(t); window.removeEventListener('afterprint', after); document.body.removeAttribute('data-print'); document.title = prev; style.remove(); };
   }, []);
   return createPortal(<div className="print-root">{children}</div>, document.body);
 }

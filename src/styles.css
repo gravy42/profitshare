@@ -533,3 +533,100 @@ table.atl th, table.atl td { white-space: nowrap; overflow-wrap: normal; }
 .strip.parked .act.on { font-weight: 700; }
 .strip.u-omit .set { text-decoration: line-through; }
 .daybreak.parkedhead .muted { color: rgba(255,255,255,.8); }
+
+/* ---- Pitch: AI assist, look book, design system, research, team ---- */
+details.panel.ai > summary { display: flex; align-items: baseline; gap: 12px; cursor: pointer; list-style: none; }
+details.panel.ai > summary::-webkit-details-marker { display: none; }
+details.panel.ai > summary h2 { margin: 0; flex: 0 0 auto; }
+.draft { display: inline-block; margin-left: 8px; font-weight: 400; vertical-align: middle; }
+.draft .proposal { margin: 8px 0 4px; padding: 10px; border: 1px dashed var(--line); border-radius: 6px; background: var(--card); }
+.draft .proposal textarea { width: 100%; }
+.pitchdoc .ctl > label .draft { text-transform: none; letter-spacing: 0; }
+.lookgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-top: 10px; }
+.lookgrid figure { margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.lookgrid img { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; border-radius: 4px; border: 1px solid var(--line); background: #000; }
+.lookgrid input, .lookgrid select { font-size: 12px; }
+.lookgrid .row > input, .lookgrid .row > select { min-width: 0; }
+.panel.design .swatch { flex: 0 0 260px; padding: 18px; border-radius: 6px; min-height: 150px; display: flex; flex-direction: column; gap: 8px; justify-content: flex-end; }
+.panel.design .swatch img { max-height: 36px; max-width: 120px; align-self: flex-start; }
+.panel.design .swatch .t { font-size: 24px; line-height: 1.1; }
+.panel.research .item, .panel.team .item { padding: 8px 0 10px; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
+.panel.research .item .row, .panel.team .item .row { margin-bottom: 6px; }
+.panel.research textarea, .panel.team textarea { width: 100%; }
+
+/* ---- the investor deck: 16:9 slides, one DOM for preview and print ---- */
+.deck { --dk-pad: 0.6in; font-family: var(--dk-body); color: var(--dk-ink); }
+.deck .slide { position: relative; width: 13.333in; height: 7.5in; box-sizing: border-box; padding: var(--dk-pad) var(--dk-pad) 0.8in; background: var(--dk-bg); color: var(--dk-ink); display: flex; flex-direction: column; overflow: hidden; break-after: page; page-break-after: always; }
+.deck .slide:last-child { break-after: auto; page-break-after: auto; }
+.deck .slide .logo { position: absolute; top: 0.35in; right: var(--dk-pad); max-height: 0.5in; max-width: 1.6in; opacity: .9; }
+.deck .slide footer { position: absolute; left: var(--dk-pad); right: var(--dk-pad); bottom: 0.3in; display: flex; justify-content: space-between; font-size: 11pt; color: var(--dk-muted); border-top: 1px solid var(--dk-muted); padding-top: 6px; }
+.deck h1 { font-family: var(--dk-title); font-size: 56pt; line-height: 1; margin: 0 0 18pt; color: var(--dk-accent); font-weight: 400; }
+.deck h2 { font-family: var(--dk-title); font-size: 30pt; line-height: 1.1; margin: 0 0 16pt; color: var(--dk-accent); font-weight: 400; }
+.deck h3 { font-size: 14pt; margin: 0 0 6pt; color: var(--dk-accent2); font-weight: 700; }
+.deck p { font-size: 15pt; line-height: 1.45; margin: 0 0 10pt; }
+.deck .prose { max-width: 10.5in; columns: 1; }
+.deck .prose p { font-size: 16pt; }
+.deck .center { margin: auto 0; max-width: 10.5in; }
+.deck .logline { font-size: 22pt; line-height: 1.35; margin: 0 0 24pt; }
+.deck .byline { font-size: 14pt; color: var(--dk-muted); }
+.deck .lead { font-size: 18pt; max-width: 11in; }
+.deck .big { font-family: var(--dk-title); font-size: 44pt; color: var(--dk-accent); margin: 0 0 12pt; }
+.deck .muted { color: var(--dk-muted); }
+.deck .small { font-size: 11pt; }
+.deck .sets { font-size: 12pt; color: var(--dk-muted); line-height: 1.5; }
+.deck .cols { display: flex; gap: 0.4in; }
+.deck .cols > * { flex: 1 1 0; min-width: 0; }
+.deck .cols.two > table { flex: 1.2 1 0; }
+.deck .cols.wrap { flex-wrap: wrap; }
+.deck .cols.wrap > * { flex: 1 1 40%; }
+.deck .grid { display: grid; gap: 0.2in; flex: 1; min-height: 0; }
+.deck .grid.g1 { grid-template-columns: 1fr; }
+.deck .grid.g2 { grid-template-columns: 1fr 1fr; }
+.deck .grid.g3 { grid-template-columns: 1fr 1fr 1fr; }
+.deck .grid.g4 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+.deck figure { margin: 0; min-height: 0; display: flex; flex-direction: column; gap: 4pt; }
+.deck figure img { width: 100%; height: 100%; min-height: 0; object-fit: cover; border-radius: 4px; }
+.deck figcaption { font-size: 11pt; color: var(--dk-muted); flex: 0 0 auto; }
+.deck figcaption .credit { opacity: .7; }
+.deck table { width: 100%; border-collapse: collapse; font-size: 13pt; }
+.deck th, .deck td { padding: 5pt 8pt; text-align: right; border-bottom: 1px solid color-mix(in srgb, var(--dk-muted) 45%, transparent); font-variant-numeric: tabular-nums; }
+.deck th.l, .deck td.l { text-align: left; }
+.deck thead th { font-size: 10pt; text-transform: uppercase; letter-spacing: .4pt; color: var(--dk-muted); }
+.deck tr.sub td { font-weight: 700; }
+.deck tr.total td { font-weight: 800; border-top: 2px solid var(--dk-accent); border-bottom: 0; color: var(--dk-accent); font-size: 15pt; }
+.deck .stats { display: flex; gap: 0.35in; flex-wrap: wrap; margin: 6pt 0 14pt; }
+.deck .stats > div { display: flex; flex-direction: column; min-width: 1.6in; }
+.deck .stats b { font-family: var(--dk-title); font-size: 34pt; line-height: 1; color: var(--dk-accent); font-weight: 400; }
+.deck .stats span { font-size: 12pt; color: var(--dk-muted); margin-top: 4pt; }
+.deck .stats.vertical { flex-direction: column; gap: 0.2in; }
+.deck .compgroup { margin-bottom: 12pt; }
+/* on screen: a scaled preview */
+.deck.preview { display: flex; flex-direction: column; gap: 14px; margin-top: 12px; }
+.deck.preview .slide { transform: scale(.5); transform-origin: top left; margin-bottom: calc(-7.5in * .5); box-shadow: 0 6px 24px rgba(0,0,0,.35); border-radius: 4px; }
+.deck.preview .slide:last-child { margin-bottom: 0; }
+.deckpanel { overflow-x: auto; }
+@media print {
+  body[data-print="deck"] { margin: 0; }
+  body[data-print="deck"] .print-root { font: inherit; color: inherit; }
+  body[data-print="deck"] .print-root .deck .slide { break-after: page; page-break-after: always; }
+}
+/* the deck keeps its own colours and sizes under the report print rules */
+.print-root .deck table, body[data-print="deck"] .print-root .deck table { font-size: 13pt; margin: 0; }
+.print-root .deck th, .print-root .deck td { color: inherit; border-bottom: 1px solid color-mix(in srgb, var(--dk-muted) 45%, transparent); padding: 5pt 8pt; }
+.print-root .deck thead th { color: var(--dk-muted); background: transparent; border-bottom: 1px solid var(--dk-muted); }
+.print-root .deck tr.total td { color: var(--dk-accent); border-top: 2px solid var(--dk-accent); border-bottom: 0; font-size: 15pt; }
+.print-root .deck .muted { color: var(--dk-muted); }
+.print-root .deck .small { font-size: 11pt; }
+.deck .grid, .deck figure { overflow: hidden; }
+.deck figure img { flex: 1 1 0; height: auto; }
+.deck .grid.g4 { grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); }
+.deck .grid.g1, .deck .grid.g2, .deck .grid.g3 { grid-template-rows: minmax(0, 1fr); }
+.deck figure { display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 4pt; min-height: 0; }
+.deck figure img { width: 100%; height: 100%; min-height: 0; object-fit: cover; flex: none; }
+/* image slides: explicit heights, because print layout will not size flex/grid tracks from the page box */
+.deck .slide.s-images h2 { height: 0.5in; margin: 0 0 0.15in; line-height: 0.5in; }
+.deck .slide.s-images .grid { height: 5.4in; flex: none; }
+.deck .slide.s-images figure { display: block; height: auto; }
+.deck .slide.s-images figure img { display: block; width: 100%; height: 5.05in; object-fit: cover; }
+.deck .slide.s-images .grid.g4 figure img { height: 2.3in; }
+.deck .slide.s-images figcaption { height: 0.25in; line-height: 0.25in; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
