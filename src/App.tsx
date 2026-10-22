@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useProject, downloadJson, pickFile, hadSavedProject, keepBoard, previousBoard, forgetPreviousBoard } from './store';
 import { foldMemoLines, memoLines, topSheet } from './engine/budget';
-import { sagReport } from './engine/sag';
+import { SAG_TIERS, sagReport } from './engine/sag';
 import { parseBudgetFile } from './engine/importers/budget';
 import { parseSex } from './engine/importers/sex';
 import { fdxTitle, parseFdx } from './engine/importers/fdx';
@@ -23,7 +23,8 @@ import { PitchView } from './ui/PitchView';
 import { BoardView } from './ui/BoardView';
 import { DealView } from './ui/DealView';
 import { applyDeal, dealControlledIds, withDeal } from './engine/deal';
-import { StartView } from './ui/StartView';
+import { StartView, type StarterSettings } from './ui/StartView';
+import { starterProject } from './engine/starter';
 import { money } from './ui/format';
 
 type Tab = 'start' | 'deal' | 'topsheet' | 'board' | 'calendar' | 'breakdowns' | 'points' | 'sag' | 'incentives' | 'pitch' | 'about';
@@ -136,13 +137,30 @@ export default function App() {
     flash(`${name}: ${note} The board you had is kept: Undo brings it back, or the Restore button on the Stripboard.`);
   };
   /** A screenplay (PDF, Fountain, plain text) broken down into scenes, eighths and cast. */
-  const loadScriptFile = async (f: File) => {
+  const parseScript = async (f: File) => {
     const imp = /\.pdf$/i.test(f.name)
       ? parseScreenplayLines(await (await import('./engine/importers/pdfScript')).pdfScriptLines(await f.arrayBuffer()), { cueIndent: 90 })
       : /\.fdx$/i.test(f.name)
         ? (xml => { const b = parseFdx(xml); return { board: b, title: fdxTitle(xml), pages: b.scenes.reduce((n, s) => n + s.eighths, 0) / 8, warnings: [] as string[] }; })(await f.text())
         : parseScreenplayText(await f.text());
     if (!imp.board.scenes.length) throw new Error(`no scene headings found in ${f.name}${/\.pdf$/i.test(f.name) ? ' (a scanned PDF has no text to read; export the PDF from your writing app instead)' : ''}`);
+    return imp;
+  };
+  // the start screen's "From a script" settings live here so a script dropped anywhere on that screen uses them
+  const [starter, setStarter] = useState<StarterSettings>({ tier: 'MLB', rates: 'ballpark', pagesPerDay: 5, crew: 'lean', dayHours: 12 });
+  /** Only a script, nothing else: break it down and build a first budget around it as a new project. */
+  const startFromScript = async (f: File) => {
+    const imp = await parseScript(f);
+    const board = autoTagBoard(imp.board);
+    const title = imp.title || f.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim().toUpperCase();
+    const { project: p, report } = starterProject(board, { title, tier: starter.tier, rates: starter.rates, pagesPerDay: starter.pagesPerDay, crew: starter.crew, dayHours: starter.dayHours });
+    replace(p); setTab('deal');
+    const tierName = SAG_TIERS.find(t => t.id === starter.tier)?.name ?? starter.tier;
+    return `${title}: ${report.scenes} scenes, ${report.pages} pages, ${report.cast} speaking parts, broken down and scheduled over ${report.shootDays} shoot day${report.shootDays === 1 ? "" : "s"} at ${starter.pagesPerDay} pages a day. A first budget is drawn around it: ${report.crew} crew (${starter.crew}), cast at ${tierName} scale, ${report.lines} lines${report.extras.length ? `, and from the tags: ${report.extras.join(', ')}` : ''}. Budget to raise ${money(report.cashBudget)}. Every line is tagged "starter" and carries a note on how it was sized; none of it is a quote.`;
+  };
+  const pickScript = async () => { const f = await pickFile('.fdx,.pdf,.fountain,.txt,.text'); if (f) { try { flash(await startFromScript(f), true); } catch (e) { flash(`Could not read that script: ${(e as Error).message}`); } } };
+  const loadScriptFile = async (f: File) => {
+    const imp = await parseScript(f);
     const board = autoTagBoard(imp.board);
     const c = board.castList.length;
     const numbered = imp.board.scenes.some((s, i) => s.number !== String(i + 1));
@@ -171,7 +189,7 @@ export default function App() {
         if (k === 'project') out.push(await loadProjectFile(f));
         else if (k === 'budget') out.push(await loadBudgetFile(f));
         else if (k === 'board') out.push(await loadBoardFile(f));
-        else if (k === 'script') out.push(await loadScriptFile(f));
+        else if (k === 'script') out.push(fresh && files.length === 1 ? await startFromScript(f) : await loadScriptFile(f));
         else if (k === 'mbd') out.push(`${f.name}: Movie Magic's native .mbd is a closed format. In Movie Magic Budgeting use File → Export to Excel or CSV and drop that instead.`);
         else out.push(`${f.name}: not a file type I know. Budgets: .xlsx .csv (Shamel, Movie Magic export, any sheet). Boards: .sex (Movie Magic Scheduling). Scripts: .fdx .pdf .fountain .txt. Projects: .json.`);
       } catch (e: any) { out.push(`${f.name}: ${e.message}`); }
@@ -264,7 +282,7 @@ export default function App() {
             <button className="btn small" onClick={() => setPendingScript(null)}>Cancel</button>
           </div>
         )}
-        {tab === 'start' && <StartView onBlank={startBlank} onImportBudget={startImport} onOpen={startOpen} onSample={startSample} fresh={fresh} projects={projects} activeId={activeId} onOpenProject={switchTo} onDeleteProject={deleteProject} />}
+        {tab === 'start' && <StartView onBlank={startBlank} onImportBudget={startImport} onOpen={startOpen} onSample={startSample} onScript={pickScript} starter={starter} setStarter={setStarter} fresh={fresh} projects={projects} activeId={activeId} onOpenProject={switchTo} onDeleteProject={deleteProject} />}
         {tab === 'deal' && <DealView raw={project} eff={eff} setProject={setProject} fresh={!hadSaved && !msg} />}
         {tab === 'topsheet' && <>
           {controlled.size > 0 && <div className="notice">{controlled.size} line{controlled.size > 1 ? 's are' : ' is'} set by the deal (marked <span className="tag points">deal</span>): rates, hours or pay type come from the Deal tab. Days and descriptions are still yours to edit.</div>}

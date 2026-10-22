@@ -1,12 +1,19 @@
 import { useState } from 'react';
 import type { ProjectMeta } from '../store';
+import type { SagTierId } from '../engine/types';
+import { SAG_TIERS } from '../engine/sag';
 import { money } from './format';
+
+export interface StarterSettings { tier: SagTierId; rates: 'scale' | 'ballpark'; pagesPerDay: number; crew: 'lean' | 'full'; dayHours: 10 | 12 }
 
 export interface StartActions {
   onBlank: (opts: { name: string; version: string; shootDays: number; chartOfAccounts: 'standard' | 'empty' }) => void;
   onImportBudget: () => void;
   onOpen: () => void;
   onSample: () => void;
+  onScript: () => void;     // pick a script and build a first budget around it
+  starter: StarterSettings;
+  setStarter: (s: StarterSettings) => void;
   fresh?: boolean;          // nothing is open: the bare start screen
   projects: ProjectMeta[];  // every project this browser holds, newest save first
   activeId: string | null;
@@ -22,7 +29,7 @@ const when = (iso: string) => {
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + (d.getFullYear() !== new Date().getFullYear() ? ` ${d.getFullYear()}` : '');
 };
 
-export function StartView({ onBlank, onImportBudget, onOpen, onSample, fresh, projects, activeId, onOpenProject, onDeleteProject }: StartActions) {
+export function StartView({ onBlank, onImportBudget, onOpen, onSample, onScript, starter, setStarter, fresh, projects, activeId, onOpenProject, onDeleteProject }: StartActions) {
   const [name, setName] = useState('');
   const [version, setVersion] = useState('Draft 1');
   const [days, setDays] = useState(20);
@@ -63,8 +70,26 @@ export function StartView({ onBlank, onImportBudget, onOpen, onSample, fresh, pr
       )}
       <div className="panel">
         <h2>{projects.length ? 'Start another' : 'Start a budget'}</h2>
-        <p className="help">Three ways in. Whatever you pick becomes a new project in this browser{!fresh && <>; <b>the one you have open stays saved</b> and is listed above</>}. Nothing is uploaded anywhere.</p>
+        <p className="help">Four ways in. Whatever you pick becomes a new project in this browser{!fresh && <>; <b>the one you have open stays saved</b> and is listed above</>}. Nothing is uploaded anywhere.</p>
         <div className="grid3 start">
+          <div className="card script">
+            <h3>From a script</h3>
+            <p>Only have the screenplay? Drop it here and ProfitShare breaks it down (scenes, eighths, cast, a first pass of tags), schedules it, and draws a first budget around it: a generic indie crew with prep and wrap, cast at SAG scale, department allowances, post, insurance and legal. Every line says how it was sized. It's a starting place, not a quote.</p>
+            <div className="row">
+              <div className="ctl"><label>SAG tier</label>
+                <select value={starter.tier} onChange={e => setStarter({ ...starter, tier: e.target.value as SagTierId, crew: e.target.value === 'ULB' || e.target.value === 'MLB' ? 'lean' : 'full' })}>{SAG_TIERS.map(t => <option key={t.id} value={t.id}>{t.name}{t.cap ? ` (to ${money(t.cap)})` : ''}</option>)}</select></div>
+              <div className="ctl"><label>Pages / day</label><input type="number" min={1} max={12} step={0.5} value={starter.pagesPerDay} onChange={e => setStarter({ ...starter, pagesPerDay: +e.target.value || 5 })} style={{ width: 70 }} /></div>
+              <div className="ctl"><label>Day</label>
+                <select value={starter.dayHours} onChange={e => setStarter({ ...starter, dayHours: +e.target.value as 10 | 12 })}><option value={10}>10 hours</option><option value={12}>12 hours</option></select></div>
+            </div>
+            <div className="row">
+              <div className="ctl"><label>Crew rates</label>
+                <select value={starter.rates} onChange={e => setStarter({ ...starter, rates: e.target.value as 'scale' | 'ballpark' })}><option value="ballpark">Ballpark LA non-union (heads and keys above crew)</option><option value="scale">Everyone at the tier's scale (the Sing Sing baseline)</option></select></div>
+              <div className="ctl"><label>Crew</label>
+                <select value={starter.crew} onChange={e => setStarter({ ...starter, crew: e.target.value as 'lean' | 'full' })}><option value="lean">Lean (about 32)</option><option value="full">Full (about 45)</option></select></div>
+            </div>
+            <div className="droptarget"><b>Drop the script anywhere on this page</b><span>or</span><button className="btn primary" onClick={onScript}>Pick a script (.fdx / .pdf / .fountain / .txt)</button></div>
+          </div>
           <div className="card">
             <h3>From scratch</h3>
             <p>An empty budget with a standard feature chart of accounts (1100 Story &amp; Screenplay through 5200 General Expenses) and California payroll fringes. Add lines as you go.</p>
