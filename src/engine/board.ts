@@ -1,4 +1,4 @@
-import type { Board, BoardElement, LineItem, Project, Scene, Strip } from './types';
+import type { Board, BoardElement, LineItem, Project, Scene, SceneUnit, Strip } from './types';
 import { newId } from './budget';
 
 export const eighthsToText = (e: number) => {
@@ -29,7 +29,46 @@ export function stripPart(board: Board, index: number): { part: number; parts: n
   return { part: idx.indexOf(index) + 1, parts: idx.length };
 }
 
-/** Group the strips into shoot days. A trailing group without a day break still counts as a day. */
+export const UNIT_LABEL: Record<SceneUnit, string> = { vfx: 'VFX only', second: '2nd unit', omit: 'Omitted' };
+export const UNIT_SHORT: Record<SceneUnit, string> = { vfx: 'VFX', second: '2nd', omit: 'omit' };
+/** Scenes not on the first unit's schedule, in strip order. */
+export const parkedScenes = (board: Board): Scene[] => {
+  const byId = new Map(board.scenes.map(s => [s.id, s]));
+  const seen = new Set<string>(); const out: Scene[] = [];
+  for (const st of board.strips) if (st.type === 'scene') { const s = byId.get(st.sceneId); if (s?.unit && !seen.has(s.id)) { seen.add(s.id); out.push(s); } }
+  return out;
+};
+/** Pages the first unit shoots (parked scenes left out). */
+export const firstUnitEighths = (board: Board) => board.scenes.reduce((n, s) => n + (s.unit ? 0 : s.eighths), 0);
+/** Index of the first parked strip in the tail, or strips.length when the tail is empty. Parked strips always sit at the end. */
+export function parkedStart(board: Board): number {
+  const byId = new Map(board.scenes.map(s => [s.id, s]));
+  let i = board.strips.length;
+  while (i > 0) { const st = board.strips[i - 1]; if (st.type === 'scene' && byId.get(st.sceneId)?.unit) i--; else break; }
+  return i;
+}
+/** The schedule proper and the parked tail, so day-break passes leave the tail alone. */
+const splitParked = (board: Board): { head: Board; tail: Strip[] } => { const cut = parkedStart(board); return { head: { ...board, strips: board.strips.slice(0, cut) }, tail: board.strips.slice(cut) }; };
+/** Hand a scene to another unit (or back to the first). Parked strips move to the tail, past the last day break, so the
+ *  day count, the DOOD and the breakdowns stop seeing them; a scene coming back lands at the end of the last day. */
+export function setSceneUnit(board: Board, sceneId: string, unit: SceneUnit | undefined): Board {
+  const scenes = board.scenes.map(s => s.id === sceneId ? (unit ? { ...s, unit } : (({ unit: _u, ...rest }) => rest)(s)) : s);
+  const mine = board.strips.filter(st => st.type === 'scene' && st.sceneId === sceneId);
+  const rest = board.strips.filter(st => !(st.type === 'scene' && st.sceneId === sceneId));
+  let strips: Strip[];
+  if (unit) strips = [...rest, ...mine];
+  else {
+    const b2 = { ...board, scenes, strips: rest };
+    const at = parkedStart(b2);                       // just before the parked tail
+    const lastBreak = (() => { let k = -1; for (let i = 0; i < at; i++) if (rest[i].type === 'daybreak') k = i; return k; })();
+    const to = lastBreak === at - 1 ? lastBreak : at;  // the schedule ends on a day bar: slip in before it; otherwise the last day is open-ended, so append
+    strips = [...rest.slice(0, to), ...mine, ...rest.slice(to)];
+  }
+  return { ...board, scenes, strips };
+}
+
+/** Group the strips into shoot days. A trailing group without a day break still counts as a day. Scenes handed to
+ *  another unit (VFX, second unit, omitted) are not on any day. */
 export function shootDays(board: Board): ShootDay[] {
   const byId = new Map(board.scenes.map(s => [s.id, s]));
   const days: ShootDay[] = [];
@@ -41,7 +80,7 @@ export function shootDays(board: Board): ShootDay[] {
       cur = { index: days.length + 1, scenes: [], eighths: 0, castIds: [] };
     } else if (strip.type === 'scene') {
       const s = byId.get(strip.sceneId);
-      if (!s) continue;
+      if (!s || s.unit) continue;
       cur.scenes.push(s);
       cur.eighths += stripEighths(board, strip, byId);
       for (const c of s.cast) if (c.id != null && !cur.castIds.includes(c.id)) cur.castIds.push(c.id);
@@ -183,6 +222,8 @@ export function clearDayBreaks(board: Board): Board {
 
 /** Drop a day break whenever the running page count would pass the target. Keeps your scene order. */
 export function autoDayBreaks(board: Board, targetEighths = board.targetEighthsPerDay): Board {
+  const { head, tail } = splitParked(board);
+  if (tail.length) return { ...autoDayBreaks(head, targetEighths), strips: [...autoDayBreaks(head, targetEighths).strips, ...tail] };
   const byId = new Map(board.scenes.map(s => [s.id, s]));
   const out: Strip[] = [];
   let run = 0;
@@ -198,6 +239,8 @@ export function autoDayBreaks(board: Board, targetEighths = board.targetEighthsP
 /** Split the strips into exactly `days` shooting days, keeping scene order, so the heaviest day is as light as
  *  possible (linear partition: binary search on the max day, greedy feasibility check). */
 export function fitDayBreaks(board: Board, days: number): Board {
+  const { head, tail } = splitParked(board);
+  if (tail.length) { const r = fitDayBreaks(head, days); return { ...r, strips: [...r.strips, ...tail] }; }
   const byId = new Map(board.scenes.map(s => [s.id, s]));
   const items = board.strips.filter(s => s.type !== 'daybreak');
   const w = items.map(s => stripEighths(board, s, byId));

@@ -8,7 +8,7 @@ import { lineFringes, lineSubtotal, topSheet, setPayType, rollupCashTotal } from
 const rollupCash = (ts: ReturnType<typeof topSheet>) => rollupCashTotal(ts.subtotal);
 import { sagReport, rerateCast, qualifyingTier } from './sag';
 import { poolAt, waterfallReport, syncDaysFromBudget, participantPoints, totalPoints } from './waterfall';
-import { autoDayBreaks, moveStrips, moveDay, dayBlocks, dayOfIndex, boardElements, daysFollowing, daysWithElements, dood, insertDayBreak, moveStrip, shootDays, syncCastDaysFromBoard, totalEighths, splitStrip, unsplitScene, setPartEighths, stripPart } from './board';
+import { autoDayBreaks, moveStrips, moveDay, dayBlocks, dayOfIndex, boardElements, daysFollowing, daysWithElements, dood, insertDayBreak, moveStrip, shootDays, syncCastDaysFromBoard, totalEighths, splitStrip, unsplitScene, setPartEighths, stripPart, setSceneUnit, firstUnitEighths, parkedScenes, parkedStart } from './board';
 import { parseSex } from './importers/sex';
 import { fdxHasTags, fdxTitle, parseFdx } from './importers/fdx';
 import { parseShamelXlsx } from './importers/shamelXlsx';
@@ -1147,5 +1147,36 @@ describe('fixed points', () => {
     expect(participantPoints({ ...fixed, fixedPoints: 0 }, p.tiers)).toBe(before);   // 0 means "not fixed"
     const q = { ...p, participants: p.participants.map(x => x.id === first.id ? fixed : x) };
     expect(totalPoints(q)).toBeCloseTo(totalPoints(p) - before + 500, 6);
+  });
+});
+
+describe('scenes off the first unit', () => {
+  it('a parked scene leaves the day count, the DOOD and the pages; comes back at the end of the last day', () => {
+    const p = sampleProject();
+    const b0 = p.board;
+    const days0 = shootDays(b0).length;
+    const sc = b0.scenes[3];
+    const b1 = setSceneUnit(b0, sc.id, 'vfx');
+    expect(b1.scenes.find(s => s.id === sc.id)!.unit).toBe('vfx');
+    expect(b1.strips[b1.strips.length - 1]).toMatchObject({ type: 'scene', sceneId: sc.id });
+    expect(shootDays(b1).length).toBe(days0);                                   // the tail is not a day
+    expect(shootDays(b1).flatMap(d => d.scenes).some(s => s.id === sc.id)).toBe(false);
+    expect(firstUnitEighths(b1)).toBe(totalEighths(b1) - sc.eighths);
+    expect(parkedScenes(b1).map(s => s.id)).toEqual([sc.id]);
+    expect(parkedStart(b1)).toBe(b1.strips.length - 1);
+    for (const c of sc.cast) if (c.id != null) {
+      const before = dood(b0).find(r => r.castId === c.id)!.total, after = dood(b1).find(r => r.castId === c.id)!.total;
+      expect(after).toBeLessThanOrEqual(before);
+    }
+    // day-break passes leave the tail where it is
+    const fit = fitDayBreaks(b1, 10);
+    expect(fit.strips[fit.strips.length - 1]).toMatchObject({ type: 'scene', sceneId: sc.id });
+    expect(shootDays(fit).length).toBe(10);
+    // back on the first unit: lands at the end of the last day, before its day bar
+    const b2 = setSceneUnit(b1, sc.id, undefined);
+    expect(b2.scenes.find(s => s.id === sc.id)!.unit).toBeUndefined();
+    expect(parkedStart(b2)).toBe(b2.strips.length);
+    const ds = shootDays(b2); const lastDay = ds[ds.length - 1];
+    expect(lastDay.scenes[lastDay.scenes.length - 1].id).toBe(sc.id);
   });
 });

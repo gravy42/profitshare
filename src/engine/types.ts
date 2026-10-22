@@ -105,7 +105,11 @@ export interface Scene {
   cast: SceneCast[];
   elements: Record<string, string[]>; // breakdown category -> items
   text?: string;            // the scene as written, for the tagger: action flush left, cues and dialogue indented
+  unit?: SceneUnit;         // who shoots it; unset = first unit, on the schedule. VFX-only, second unit and omitted scenes sit off the day count
 }
+
+/** A scene that is not the first unit's to shoot: an EXT. SPACE that is all visual effects, a second-unit insert day, a scene cut from the script. */
+export type SceneUnit = 'vfx' | 'second' | 'omit';
 
 export type Strip =
   | { type: 'scene'; sceneId: string; eighths?: number }  // eighths set = this strip is one part of a scene shot across days

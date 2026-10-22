@@ -526,3 +526,10 @@ table.atl th, table.atl td { white-space: nowrap; overflow-wrap: normal; }
 .notice.starter { display: block; }
 .notice.starter p { margin: 0 0 8px; }
 .starterform { flex-wrap: wrap; gap: 12px 18px; align-items: flex-end; }
+
+/* scenes handed to another unit: parked below the schedule, off the day count */
+.daybreak.parkedhead { background: var(--muted); color: #fff; border-style: dashed; margin-top: 14px; }
+.strip.parked { opacity: .72; border-style: dashed; filter: saturate(.6); }
+.strip.parked .act.on { font-weight: 700; }
+.strip.u-omit .set { text-decoration: line-through; }
+.daybreak.parkedhead .muted { color: rgba(255,255,255,.8); }

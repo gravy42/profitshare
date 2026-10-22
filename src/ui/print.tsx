@@ -1,7 +1,7 @@
 import { useEffect, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import type { Project } from '../engine/types';
-import { shootDays, eighthsToText, stripEighths, stripPart } from '../engine/board';
+import { shootDays, eighthsToText, stripEighths, stripPart, parkedStart, parkedScenes, UNIT_LABEL } from '../engine/board';
 import { lineSubtotal, lineFringes, rollupCashTotal, topSheet } from '../engine/budget';
 import { shootDates, shortDate, withCalendar } from '../engine/calendar';
 import { storyDayOf } from '../engine/breakdowns';
@@ -32,6 +32,7 @@ export function ScheduleReport({ p }: { p: Project }) {
   const b = p.board; const byId = new Map(b.scenes.map(s => [s.id, s]));
   const days = shootDays(b); const dates = shootDates(b, withCalendar(p).calendar!);
   const names = new Map(b.castList.map(c => [c.id, c.name]));
+  const cut = parkedStart(b); const parked = parkedScenes(b);
   let i = 0;
   return (
     <div className="report">
@@ -39,7 +40,7 @@ export function ScheduleReport({ p }: { p: Project }) {
       <table className="legend"><tbody><tr>{b.castList.map(c => <td key={c.id}><b>{c.id}</b> {c.name}</td>)}</tr></tbody></table>
       {days.map(day => {
         const rows: { strip: typeof b.strips[number]; idx: number }[] = [];
-        while (i < b.strips.length && b.strips[i].type !== 'daybreak') { rows.push({ strip: b.strips[i], idx: i }); i++; }
+        while (i < cut && b.strips[i].type !== 'daybreak') { rows.push({ strip: b.strips[i], idx: i }); i++; }
         i++;
         const date = dates.get(day.index);
         const locs = [...new Set(day.scenes.map(s => s.location).filter(Boolean))];
@@ -60,6 +61,16 @@ export function ScheduleReport({ p }: { p: Project }) {
           </div>
         );
       })}
+      {parked.length > 0 && (
+        <div className="day">
+          <div className="dayhead"><b>Not on the first unit</b> · {parked.length} scene{parked.length === 1 ? '' : 's'} · {eighthsToText(parked.reduce((n, s) => n + s.eighths, 0))} pgs</div>
+          <table className="sched">
+            <colgroup><col style={{ width: '5%' }} /><col style={{ width: '4%' }} /><col style={{ width: '27%' }} /><col style={{ width: '9%' }} /><col style={{ width: '6%' }} /><col style={{ width: '5%' }} /><col style={{ width: '12%' }} /><col /></colgroup>
+            <thead><tr><th>Sc</th><th>I/E</th><th className="l">Set</th><th>D/N</th><th>Unit</th><th>Pgs</th><th className="l">Cast</th><th className="l">Synopsis</th></tr></thead>
+            <tbody>{parked.map(s => <tr key={s.id}><td>{s.number}</td><td>{s.ie}</td><td className="l">{s.set}</td><td>{s.tod}</td><td>{UNIT_LABEL[s.unit!]}</td><td>{eighthsToText(s.eighths)}</td><td className="l small">{s.cast.map(c => c.id ?? names.get(c.id!) ?? c.name).join(', ')}</td><td className="l small">{s.synopsis}</td></tr>)}</tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

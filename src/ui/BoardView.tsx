@@ -5,8 +5,8 @@ import { applyDeal, withDeal } from '../engine/deal';
 import { topSheet } from '../engine/budget';
 import { adoptBoardDays, syncCastDaysFromBoard } from '../engine/board';
 import { money } from './format';
-import type { Board, Project, Scene, Strip } from '../engine/types';
-import { autoDayBreaks, fitDayBreaks, clearDayBreaks, dood, eighthsToText, insertDayBreak, moveStrip, removeStrip, shootDays, totalEighths, moveStrips, moveDay, dayOfIndex, castSceneCounts, castOrderByAppearance, castOrderByScenes, renumberCast, splitStrip, unsplitScene, setPartEighths, stripPart, stripEighths, dropCastMember, unusedCast } from '../engine/board';
+import type { Board, Project, Scene, SceneUnit, Strip } from '../engine/types';
+import { autoDayBreaks, fitDayBreaks, clearDayBreaks, dood, eighthsToText, insertDayBreak, moveStrip, removeStrip, shootDays, totalEighths, firstUnitEighths, parkedStart, parkedScenes, setSceneUnit, UNIT_LABEL, UNIT_SHORT, moveStrips, moveDay, dayOfIndex, castSceneCounts, castOrderByAppearance, castOrderByScenes, renumberCast, splitStrip, unsplitScene, setPartEighths, stripPart, stripEighths, dropCastMember, unusedCast } from '../engine/board';
 import { BREAKDOWN_CATEGORIES, addCast, addElement, autoTag, autoTagBoard, categoryColor, namedAnimals, removeCast, removeElement } from '../engine/breakdown';
 
 type SetProject = (f: (p: Project) => Project) => void;
@@ -37,7 +37,15 @@ export function BoardView({ project, raw, setProject, notify, onStarter }: { pro
   const [howto, setHowto] = useState<boolean>(() => { try { return localStorage.getItem('profitshare.boardHowto') !== 'closed'; } catch { return true; } });
   const rememberHowto = (open: boolean) => { setHowto(open); try { localStorage.setItem('profitshare.boardHowto', open ? 'open' : 'closed'); } catch { /* private window */ } };
   const total = totalEighths(board);
+  const firstUnit = firstUnitEighths(board);
+  const cut = parkedStart(board);                      // strips from here on are VFX / 2nd unit / omitted: off the day count
+  const parked = parkedScenes(board);
   const hasText = board.scenes.some(s => s.text);
+  const UNITS: (SceneUnit | undefined)[] = [undefined, 'vfx', 'second', 'omit'];
+  const cycleUnit = (sc: Scene) => {
+    const next = UNITS[(UNITS.indexOf(sc.unit) + 1) % UNITS.length];
+    reschedule(next ? `Scene ${sc.number} handed to ${UNIT_LABEL[next]}` : `Scene ${sc.number} back on the first unit`, b => setSceneUnit(b, sc.id, next));
+  };
   const tagCount = (s: Scene) => Object.values(s.elements).reduce((n, v) => n + v.length, 0);
 
   // running day index per strip position, for the day banners
@@ -63,8 +71,14 @@ export function BoardView({ project, raw, setProject, notify, onStarter }: { pro
   const onDrop = (to: number) => {
     if (drag !== null) {
       const block = selected.has(drag) ? [...selected] : [drag];
-      const names = block.map(i => board.strips[i]).filter((x): x is Extract<Strip, { type: 'scene' }> => x.type === 'scene').map(x => byId.get(x.sceneId)?.number).filter(Boolean);
-      reschedule(block.length > 1 ? `Moved ${block.length} strips (sc ${names.join(', ')})` : `Moved scene ${names[0] ?? ''}`, b => moveStrips(b, block, to));
+      const scenesIn = block.map(i => board.strips[i]).filter((x): x is Extract<Strip, { type: 'scene' }> => x.type === 'scene').map(x => byId.get(x.sceneId)!).filter(Boolean);
+      const names = scenesIn.map(x => x.number);
+      // the parked tail stays a tail: a first-unit strip never lands after it, and a parked scene dropped into the schedule comes back to the first unit
+      const intoSchedule = to <= cut;
+      const returning = intoSchedule ? scenesIn.filter(x => x.unit) : [];
+      const dest = intoSchedule ? to : (scenesIn.every(x => x.unit) ? to : cut);
+      reschedule(block.length > 1 ? `Moved ${block.length} strips (sc ${names.join(', ')})${returning.length ? ', back on the first unit' : ''}` : `Moved scene ${names[0] ?? ''}${returning.length ? ' back on the first unit' : ''}`,
+        b => { let n = moveStrips(b, block, dest); for (const sc of returning) n = { ...n, scenes: n.scenes.map(x => x.id === sc.id ? (({ unit: _u, ...rest }) => rest)(x) : x) }; return n; });
       clearSel();
     }
     setDrag(null); setOver(null);
@@ -103,7 +117,7 @@ export function BoardView({ project, raw, setProject, notify, onStarter }: { pro
     <div>
       <div className="panel">
         <div className="row" style={{ justifyContent: 'space-between' }}>
-          <h2>Stripboard <span className="figures"><b>{board.scenes.length}</b> scenes · <b>{eighthsToText(total)}</b> pages · <b>{days.length}</b> {days.length === 1 ? 'day' : 'days'}{days.length !== project.shootDays ? <span className="warn"> of {project.shootDays} planned</span> : null}</span></h2>
+          <h2>Stripboard <span className="figures"><b>{board.scenes.length - parked.length}</b> scenes · <b>{eighthsToText(firstUnit)}</b> pages · <b>{days.length}</b> {days.length === 1 ? 'day' : 'days'}{days.length !== project.shootDays ? <span className="warn"> of {project.shootDays} planned</span> : null}{parked.length ? <span className="muted"> · {parked.length} off the first unit ({eighthsToText(total - firstUnit)} pgs)</span> : null}</span></h2>
           <div className="row">
             <div className="ctl" style={{ minWidth: 80 }}><label>Shoot days</label><input type="number" min={1} value={project.shootDays} onChange={e => setProject(p => ({ ...p, shootDays: Math.max(1, +e.target.value || 1) }))} style={{ width: 80 }} /></div>
             <div className="ctl" style={{ minWidth: 90 }}><label>Pages / day</label><input type="number" step={0.5} min={0.5} value={pagesText} onChange={e => setPagesText(e.target.value)} onBlur={commitPages} onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} title="The target for Auto day breaks; commits when you leave the field" /></div>
@@ -123,7 +137,7 @@ export function BoardView({ project, raw, setProject, notify, onStarter }: { pro
         )}
         <details className="howto" open={howto} onToggle={e => rememberHowto((e.target as HTMLDetailsElement).open)}>
           <summary className="help small">How the board works</summary>
-        <p className="help">Drag strips to reorder; tick the boxes (shift-click for a run) to pick several and drag them as one block; grab ⋮⋮ day on a day bar to lift the whole day and drop it before a strip or after another day bar. Open a strip's ⌄ to read the scene and tag it: select any words in the script and pick a category, the way Final Draft's tagger works. Drop a day break with the ⏎ button on any strip (it goes in above it). ½ splits a strip so one scene shoots over two days: drag the second part below a day break, set each part's pages, and the cast and tags count on both days. Auto day breaks keeps your scene order and splits at the target; Fit to {project.shootDays} days keeps the order and balances the pages across the schedule; {eighthsToText(total)} pages over {project.shootDays} days is {(total / 8 / project.shootDays).toFixed(1)} pages a day.</p>
+        <p className="help">Drag strips to reorder; tick the boxes (shift-click for a run) to pick several and drag them as one block; grab ⋮⋮ day on a day bar to lift the whole day and drop it before a strip or after another day bar. Open a strip's ⌄ to read the scene and tag it: select any words in the script and pick a category, the way Final Draft's tagger works. Drop a day break with the ⏎ button on any strip (it goes in above it). ½ splits a strip so one scene shoots over two days: drag the second part below a day break, set each part's pages, and the cast and tags count on both days. The ◎ unit button hands a scene to VFX, a second unit or the omitted pile: it drops below the schedule, off the day count, the DOOD and the breakdowns (the schedule print lists them at the end); drag it back into a day to put it on the first unit again. Auto day breaks keeps your scene order and splits at the target; Fit to {project.shootDays} days keeps the order and balances the pages across the schedule; {eighthsToText(total)} pages over {project.shootDays} days is {(total / 8 / project.shootDays).toFixed(1)} pages a day.</p>
         </details>
         <div className="row" style={{ justifyContent: 'space-between' }}>
           <div className="legend"><span className="di">Day int</span><span className="ni">Night int</span><span className="de">Day ext</span><span className="ne">Night ext</span></div>
@@ -162,7 +176,18 @@ export function BoardView({ project, raw, setProject, notify, onStarter }: { pro
             const e = stripEighths(board, strip, byId);
             return (
               <div key={`${strip.sceneId}:${i}`}>
-                <div className={`${stripClass(s)} ${over === i ? 'dragover' : ''} ${isOpen ? 'open' : ''} ${selected.has(i) ? 'sel' : ''} ${dragDay === dayOfStrip[i] ? 'lifting' : ''}`} {...common}>
+                {i === cut && cut > 0 && board.strips[cut - 1]?.type !== 'daybreak' && days.length > 0 && (() => { const d = days[days.length - 1]; const heavy = d.eighths > target * 1.15; return (
+                  <div className="daybreak wrap" onDragOver={ev => { ev.preventDefault(); setOver(cut); }} onDragLeave={() => setOver(o => (o === cut ? null : o))} onDrop={ev => { ev.preventDefault(); if (dragDay !== null) onDropDay({ end: true }); else onDrop(cut); }}>
+                    <span>End of Day {d.index} · {eighthsToText(d.eighths)} pgs · {d.castIds.length} cast {heavy && <span className="warn">· heavy</span>} · wrap</span>
+                    <span className="small muted">last day of the schedule</span>
+                  </div>); })()}
+                {i === cut && (
+                  <div className="daybreak parkedhead" onDragOver={ev => { ev.preventDefault(); setOver(cut); }} onDrop={ev => { ev.preventDefault(); onDrop(cut); }} title="Scenes handed to another unit sit here, off the day count, the DOOD and the breakdowns. Drag one back into a day, or press its unit button, to put it on the first unit again.">
+                    <span>Not on the first unit · {parked.length} scene{parked.length === 1 ? '' : 's'} · {eighthsToText(total - firstUnit)} pgs</span>
+                    <span className="small muted">{(['vfx', 'second', 'omit'] as SceneUnit[]).map(u => ({ u, n: parked.filter(x => x.unit === u).length })).filter(x => x.n).map(x => `${UNIT_LABEL[x.u]} ${x.n}`).join(' · ')}</span>
+                  </div>
+                )}
+                <div className={`${stripClass(s)} ${s.unit ? `parked u-${s.unit}` : ''} ${over === i ? 'dragover' : ''} ${isOpen ? 'open' : ''} ${selected.has(i) ? 'sel' : ''} ${dragDay === dayOfStrip[i] ? 'lifting' : ''}`} {...common}>
                   <span className="handle" title={selected.size > 1 && selected.has(i) ? `drag moves all ${selected.size} picked strips` : 'drag to move; tick the box to pick several and move them together'}><input type="checkbox" className="pick" checked={selected.has(i)} onChange={() => undefined} onClick={e => { e.stopPropagation(); pick(i, e.shiftKey); }} onMouseDown={e => e.stopPropagation()} />⋮⋮</span>
                   <span className="num">{s.number}{parts > 1 && <span className="part" title={`part ${part} of ${parts}: this scene shoots over ${parts} days`}>{part}/{parts}</span>}</span>
                   <span>{s.ie}</span>
@@ -174,7 +199,8 @@ export function BoardView({ project, raw, setProject, notify, onStarter }: { pro
                   <span className="cast" title={s.cast.map(c => c.name).join(', ')}>{s.cast.map(c => c.id ?? c.name.slice(0, 3)).join(', ')}</span>
                   <button className="btn small act" aria-label={isOpen ? `Close scene ${s.number}` : `Read and tag scene ${s.number}${tagCount(s) ? ` (${tagCount(s)} tags)` : ''}`} title={isOpen ? 'Close the scene' : 'Read the scene and tag it'} onClick={() => setOpenId(isOpen ? null : s.id)}><span className="glyph">{isOpen ? '⌃' : '⌄'}</span><span className="word">{isOpen ? 'close' : 'tag'}</span>{tagCount(s) ? <span className="count">{tagCount(s)}</span> : null}</button>
                   <span className="row" style={{ gap: 4 }}>
-                    <button className="btn small act" aria-label={`Day break above scene ${s.number}`} title="Start a new day here (a day break above this strip)" onClick={() => reschedule(`Day break above scene ${s.number}`, b => insertDayBreak(b, i))}><span className="glyph">⏎</span><span className="word">day</span></button>
+                    <button className={`btn small act ${s.unit ? 'on' : ''}`} aria-label={`Scene ${s.number}: ${s.unit ? UNIT_LABEL[s.unit] : 'first unit'}; change unit`} title={`${s.unit ? UNIT_LABEL[s.unit] : 'First unit'}. Click to cycle: first unit → VFX only → 2nd unit → omitted. Anything but first unit comes off the day count, the DOOD and the breakdowns.`} onClick={() => cycleUnit(s)}><span className="glyph">{s.unit ? '⊘' : '◎'}</span><span className="word">{s.unit ? UNIT_SHORT[s.unit] : 'unit'}</span></button>
+                    {!s.unit && <button className="btn small act" aria-label={`Day break above scene ${s.number}`} title="Start a new day here (a day break above this strip)" onClick={() => reschedule(`Day break above scene ${s.number}`, b => insertDayBreak(b, i))}><span className="glyph">⏎</span><span className="word">day</span></button>}
                     <button className="btn small act" aria-label={parts > 1 ? `Split scene ${s.number} again` : `Shoot scene ${s.number} over two days`} title={parts > 1 ? 'Split this part again (a third day)' : 'Shoot this scene over two days: splits the strip in two'} onClick={() => reschedule(`Scene ${s.number} split over two days`, b => splitStrip(b, i))}><span className="glyph">½</span><span className="word">split</span></button>
                     {parts > 1 && <button className="btn small act" aria-label={`Put scene ${s.number} back on one strip`} title="Put the scene back on one strip" onClick={() => reschedule(`Scene ${s.number} back on one strip`, b => unsplitScene(b, s.id))}><span className="glyph">⊕</span><span className="word">join</span></button>}
                   </span>
@@ -183,7 +209,7 @@ export function BoardView({ project, raw, setProject, notify, onStarter }: { pro
               </div>
             );
           })}
-          {days.length > 0 && board.strips[board.strips.length - 1]?.type !== 'daybreak' && (() => {
+          {days.length > 0 && cut === board.strips.length && board.strips[board.strips.length - 1]?.type !== 'daybreak' && (() => {
             const d = days[days.length - 1];
             const heavy = d.eighths > target * 1.15;
             return (
