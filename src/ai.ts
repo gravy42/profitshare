@@ -1,8 +1,9 @@
-// Optional AI help on the Pitch tab. Off unless the person pastes their own Anthropic key, which lives in this
-// browser's storage only (never in the project file, never in the repo). Calls go straight from the browser to
-// api.anthropic.com; the project brief sent with each request is the pitch, the budget figures and the schedule
-// in a few hundred words, so the person should know that much leaves their machine when they press Draft.
-import type { Project } from './engine/types';
+// Optional AI help on the Pitch tab and the Stripboard. Off unless the person pastes their own Anthropic key, which
+// lives in this browser's storage only (never in the project file, never in the repo). Calls go straight from the
+// browser to api.anthropic.com. Draft sends the project brief (the pitch, the budget figures and the schedule in a
+// few hundred words); AI breakdown sends the scene text and the cast list. Nothing goes until the person presses it.
+import type { Board, Project, Scene } from './engine/types';
+import { BREAKDOWN_SYSTEM, BREAKDOWN_TOOL, breakdownPrompt, parseBreakdownReply, type AiSceneTags } from './engine/aiBreakdown';
 import { withPitch, compGroups, compStats, projections } from './engine/pitch';
 import { topSheet } from './engine/budget';
 import { sagReport } from './engine/sag';
@@ -76,6 +77,32 @@ export async function ask(system: string, prompt: string, opts: { maxTokens?: nu
   }
   const j = await r.json();
   return (j.content ?? []).filter((c: any) => c.type === 'text').map((c: any) => c.text).join('\n').trim();
+}
+
+/** One forced tool call: the model answers through `tool` and its input comes back as data. No documents ride along:
+ *  the look book has no business going out with a script. Throws with the API's message on failure. */
+export async function askTool(system: string, prompt: string, tool: { name: string; description: string; input_schema: object }, opts: { maxTokens?: number; model?: string; signal?: AbortSignal } = {}): Promise<unknown> {
+  const s = aiSettings();
+  if (!s.key) throw new Error('No API key. Paste one under AI assist.');
+  const r = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST', headers: headers(s.key), signal: opts.signal,
+    body: JSON.stringify({ model: opts.model ?? s.model, max_tokens: opts.maxTokens ?? 4000, system, tools: [tool], tool_choice: { type: 'tool', name: tool.name }, messages: [{ role: 'user', content: prompt }] }),
+  });
+  if (!r.ok) {
+    let msg = `${r.status}`; try { const j = await r.json(); msg = j.error?.message ?? msg; } catch { /* keep status */ }
+    throw new Error(msg);
+  }
+  const j = await r.json();
+  if (j.stop_reason === 'max_tokens') throw new Error('the reply was cut off before it finished; try fewer scenes at a time');
+  const use = (j.content ?? []).find((c: any) => c.type === 'tool_use' && c.name === tool.name);
+  if (!use) throw new Error('the model did not return a breakdown');
+  return use.input;
+}
+
+/** Break down one run of scenes. `done` is what earlier runs proposed, so labels and script days carry on. */
+export async function breakdownBatch(board: Board, batch: Scene[], done: AiSceneTags[], signal?: AbortSignal): Promise<AiSceneTags[]> {
+  const input = await askTool(BREAKDOWN_SYSTEM, breakdownPrompt(board, batch, done), BREAKDOWN_TOOL, { maxTokens: 16000, signal });
+  return parseBreakdownReply(input, batch, board);
 }
 
 /** What the model is told about the film: the pitch so far, the money, the schedule, the deal. Pure; tested. */

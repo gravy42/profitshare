@@ -12,11 +12,14 @@ export const BREAKDOWN_CATEGORIES = [
   { key: 'Wardrobe', color: '#8a2d7a' },
   { key: 'Makeup/Hair', color: '#b0446b' },
   { key: 'Set Dressing', color: '#7a5a1e' },
+  { key: 'Art Department', color: '#7d3f62' },
   { key: 'Greenery', color: '#3d7a3d' },
   { key: 'Special Effects', color: '#cc6d1f' },
+  { key: 'Mechanical Effects', color: '#9c5d14' },
   { key: 'Visual Effects', color: '#4b3fa8' },
   { key: 'Sound', color: '#2a7f7c' },
   { key: 'Music', color: '#5b2a86' },
+  { key: 'Camera', color: '#37616b' },
   { key: 'Special Equipment', color: '#4a4a5a' },
   { key: 'Security', color: '#5a5a5a' },
   { key: 'Additional Labor', color: '#6b6b4a' },
@@ -73,7 +76,8 @@ const RULES: Rule[] = [
 
 const clean = (s: string) => s.replace(/\s+/g, ' ').replace(/^[\s'"]+|[\s'".,;:!?]+$/g, '').replace(/^(a|an|the) /i, '').trim();
 const norm = (s: string) => s.toLowerCase().replace(/\b\w+['’]s /g, '').replace(/\bcell ?phone\b/g, 'phone').replace(/\bcellphone\b/g, 'phone').replace(/\s+/g, ' ').trim();
-const same = (a: string, b: string) => norm(a) === norm(b);
+/** Two tags name the same thing (case, spacing, a leading article and "cell phone"/"phone" aside). */
+export const same = (a: string, b: string) => norm(a) === norm(b);
 
 /** A first pass at the breakdown from the scene text: what an AD would circle on the first read. Existing tags
  *  are kept; new ones are added. Honest about what it is: keywords and screenplay conventions (a CAPS phrase in

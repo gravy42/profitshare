@@ -7,6 +7,7 @@ import { adoptBoardDays, syncCastDaysFromBoard } from '../engine/board';
 import { money } from './format';
 import type { Board, Project, Scene, SceneUnit, Strip } from '../engine/types';
 import { autoDayBreaks, fitDayBreaks, clearDayBreaks, dood, eighthsToText, insertDayBreak, moveStrip, removeStrip, shootDays, totalEighths, firstUnitEighths, parkedStart, parkedScenes, setSceneUnit, UNIT_LABEL, UNIT_SHORT, moveStrips, moveDay, dayOfIndex, castSceneCounts, castOrderByAppearance, castOrderByScenes, renumberCast, splitStrip, unsplitScene, setPartEighths, stripPart, stripEighths, dropCastMember, unusedCast } from '../engine/board';
+import { AiBreakdown } from './AiBreakdown';
 import { BREAKDOWN_CATEGORIES, addCast, addElement, autoTag, autoTagBoard, categoryColor, namedAnimals, removeCast, removeElement } from '../engine/breakdown';
 
 type SetProject = (f: (p: Project) => Project) => void;
@@ -34,6 +35,7 @@ export function BoardView({ project, raw, setProject, notify, onStarter }: { pro
   const [showDood, setShowDood] = useState(true);
   const [openId, setOpenId] = useState<string | null>(null);
   const [doodOpen, setDoodOpen] = useState(false);
+  const [aiFor, setAiFor] = useState<{ only?: string[] } | null>(null);   // the AI breakdown window: the whole board, or one scene
   const [howto, setHowto] = useState<boolean>(() => { try { return localStorage.getItem('profitshare.boardHowto') !== 'closed'; } catch { return true; } });
   const rememberHowto = (open: boolean) => { setHowto(open); try { localStorage.setItem('profitshare.boardHowto', open ? 'open' : 'closed'); } catch { /* private window */ } };
   const total = totalEighths(board);
@@ -126,6 +128,7 @@ export function BoardView({ project, raw, setProject, notify, onStarter }: { pro
             <button className={`btn ${days.length <= 1 && project.shootDays > 1 ? 'primary' : ''}`} title={`Split into exactly ${project.shootDays} days, keeping order, with the heaviest day as light as possible`} onClick={() => reschedule(`Fit to ${project.shootDays} days`, b => fitDayBreaks(b, project.shootDays))}>Fit to {project.shootDays} days</button>
             <button className="btn" disabled={days.length <= 1} title="Take every day break off the board (Undo brings them back)" onClick={() => reschedule('Clear day breaks', clearDayBreaks)}>Clear day breaks</button>
             {hasText && <button className="btn" title="First-pass breakdown of every scene from the script text: props, vehicles, wardrobe, sounds, extras and the rest. Keeps tags you've added." onClick={() => setBoard(autoTagBoard)}>Auto-tag all scenes</button>}
+            {hasText && <button className="btn" title="The model reads every scene and proposes the breakdown, story days, synopses and silent cast. Uses your own Anthropic key; you review every item before it lands." onClick={() => setAiFor({})}>AI breakdown</button>}
             {onStarter && project.lines.length === 0 && board.scenes.length > 0 && <button className="btn primary" title="Draw a first budget around this board: crew, cast at SAG scale, what the tags imply, allowances. The settings are on the Top sheet." onClick={onStarter}>Budget from this board</button>}
             <span className="small muted" title="Cast shoot days and followers (a studio teacher, an animal wrangler) are rewritten on the top sheet and in the points schedule after every edit here. Rehearsal and fitting days live on their own budget line.">cast days flow to the budget automatically</span>
           </div>
@@ -205,7 +208,7 @@ export function BoardView({ project, raw, setProject, notify, onStarter }: { pro
                     {parts > 1 && <button className="btn small act" aria-label={`Put scene ${s.number} back on one strip`} title="Put the scene back on one strip" onClick={() => reschedule(`Scene ${s.number} back on one strip`, b => unsplitScene(b, s.id))}><span className="glyph">⊕</span><span className="word">join</span></button>}
                   </span>
                 </div>
-                {isOpen && <Tagger scene={s} board={board} setBoard={setBoard} />}
+                {isOpen && <Tagger scene={s} board={board} setBoard={setBoard} onAi={() => setAiFor({ only: [s.id] })} />}
               </div>
             );
           })}
@@ -239,6 +242,7 @@ export function BoardView({ project, raw, setProject, notify, onStarter }: { pro
           )}
         </div>
       </div>
+      {aiFor && <AiBreakdown project={project} setProject={setProject} only={aiFor.only} notify={notify} onClose={() => setAiFor(null)} />}
       {doodOpen && <DoodPopout project={project} setProject={setProject} onClose={() => setDoodOpen(false)} />}
       {printSched && <PrintPortal title={`${project.name} · Shooting schedule`} landscape onDone={() => setPrintSched(false)}><ScheduleReport p={project} /></PrintPortal>}
     </div>
@@ -304,16 +308,16 @@ function DoodPopout({ project, setProject, onClose }: { project: Project; setPro
   );
 }
 const esc = (x: string) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-/** The tag menu in four rows a person can scan, instead of eighteen buttons in a cloud. Categories already on the scene come first in their row. */
+/** The tag menu in four rows a person can scan, instead of twenty-one buttons in a cloud. Categories already on the scene come first in their row. */
 const TAG_GROUPS: { label: string; keys: string[] }[] = [
   { label: 'People', keys: ['Cast', 'Background Actors', 'Stunts', 'Additional Labor', 'Security'] },
-  { label: 'Things', keys: ['Props', 'Vehicles', 'Animals', 'Wardrobe', 'Makeup/Hair', 'Set Dressing', 'Greenery', 'Special Equipment'] },
-  { label: 'On set', keys: ['Special Effects', 'Sound', 'Music'] },
+  { label: 'Things', keys: ['Props', 'Vehicles', 'Animals', 'Wardrobe', 'Makeup/Hair', 'Set Dressing', 'Art Department', 'Greenery', 'Special Equipment'] },
+  { label: 'On set', keys: ['Special Effects', 'Mechanical Effects', 'Camera', 'Sound', 'Music'] },
   { label: 'Post & other', keys: ['Visual Effects', 'Notes'] },
 ];
 
 /** The scene as written, with everything tagged on it lit up; select words to tag them. */
-function Tagger({ scene: s, board, setBoard }: { scene: Scene; board: Board; setBoard: (f: (b: Board) => Board) => void }) {
+function Tagger({ scene: s, board, setBoard, onAi }: { scene: Scene; board: Board; setBoard: (f: (b: Board) => Board) => void; onAi: () => void }) {
   const [pick, setPick] = useState<{ text: string; x: number; y: number } | null>(null);
   const [cat, setCat] = useState<string>('Props');
   const [item, setItem] = useState('');
@@ -351,7 +355,8 @@ function Tagger({ scene: s, board, setBoard }: { scene: Scene; board: Board; set
       <div className="tags">
         <div className="row" style={{ justifyContent: 'space-between' }}>
           <b>Scene {s.number} breakdown</b>
-          {s.text && <button className="btn small" title="Tag this scene from the script text; keeps what you've added" onClick={() => setBoard(b => ({ ...b, scenes: b.scenes.map(x => x.id === s.id ? { ...x, elements: autoTag(x, b.castList.map(c => c.name), namedAnimals(b)) } : x) }))}>Auto-tag</button>}
+          {s.text && <span className="row" style={{ gap: 4 }}><button className="btn small" title="Tag this scene from the script text; keeps what you've added" onClick={() => setBoard(b => ({ ...b, scenes: b.scenes.map(x => x.id === s.id ? { ...x, elements: autoTag(x, b.castList.map(c => c.name), namedAnimals(b)) } : x) }))}>Auto-tag</button>
+            <button className="btn small" title="The model reads this scene and proposes its breakdown; you review it before it lands (your own Anthropic key)" onClick={onAi}>AI tag</button></span>}
         </div>
         <div className="tagrow"><span className="tagcat" style={{ color: 'var(--plum)' }}>Cast</span>
           {s.cast.map(c => <span key={c.name} className="chip" style={{ borderColor: 'var(--plum)' }}>{c.id ? `${c.id} ` : ''}{c.name}<button title="remove from this scene" onClick={() => setBoard(b => removeCast(b, s.id, c.name))}>×</button></span>)}
