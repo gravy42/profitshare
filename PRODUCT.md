@@ -30,7 +30,7 @@ ProfitShare models the back end, not just the raise. Every budget line carries a
 
 ## Operating Context
 
-- One project is one `.json` file, terms included; it autosaves to the browser and is handed to a collaborator by sending the file. No accounts, no server, no telemetry, no network calls from the app.
+- One project is one `.json` file, terms included; it autosaves to the browser and is handed to a collaborator by sending the file. No accounts, no server, no telemetry, no network calls from the app except the opt-in AI assist, which goes only when the person presses it, with her own key.
 - Inputs are the documents a production already has: a Shamel Studio or Movie Magic Budgeting export (`.xlsx`, `.csv`), a Movie Magic Scheduling board (`.sex`), a screenplay (`.fdx` with Final Draft's tags, Fountain, plain text, or a PDF with real text). Movie Magic's native `.mbd` is closed and is not read.
 - Outputs leave the app on paper: the browser's print dialog saves every report as a PDF (shooting schedule, top sheet, full budget, breakdowns, sides, investor summary) and the calendar exports `.ics`.
 - The work happens across tabs that share one project: Start, Deal, Top sheet & budget, Stripboard, Calendar, Breakdowns, Points & waterfall, SAG tier, Incentives, Pitch, About.
@@ -49,7 +49,7 @@ ProfitShare models the back end, not just the raise. Every budget line carries a
 - SAG tier: total production cost the way SAG measures it (deferred counts, points do not) against Ultra Low, Moderate Low, Low Budget and Basic caps, with and without Diversity in Casting.
 - Incentives: California Program 4.0 and the proposed federal credit as toggles; proceeds reduce what investors fund and recoup. Not legal or tax advice, and the tab says so.
 - Pitch: logline, audience, argument sections, comparable films, three-case projections through the waterfall, printable investor summary. Research is pasted in; the app does no lookups.
-- Constraints: no AI calls and no API keys inside the app (an opt-in, bring-your-own-key tagging assist is on the roadmap and off by default); Safari is a first-class browser (native month inputs and similar controls are avoided where Safari renders them as text); everything prints.
+- Constraints: AI is opt-in and bring-your-own-key, off until a key is pasted, the key kept in the browser and never in the project file: Draft on the Pitch tab sends a brief of the film, AI breakdown on the Stripboard sends the scene text and cast list, and every result is a proposal the person accepts or discards; Safari is a first-class browser (native month inputs and similar controls are avoided where Safari renders them as text); everything prints.
 - Terminology the product uses on purpose: "up front" (what you raise; `cash` in the file), "deferred" (a fixed IOU from first proceeds), "points" (contingent participation), "budget to raise", "wages", "day break", "DOOD", "sides", "tier", "scale".
 - Undecided: call sheet and one-liner exports, participation-agreement exhibit, CSV/XLSX export, SAG weekly deal modelling, whether voice-over and off-screen voices count as on-set cast (today they do when the writer tagged them).
 
@@ -74,7 +74,7 @@ ProfitShare models the back end, not just the raise. Every budget line carries a
 2. One file, one truth: the top sheet, the board, the schedule, the points and the pitch read the same lines, so a change anywhere shows everywhere.
 3. Explain the number: a figure on screen should be traceable to a line, a rate and a rule, and the rule should carry its source and date.
 4. Built for the filmmaker, printed for the room: the person at the keyboard is doing this alone; the people reading the output have no app and no patience.
-5. Nothing leaves the machine: no accounts, no network, no keys; local files are the product's memory.
+5. Nothing leaves the machine: no accounts, no network, no keys; local files are the product's memory. The one exception is AI assist, which the person turns on with her own key and which says exactly what it sends before it sends it.
 
 ## Accessibility & Inclusion
 

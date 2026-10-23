@@ -247,12 +247,12 @@ export function applyStarter(base0: Project, opts: StarterOptions): { project: P
     allow('2408', `Picture vehicles: ${vehicles.slice(0, 4).map(e => e.item).join(', ')}${vehicles.length > 4 ? ` and ${vehicles.length - 4} more` : ''}`, d * 300, sized(`${vehicles.length} tagged vehicle${vehicles.length === 1 ? '' : 's'} over ${d} day${d === 1 ? '' : 's'} at $300 a vehicle-day; a hero car or a period car costs more`));
     extras.push(`picture vehicles (${vehicles.length})`);
   }
-  const sfx = itemsOf(board.scenes, 'Special Effects');
+  const sfx = [...itemsOf(board.scenes, 'Special Effects'), ...itemsOf(board.scenes, 'Mechanical Effects')];   // rigs are the effects department's too
   if (sfx.length) {
     const d = daysWithElements(board, sfx);
     const pid = 'p_3201_1';
     participants.push({ id: pid, name: 'Special Effects Coordinator', role: 'Special Effects Coordinator', group: 'crew', tierId: 'hod', days: d + 1, bonusMultiplier: 1, followsElements: sfx });
-    wage('3201', `Special Effects Coordinator (days with ${sfx.slice(0, 3).map(e => e.item).join(', ')})`, d, crewHourly({ acct: '3201', title: '', role: 'hod', prep: 0, wrap: 0 }), pid, hours.day, PAYROLL, 'Days come from the stripboard: every day a scene carries a Special Effects tag.', { daysFrom: 'board' });
+    wage('3201', `Special Effects Coordinator (days with ${sfx.slice(0, 3).map(e => e.item).join(', ')})`, d, crewHourly({ acct: '3201', title: '', role: 'hod', prep: 0, wrap: 0 }), pid, hours.day, PAYROLL, 'Days come from the stripboard: every day a scene carries a Special Effects or Mechanical Effects tag.', { daysFrom: 'board' });
     wage('3201', 'Special Effects Coordinator prep / scout', 1, crewHourly({ acct: '3201', title: '', role: 'hod', prep: 0, wrap: 0 }), pid, PREP_HOURS);
     allow('3210', 'Special effects purchases and rentals', d * 750, sized(`${sfx.length} tagged effect${sfx.length === 1 ? '' : 's'} over ${d} day${d === 1 ? '' : 's'}`));
     extras.push(`special effects (${d} day${d === 1 ? '' : 's'})`);

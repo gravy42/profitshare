@@ -5,8 +5,9 @@ import type { DeckRules, LookImage, PitchDesign, Project, ResearchItem, TeamMemb
 import { withPitch, defaultDesign, defaultDeckRules, newLookImage, newResearch, newTeamMember, LOOK_SECTIONS, RESEARCH_KINDS, projectBytes } from '../engine/pitch';
 import { parseBrandText, applyBrand } from '../engine/brand';
 import { pdfText, pdfPages } from './brandPdf';
-import { aiSettings, saveAiSettings, forgetAi, listModels, ask, projectBrief, draftPrompt, SYSTEM, DEFAULT_MODEL, aiDocs, addAiDoc, removeAiDoc, draftWholePitch, type AiDoc, type DraftWhat, type WholePitch } from '../ai';
+import { aiSettings, ask, projectBrief, draftPrompt, SYSTEM, aiDocs, addAiDoc, removeAiDoc, draftWholePitch, type AiDoc, type DraftWhat, type WholePitch } from '../ai';
 import { newSection } from '../engine/pitch';
+import { AiKeyFields } from './AiKey';
 
 type SetProject = (f: (p: Project) => Project) => void;
 type Pitch = NonNullable<Project['pitch']>;
@@ -17,7 +18,6 @@ export type SetPitch = (f: (x: Pitch) => Pitch) => void;
 /** Key and model, kept in this browser only. */
 export function AiPanel({ onChange, project, setPitch }: { onChange: (ready: boolean) => void; project: Project; setPitch: SetPitch }) {
   const [s, setS] = useState(aiSettings());
-  const [models, setModels] = useState<{ id: string; name: string }[]>([]);
   const [status, setStatus] = useState<string>('');
   const [open, setOpen] = useState(!s.key);
   const [docs, setDocs] = useState<AiDoc[]>([]);
@@ -43,26 +43,11 @@ export function AiPanel({ onChange, project, setPitch }: { onChange: (ready: boo
     setWhole(null);
   };
   const mb = (n: number) => `${(n / 1048576).toFixed(1)} MB`;
-  const save = (next: typeof s) => { setS(next); saveAiSettings(next); };
-  const test = async () => {
-    setStatus('Checking…');
-    try { const ms = await listModels(s.key); setModels(ms); setStatus(`Key works. ${ms.length} models available.`); if (ms.length && !ms.some(m => m.id === s.model)) save({ ...s, model: ms[0].id }); }
-    catch (e) { setStatus(`That key did not work: ${(e as Error).message}`); }
-  };
   return (
     <details className="panel ai" open={open} onToggle={e => setOpen((e.target as HTMLDetailsElement).open)}>
       <summary><h2>AI assist</h2><span className="small muted">{s.key ? `on · ${s.model}` : 'off: paste your own Anthropic key to turn it on'}</span></summary>
       <p className="help">Optional. With a key, every text box on this tab gets a <b>Draft</b> button that writes a first pass from what the project already knows: the logline and case so far, the budget figures, the schedule, the deal, the comps, the research. The key lives in this browser only, never in the project file. When you press Draft, a brief of the film (a few hundred words of your pitch and numbers, no images) is sent to Anthropic and nothing else leaves your machine. Keys are at console.anthropic.com; usage is billed to you.</p>
-      <div className="row">
-        <div className="ctl" style={{ flex: 1, minWidth: 260 }}><label>Anthropic API key</label><input type="password" value={s.key} placeholder="sk-ant-…" autoComplete="off" onChange={e => save({ ...s, key: e.target.value.trim() })} /></div>
-        <div className="ctl" style={{ minWidth: 220 }}><label>Model</label>
-          {models.length
-            ? <select value={s.model} onChange={e => save({ ...s, model: e.target.value })}>{models.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}</select>
-            : <input value={s.model} placeholder={DEFAULT_MODEL} onChange={e => save({ ...s, model: e.target.value.trim() })} />}
-        </div>
-        <button className="btn small" disabled={!s.key} onClick={test}>Test the key</button>
-        {s.key && <button className="btn small ghost" onClick={() => { forgetAi(); setS({ key: '', model: DEFAULT_MODEL }); setModels([]); setStatus('Forgotten.'); }}>Forget the key</button>}
-      </div>
+      <AiKeyFields settings={s} onChange={setS} />
       {status && <p className="small" style={{ marginTop: 6 }}>{status}</p>}
       <h3 style={{ margin: '14px 0 4px' }}>Documents the AI reads</h3>
       <p className="help">Your look book, a treatment, an old deck: PDFs the model reads alongside the brief every time it drafts, so the logline, the story and the style come from your own pages. They stay in this browser only (not in the project file) and go to Anthropic with each Draft, so keep them to what you'd hand an investor. Up to about 30 MB and 100 pages each.</p>

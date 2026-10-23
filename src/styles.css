@@ -772,3 +772,13 @@ table.locs input { min-width: 80px; }
 .print-root .callsheet { width: auto; max-width: none; margin: 0; }
 .print-root .callsheet.front { page-break-before: always; page-break-after: always; }   /* a break before the first page is ignored, so no blank leaf anywhere */
 .print-root .callsheet.back { page-break-before: auto; page-break-after: auto; }
+
+/* AI breakdown review: one block per scene, every proposed item a tick-able chip */
+.aibd { width: min(96vw, 1100px); }
+.aibd-list { overflow: auto; max-height: calc(92vh - 150px); border-top: 1px solid var(--line); }
+.aibd-scene { padding: 8px 0 10px; border-bottom: 1px solid var(--line); }
+.aibd-head { display: block; margin-bottom: 4px; cursor: pointer; }
+.aibd .tagrow { display: flex; flex-wrap: wrap; gap: 4px; align-items: baseline; margin: 2px 0 2px 22px; }
+.aibd .tagcat { min-width: 120px; font-size: 12px; font-weight: 700; }
+.aibd .pick { border: 1.5px solid var(--line); border-radius: 999px; padding: 1px 8px; background: var(--card); color: var(--ink); font: inherit; font-size: 12px; cursor: pointer; text-align: left; }
+.aibd .pick.off { opacity: .45; text-decoration: line-through; border-style: dashed; }
