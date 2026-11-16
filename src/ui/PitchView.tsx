@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import type { Comp, Project, RevenueLine } from '../engine/types';
 import { CASES, DEFAULT_GROUP, adoptProjectionsAsScenarios, compGroups, compMultiple, compStats, newComp, newRevenueLine, newSection, projections, withPitch } from '../engine/pitch';
-import { recoupableBudget } from '../engine/waterfall';
+import { recoupableBudget, sponsorNet } from '../engine/waterfall';
 import { topSheet } from '../engine/budget';
 import { incentiveProceeds } from '../engine/incentives';
 import { money } from './format';
@@ -52,7 +52,7 @@ export function PitchView({ project, setProject }: { project: Project; setProjec
         <div className="ctl" style={{ marginTop: 8 }}><label>Why this film, why now <Draft what="why" project={p} ready={ai} onUse={t => set(x => ({ ...x, why: t }))} /></label><textarea rows={4} value={pitch.why} onChange={e => set(x => ({ ...x, why: e.target.value }))} placeholder="In your words." /></div>
         <div className="row" style={{ marginTop: 8 }}>
           <div className="stat"><div className="label">Budget to raise</div><div className="value">{money(ts.cashBudget)}</div><div className="sub">{p.shootDays} shoot days · SAG {p.sag.targetTier}</div></div>
-          <div className="stat"><div className="label">Investors put in</div><div className="value">{money(budget)}</div><div className="sub">after {money((p.waterfall.nonRecoupable ?? 0))} grants{incentives ? ` and ${money(incentives)} incentives` : ''}</div></div>
+          <div className="stat"><div className="label">Investors put in</div><div className="value">{money(budget)}</div><div className="sub">after {money(sponsorNet(p.waterfall))} grants{incentives ? ` and ${money(incentives)} incentives` : ''}</div></div>
           <div className="stat"><div className="label">Back end</div><div className="value">{money(ts.pointsValue)}</div><div className="sub">value cast and crew traded for points · {p.participants.length} participants</div></div>
         </div>
       </div>
@@ -127,6 +127,7 @@ export function PitchView({ project, setProject }: { project: Project; setProjec
             <tr className="sub"><td className="l">Gross receipts</td>{CASES.map(c => <td key={c}>{money(pr[c].gross)}</td>)}<td></td></tr>
             <tr><td className="l">Fees and expenses off the top <input value={pitch.feePct} type="number" style={{ width: 60 }} onChange={e => set(x => ({ ...x, feePct: +e.target.value || 0 }))} />%</td>{CASES.map(c => <td key={c}>({money(pr[c].fees)})</td>)}<td></td></tr>
             <tr className="sub"><td className="l">Net to the film</td>{CASES.map(c => <td key={c}>{money(pr[c].net)}</td>)}<td></td></tr>
+            {pr.high.deferred > 0 && <tr><td className="l">Deferred pay, from first proceeds</td>{CASES.map(c => <td key={c}>{money(pr[c].deferred)}</td>)}<td></td></tr>}
             <tr><td className="l">To investors ({p.waterfall.model === 'off-the-gross' ? `off the gross, ${p.waterfall.recoupPct}% recoup` : `recoup first, ${p.waterfall.recoupPct}%`})</td>{CASES.map(c => <td key={c}>{money(pr[c].investors)}</td>)}<td></td></tr>
             <tr><td className="l">To the cast & crew pool</td>{CASES.map(c => <td key={c}>{money(pr[c].pool)}</td>)}<td></td></tr>
             <tr className="total"><td className="l">Investor return on {money(budget)}</td>{CASES.map(c => <td key={c}>{pr[c].multiple.toFixed(2)}×</td>)}<td></td></tr>
@@ -211,6 +212,7 @@ function PitchReport({ p }: { p: Project }) {
           <tr className="sub"><td className="l">Gross receipts</td>{CASES.map(c => <td key={c}>{money(pr[c].gross)}</td>)}</tr>
           <tr><td className="l">Fees and expenses ({pitch.feePct}%)</td>{CASES.map(c => <td key={c}>({money(pr[c].fees)})</td>)}</tr>
           <tr className="sub"><td className="l">Net to the film</td>{CASES.map(c => <td key={c}>{money(pr[c].net)}</td>)}</tr>
+          {pr.high.deferred > 0 && <tr><td className="l">Deferred pay, from first proceeds</td>{CASES.map(c => <td key={c}>{money(pr[c].deferred)}</td>)}</tr>}
           <tr><td className="l">To investors</td>{CASES.map(c => <td key={c}>{money(pr[c].investors)}</td>)}</tr>
           <tr><td className="l">To the cast & crew pool</td>{CASES.map(c => <td key={c}>{money(pr[c].pool)}</td>)}</tr>
           <tr className="total"><td className="l">Investor return on {money(budget)}</td>{CASES.map(c => <td key={c}>{pr[c].multiple.toFixed(2)}×</td>)}</tr>

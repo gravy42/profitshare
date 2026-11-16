@@ -5,6 +5,7 @@ import type { Deal, Participant, Project, SagTierId } from './types';
 import { PAID_HOURS, setDayHours } from './budget';
 import { daysFromLines, everyoneAtScale, floorNonShootDays, isPayrollLine, isSagPerformerLine, rerateCast, sagTier } from './sag';
 import type { LineItem, PremiumGroup } from './types';
+import { CA_MIN_WAGE } from './locations';
 
 /** The above-scale above-the-line money, in three groups, so a deal can treat each one differently. */
 export const PRESET_GROUPS: Record<PremiumGroup, { label: string; match: (l: LineItem) => boolean }> = {
@@ -20,7 +21,7 @@ export function defaultDeal(p: { shootDays: number; sag: { targetTier: SagTierId
     pay: { model: 'as-budgeted', rerateCast: false, crewBasis: p.sag.targetTier, crewCustomRate: 400, crewBumpPct: 0,
       premiums: { producers: 'cash', script: 'cash', allowances: 'cash' } },
     producers: { count: null, days: p.shootDays + 40 },
-    nonShoot: { enabled: false, cashHourly: 16.9, rest: 'points' },
+    nonShoot: { enabled: false, cashHourly: CA_MIN_WAGE, rest: 'points' },
   };
 }
 

@@ -30,6 +30,7 @@
 import type { Incentives, Project } from './types';
 import { lineFringes, lineSubtotal, topSheet } from './budget';
 import { isPayrollLine, isSagPerformerLine } from './sag';
+import { outOfZonePctFromLocations } from './locations';
 
 export const CA_BASE = 0.35, CA_OUT_OF_ZONE = 0.05, CA_LOCAL_HIRE = 0.10, CA_VFX = 0.05, CA_TRAINEE = 0.005, CA_TRAINEE_MAX = 4;
 export const CA_QUALIFIED_CAP = 20_000_000, CA_MIN_BUDGET = 1_000_000, CA_REFUND_SHARE = 0.95, CA_REFUND_YEARS = 2;   // SB 186 (Sept 2026)
@@ -82,6 +83,7 @@ export interface CreditReport {
   qualifiedFringes: number;
   qualifiedNonWage: number;      // vendors, rentals, locations, post: the non-payroll spend that counts
   qualified: number;             // the base the credit is figured on, after any cap
+  preLetter?: number;            // prep and test spend before the allocation letter, left out of the base
   capped: boolean;
   parts: Line[];                 // base credit and each uplift
   gross: number;                 // the credit as certified
@@ -101,6 +103,8 @@ export interface IncentiveReport {
   afterDelivery: number;         // arrives after the audit and the tax filing
   windows: WindowFit[];
   window: WindowFit | null;      // the one to apply in for the planned start
+  startsBeforeLetter: boolean;   // California is on and no letter can arrive before the planned start
+  unbridged: number;             // credit money counted off the investor raise that only arrives after delivery
   federalDateOk: boolean;
 }
 
@@ -108,19 +112,55 @@ const addDays = (iso: string, days: number) => { const d = new Date(iso + 'T00:0
 const isWage = (l: Project['lines'][number]) => isPayrollLine(l) || isSagPerformerLine(l) || ((l.unit === 'DAY' || l.unit === 'WEEK' || l.unit === 'HOUR') && l.fringes.length > 0);
 
 /** Cash spend by category, split into wages, their fringes, and everything else. Deferred and points don't count:
- *  nothing was paid. Contingency doesn't count either. */
-function spendByCategory(p: Project) {
+ *  nothing was paid. Contingency doesn't count either. `keep` says what share of a line counts (1 = all of it);
+ *  the part left out is totalled in `dropped`. */
+function spendByCategory(p: Project, keep: (l: Project['lines'][number]) => number = () => 1) {
   const catOf = new Map(p.accounts.map(a => [a.number, a.categoryNumber]));
-  const out = new Map<string, { wages: number; fringes: number; other: number }>();
+  const out = new Map<string, { wages: number; fringes: number; other: number; dropped: number }>();
   for (const l of p.lines) {
     if (l.payType !== 'cash') continue;
     const cat = catOf.get(l.accountId) ?? l.accountId.slice(0, 2) + '00';
-    const r = out.get(cat) ?? { wages: 0, fringes: 0, other: 0 };
-    const sub = lineSubtotal(l), fr = lineFringes(l, p.fringes);
+    const r = out.get(cat) ?? { wages: 0, fringes: 0, other: 0, dropped: 0 };
+    const k = Math.max(0, Math.min(1, keep(l)));
+    const sub = lineSubtotal(l) * k, fr = lineFringes(l, p.fringes) * k;
+    r.dropped += (lineSubtotal(l) + lineFringes(l, p.fringes)) * (1 - k);
     if (isWage(l)) { r.wages += sub; r.fringes += fr; } else r.other += sub + fr;
     out.set(cat, r);
   }
   return out;
+}
+
+/** The application window whose allocation letter comes before the planned start with camera rolling in time. */
+export function windowFor(startDate: string, today = new Date().toISOString().slice(0, 10)): WindowFit | null {
+  return windowFits(startDate, today).find(w => w.fits && !w.closed) ?? null;
+}
+const windowFits = (startDate: string, today: string): WindowFit[] => CA_WINDOWS.map(w => {
+  const startBy = addDays(w.cal, CA_DAYS_TO_START);
+  return { apply: w.apply, cal: w.cal, startBy, closed: w.close < today, fits: startDate >= w.cal && startDate <= startBy };
+});
+
+/** Weekdays from the allocation letter up to (not including) the first day of photography: the prep days that can qualify. */
+export function prepDaysAfterLetter(cal: string, startDate: string): number {
+  let n = 0;
+  for (let d = cal; d < startDate; d = addDays(d, 1)) { const wd = new Date(d + 'T00:00:00Z').getUTCDay(); if (wd !== 0 && wd !== 6) n++; }
+  return n;
+}
+
+/** Prep work: the days that run backwards from the first day of photography. Wrap and post come after it. */
+export const PREP_LINE = /prep|scout|rehears|fitting/i;
+export const TEST_LINE = /camera test|test shoot/i;
+
+/** What share of a line the California credit can count once the allocation letter's date is known. Spending before
+ *  the letter is allowed but never qualifies. A prep line of N days ends the day before photography, so only its
+ *  last `daysAfterLetter` days count; a camera test, when the calendar puts one before the letter, counts for nothing. */
+export function preLetterKeep(p: Project, cal: string, startDate: string): (l: Project['lines'][number]) => number {
+  const after = prepDaysAfterLetter(cal, startDate);
+  const testBefore = (p.calendar?.events ?? []).some(e => e.kind === 'test' && e.date < cal);
+  return l => {
+    if (TEST_LINE.test(l.description)) return testBefore ? 0 : 1;
+    if (l.unit !== 'DAY' || l.amount <= 0 || !PREP_LINE.test(l.description)) return 1;
+    return Math.min(l.amount, after) / l.amount;
+  };
 }
 
 const monetized = (gross: number, cents: number, bridge: boolean, bridgeCostPct: number, mode: 'transfer' | 'refund' | 'own-tax', costs: Line[]) => {
@@ -133,11 +173,15 @@ export function californiaCredit(p: Project, inc: Incentives): CreditReport {
   const i = inc.ca;
   const ts = topSheet(p);
   const notes: string[] = [];
-  const spend = spendByCategory(p);
+  const win = windowFor(inc.startDate);
+  const cutoff = win && !i.countPreLetter;
+  const spend = spendByCategory(p, cutoff ? preLetterKeep(p, win.cal, inc.startDate) : undefined);
   const excluded = new Set(i.excludedCategories);
-  let wages = 0, fringes = 0, other = 0, vfx = 0;
+  const outOfZonePct = outOfZonePctFromLocations(p) ?? i.outOfZonePct;
+  let wages = 0, fringes = 0, other = 0, vfx = 0, preLetter = 0;
   for (const [cat, r] of spend) {
     if (excluded.has(cat)) continue;
+    preLetter += r.dropped;
     wages += r.wages; fringes += r.fringes; other += r.other * i.caSharePct / 100;
     if (/VISUAL EFFECTS|VFX/i.test(p.categories.find(c => c.number === cat)?.name ?? '')) vfx += r.wages + r.fringes + r.other * i.caSharePct / 100;
   }
@@ -146,7 +190,7 @@ export function californiaCredit(p: Project, inc: Incentives): CreditReport {
   const qualified = Math.min(raw, CA_QUALIFIED_CAP);
   const scale = raw > 0 ? qualified / raw : 0;
   const parts: Line[] = [{ label: `${Math.round(CA_BASE * 100)}% of qualified spend`, amount: qualified * CA_BASE }];
-  if (i.outOfZonePct > 0) parts.push({ label: `+${Math.round(CA_OUT_OF_ZONE * 100)}% on the ${i.outOfZonePct}% shot outside the LA zone`, amount: qualified * i.outOfZonePct / 100 * CA_OUT_OF_ZONE });
+  if (outOfZonePct > 0) parts.push({ label: `+${Math.round(CA_OUT_OF_ZONE * 100)}% on the ${outOfZonePct}% shot outside the LA zone`, amount: qualified * outOfZonePct / 100 * CA_OUT_OF_ZONE });
   if (i.localHirePct > 0) parts.push({ label: `+${Math.round(CA_LOCAL_HIRE * 100)}% local hire on ${i.localHirePct}% of wages`, amount: (wages + fringes) * scale * i.localHirePct / 100 * CA_LOCAL_HIRE });
   if (i.vfx && vfx > 0) parts.push({ label: `+${Math.round(CA_VFX * 100)}% on visual effects`, amount: vfx * scale * CA_VFX });
   const trainees = Math.max(0, Math.min(CA_TRAINEE_MAX, Math.round(i.trainees)));
@@ -163,8 +207,10 @@ export function californiaCredit(p: Project, inc: Incentives): CreditReport {
   if (!eligible) notes.push(`Independent films need a budget of at least $${(CA_MIN_BUDGET / 1e6).toFixed(0)}M; this one is under.`);
   if (capped) notes.push('Qualified spend is over the $20M an independent film can claim on; the credit is figured on $20M.');
   notes.push('75% of principal photography days (or of the budget) must be in California; above-the-line wages never qualify.');
+  if (cutoff && preLetter > 0) notes.push(`$${Math.round(preLetter).toLocaleString('en-US')} of prep and test spending falls before the allocation letter (${fmtDate(win.cal)}) and is left out: spending before the letter is allowed but never qualifies.`);
+  if (!win) notes.push('No open window puts an allocation letter before this start date. Rolling camera in California before the letter disqualifies the film, so the credit is shown but not safe to count.');
   if (i.monetize === 'own-tax') notes.push('Using the credit against the film’s own California tax only works if there is tax to use it against; most independents sell it.');
-  return { enabled: i.enabled, eligible, qualifiedWages: wages * scale, qualifiedFringes: fringes * scale, qualifiedNonWage: other * scale, qualified, capped, parts, gross, costs, net: i.enabled && eligible ? net : 0, rate: ts.cashBudget ? net / ts.cashBudget : 0, notes };
+  return { enabled: i.enabled, eligible, qualifiedWages: wages * scale, qualifiedFringes: fringes * scale, qualifiedNonWage: other * scale, qualified, capped, preLetter: cutoff ? preLetter : 0, parts, gross, costs, net: i.enabled && eligible ? net : 0, rate: ts.cashBudget ? net / ts.cashBudget : 0, notes };
 }
 
 export function federalCredit(p: Project, inc: Incentives): CreditReport {
@@ -198,12 +244,10 @@ export function incentiveReport(p: Project): IncentiveReport {
   const total = ca.net + federal.net + perksTotal;
   const duringProduction = (inc.ca.bridge ? ca.net : 0) + (inc.federal.bridge ? federal.net : 0) + perksTotal;
   const today = new Date().toISOString().slice(0, 10);
-  const windows: WindowFit[] = CA_WINDOWS.map(w => {
-    const startBy = addDays(w.cal, CA_DAYS_TO_START);
-    return { apply: w.apply, cal: w.cal, startBy, closed: w.close < today, fits: inc.startDate >= w.cal && inc.startDate <= startBy };
-  });
+  const windows = windowFits(inc.startDate, today);
   const window = windows.find(w => w.fits && !w.closed) ?? null;
-  return { ca, federal, perks, perksTotal, total, duringProduction, afterDelivery: total - duringProduction, windows, window, federalDateOk: inc.startDate >= FED_FIRST_START };
+  return { ca, federal, perks, perksTotal, total, duringProduction, afterDelivery: total - duringProduction, windows, window,
+    startsBeforeLetter: inc.ca.enabled && !window, unbridged: total - duringProduction, federalDateOk: inc.startDate >= FED_FIRST_START };
 }
 
 /** What comes off the money investors put in: every credit and perk that is switched on and eligible. */

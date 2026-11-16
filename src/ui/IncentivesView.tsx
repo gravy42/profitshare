@@ -2,7 +2,8 @@ import type { Incentives, Project } from '../engine/types';
 import { CA_DAYS_TO_START, CA_QUALIFIED_CAP, FED_FIRST_START, LOCAL_PERKS, fmtDate, incentiveReport, withIncentives } from '../engine/incentives';
 import type { CreditReport } from '../engine/incentives';
 import { topSheet } from '../engine/budget';
-import { recoupableBudget } from '../engine/waterfall';
+import { recoupableBudget, sponsorNet } from '../engine/waterfall';
+import { outOfZonePctFromLocations } from '../engine/locations';
 import { money } from './format';
 
 type Set = (f: (p: Project) => Project) => void;
@@ -13,7 +14,9 @@ export function IncentivesView({ project, setProject }: { project: Project; setP
   const inc = withIncentives(project);
   const r = incentiveReport(project);
   const ts = topSheet(project);
-  const before = Math.max(0, ts.cashBudget - (project.waterfall.nonRecoupable ?? 0));
+  const grants = sponsorNet(project.waterfall);
+  const before = Math.max(0, ts.cashBudget - grants);
+  const zoneFromLocations = outOfZonePctFromLocations(project);
   const after = recoupableBudget(project);
   const set = (f: (i: Incentives) => Incentives) => setProject(p => ({ ...p, incentives: f(withIncentives(p)) }));
   const setCa = (patch: Partial<Incentives['ca']>) => set(i => ({ ...i, ca: { ...i.ca, ...patch } }));
@@ -29,8 +32,10 @@ export function IncentivesView({ project, setProject }: { project: Project; setP
         <div className="stat"><div className="label">In the bank for the shoot</div><div className="value">{money(r.duringProduction)}</div>
           <div className="sub">{r.afterDelivery > 0 ? `${money(r.afterDelivery)} more after the audit and the tax filing` : 'bridged credits and perks; the rest comes after delivery'}</div></div>
         <div className="stat"><div className="label">Investors put in</div><div className="value">{money(after)}</div>
-          <div className="sub">was {money(before)} · budget {money(ts.cashBudget)}{(project.waterfall.nonRecoupable ?? 0) > 0 ? ` less ${money(project.waterfall.nonRecoupable!)} grants` : ''} less {money(r.total)} incentives</div></div>
+          <div className="sub">was {money(before)} · budget {money(ts.cashBudget)}{grants > 0 ? ` less ${money(grants)} grants` : ''} less {money(r.total)} incentives</div></div>
       </div>
+      {r.unbridged > 0 && <div className="notice" style={{ marginBottom: 16 }}><b>{money(r.unbridged)} of this arrives after delivery.</b> It is counted off what investors put in, but it is not in the bank for the shoot: someone has to front it (a bridge loan below, a lender, or the investors until it lands).</div>}
+      {r.startsBeforeLetter && <div className="notice" style={{ marginBottom: 16 }}><b>No allocation letter can arrive before this start date.</b> A film that begins principal photography in California before its letter is disqualified, so do not count the California credit until the dates work.</div>}
 
       <div className="panel">
         <h2>When</h2>
@@ -58,12 +63,16 @@ export function IncentivesView({ project, setProject }: { project: Project; setP
         <p className="help">Program 4.0 as amended in 2025: an independent film gets <b>35%</b> of what it spends in California below the line, wages and vendors alike, plus 5% for days shot outside the Los Angeles zone, 10% more on the wages of people who live and work outside it, 5% on visual effects, and half a percent per Career Pathways trainee. Figured on the first {money(CA_QUALIFIED_CAP)} of qualified spend. Writers, producers, directors and cast never qualify; stunts, background and everyone below the line do. Post counts here too, so the separate post-production credit signed in Sept 2026 (AB 2319: 35% of editorial post, for pictures that did not take this credit and that do at least $1M of post in California) is not something a film in this program adds on top.</p>
         <div className="row" style={{ alignItems: 'flex-end', marginTop: 8 }}>
           <div className="ctl" style={{ minWidth: 90 }}><label>Bought in CA %</label><input type="number" min={0} max={100} value={inc.ca.caSharePct} onChange={e => setCa({ caSharePct: num(e.target.value, 0, 100) })} style={{ width: 80 }} /><span className="hint">of non-wage spend</span></div>
-          <div className="ctl" style={{ minWidth: 90 }}><label>Days outside LA zone %</label><input type="number" min={0} max={100} value={inc.ca.outOfZonePct} onChange={e => setCa({ outOfZonePct: num(e.target.value, 0, 100) })} style={{ width: 80 }} /><span className="hint">+5% on that share</span></div>
+          <div className="ctl" style={{ minWidth: 90 }}><label>Days outside LA zone %</label><input type="number" min={0} max={100} value={zoneFromLocations ?? inc.ca.outOfZonePct} disabled={zoneFromLocations != null} onChange={e => setCa({ outOfZonePct: num(e.target.value, 0, 100) })} style={{ width: 80 }} /><span className="hint">{zoneFromLocations != null ? 'from Where you shoot, on the Deal tab' : '+5% on that share'}</span></div>
           <div className="ctl" style={{ minWidth: 90 }}><label>Local hire wages %</label><input type="number" min={0} max={100} value={inc.ca.localHirePct} onChange={e => setCa({ localHirePct: num(e.target.value, 0, 100) })} style={{ width: 80 }} /><span className="hint">live and work outside the zone: +10%</span></div>
           <div className="ctl" style={{ minWidth: 80 }}><label>Trainees</label><input type="number" min={0} max={4} value={inc.ca.trainees} onChange={e => setCa({ trainees: num(e.target.value, 0, 4) })} style={{ width: 70 }} /><span className="hint">+0.5% each, up to 4</span></div>
           <div className="ctl"><label>VFX uplift</label><label className="check"><input type="checkbox" checked={inc.ca.vfx} onChange={e => setCa({ vfx: e.target.checked })} /> 75% of VFX done in CA</label></div>
         </div>
-        <div className="row" style={{ alignItems: 'flex-end', marginTop: 10 }}>
+                <div className="row" style={{ marginTop: 10 }}>
+          <label className="check"><input type="checkbox" checked={!inc.ca.countPreLetter} onChange={e => setCa({ countPreLetter: !e.target.checked })} /> Leave out prep and camera tests before the allocation letter</label>
+          <span className="hint">{r.ca.preLetter ? `${money(r.ca.preLetter)} left out of the qualified spend` : 'spending before the letter is allowed but never qualifies'}</span>
+        </div>
+<div className="row" style={{ alignItems: 'flex-end', marginTop: 10 }}>
           <div className="ctl"><label>Turn it into cash</label>
             <select value={inc.ca.monetize} onChange={e => setCa({ monetize: e.target.value as Incentives['ca']['monetize'] })}>
               <option value="transfer">sell the credit</option><option value="refund">refund election, 95% over 2 years (SB 186)</option><option value="own-tax">use against the film's own CA tax</option>

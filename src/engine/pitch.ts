@@ -1,5 +1,6 @@
 import type { Comp, DeckRules, LookImage, Pitch, PitchDesign, PitchSection, Project, ResearchItem, RevenueLine, TeamMember } from './types';
-import { recoupableBudget, investorsAt, poolAt } from './waterfall';
+import { recoupableBudget, investorsAt, poolAt, afterDeferrals } from './waterfall';
+import { topSheet } from './budget';
 
 export const defaultPitch = (): Pitch => ({
   logline: '', why: '',
@@ -64,19 +65,21 @@ export function compStats(comps: Comp[]): CompStats {
 export type Case = 'low' | 'mid' | 'high';
 export const CASES: Case[] = ['low', 'mid', 'high'];
 
-export interface Projection { gross: number; fees: number; net: number; investors: number; pool: number; multiple: number }
+export interface Projection { gross: number; fees: number; net: number; deferred: number; investors: number; pool: number; multiple: number }
 
 /** Three cases: gross receipts by source, fees off the top, what reaches the film, then the waterfall as set on the Deal tab. */
 export function projections(p: Project): Record<Case, Projection> {
   const pitch = withPitch(p).pitch!;
   const budget = recoupableBudget(p);
+  const deferred = topSheet(p).deferredTotal;
   const out = {} as Record<Case, Projection>;
   for (const c of CASES) {
     const gross = pitch.revenue.reduce((n, r) => n + (r[c] || 0), 0);
     const fees = gross * pitch.feePct / 100;
     const net = gross - fees;
-    const investors = investorsAt(p.waterfall, budget, net);
-    out[c] = { gross, fees, net, investors, pool: poolAt(p.waterfall, budget, net), multiple: budget > 0 ? investors / budget : 0 };
+    const { paid, rest } = afterDeferrals(deferred, net);   // deferred pay comes out of first proceeds, before the split
+    const investors = investorsAt(p.waterfall, budget, rest);
+    out[c] = { gross, fees, net, deferred: paid, investors, pool: poolAt(p.waterfall, budget, rest), multiple: budget > 0 ? investors / budget : 0 };
   }
   return out;
 }

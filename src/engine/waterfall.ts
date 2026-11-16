@@ -41,6 +41,8 @@ export interface WaterfallReport {
   budget: number;              // what the waterfall recoups: the cash budget less non-recoupable money
   totalPoints: number;
   scenarios: number[];
+  deferred: number;            // fixed deferred pay owed from first proceeds
+  deferredPaid: number[];      // how much of it each scenario pays, before the split
   pools: number[];
   investors: number[];
   rows: PayoutRow[];
@@ -49,15 +51,28 @@ export interface WaterfallReport {
 /** The part of the cash budget investors put in and expect back: the budget less grants, donations and the
  *  tax credits and perks switched on under Incentives. */
 export function recoupableBudget(p: Project): number {
-  return Math.max(0, topSheet(p).cashBudget - (p.waterfall.nonRecoupable ?? 0) - incentiveProceeds(p));
+  return Math.max(0, topSheet(p).cashBudget - sponsorNet(p.waterfall) - incentiveProceeds(p));
+}
+
+/** What the fiscal sponsor keeps of the grants and donations, and what reaches the film. */
+export const sponsorFee = (w: Waterfall): number => (w.nonRecoupable ?? 0) * Math.max(0, Math.min(100, w.sponsorFeePct ?? 0)) / 100;
+export const sponsorNet = (w: Waterfall): number => (w.nonRecoupable ?? 0) - sponsorFee(w);
+
+/** Deferred pay is a fixed IOU paid from first proceeds: it comes off the top before investors and the pool split
+ *  anything. Returns what a given revenue pays of it and what is left to split. */
+export function afterDeferrals(deferred: number, revenue: number): { paid: number; rest: number } {
+  const paid = Math.max(0, Math.min(deferred, revenue));
+  return { paid, rest: Math.max(0, revenue - paid) };
 }
 
 export function waterfallReport(p: Project): WaterfallReport {
   const budget = recoupableBudget(p);
   const tp = totalPoints(p) || 1;
   const scenarios = p.waterfall.scenarios;
-  const pools = scenarios.map(r => poolAt(p.waterfall, budget, r));
-  const investors = scenarios.map(r => investorsAt(p.waterfall, budget, r));
+  const deferred = topSheet(p).deferredTotal;
+  const split = scenarios.map(r => afterDeferrals(deferred, r));
+  const pools = split.map(s => poolAt(p.waterfall, budget, s.rest));
+  const investors = split.map(s => investorsAt(p.waterfall, budget, s.rest));
   const cashByParticipant = new Map<string, number>();
   for (const l of p.lines) {
     if (!l.participantId || l.payType === 'points') continue;
@@ -68,7 +83,7 @@ export function waterfallReport(p: Project): WaterfallReport {
     return { participant: pt, points: pts, share: pts / tp, payouts: pools.map(pool => pool * pts / tp),
       cashPay: cashByParticipant.get(pt.id) ?? 0 };
   }).sort((a, b) => b.points - a.points);
-  return { budget, totalPoints: tp, scenarios, pools, investors, rows };
+  return { budget, totalPoints: tp, scenarios, deferred, deferredPaid: split.map(s => s.paid), pools, investors, rows };
 }
 
 /** Sum of days on budget lines linked to each participant → update participant.days. */

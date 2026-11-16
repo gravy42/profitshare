@@ -5,7 +5,7 @@ import { withPitch, defaultDeckRules, compGroups, compStats, projections, CASES,
 import { topSheet, rollupTotal } from './budget';
 import { sagReport } from './sag';
 import { shootDays, parkedScenes } from './board';
-import { recoupableBudget } from './waterfall';
+import { recoupableBudget, sponsorFee, sponsorNet } from './waterfall';
 import { shootDates, withCalendar } from './calendar';
 import { incentiveReport } from './incentives';
 
@@ -31,15 +31,17 @@ export interface FundingSource { label: string; amount: number; terms: string }
  *  credits or the grants do not land, so a small ask never looks like the whole raise. */
 export function fundingStack(p: Project): { sources: FundingSource[]; investors: number; without: { label: string; investors: number }[] } {
   const e = withPitch(p); const ts = topSheet(e);
-  const grants = p.waterfall.nonRecoupable ?? 0;
+  const grants = sponsorNet(p.waterfall); const fee = sponsorFee(p.waterfall);
   const inc = p.incentives ? incentiveReport(e) : null;
   const sources: FundingSource[] = [];
-  if (grants > 0) sources.push({ label: 'Fiscal sponsorship and grants', amount: grants, terms: 'donations and grants; never repaid' });
+  if (grants > 0) sources.push({ label: 'Fiscal sponsorship and grants', amount: grants, terms: fee > 0 ? `donations and grants, net of the sponsor's ${p.waterfall.sponsorFeePct}% fee; never repaid` : 'donations and grants; never repaid' });
   if (inc?.ca.enabled && inc.ca.net > 0) sources.push({ label: 'California Film & TV Tax Credit', amount: inc.ca.net, terms: `net, after the audit, sale${p.incentives!.ca.bridge ? ' and bridge loan' : ''}; awarded in the ${inc.window ? inc.window.apply : 'next'} application round` });
   if (inc?.federal.enabled && inc.federal.net > 0) sources.push({ label: 'Federal production credit', amount: inc.federal.net, terms: 'proposed in Congress, not yet law' });
   for (const k of inc?.perks ?? []) if (k.amount > 0) sources.push({ label: k.label, amount: k.amount, terms: 'local' });
   const investors = recoupableBudget(e);
-  sources.push({ label: 'Investors', amount: investors, terms: `recoup ${p.waterfall.recoupPct}% first, then ${100 - p.waterfall.poolPct}% of net` });
+  sources.push({ label: 'Investors', amount: investors, terms: p.waterfall.model === 'off-the-gross'
+    ? `${100 - p.waterfall.grossSharePct}% of every dollar until they have ${p.waterfall.recoupPct}% back, then ${100 - p.waterfall.poolPct}%`
+    : `recoup ${p.waterfall.recoupPct}% first, then ${100 - p.waterfall.poolPct}% of net` });
   const without: { label: string; investors: number }[] = [];
   const credits = inc?.total ?? 0;
   if (credits > 0) without.push({ label: 'without the credits', investors: Math.max(0, ts.cashBudget - grants) });

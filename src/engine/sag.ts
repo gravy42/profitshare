@@ -65,6 +65,9 @@ export function sagReport(p: Project): SagReport {
   const baseWages = p.lines.filter(isSagPerformerLine).reduce((n, l) => n + (l.unit === 'WEEK' ? l.amount * 5 * (l.multiplier > 1 ? l.rate * 8 / 5 : l.rate / 5) : l.amount * (l.multiplier > 1 ? l.rate * 8 : l.rate)), 0);
   if (baseWages > 0 && Math.abs(baseWages / Math.max(1, performerDays) - target.dayRate) > 1)
     notes.push(`Cast lines are priced at about $${Math.round(baseWages / Math.max(1, performerDays))}/day base but the target tier scale is $${target.dayRate}/day. Use "Re-rate cast" to reprice.`);
+  const ph = p.fringes.find(f => /^SAG.?AFTRA$/i.test(f.id));
+  if (ph && Math.abs(ph.rate - target.phRate) > 0.0001)
+    notes.push(`The budget's SAG-AFTRA pension & health fringe is ${Math.round(ph.rate * 1000) / 10}%; the ${target.name} rate is ${Math.round(target.phRate * 1000) / 10}%. Change the fringe on the top sheet so the cast lines carry the right rate.`);
   return {
     totalProductionCost: tpc, cashBudget: ts.cashBudget, deferredTotal: ts.deferredTotal, dic: p.sag.dic,
     target, targetCap: cap, fits: cap === null || tpc <= cap, headroom: cap === null ? Infinity : cap - tpc,

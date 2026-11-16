@@ -3,7 +3,9 @@ import { SAG_TIERS, sagReport, sagTier, isPayrollLine, isSagPerformerLine, NON_S
 import { topSheet, PAID_HOURS } from '../engine/budget';
 import { applyDeal, crewDayRateOf, withDeal } from '../engine/deal';
 import { useMemo } from 'react';
-import { recoupableBudget } from '../engine/waterfall';
+import { recoupableBudget, sponsorFee, sponsorNet } from '../engine/waterfall';
+import { MIN_WAGE_PRESETS, highestMinWage, locationDays, locationsOf, newLocation, outOfZonePctFromLocations } from '../engine/locations';
+import type { ShootLocation } from '../engine/types';
 import { incentiveProceeds } from '../engine/incentives';
 import { PRESET_GROUPS } from '../engine/deal';
 import { money, pct } from './format';
@@ -56,6 +58,8 @@ export function DealView({ raw, eff, setProject, fresh }: { raw: Project; eff: P
   const setPay = (patch: Partial<Deal['pay']>) => setDeal(x => ({ ...x, pay: { ...x.pay, ...patch } }));
   const setSag = (patch: Partial<Project['sag']>) => set(p => ({ ...p, sag: { ...p.sag, ...patch } }));
   const setW = (patch: Partial<Project['waterfall']>) => set(p => ({ ...p, waterfall: { ...p.waterfall, ...patch } }));
+  const locs = locationsOf(raw); const locDays = locationDays(raw); const zonePct = outOfZonePctFromLocations(raw); const minWage = highestMinWage(raw);
+  const patchLoc = (id: string, patch: Partial<ShootLocation>) => setProject(p => ({ ...p, locations: locationsOf(p).map(l => l.id === id ? { ...l, ...patch } : l) }));
   const hours = PAID_HOURS[raw.dayHours ?? 12];
   const crewRate = crewDayRateOf(raw);
   const perDay = (base: number, h: number) => Math.round(base / 8 * 100) / 100 * h;
@@ -107,6 +111,28 @@ export function DealView({ raw, eff, setProject, fresh }: { raw: Project; eff: P
 <details className="why"><summary>why</summary><p className="help small">Hourly lines in the budget are read as 12-hour-day hours (14 paid for crew, 18 for long days, 15 for SAG day players). Pick 10 hr and every one of them is re-hoursed: crew 11, long days 14, cast 11. Hourly rates don't change, so the budget gets cheaper by exactly the overtime you're not paying.</p></details>
       </div>
 
+      <div className="panel" id="locations">
+        <h2>Where you shoot <span className="hint">{locs.length ? `${locDays} of ${raw.shootDays} shoot days placed${zonePct ? ` · ${zonePct}% outside the LA zone` : ''}` : 'one place'}</span></h2>
+        {locs.length > 0 && <div className="scrollx"><table className="atl" style={{ maxWidth: 820 }}>
+          <thead><tr><th className="l">Place</th><th>Shoot days</th><th className="l">Outside the LA zone</th><th className="l">Minimum wage</th><th></th></tr></thead>
+          <tbody>{locs.map(l => (
+            <tr key={l.id}>
+              <td className="l"><input value={l.name} placeholder="Los Angeles" aria-label="Place" onChange={e => patchLoc(l.id, { name: e.target.value })} /></td>
+              <td><input type="number" min={0} value={l.days} aria-label={`Shoot days in ${l.name || 'this place'}`} onChange={e => patchLoc(l.id, { days: Math.max(0, +e.target.value || 0) })} style={{ width: 70 }} /></td>
+              <td className="l"><label className="check"><input type="checkbox" checked={l.outsideLaZone} onChange={e => patchLoc(l.id, { outsideLaZone: e.target.checked })} /> more than 30 miles out</label></td>
+              <td className="l"><select aria-label={`Minimum wage in ${l.name || 'this place'}`} value={MIN_WAGE_PRESETS.find(m => m.rate === l.minWage)?.id ?? 'custom'} onChange={e => { const m = MIN_WAGE_PRESETS.find(x => x.id === e.target.value); if (m) patchLoc(l.id, { minWage: m.rate }); }}>
+                {MIN_WAGE_PRESETS.map(m => <option key={m.id} value={m.id}>{m.label} · ${m.rate.toFixed(2)}</option>)}<option value="custom">another rate</option>
+              </select> <input type="number" step={0.01} min={0} value={l.minWage} aria-label="Minimum wage, dollars an hour" onChange={e => patchLoc(l.id, { minWage: Math.max(0, +e.target.value || 0) })} style={{ width: 80 }} /></td>
+              <td><button type="button" className="btn small" onClick={() => setProject(p => ({ ...p, locations: locationsOf(p).filter(x => x.id !== l.id) }))}>remove</button></td>
+            </tr>))}</tbody>
+        </table></div>}
+        <div className="row" style={{ marginTop: 8, gap: 8 }}>
+          <button type="button" className="btn small" onClick={() => setProject(p => ({ ...p, locations: [...locationsOf(p), newLocation(locationsOf(p).length ? {} : { name: 'Los Angeles', days: p.shootDays, minWage: 18.42 })] }))}>+ Add a location</button>
+          {locs.length > 0 && locDays !== raw.shootDays && <span className="small warn">The places add up to {locDays} days; the shoot is {raw.shootDays}.</span>}
+        </div>
+<details className="why"><summary>why</summary><p className="help small">A film that shoots in more than one place has two numbers that depend on where. The California credit pays 5% more on the share of the shoot outside the Los Angeles 30-mile zone, so the Incentives tab takes that share from this list. And each city sets its own minimum wage, so the floor for prep, wrap and post days is checked against the highest one here. A city can be its own place for wages and still sit inside the zone: check the zone map at film.ca.gov.</p></details>
+      </div>
+
       <div className="panel" id="sag">
         <h2>SAG-AFTRA agreement</h2>
         <div className="row" style={{ alignItems: 'flex-end' }}>
@@ -130,7 +156,8 @@ export function DealView({ raw, eff, setProject, fresh }: { raw: Project; eff: P
           <div className="row" style={{ alignItems: 'flex-end', marginTop: 12 }}>
             <label className="row" style={{ gap: 6, alignSelf: 'center' }}><input type="checkbox" checked={d.pay.rerateCast} onChange={e => setPay({ rerateCast: e.target.checked })} /> Re-rate cast lines at {sagTier(raw.sag.targetTier).name} scale</label>
             <div className="ctl"><label>Crew rates over budget</label>
-              <div className="row" style={{ gap: 6 }}><input type="number" min={0} step={1} value={d.pay.crewBumpPct ?? 0} onChange={e => setPay({ crewBumpPct: Math.max(0, +e.target.value || 0) })} style={{ width: 80 }} /><span>%</span></div>
+              <div className="row" style={{ gap: 4 }}>{[0, 5, 10, 15].map(b => <button key={b} type="button" className={`btn small ${(d.pay.crewBumpPct ?? 0) === b ? 'primary' : ''}`} onClick={() => setPay({ crewBumpPct: b })}>{b === 0 ? 'as budgeted' : `+${b}%`}</button>)}
+                <input type="number" min={0} step={1} aria-label="Crew rates over budget, percent" value={d.pay.crewBumpPct ?? 0} onChange={e => setPay({ crewBumpPct: Math.max(0, +e.target.value || 0) })} style={{ width: 70 }} /><span>%</span></div>
               <span className="hint">{(d.pay.crewBumpPct ?? 0) ? `every crew wage line at its budgeted rate + ${d.pay.crewBumpPct}%; the budget's own ladder is kept` : 'crew exactly as budgeted; set a percent to pay everyone a little better than the budget says'}</span></div>
           </div>
         )}
@@ -182,14 +209,16 @@ export function DealView({ raw, eff, setProject, fresh }: { raw: Project; eff: P
               <select value={d.nonShoot.rest} onChange={e => setDeal(x => ({ ...x, nonShoot: { ...x.nonShoot, rest: e.target.value as any } }))}><option value="points">points (contingent)</option><option value="deferred">deferred (counts for SAG)</option></select></div>
           </>}
         </div>
+        {d.nonShoot.enabled && d.nonShoot.cashHourly < minWage && <div className="notice" style={{ marginTop: 8 }}>The floor is under the highest minimum wage where you work (${minWage.toFixed(2)}/hr{locs.length ? '' : ', the California rate; add your locations above for the local one'}). <button type="button" className="btn small" onClick={() => setDeal(x => ({ ...x, nonShoot: { ...x.nonShoot, cashHourly: minWage } }))}>Raise the floor to ${minWage.toFixed(2)}</button></div>}
         <p className="help small" style={{ marginTop: 8 }}>{nonShootDays} non-shoot crew and producer days in the budget right now.</p>
-        <details className="why"><summary>why</summary><p className="help small">Shoot days are never touched; the days still count as worked, so nobody's points change. The floor isn't zero because a worked day at $0 is a wage-law problem for a W-2 crew member (California's 2026 state minimum is $16.90; Los Angeles city is higher). Check with your payroll company and attorney.</p></details>
+        <details className="why"><summary>why</summary><p className="help small">Shoot days are never touched; the days still count as worked, so nobody's points change. The floor isn't zero because a worked day at $0 is a wage-law problem for a W-2 crew member (California's minimum is $17.40 from January 2027; the City of Los Angeles is $18.42 and moves every July 1, so a post schedule that runs past June wants a little room). List where you shoot above and the floor is checked against the highest local rate. Check with your payroll company and attorney.</p></details>
       </details>
 
       <details className="panel fold" open={(raw.waterfall.nonRecoupable ?? 0) > 0}>
-        <summary><h2>Financing and the waterfall <span className="hint">{raw.waterfall.model === 'off-the-gross' ? `off the gross, pool ${raw.waterfall.grossSharePct}%` : 'recoup first'} · investors recoup {money(recoupableBudget(eff))}{(raw.waterfall.nonRecoupable ?? 0) > 0 ? ` after ${money(raw.waterfall.nonRecoupable!)} in grants` : ''}</span></h2></summary>
+        <summary><h2>Financing and the waterfall <span className="hint">{raw.waterfall.model === 'off-the-gross' ? `off the gross, pool ${raw.waterfall.grossSharePct}%` : 'recoup first'} · investors recoup {money(recoupableBudget(eff))}{(raw.waterfall.nonRecoupable ?? 0) > 0 ? ` after ${money(sponsorNet(raw.waterfall))} in grants` : ''}</span></h2></summary>
         <div className="row" style={{ alignItems: 'flex-end' }}>
           <div className="ctl"><label>Grants / fiscal sponsorship ($)</label><input type="number" step={10000} value={raw.waterfall.nonRecoupable ?? 0} onChange={e => setW({ nonRecoupable: Math.max(0, +e.target.value || 0) })} /><div className="hint">never paid back; investors put in the other {money(recoupableBudget(eff))}</div></div>
+          <div className="ctl" style={{ minWidth: 90 }}><label>Sponsor's fee %</label><input type="number" min={0} max={100} step={0.5} value={raw.waterfall.sponsorFeePct ?? 0} onChange={e => setW({ sponsorFeePct: Math.max(0, Math.min(100, +e.target.value || 0)) })} style={{ width: 80 }} /><div className="hint">{sponsorFee(raw.waterfall) > 0 ? `${money(sponsorFee(raw.waterfall))} stays with the sponsor; ${money(sponsorNet(raw.waterfall))} reaches the film` : 'what a fiscal sponsor keeps of each donation'}</div></div>
           <div className="ctl"><label>Model</label>
             <select value={raw.waterfall.model} onChange={e => setW({ model: e.target.value as WaterfallModel })}>
               <option value="off-the-gross">Off the gross (Sing Sing)</option><option value="recoup-first">Recoup first</option>

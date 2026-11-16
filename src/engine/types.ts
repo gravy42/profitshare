@@ -63,6 +63,7 @@ export interface Waterfall {
   model: WaterfallModel;
   recoupPct: number;      // investors get this % of budget back before the pool (110 = 110 %)
   nonRecoupable?: number; // grants, fiscal-sponsorship donations, tax credits: money that never has to be paid back
+  sponsorFeePct?: number; // the fiscal sponsor's fee on that money (8 = 8%); only what is left reaches the film
   poolPct: number;        // share of post-recoup profits that goes to the pool (50 = 50/50)
   grossSharePct: number;  // off-the-gross only: pool's share of dollar one until investors recoup
   scenarios: number[];    // revenue levels shown in the tables
@@ -144,6 +145,16 @@ export interface Deal {
   nonShoot: { enabled: boolean; cashHourly: number; rest: 'points' | 'deferred' };
 }
 
+/** A place the film shoots. The days by place drive the share of the shoot outside the Los Angeles zone
+ *  (the California credit's uplift) and the highest local minimum wage (the floor for non-shoot days). */
+export interface ShootLocation {
+  id: string;
+  name: string;
+  days: number;              // shoot days here
+  outsideLaZone: boolean;    // outside the Los Angeles 30-mile zone, for the California credit
+  minWage: number;           // local minimum wage, $/hour
+}
+
 /** Production incentives the film may qualify for. Each is a toggle; the money they bring back reduces what
  *  investors have to put in (and recoup), the way grants do. */
 export interface Incentives {
@@ -161,6 +172,7 @@ export interface Incentives {
     bridge: boolean;                 // borrow against the credit so the money is in the bank for the shoot
     bridgeCostPct: number;           // interest and fees on that loan, as a % of the credit
     auditCost: number;               // the CPA audit the program requires
+    countPreLetter?: boolean;        // true = count prep before the allocation letter as qualified (it is not; default false)
   };
   federal: {
     enabled: boolean;                // the Motion Picture, Television, and Entertainment Revitalization Act, if it passes
@@ -278,6 +290,7 @@ export interface Project {
   board: Board;
   deal?: Deal;
   incentives?: Incentives;
+  locations?: ShootLocation[]; // where the shoot days are; empty = one place, the percentages typed on the Incentives tab stand
   calendar?: Calendar;
   pitch?: Pitch;
   callSheets?: CallSheets;  // locations, contacts, default calls and what each shoot day's sheet says

@@ -2,6 +2,7 @@
 // generic indie feature crew and the department allowances to the script's length and shoot days, prices the cast
 // at a SAG tier, and writes every line with a note saying how it was sized, so the person can argue with each one.
 // Nothing here knows about any real production: the template is a plain LA indie feature.
+import { CA_MIN_WAGE } from './locations';
 import type { Board, BoardElement, LineItem, Participant, Project, Scene, SagTierId } from './types';
 import { blankProject } from '../data/seed';
 import { PAID_HOURS, newId } from './budget';
@@ -261,7 +262,7 @@ export function applyStarter(base0: Project, opts: StarterOptions): { project: P
   if (bgScenes.length) {
     const bgDays = daysWithElements(board, itemsOf(board.scenes, 'Background Actors'));
     const heads = 8;
-    lines.push({ id: newId('L'), accountId: '2002', description: `Non-union background: ${heads} a day on ${bgDays} day${bgDays === 1 ? '' : 's'} with background in the script`, amount: bgDays * heads, unit: 'DAY', rate: 16.9, multiplier: hours.day, fringes: PAYROLL, tags: ['starter'], payType: 'cash',
+    lines.push({ id: newId('L'), accountId: '2002', description: `Non-union background: ${heads} a day on ${bgDays} day${bgDays === 1 ? '' : 's'} with background in the script`, amount: bgDays * heads, unit: 'DAY', rate: CA_MIN_WAGE, multiplier: hours.day, fringes: PAYROLL, tags: ['starter'], payType: 'cash',
       notes: sized(`${bgScenes.length} scene${bgScenes.length === 1 ? '' : 's'} tagged with background; eight people a day at the California minimum. A crowd scene needs its own line`) });
     extras.push(`background (${bgDays} day${bgDays === 1 ? '' : 's'})`);
   }
