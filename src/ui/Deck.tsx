@@ -149,7 +149,7 @@ function SlideBody({ s }: { s: Slide }) {
     case 'deal': return (
       <>
         <H2>The deal</H2>
-        <p className="lead">Investors recoup {s.recoupPct}% first{s.model === 'off-the-gross' ? ' while the pool takes a share from dollar one' : ''}; then {s.poolPct}% of net to the people who made the film, by points, and the rest to the investors.</p>
+        <p className="lead">{s.model === 'off-the-gross' ? <>Investors and the people who made the film share every dollar from the first one until investors have {s.recoupPct}% of their money back</> : <>Investors recoup {s.recoupPct}% first</>}; then {s.poolPct}% of net to the people who made the film, by points, and the rest to the investors.</p>
         <div className="cols two">
           <table>
             <thead><tr><th className="l">Points tier</th><th>×</th><th>People</th></tr></thead>

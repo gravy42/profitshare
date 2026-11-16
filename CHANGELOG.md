@@ -8,7 +8,7 @@ The app is local-first: your project lives in your browser and in the `.profitsh
 
 A day of running a real project's numbers back through the app and fixing what the app let slip.
 
-- **Deferred pay is paid.** A deferred line has always been described as a fixed IOU paid from first proceeds, and the waterfall never paid it: investors and the pool split every dollar. Now the deferred total comes off the top of each revenue scenario before the split, on the Points tab (a new row), in the Pitch projections and in the deck's cases. A budget with no deferrals reads exactly as before.
+- **Deferred pay is paid.** A deferred line has always been described as a fixed IOU paid from first proceeds, and the waterfall never paid it: investors and the pool split every dollar. Now the deferred total comes off the top of each revenue scenario before the split, on the Points tab (a new row) and in the Pitch projections; the deck's cases use the same figures. A budget with no deferrals reads exactly as before.
 - **Fiscal sponsor's fee.** Beside *Grants / fiscal sponsorship* on the Deal tab there is a *Sponsor's fee %*. A sponsor keeps a share of every donation (often 5 to 10%), so only the rest reaches the film; investors fund the difference. The deck's funding stack shows the sponsorship net of the fee. Files without the field are unchanged.
 - **California credit: nothing before the letter.** Spending before the credit allocation letter is allowed but never qualifies. The credit now leaves out the prep days that fall before the letter (a prep line of N days runs backwards from the first day of photography, so only the working days between the letter and that day count) and any camera test the calendar puts before it. The Incentives tab says how much was left out, with a switch to count it anyway, and warns when no letter can arrive before the start date: rolling camera in California before the letter disqualifies the film.
 - **Money that arrives after delivery is flagged.** A credit that is not bridged still comes off what investors put in, but it is not in the bank for the shoot. The Incentives tab now says how much someone has to front.
@@ -17,6 +17,7 @@ A day of running a real project's numbers back through the app and fixing what t
 - **Crew rates over budget: one click.** *As budgeted*, *+5%*, *+10%*, *+15%* buttons beside the percent box.
 - **SAG pension & health check.** The SAG tab notes when the budget's SAG-AFTRA fringe and the tier's rate disagree (an imported budget can carry last year's).
 - **The deck describes the right waterfall.** The investors' line on the ask slide said "recoup first" whatever the model; off the gross now reads as the split it is.
+- The credit is figured against the latest letter that precedes the start whether or not its window has closed, so the number does not move the day a window shuts.
 - Ten new tests (`financing.test.ts`); 122 pass.
 
 ## 2026-10-22

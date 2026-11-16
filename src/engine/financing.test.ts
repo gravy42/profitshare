@@ -3,7 +3,7 @@ import { sampleProject } from '../data/seed';
 import { topSheet } from './budget';
 import { afterDeferrals, recoupableBudget, sponsorFee, sponsorNet, waterfallReport } from './waterfall';
 import { projections, withPitch } from './pitch';
-import { preLetterKeep, prepDaysAfterLetter } from './incentives';
+import { letterFor, preLetterKeep, prepDaysAfterLetter } from './incentives';
 import { CA_MIN_WAGE, highestMinWage, outOfZonePctFromLocations } from './locations';
 import { defaultDeal } from './deal';
 import { sagReport } from './sag';
@@ -66,6 +66,9 @@ describe('prep before the allocation letter', () => {
     expect(keep(line('Prep', 8))).toBe(1);                  // a short prep sits wholly after it
     expect(keep(line('Location scout', 40))).toBeCloseTo(0.25, 5);
     expect(keep(line('Shoot', 20))).toBe(1);
+    expect(keep(line('House: 9 shoot days + prep / strike', 15))).toBe(1);   // mixed line: left whole
+    expect(letterFor('2027-03-08')?.cal).toBe('2027-02-22');           // the same answer on any day of the year
+    expect(letterFor('2026-09-01')).toBeNull();
     expect(keep(line('Wrap', 5))).toBe(1);
     expect(keep(line('Post', 60))).toBe(1);
     expect(keep(line('Prep allowance', 1, 'ALLOW'))).toBe(1);   // purchases carry no dates: left in

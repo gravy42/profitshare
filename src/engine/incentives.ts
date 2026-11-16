@@ -134,6 +134,12 @@ function spendByCategory(p: Project, keep: (l: Project['lines'][number]) => numb
 export function windowFor(startDate: string, today = new Date().toISOString().slice(0, 10)): WindowFit | null {
   return windowFits(startDate, today).find(w => w.fits && !w.closed) ?? null;
 }
+/** The letter the credit is figured against: the latest one that still comes before the start, whether or not its
+ *  application window has closed. It does not depend on today's date, so the credit does not move when a window shuts. */
+export function letterFor(startDate: string): WindowFit | null {
+  const fits = windowFits(startDate, '0000-00-00').filter(w => w.fits);
+  return fits.length ? fits[fits.length - 1] : null;
+}
 const windowFits = (startDate: string, today: string): WindowFit[] => CA_WINDOWS.map(w => {
   const startBy = addDays(w.cal, CA_DAYS_TO_START);
   return { apply: w.apply, cal: w.cal, startBy, closed: w.close < today, fits: startDate >= w.cal && startDate <= startBy };
@@ -158,7 +164,7 @@ export function preLetterKeep(p: Project, cal: string, startDate: string): (l: P
   const testBefore = (p.calendar?.events ?? []).some(e => e.kind === 'test' && e.date < cal);
   return l => {
     if (TEST_LINE.test(l.description)) return testBefore ? 0 : 1;
-    if (l.unit !== 'DAY' || l.amount <= 0 || !PREP_LINE.test(l.description)) return 1;
+    if (l.unit !== 'DAY' || l.amount <= 0 || !PREP_LINE.test(l.description) || /shoot/i.test(l.description)) return 1;   // a line that mixes shoot days with prep is left whole
     return Math.min(l.amount, after) / l.amount;
   };
 }
@@ -173,7 +179,7 @@ export function californiaCredit(p: Project, inc: Incentives): CreditReport {
   const i = inc.ca;
   const ts = topSheet(p);
   const notes: string[] = [];
-  const win = windowFor(inc.startDate);
+  const win = letterFor(inc.startDate);
   const cutoff = win && !i.countPreLetter;
   const spend = spendByCategory(p, cutoff ? preLetterKeep(p, win.cal, inc.startDate) : undefined);
   const excluded = new Set(i.excludedCategories);
@@ -247,7 +253,7 @@ export function incentiveReport(p: Project): IncentiveReport {
   const windows = windowFits(inc.startDate, today);
   const window = windows.find(w => w.fits && !w.closed) ?? null;
   return { ca, federal, perks, perksTotal, total, duringProduction, afterDelivery: total - duringProduction, windows, window,
-    startsBeforeLetter: inc.ca.enabled && !window, unbridged: total - duringProduction, federalDateOk: inc.startDate >= FED_FIRST_START };
+    startsBeforeLetter: inc.ca.enabled && !letterFor(inc.startDate), unbridged: total - duringProduction, federalDateOk: inc.startDate >= FED_FIRST_START };
 }
 
 /** What comes off the money investors put in: every credit and perk that is switched on and eligible. */

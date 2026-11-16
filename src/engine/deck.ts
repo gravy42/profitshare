@@ -105,7 +105,7 @@ export function deckSlides(p0: Project, byline = ''): Slide[] {
   const sets = [...new Set(p.board.scenes.filter(s => !s.unit).map(s => s.set.trim()).filter(Boolean))];
   const crew = p.participants.filter(x => x.group === 'crew').length;
   if (p.board.scenes.length || p.lines.length) push({ kind: 'plan', scenes: p.board.scenes.length - parked.length, parked: parked.length, days: days.length, first: dated[0] ?? null, last: dated[dated.length - 1] ?? null, sets, cast: p.board.castList.length, crew, tier: sag.target.name, qualifies: sag.qualifying.name + (sag.dic ? ' with Diversity in Casting' : '') });
-  if (p.lines.length) push({ kind: 'numbers', sections: ts.sections.map(s => ({ name: SECTION_NAME[s.section] ?? s.section, total: rollupTotal(s) })), contingency: ts.contingency, cashBudget: ts.cashBudget, investors: recoupableBudget(e), incentives: p.incentives ? incentiveReport(e).total : 0, grants: p.waterfall.nonRecoupable ?? 0, pointsValue: ts.pointsValue, deferred: ts.deferredTotal });
+  if (p.lines.length) push({ kind: 'numbers', sections: ts.sections.map(s => ({ name: SECTION_NAME[s.section] ?? s.section, total: rollupTotal(s) })), contingency: ts.contingency, cashBudget: ts.cashBudget, investors: recoupableBudget(e), incentives: p.incentives ? incentiveReport(e).total : 0, grants: sponsorNet(p.waterfall), pointsValue: ts.pointsValue, deferred: ts.deferredTotal });
   const pr = projections(e);
   const hasCases = pitch.revenue.some(r => r.low || r.mid || r.high);
   push({ kind: 'deal', recoupPct: p.waterfall.recoupPct, poolPct: p.waterfall.poolPct, model: p.waterfall.model,
