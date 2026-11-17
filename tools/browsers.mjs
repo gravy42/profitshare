@@ -111,8 +111,11 @@ try {
   // ---- the file a reader opens, with no network -------------------------------------------------------------------
   if (saved['deck.html']) {
     const url = pathToFileURL(saved['deck.html']).href;
+    // No network for the reader: everything that is not the file itself is refused. (WebKit will not open a file at all
+    // in a context set offline, so the wall is a route instead; a request that hits it is still counted below.)
+    const sealed = async options => { const ctx = await browser.newContext(options); await ctx.route(u => !/^(file|data|blob|about):/.test(String(u)), r => r.abort()); return ctx; };
     const reader = async (label, viewport, hash = '') => {
-      const ctx = await browser.newContext({ viewport, offline: true });
+      const ctx = await sealed({ viewport });
       const p = await ctx.newPage(); const errs = []; const asked = [];
       p.on('pageerror', e => errs.push(`pageerror: ${e.message}`));
       p.on('console', m => { if (m.type() === 'error') errs.push(`console: ${m.text()}`); });
