@@ -1,6 +1,6 @@
 // The parts of the Pitch tab that feed the investor deck: AI assist (opt-in, your own key), the look book, the design
 // system, research, the team and the ask. PitchView composes them.
-import { useEffect, useRef, useState } from 'react';
+import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import type { DeckRules, LookImage, PitchDesign, Project, ResearchItem, TeamMember } from '../engine/types';
 import { withPitch, defaultDesign, defaultDeckRules, newLookImage, newResearch, newTeamMember, LOOK_SECTIONS, RESEARCH_KINDS, projectBytes } from '../engine/pitch';
 import { parseBrandText, applyBrand } from '../engine/brand';
@@ -8,6 +8,13 @@ import { pdfText, pdfPages } from './brandPdf';
 import { aiSettings, ask, projectBrief, draftPrompt, SYSTEM, aiDocs, addAiDoc, removeAiDoc, draftWholePitch, type AiDoc, type DraftWhat, type WholePitch } from '../ai';
 import { newSection } from '../engine/pitch';
 import { AiKeyFields } from './AiKey';
+import { Boundary } from './Boundary';
+import { plainColor } from './color';
+
+// font files, the card colour and the palette-from-pictures flow load with the Pitch tab, not with the app
+const FontFiles = lazy(() => import('./DesignBuilder').then(m => ({ default: m.FontFiles })));
+const PaletteBuilder = lazy(() => import('./DesignBuilder').then(m => ({ default: m.PaletteBuilder })));
+const CardColor = lazy(() => import('./DesignBuilder').then(m => ({ default: m.CardColor })));
 
 type SetProject = (f: (p: Project) => Project) => void;
 type Pitch = NonNullable<Project['pitch']>;
@@ -152,7 +159,7 @@ export function LookBookPanel({ project, setPitch }: { project: Project; setPitc
   const setRules = (f: (r: DeckRules) => DeckRules) => setPitch(x => { const d = x.design ?? defaultDesign(); return { ...x, design: { ...d, deck: f(d.deck ?? defaultDeckRules()) } }; });
   const move = (id: string, dir: -1 | 1) => setPitch(x => { const a = [...(x.lookbook ?? [])]; const i = a.findIndex(y => y.id === id); const j = i + dir; if (i < 0 || j < 0 || j >= a.length) return x; [a[i], a[j]] = [a[j], a[i]]; return { ...x, lookbook: a }; });
   return (
-    <div className="panel lookbook" onDragOver={e => { if ([...e.dataTransfer.items].some(i => i.kind === 'file' && /^image\//.test(i.type))) { e.preventDefault(); e.stopPropagation(); } }} onDrop={e => { const fs = [...e.dataTransfer.files].filter(f => /^image\//.test(f.type)); if (fs.length) { e.preventDefault(); e.stopPropagation(); void add(fs); } }}>
+    <div className="panel lookbook" id="pitch-lookbook" onDragOver={e => { if ([...e.dataTransfer.items].some(i => i.kind === 'file' && /^image\//.test(i.type))) { e.preventDefault(); e.stopPropagation(); } }} onDrop={e => { const fs = [...e.dataTransfer.files].filter(f => /^image\//.test(f.type)); if (fs.length) { e.preventDefault(); e.stopPropagation(); void add(fs); } }}>
       <div className="row" style={{ justifyContent: 'space-between' }}>
         <h2>Look book</h2>
         <span className="row" style={{ gap: 8 }}>
@@ -189,15 +196,22 @@ export function LookBookPanel({ project, setPitch }: { project: Project; setPitc
 // ---------- design system ----------
 
 export function DesignPanel({ project, setPitch }: { project: Project; setPitch: SetPitch }) {
-  const d = withPitch(project).pitch!.design ?? defaultDesign();
-  const rules = d.deck ?? defaultDeckRules();
+  const base = defaultDesign();
+  const raw = withPitch(project).pitch!.design ?? base;
+  const text = (v: unknown) => (typeof v === 'string' ? v : '');
+  // a hand-edited file can hold anything here: every field is read as the kind of thing it should be
+  const d: PitchDesign = { ...raw, name: text(raw.name), notes: text(raw.notes), fonts: { title: text(raw.fonts?.title), body: text(raw.fonts?.body) },
+    colors: { bg: text(raw.colors?.bg) || base.colors.bg, ink: text(raw.colors?.ink) || base.colors.ink, accent: text(raw.colors?.accent) || base.colors.accent, accent2: text(raw.colors?.accent2) || base.colors.accent2, muted: text(raw.colors?.muted) || base.colors.muted } };
+  const rules = { ...defaultDeckRules(), ...(d.deck && typeof d.deck === 'object' ? d.deck : {}) };
   const set = (f: (x: PitchDesign) => PitchDesign) => setPitch(x => ({ ...x, design: f(x.design ?? defaultDesign()) }));
   const setRules = (f: (r: NonNullable<PitchDesign['deck']>) => NonNullable<PitchDesign['deck']>) => set(x => ({ ...x, deck: f(x.deck ?? defaultDeckRules()) }));
   const logoRef = useRef<HTMLInputElement>(null);
   const pdfRef = useRef<HTMLInputElement>(null);
   const [withPages, setWithPages] = useState(false);
+  const [building, setBuilding] = useState(false);
   const [status, setStatus] = useState('');
-  const lookbook = withPitch(project).pitch!.lookbook ?? [];
+  const lb = withPitch(project).pitch!.lookbook;
+  const lookbook = (Array.isArray(lb) ? lb : []).filter(i => !!i && typeof i === 'object' && typeof i.id === 'string');
   const loadPdf = async (f: File) => {
     setStatus('Reading…');
     try {
@@ -216,54 +230,61 @@ export function DesignPanel({ project, setPitch }: { project: Project; setPitch:
     } catch (e) { setStatus(`Could not read that PDF: ${(e as Error).message}`); }
   };
   const colors: { k: keyof PitchDesign['colors']; label: string }[] = [{ k: 'bg', label: 'Background' }, { k: 'ink', label: 'Text' }, { k: 'accent', label: 'Accent' }, { k: 'accent2', label: 'Second accent' }, { k: 'muted', label: 'Muted' }];
+  const hex6 = (v: string, fallback: string) => (/^#[0-9a-f]{6}$/i.test(v) ? v : fallback);
   return (
-    <div className="panel design">
+    <div className="panel design" id="pitch-design">
       <h2>Design system</h2>
-      <p className="help">The look of the deck: your colours, your type, your mark, and how the slides are built. Fonts are CSS family names (a font has to be installed on the machine that prints the deck, or the deck's own fallback is used). The preview on the right is a slide corner.</p>
-      <div className="row brandpdf">
-        <button className="btn small" onClick={() => pdfRef.current?.click()}>Load a brand system PDF</button>
-        <input ref={pdfRef} type="file" accept="application/pdf" hidden onChange={e => { const f = e.target.files?.[0]; if (f) void loadPdf(f); e.target.value = ''; }} />
-        <label className="small"><input type="checkbox" checked={withPages} onChange={e => setWithPages(e.target.checked)} /> also add its pages to the look book as references</label>
-        <span className="hint">Reads the colours by the role the page gives them (surface, ink, accent, signal, muted, line), a night set and a day set when there are both, and the type faces it names.</span>
+      <p className="help">The look of the deck: your colours, your type, your mark, and how the slides are built. Start from a brand book if you have one, or from your pictures. For fonts, type the font's name as your computer lists it; a font that is not on every computer can be attached under Font files. The preview on the right is a slide corner.</p>
+      <div className="design-start">
+        <button type="button" className="btn small" onClick={() => pdfRef.current?.click()}>I have a brand book (PDF)</button>
+        <button type="button" className="btn small" aria-expanded={building} aria-controls="palette-builder" onClick={() => setBuilding(b => !b)}>Build one from my pictures</button>
       </div>
-      {status && <p className="small" style={{ marginTop: 6 }}>{status}</p>}
+      <input ref={pdfRef} type="file" accept="application/pdf" hidden aria-label="A brand book, as a PDF" onChange={e => { const f = e.target.files?.[0]; if (f) void loadPdf(f); e.target.value = ''; }} />
+      <div className="row brandpdf">
+        <label className="small" htmlFor="ds-pages"><input id="ds-pages" type="checkbox" checked={withPages} onChange={e => setWithPages(e.target.checked)} /> also add the brand book's pages to the look book as references</label>
+        <span className="hint">A brand book is read for its colours by the role the page gives them (surface, ink, accent, signal, muted, line), a night set and a day set when there are both, and the type faces it names.</span>
+      </div>
+      <div role="status" aria-live="polite">{status && <p className="small" style={{ marginTop: 6 }}>{status}</p>}</div>
+      {building && <Boundary what="The deck style builder"><Suspense fallback={<p className="help">Loading…</p>}><PaletteBuilder project={project} setPitch={setPitch} onClose={() => setBuilding(false)} /></Suspense></Boundary>}
       <div className="row" style={{ alignItems: 'flex-start', gap: 18 }}>
         <div style={{ flex: '1 1 420px' }}>
           <div className="row">
-            <div className="ctl" style={{ flex: 1 }}><label>System name</label><input value={d.name} placeholder="Salt Flat Universe" onChange={e => set(x => ({ ...x, name: e.target.value }))} /></div>
+            <div className="ctl" style={{ flex: 1 }}><label htmlFor="ds-name">System name</label><input id="ds-name" value={d.name} placeholder="Salt Flat Universe" onChange={e => set(x => ({ ...x, name: e.target.value }))} /></div>
           </div>
           <div className="row">
-            {colors.map(c => <div className="ctl" key={c.k}><label>{c.label}</label><span className="row" style={{ gap: 4 }}><input type="color" value={d.colors[c.k]} onChange={e => set(x => ({ ...x, colors: { ...x.colors, [c.k]: e.target.value } }))} /><input value={d.colors[c.k]} style={{ width: 84 }} onChange={e => set(x => ({ ...x, colors: { ...x.colors, [c.k]: e.target.value } }))} /></span></div>)}
+            {colors.map(c => <div className="ctl" key={c.k}><label htmlFor={`ds-${c.k}`}>{c.label}</label><span className="row" style={{ gap: 4 }}><input id={`ds-${c.k}`} type="color" value={hex6(d.colors[c.k], base.colors[c.k])} onChange={e => set(x => ({ ...x, colors: { ...x.colors, [c.k]: e.target.value } }))} /><input aria-label={`${c.label}, as a hex colour`} value={d.colors[c.k]} style={{ width: 84 }} onChange={e => set(x => ({ ...x, colors: { ...x.colors, [c.k]: e.target.value } }))} /></span></div>)}
+            <Boundary what="The card colour"><Suspense fallback={null}><CardColor design={d} set={set} /></Suspense></Boundary>
           </div>
           <div className="row">
-            <div className="ctl" style={{ flex: 1 }}><label>Title font</label><input value={d.fonts.title} placeholder='"Special Elite", monospace' onChange={e => set(x => ({ ...x, fonts: { ...x.fonts, title: e.target.value } }))} /></div>
-            <div className="ctl" style={{ flex: 1 }}><label>Body font</label><input value={d.fonts.body} placeholder='"Work Sans", sans-serif' onChange={e => set(x => ({ ...x, fonts: { ...x.fonts, body: e.target.value } }))} /></div>
+            <div className="ctl" style={{ flex: 1 }}><label htmlFor="ds-title-font">Title font</label><input id="ds-title-font" value={d.fonts.title} placeholder='"Special Elite", monospace' onChange={e => set(x => ({ ...x, fonts: { ...x.fonts, title: e.target.value } }))} /></div>
+            <div className="ctl" style={{ flex: 1 }}><label htmlFor="ds-body-font">Body font</label><input id="ds-body-font" value={d.fonts.body} placeholder='"Work Sans", sans-serif' onChange={e => set(x => ({ ...x, fonts: { ...x.fonts, body: e.target.value } }))} /></div>
+          </div>
+          <Boundary what="Font files"><Suspense fallback={null}><FontFiles design={d} set={set} /></Suspense></Boundary>
+          <div className="row">
+            <div className="ctl"><span className="ctl-label" id="ds-logo-label">Logo</span><span className="row" style={{ gap: 6 }}><button className="btn small" aria-describedby="ds-logo-label" onClick={() => logoRef.current?.click()}>{d.logoDataUrl ? 'Replace the logo' : 'Add a logo'}</button>{d.logoDataUrl && <button className="btn small ghost" onClick={() => set(x => { const { logoDataUrl: _l, ...rest } = x; return rest; })}>Remove the logo</button>}</span>
+              <input ref={logoRef} type="file" accept="image/*" hidden aria-label="A logo picture" onChange={async e => { const f = e.target.files?.[0]; if (f) { const u = await resizeImage(f, 600, 0.9); set(x => ({ ...x, logoDataUrl: u })); } e.target.value = ''; }} /></div>
+            <div className="ctl" style={{ flex: 1 }}><label htmlFor="ds-notes">Rules, in a sentence or two</label><input id="ds-notes" value={d.notes} placeholder="Night palette for the deck; gold only for numbers; the typewriter face for titles." onChange={e => set(x => ({ ...x, notes: e.target.value }))} /></div>
+          </div>
+          <h3 style={{ margin: '12px 0 4px' }}>Report deck slides</h3>
+          <div className="row">
+            <div className="ctl"><label htmlFor="ds-layout">Layout</label>
+              <select id="ds-layout" value={rules.layout} onChange={e => setRules(r => ({ ...r, layout: e.target.value as 'split' | 'plain' }))}><option value="plain">Plain: text on the ground</option><option value="split">Split: a photo bleeds the left, text column right</option></select></div>
+            {rules.layout === 'split' && <div className="ctl"><label htmlFor="ds-bleed">Photo takes</label><select id="ds-bleed" value={rules.bleed} onChange={e => setRules(r => ({ ...r, bleed: +e.target.value }))}><option value={0.4}>40%</option><option value={0.5}>50%</option><option value={0.55}>55%</option><option value={0.6}>60%</option></select></div>}
+            <div className="ctl"><label htmlFor="ds-headings">Headings</label>
+              <select id="ds-headings" value={rules.eyebrow ? 'eyebrow' : 'big'} onChange={e => setRules(r => ({ ...r, eyebrow: e.target.value === 'eyebrow' }))}><option value="big">Big title in the title face</option><option value="eyebrow">Eyebrow: small caps label ending in a colon</option></select></div>
           </div>
           <div className="row">
-            <div className="ctl"><label>Logo</label><span className="row" style={{ gap: 6 }}><button className="btn small" onClick={() => logoRef.current?.click()}>{d.logoDataUrl ? 'Replace' : 'Add a logo'}</button>{d.logoDataUrl && <button className="btn small ghost" onClick={() => set(x => { const { logoDataUrl: _l, ...rest } = x; return rest; })}>Remove</button>}</span>
-              <input ref={logoRef} type="file" accept="image/*" hidden onChange={async e => { const f = e.target.files?.[0]; if (f) { const u = await resizeImage(f, 600, 0.9); set(x => ({ ...x, logoDataUrl: u })); } e.target.value = ''; }} /></div>
-            <div className="ctl" style={{ flex: 1 }}><label>Rules, in a sentence or two</label><input value={d.notes} placeholder="Night palette for the deck; gold only for numbers; the typewriter face for titles." onChange={e => set(x => ({ ...x, notes: e.target.value }))} /></div>
-          </div>
-          <h3 style={{ margin: '12px 0 4px' }}>Slides</h3>
-          <div className="row">
-            <div className="ctl"><label>Layout</label>
-              <select value={rules.layout} onChange={e => setRules(r => ({ ...r, layout: e.target.value as 'split' | 'plain' }))}><option value="plain">Plain: text on the ground</option><option value="split">Split: a photo bleeds the left, text column right</option></select></div>
-            {rules.layout === 'split' && <div className="ctl"><label>Photo takes</label><select value={rules.bleed} onChange={e => setRules(r => ({ ...r, bleed: +e.target.value }))}><option value={0.4}>40%</option><option value={0.5}>50%</option><option value={0.55}>55%</option><option value={0.6}>60%</option></select></div>}
-            <div className="ctl"><label>Headings</label>
-              <select value={rules.eyebrow ? 'eyebrow' : 'big'} onChange={e => setRules(r => ({ ...r, eyebrow: e.target.value === 'eyebrow' }))}><option value="big">Big title in the title face</option><option value="eyebrow">Eyebrow: small caps label ending in a colon</option></select></div>
-          </div>
-          <div className="row">
-            <div className="ctl"><label>Cover picture</label><select value={rules.coverImageId ?? ''} onChange={e => setRules(r => ({ ...r, coverImageId: e.target.value || undefined }))}><option value="">none (the title is typed on the first slide)</option>{lookbook.map((i, n) => <option key={i.id} value={i.id}>{i.caption || `picture ${n + 1}`}</option>)}</select><div className="hint">a cover fills the slide and carries the title; the logline sits on a band at the foot</div></div>
-            <div className="ctl"><label>Full-bleed look slides</label><input type="number" min={0} max={6} value={rules.lookSlides ?? 3} onChange={e => setRules(r => ({ ...r, lookSlides: Math.max(0, Math.min(6, +e.target.value || 0)) }))} style={{ width: 70 }} /><div className="hint">pictures no slide took, one a slide, the sections in turn</div></div>
-            <div className="ctl"><label>Closing picture</label><select value={rules.closingImageId ?? ''} onChange={e => setRules(r => ({ ...r, closingImageId: e.target.value || undefined }))}><option value="">none</option>{lookbook.map((i, n) => <option key={i.id} value={i.id}>{i.caption || `picture ${n + 1}`}</option>)}</select></div>
-            <div className="ctl" style={{ flex: 1 }}><label>Sign-off on the closing slide</label><input value={rules.signoff} placeholder={`from the world of ${project.name || 'the film'}`} onChange={e => setRules(r => ({ ...r, signoff: e.target.value }))} /></div>
+            <div className="ctl"><label htmlFor="ds-cover">Cover picture</label><select id="ds-cover" aria-describedby="ds-cover-hint" value={rules.coverImageId ?? ''} onChange={e => setRules(r => ({ ...r, coverImageId: e.target.value || undefined }))}><option value="">none (the title is typed on the first slide)</option>{lookbook.map((i, n) => <option key={i.id} value={i.id}>{i.caption || `picture ${n + 1}`}</option>)}</select><div className="hint" id="ds-cover-hint">a cover fills the slide and carries the title; the logline sits on a band at the foot</div></div>
+            <div className="ctl"><label htmlFor="ds-looks">Full-bleed look slides</label><input id="ds-looks" aria-describedby="ds-looks-hint" type="number" min={0} max={6} value={rules.lookSlides ?? 3} onChange={e => setRules(r => ({ ...r, lookSlides: Math.max(0, Math.min(6, +e.target.value || 0)) }))} style={{ width: 70 }} /><div className="hint" id="ds-looks-hint">pictures no slide took, one a slide, the sections in turn</div></div>
+            <div className="ctl"><label htmlFor="ds-closing">Closing picture</label><select id="ds-closing" value={rules.closingImageId ?? ''} onChange={e => setRules(r => ({ ...r, closingImageId: e.target.value || undefined }))}><option value="">none</option>{lookbook.map((i, n) => <option key={i.id} value={i.id}>{i.caption || `picture ${n + 1}`}</option>)}</select></div>
+            <div className="ctl" style={{ flex: 1 }}><label htmlFor="ds-signoff">Sign-off on the closing slide</label><input id="ds-signoff" value={rules.signoff ?? ''} placeholder={`from the world of ${project.name || 'the film'}`} onChange={e => setRules(r => ({ ...r, signoff: e.target.value }))} /></div>
           </div>
         </div>
-        <div className="swatch" style={{ background: d.colors.bg, color: d.colors.ink, fontFamily: d.fonts.body || undefined }}>
-          {d.logoDataUrl && <img src={d.logoDataUrl} alt="" />}
-          <div className="t" style={{ fontFamily: d.fonts.title || 'var(--font-title)', color: d.colors.accent }}>{project.name || 'The film'}</div>
-          <div style={{ color: d.colors.accent2 }}>Why this film, why now</div>
-          <div style={{ color: d.colors.muted }} className="small">{d.name || 'your design system'}</div>
+        <div className="swatch" style={{ backgroundColor: plainColor(d.colors.bg, base.colors.bg), color: plainColor(d.colors.ink, base.colors.ink), fontFamily: d.fonts.body || undefined }}>
+          {typeof d.logoDataUrl === 'string' && d.logoDataUrl.startsWith('data:image/') && <img src={d.logoDataUrl} alt="" />}
+          <div className="t" style={{ fontFamily: d.fonts.title || 'var(--font-title)', color: plainColor(d.colors.accent, base.colors.accent) }}>{project.name || 'The film'}</div>
+          <div style={{ color: plainColor(d.colors.accent2, base.colors.accent2) }}>Why this film, why now</div>
+          <div style={{ color: plainColor(d.colors.muted, base.colors.muted) }} className="small">{d.name || 'your design system'}</div>
         </div>
       </div>
     </div>
@@ -299,7 +320,7 @@ export function TeamPanel({ project, setPitch }: { project: Project; setPitch: S
   const team = withPitch(project).pitch!.team ?? [];
   const patch = (id: string, f: Partial<TeamMember>) => setPitch(x => ({ ...x, team: (x.team ?? []).map(t => t.id === id ? { ...t, ...f } : t) }));
   return (
-    <div className="panel team">
+    <div className="panel team" id="pitch-team">
       <h2>The team</h2>
       {team.map(t => (
         <div className="item" key={t.id}>

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { Suspense, lazy, useRef, useState } from 'react';
 import type { Comp, Project, RevenueLine } from '../engine/types';
 import { CASES, DEFAULT_GROUP, adoptProjectionsAsScenarios, compGroups, compMultiple, compStats, newComp, newRevenueLine, newSection, projections, withPitch } from '../engine/pitch';
 import { recoupableBudget, sponsorNet } from '../engine/waterfall';
@@ -11,13 +11,19 @@ import { Deck } from './Deck';
 import { deckToPdf, downloadBlob } from './deckPdf';
 import { aiReady } from '../ai';
 import { deckSlides } from '../engine/deck';
+import { Boundary } from './Boundary';
+import { PANEL, goToPanel, type PanelKey } from './jump';
+
+// the pitch deck builder brings the deck's runtime and stylesheet with it, so it loads when the Pitch tab is first opened
+const PitchDeck = lazy(() => import('./PitchDeck'));
 
 type SetProject = (f: (p: Project) => Project) => void;
+const JUMPS: [PanelKey, string][] = [['write', 'Write the pitch'], ['lookbook', 'Look book'], ['design', 'Design'], ['deck', 'Pitch deck'], ['report', 'Report deck']];
 const CASE_LABEL = { low: 'Low', mid: 'Mid', high: 'High' } as const;
 const num = (v: string): number | null => { const n = +v.replace(/[^\d.-]/g, ''); return v.trim() === '' || isNaN(n) ? null : n; };
 
 /** The investor-facing page: logline, who it's for, what it's like, what it could make. All of it typed by you; the math comes from the Deal. */
-export function PitchView({ project, setProject }: { project: Project; setProject: SetProject }) {
+export function PitchView({ project, setProject, onTab, onUndo, undoDepth }: { project: Project; setProject: SetProject; onTab?: (tab: string) => void; onUndo?: () => void; undoDepth?: number }) {
   const p = withPitch(project); const pitch = p.pitch!;
   const set = (f: (x: NonNullable<Project['pitch']>) => NonNullable<Project['pitch']>) => setProject(q => { const w = withPitch(q); return { ...w, pitch: f(w.pitch!) }; });
   const setComp = (id: string, patch: Partial<Comp>) => set(x => ({ ...x, comps: x.comps.map(c => c.id === id ? { ...c, ...patch } : c) }));
@@ -47,7 +53,7 @@ export function PitchView({ project, setProject }: { project: Project; setProjec
   const body = (
     <div className="pitchdoc">
       <AiPanel onChange={setAi} project={p} setPitch={set} />
-      <div className="panel"><h2>The film</h2>
+      <div className="panel" id={PANEL.write}><h2>The film</h2>
         <div className="ctl"><label>Logline <Draft what="logline" project={p} ready={ai} onUse={t => set(x => ({ ...x, logline: t }))} /></label><textarea rows={2} value={pitch.logline} onChange={e => set(x => ({ ...x, logline: e.target.value }))} placeholder="One or two sentences." /></div>
         <div className="ctl" style={{ marginTop: 8 }}><label>Why this film, why now <Draft what="why" project={p} ready={ai} onUse={t => set(x => ({ ...x, why: t }))} /></label><textarea rows={4} value={pitch.why} onChange={e => set(x => ({ ...x, why: e.target.value }))} placeholder="In your words." /></div>
         <div className="row" style={{ marginTop: 8 }}>
@@ -83,7 +89,7 @@ export function PitchView({ project, setProject }: { project: Project; setProjec
         <div className="row"><button className="btn small" onClick={() => set(x => ({ ...x, sections: [...x.sections, newSection()] }))}>Add a section</button><span className="hint">The argument: why women will show up, the path to market, whatever you need an investor to believe. Each section prints under its heading.</span></div>
       </div>
 
-      <div className="panel"><h2>Comparable films</h2>
+      <div className="panel" id={PANEL.comps}><h2>Comparable films</h2>
         <table className="comps">
           <thead><tr><th className="l">Title</th><th>Year</th><th className="l">Distributor</th><th>Budget</th><th>Domestic</th><th>Worldwide</th><th>×</th><th className="l">Release / sale</th><th className="l">Group</th><th className="l">Source</th><th></th></tr></thead>
           <tbody>
@@ -113,7 +119,7 @@ export function PitchView({ project, setProject }: { project: Project; setProjec
           <span className="hint">Grosses are box office, not what the film saw. Budget and gross in whole dollars; × is worldwide over budget. Type a group name to sort comps under the argument they support; each group gets its own median.</span></div>
       </div>
 
-      <div className="panel"><h2>What it could make</h2>
+      <div className="panel" id={PANEL.revenue}><h2>What it could make</h2>
         <table className="proj">
           <thead><tr><th className="l">Receipts to the film, by source</th>{CASES.map(c => <th key={c}>{CASE_LABEL[c]}</th>)}<th></th></tr></thead>
           <tbody>
@@ -150,12 +156,18 @@ export function PitchView({ project, setProject }: { project: Project; setProjec
       <ResearchPanel project={p} setPitch={set} />
       <TeamPanel project={p} setPitch={set} />
 
-      <div className="panel deckpanel"><h2>Investor deck</h2>
-        <p className="help">Every slide is drawn from this tab and the rest of the project: the logline and the case, the look book by section, the audience, the comps, the plan (days, dates, sets, cast, crew, the SAG tier), the numbers from the top sheet, the deal and the three cases, the team, the research, the ask. Styled by the design system above. {deckSlides(p).length} slides as it stands; 16:9 pages, Print saves a PDF.</p>
+      <Boundary what="The pitch deck builder">
+        <Suspense fallback={<div className="panel"><h2>Pitch deck</h2><p className="help">Loading the deck builder…</p></div>}>
+          <PitchDeck project={p} setPitch={set} onTab={onTab} onUndo={onUndo} undoDepth={undoDepth} />
+        </Suspense>
+      </Boundary>
+
+      <div className="panel deckpanel" id={PANEL.report}><h2>Report deck</h2>
+        <p className="help"><b>Report deck: an automatic printout of everything, for your own files.</b> You do not lay it out yourself. Every slide is drawn from this tab and the rest of the project: the logline and the case, the look book by section, the audience, the comps, the plan (days, dates, sets, cast, crew, the SAG tier), the numbers from the top sheet, the deal and the three cases, the team, the research, the ask. Styled by the design system above. {deckSlides(p).length} slides as it stands; 16:9 pages, Print saves a PDF.</p>
         <div className="row">
           <div className="ctl"><label>Byline on the title slide</label><input value={byline} placeholder={`a film by …`} onChange={e => setByline(e.target.value)} style={{ width: 260 }} /></div>
           <button className="btn small" onClick={() => setDeck(d => d === 'preview' ? 'off' : 'preview')}>{deck === 'preview' ? 'Hide the preview' : 'Preview the deck'}</button>
-          <button className="btn small primary" disabled={deck === 'render'} onClick={makePdf}>{deck === 'render' ? progress || 'Rendering…' : 'Download the PDF'}</button>
+          <button className="btn small" disabled={deck === 'render'} onClick={makePdf}>{deck === 'render' ? progress || 'Rendering…' : 'Download the PDF'}</button>
           <button className="btn small ghost" onClick={() => setDeck('print')} title="The browser's print dialog instead (set the paper to 13.33 × 7.5 in landscape and turn on backgrounds; Safari ignores the page size the deck asks for)">Print instead</button>
           {progress && deck !== 'render' && <span className="small warn">{progress}</span>}
         </div>
@@ -172,6 +184,10 @@ export function PitchView({ project, setProject }: { project: Project; setProjec
           <h2>Pitch</h2>
           <button className="btn small" onClick={() => setPrinting(true)}>Print / save as PDF</button>
         </div>
+        <nav className="pitchjump" aria-label="Parts of the Pitch tab">
+          <span className="pitchjump-lab">Jump to</span>
+          {JUMPS.map(([key, label]) => <a key={key} href={`#${PANEL[key]}`} onClick={e => { e.preventDefault(); goToPanel(key); }}>{label}</a>)}
+        </nav>
         <p className="help small">Everything on this page is yours to write and edit; nothing here is computed from the script (AI assist, if you turn it on with your own key, only drafts; you decide what stays). The budget, back end and investor split are read live from the Deal, so when the budget moves the projection moves with it.</p>
       </div>
       {body}

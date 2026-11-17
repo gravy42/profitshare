@@ -10,6 +10,7 @@ import { allSwitches, pathFor } from '../engine/pathMath';
 import type { PathInputs, PathResult } from '../engine/pathMath';
 import type { DeckData, DeckRecipient } from './data';
 import { money, moneyParts, multiple, shares100 } from './format';
+import { cleanFamily, faceName, fontSrcOk, MAX_FONT_FACES } from './fonts';
 
 export type Lead = 'with-grants' | 'without-grants';
 
@@ -22,6 +23,9 @@ export interface MountOptions {
   pageKeys?: boolean;      // also page on arrow keys pressed while nothing on the page has focus (for a page that is only the deck)
   stacked?: boolean;       // the stacked reading layout: true always; false never (a scaled preview: small print has no pixel floor
                            // either, so `checkOverflow` says what is true at full size); left out, it follows the size of the host
+  startAt?: number;        // the slide to open on (an index into the slides drawn); the deck is there at once, with no scroll to watch
+  motion?: boolean;        // false: nothing rises or drops in, every slide is in its final state, and the deck still pages and switches (an editor's preview)
+  onSlide?: (index: number) => void;   // told when another slide becomes the current one, by paging or by scrolling
 }
 export interface DeckHandle {
   destroy(): void;
@@ -54,6 +58,23 @@ const PAGE_STYLE_ID = 'psd-page-style';
 const PAGE_CSS = '@page psd-deck{size:1600px 900px;margin:0}';
 
 const live = new WeakMap<HTMLElement, DeckHandle>();                                   // one deck per host
+// Font files are registered on the document (an @font-face rule does nothing inside a shadow tree), once per file,
+// counted, and taken off again when the last deck that uses one has gone.
+interface FaceLike { load?: () => Promise<unknown>; status?: string }
+interface FaceSet { add(f: FaceLike): unknown; delete(f: FaceLike): unknown }
+const facePool = new WeakMap<Document, Map<string, { face: FaceLike; n: number }>>();
+
+/** The font files a theme carries that are safe to use: a clean family name, a base64 font data URL, a known role. */
+export function cleanFontFaces(raw: unknown): { family: string; src: string; role: 'title' | 'body' }[] {
+  const out: { family: string; src: string; role: 'title' | 'body' }[] = [];
+  for (const f of list(raw)) {
+    const family = cleanFamily(f.family);
+    if (!family || !fontSrcOk(f.src) || (f.role !== 'title' && f.role !== 'body')) continue;
+    out.push({ family, src: f.src, role: f.role });
+    if (out.length >= MAX_FONT_FACES) break;
+  }
+  return out;
+}
 const pageStyles = new WeakMap<Document, { st: HTMLStyleElement; n: number }>();       // one @page rule per document, counted
 
 // ---------- reading untrusted data ----------
@@ -257,11 +278,54 @@ type Kid = Node | string | null | undefined | false;
 interface Part { index: number; layout: string; section: HTMLElement; box: HTMLElement; cells: HTMLElement[]; update?: () => void }
 type Timer = ReturnType<typeof setTimeout>;
 
+interface TakenFaces { faces: { family: string; src: string; role: 'title' | 'body'; name: string }[]; loads: Promise<unknown>[]; release: () => void }
+/** Registers a theme's font files with the document and says what each was registered as. `release` lets go of them
+ *  (once: a second call does nothing); a face another deck still holds stays. */
+function takeFaces(doc: Document, win: (Window & typeof globalThis) | null, theme: unknown): TakenFaces {
+  const faces = cleanFontFaces(obj(theme).fontFaces).map(f => ({ ...f, name: faceName(f.role, f.family, f.src) }));
+  const releases: (() => void)[] = [];
+  const loads: Promise<unknown>[] = [];
+  const Face = win && (win as unknown as { FontFace?: new (family: string, src: string) => FaceLike }).FontFace;
+  const set = (doc as unknown as { fonts?: FaceSet }).fonts;
+  if (Face && set && typeof set.add === 'function') {
+    let pool = facePool.get(doc);
+    if (!pool) { pool = new Map(); facePool.set(doc, pool); }
+    const mine = pool;
+    for (const f of faces) {
+      const key = `${f.name}\n${f.src}`;   // the name carries a hash of the file; the file itself settles the one-in-a-billion clash
+      let entry = mine.get(key);
+      if (!entry) {
+        try {
+          const face = new Face(f.name, `url("${f.src}")`);   // the address was checked: base64 only, so nothing in it can close the quotes
+          set.add(face);
+          entry = { face, n: 0 };
+          mine.set(key, entry);
+        } catch { continue; }   // a file the browser will not take: the stack falls through to the next family
+      }
+      entry.n++;
+      const held = entry;
+      const p = held.face.status === 'loaded' ? null : held.face.load?.();
+      if (p && typeof p.then === 'function') loads.push(p.then(() => undefined, () => undefined));
+      releases.push(() => { if (--held.n <= 0) { try { set.delete(held.face); } catch { /* already gone */ } if (mine.get(key) === held) mine.delete(key); } });
+    }
+  }
+  return { faces, loads, release: () => { for (const fn of releases.splice(0)) fn(); } };
+}
+
 export function mountDeck(host: HTMLElement, data: DeckData, opts: MountOptions = {}): DeckHandle {
-  live.get(host)?.destroy();   // a host shows one deck: the one before this goes first, with its listeners
+  const doc = host.ownerDocument;
+  // font files are taken before the deck this one replaces lets go of its own, so a face both use is never dropped and read again
+  const taken = takeFaces(doc, doc.defaultView, obj(obj(data).theme));
+  try { return mountWith(host, data, opts, taken); }
+  catch (err) { taken.release(); throw err; }   // a mount that fails leaves nothing registered behind it
+}
+
+function mountWith(host: HTMLElement, data: DeckData, opts: MountOptions, taken: TakenFaces): DeckHandle {
   const doc = host.ownerDocument;
   const win = doc.defaultView;
   const d = obj(data);
+  const faces = taken.faces, faceLoads = taken.loads;
+  live.get(host)?.destroy();   // a host shows one deck: the one before this goes first, with its listeners
   const isStatic = !!opts.static;
   const cur = str(d.currency) || 'USD';
   const film = str(d.film);
@@ -288,6 +352,7 @@ export function mountDeck(host: HTMLElement, data: DeckData, opts: MountOptions 
   const later = (fn: () => void, ms: number): Timer => { const t: Timer = setTimeout(() => { timers.delete(t); if (!destroyed) fn(); }, ms); timers.add(t); return t; };
   const cancel = (t: Timer | null) => { if (t != null) { clearTimeout(t); timers.delete(t); } };
   cleanups.push(() => { for (const t of timers) clearTimeout(t); timers.clear(); });
+  cleanups.push(taken.release);
   const listen = (target: EventTarget, type: string, fn: (e: Event) => void, options?: AddEventListenerOptions) => {
     target.addEventListener(type, fn, options);
     cleanups.push(() => target.removeEventListener(type, fn, options));
@@ -321,13 +386,15 @@ export function mountDeck(host: HTMLElement, data: DeckData, opts: MountOptions 
   const shadow: ShadowRoot | HTMLElement = typeof host.attachShadow === 'function' ? (host.shadowRoot ?? host.attachShadow({ mode: 'open' })) : host;
   while (shadow.firstChild) shadow.removeChild(shadow.firstChild);
   if (typeof opts.css === 'string') { const st = doc.createElement('style'); st.textContent = opts.css; shadow.appendChild(st); }
-  const root = el('div', `psd${isStatic ? ' psd-static' : ''}${opts.stacked === false ? ' psd-scaled' : ''}`);
+  const root = el('div', `psd${isStatic ? ' psd-static' : ''}${opts.stacked === false ? ' psd-scaled' : ''}${opts.motion === false ? ' psd-still' : ''}`);
   root.setAttribute('role', 'region');
   root.setAttribute('aria-roledescription', 'slide deck');
   root.setAttribute('aria-label', `${film || 'Film'} pitch deck. Use the arrow keys to move between slides.`);
   if (!isStatic) root.tabIndex = 0;
   const fonts = obj(theme.fonts);
-  const vars: Record<string, string> = { ...deckColors(theme.colors), '--psd-title-font': fontStack(fonts.title, TITLE_FALLBACK), '--psd-body-font': fontStack(fonts.body, BODY_FALLBACK) };
+  // a font file goes in front of its role's stack, under the name it was registered with
+  const withFaces = (role: 'title' | 'body', stack: string) => [...faces.filter(f => f.role === role).map(f => `"${f.name}"`), stack].join(', ');
+  const vars: Record<string, string> = { ...deckColors(theme.colors), '--psd-title-font': withFaces('title', fontStack(fonts.title, TITLE_FALLBACK)), '--psd-body-font': withFaces('body', fontStack(fonts.body, BODY_FALLBACK)) };
   for (const k of Object.keys(vars)) root.style.setProperty(k, vars[k]);
 
   // --- shared pieces ---
@@ -381,7 +448,7 @@ export function mountDeck(host: HTMLElement, data: DeckData, opts: MountOptions 
       const body = paras(s.body, 'psd-p');
       return [head(s), body.length ? el('div', 'psd-prose', ...body) : null, aside, rise(txt('p', 'psd-closing', s.closing))];
     },
-    cards(s) { return [head(s), cardRow(s.cards)]; },
+    cards(s, part) { return layouts.ways(s, part); },   // a row of cards either way: a recipient can have one of them picked out
     ways(s, part) {
       const row = cardRow(s.cards);
       part.update = () => {
@@ -709,6 +776,9 @@ export function mountDeck(host: HTMLElement, data: DeckData, opts: MountOptions 
 
   // --- which slide is showing, and moving between them ---
   const stageOf = (i: number) => parts[i]?.section.parentElement as HTMLElement | undefined;
+  const startAt = typeof opts.startAt === 'number' && Number.isFinite(opts.startAt) ? Math.max(0, Math.min(parts.length - 1, Math.round(opts.startAt))) : 0;
+  current = startAt;
+  let told = current;   // the slide `onSlide` last heard about
   const reduced = () => isStatic || !!win?.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   const paged = () => !isStatic && !stacked && !unbounded;   // one slide on show at a time
   /** Marks the current slide. While one slide shows at a time the others are inert (nothing on a slide that is out
@@ -719,6 +789,7 @@ export function mountDeck(host: HTMLElement, data: DeckData, opts: MountOptions 
     const active = 'activeElement' in shadow ? (shadow as ShadowRoot).activeElement : doc.activeElement;
     if (moveFocus && active && active !== root && root.contains(active) && !parts[current]?.section.contains(active)) root.focus({ preventScroll: true });
     parts.forEach((p, i) => { p.section.toggleAttribute('data-current', i === current); p.section.toggleAttribute('inert', page && i !== current); });
+    if (current !== told) { told = current; try { opts.onSlide?.(current); } catch { /* the listener's own trouble */ } }
   };
   const scrolls = () => root.scrollHeight > root.clientHeight + 1;
   /** The slide at the top of the view: the last one that starts above the middle of it. */
@@ -733,6 +804,12 @@ export function mountDeck(host: HTMLElement, data: DeckData, opts: MountOptions 
     return best;
   };
   let flight: Timer | null = null;   // set while a scroll this code started is on its way
+  // While the host is being resized (a window drag, full screen) the browser snaps the scroll to whatever slide is
+  // nearest at the new size. That is not the reader paging: nothing is followed until the deck is back where it was.
+  let frozen = false;
+  let thaw: Timer | null = null;
+  let settle: Timer | null = null;
+  const freeze = () => { frozen = true; cancel(settle); settle = null; cancel(thaw); thaw = null; };
   const land = () => { cancel(flight); flight = null; };
   function goTo(index: number) {
     if (destroyed || !parts.length) return;
@@ -764,17 +841,16 @@ export function mountDeck(host: HTMLElement, data: DeckData, opts: MountOptions 
     // a page that is only the deck: keys pressed with nothing focused page it too, so it never has to take focus on load
     if (opts.pageKeys) listen(doc, 'keydown', e => { if (e.target === doc.body || e.target === doc.documentElement) onKey(e); });
     // the reader scrolls by hand: follow, once the scroll settles
-    let settle: Timer | null = null;
     listen(root, 'scroll', () => {
-      if (flight || settle != null) return;
-      settle = later(() => { settle = null; if (flight) return; const n = nearest(); if (n !== current) { current = n; mark(); } }, 120);
+      if (flight || frozen || settle != null) return;
+      settle = later(() => { settle = null; if (flight || frozen) return; const n = nearest(); if (n !== current) { current = n; mark(); } }, 120);
     }, { passive: true });
     listen(root, 'scrollend', land);
   }
 
   // --- motion: a slide gets `psd-seen` when it scrolls into view ---
   const IO = win && (win as unknown as { IntersectionObserver?: typeof IntersectionObserver }).IntersectionObserver;
-  if (isStatic || !IO) for (const p of parts) p.section.classList.add('psd-seen');
+  if (isStatic || !IO || opts.motion === false) for (const p of parts) p.section.classList.add('psd-seen');
   else {
     const io = new IO(entries => {
       for (const en of entries) {
@@ -803,15 +879,32 @@ export function mountDeck(host: HTMLElement, data: DeckData, opts: MountOptions 
     fitAll();
   };
   layout();
+  // open on the slide asked for, at once: no scroll to watch (and none for `onSlide` to report)
+  const jump = () => { const st = stageOf(current); if (st && current > 0 && !isStatic && typeof root.scrollTo === 'function' && scrolls()) root.scrollTo({ top: st.offsetTop, behavior: 'instant' as ScrollBehavior }); };
+  if (startAt > 0) { flight = later(() => { flight = null; }, 300); jump(); }
+  // a slide's height follows the host's, so after a resize the same scroll offset is another slide: lay out again, go
+  // back to the current slide, and only then start following the reader's own scrolling again
+  let pending: Timer | null = null;
+  const resized = () => {
+    if (destroyed) return;
+    freeze();
+    if (pending == null) pending = later(() => {
+      pending = null;
+      layout();
+      if (paged()) jump();
+      thaw = later(() => { thaw = null; frozen = false; }, 300);
+    }, 150);
+  };
   const RO = win && (win as unknown as { ResizeObserver?: typeof ResizeObserver }).ResizeObserver;
   if (RO) {
-    let pending: Timer | null = null;
-    const ro = new RO(() => { if (pending == null) pending = later(() => { pending = null; layout(); }, 150); });
+    const ro = new RO(resized);
     ro.observe(host);
     cleanups.push(() => ro.disconnect());
   }
+  if (!isStatic) listen(doc, 'fullscreenchange', resized);
   // the typefaces arrive after the first layout, and change what fits
   (doc as Document & { fonts?: { ready?: Promise<unknown> } }).fonts?.ready?.then(() => { fitAll(); }, () => { /* nothing to refit */ });
+  if (faceLoads.length) void Promise.all(faceLoads).then(() => { fitAll(); });
 
   // --- printing: @page does not apply from inside a shadow tree, so the (named, harmless elsewhere) page rule goes
   //     in the document, once, and stays until the last deck that needs it has gone ---

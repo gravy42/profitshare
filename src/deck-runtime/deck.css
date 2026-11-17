@@ -329,6 +329,12 @@
 .psd-static .psd-stage { height: auto; display: block; page: psd-deck; break-after: page; break-inside: avoid; }
 .psd-static .psd-stage:last-child { break-after: auto; }
 .psd-static .psd-slide { width: 100cqw; }
+/* a deck mounted without motion (an editor's preview): everything is where it lands, and the deck still pages */
+.psd-still .psd-rise, .psd-still .psd-drop, .psd-still .psd-bar-fill, .psd-still .psd-seg { transition: none !important; }
+.psd-still .psd-rise { opacity: 1; transform: none; }
+.psd-still .psd-drop { opacity: 1; transform: rotate(var(--r, 0deg)); }
+.psd-still .psd-bar-fill { width: var(--w, 0%); }
+.psd-still:not(.psd-static) { scroll-behavior: auto; }
 .psd-static .psd-rise, .psd-static .psd-drop, .psd-static .psd-bar-fill, .psd-static .psd-seg { transition: none !important; }
 .psd-static .psd-rise { opacity: 1; transform: none; }
 .psd-static .psd-drop { opacity: 1; transform: rotate(var(--r, 0deg)); }

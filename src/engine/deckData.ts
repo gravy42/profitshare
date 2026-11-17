@@ -5,6 +5,7 @@
 import type { LookImage, Project, Recipient, SlideCard, SlideSpec, Waterfall } from './types';
 import type { DeckCard, DeckData, DeckImage, DeckMilestone, DeckRecipient, DeckSlide, DeckStat, DeckTheme } from '../deck-runtime/data';
 import { DECK_DATA_VERSION } from '../deck-runtime/data';
+import { cleanFamily, fontSrcOk, MAX_FONT_FACES } from '../deck-runtime/fonts';
 import { withPitch, defaultDesign, defaultDeckRules, compGroups, compMultiple } from './pitch';
 import { unlabel } from './deck';
 import { topSheet } from './budget';
@@ -15,7 +16,10 @@ import { sponsorNet } from './waterfall';
 import { pathInputs } from './paths';
 import { pathFor } from './pathMath';
 
-export interface DeckDataOptions { today?: string }   // ISO date; only for the month and year in the default cover line
+export interface DeckDataOptions {
+  today?: string;                  // ISO date; only for the month and year in the default cover line
+  fonts?: 'all' | 'embeddable';    // which attached font files the deck carries: only those cleared to travel in a file (the default: what a deck that is sent may hold), or all of them (the in-app preview)
+}
 
 export const DECK_LEGAL = 'The figures in this deck are illustrative projections, not a promise of returns. Investing in a film is speculative and investors can lose all of the money they put in. This deck is not an offer to sell securities or a solicitation of an offer to buy them.';
 export const DARK_INK = '#1b1608', LIGHT_INK = '#f4eddc';
@@ -100,7 +104,7 @@ export function defaultSlides(p0: Project): SlideSpec[] {
 /** The slides the deck is built from: the author's own when there are any, else the default. */
 export function slidesOf(p: Project): SlideSpec[] {
   const own = p.pitch?.slides;
-  return own && own.length ? own : defaultSlides(p);
+  return Array.isArray(own) && own.length ? own : defaultSlides(p);
 }
 
 // ---------- colour ----------
@@ -126,17 +130,42 @@ export function cardInkFor(card: string): string {
   return contrast(l, luminance(LIGHT_INK)!) > contrast(l, luminance(DARK_INK)!) ? LIGHT_INK : DARK_INK;
 }
 
-function themeOf(p: Project): DeckTheme {
+/** A font stack as the deck can carry it: an entry that is a CSS variable (`var(--font-title)`, which a brand-book
+ *  import adds for the app's own pages) means nothing inside a deck file, so it is taken out. */
+export const stackOf = (stack: unknown): string =>
+  (typeof stack === 'string' ? stack : '').split(',').map(x => x.trim()).filter(x => x && !/var\s*\(/i.test(x)).join(', ');
+
+function themeOf(p: Project, opts: DeckDataOptions = {}): DeckTheme {
   const d = p.pitch?.design; const base = defaultDesign();
-  const col = (k: keyof typeof base.colors) => (d?.colors?.[k] ?? '').trim() || base.colors[k];
+  const faces = fontFacesOf(p, opts.fonts !== 'all');
+  const raw = (v: unknown) => (typeof v === 'string' ? v.trim() : '');   // a hand-edited file can hold anything where a colour or a name belongs
+  const col = (k: keyof typeof base.colors) => raw(d?.colors?.[k]) || base.colors[k];
   const muted = col('muted');
-  const card = (d?.card ?? '').trim() || DEFAULT_CARD;
+  const card = raw(d?.card) || DEFAULT_CARD;
   return {
-    name: d?.name ?? '',
-    colors: { bg: col('bg'), ink: col('ink'), accent: col('accent'), accent2: col('accent2'), muted, card, cardInk: cardInkFor(card), line: (d?.line ?? '').trim() || muted },
-    fonts: { title: d?.fonts?.title ?? '', body: d?.fonts?.body ?? '' },
-    signoff: (d?.deck ?? defaultDeckRules()).signoff ?? '',
+    name: raw(d?.name),
+    colors: { bg: col('bg'), ink: col('ink'), accent: col('accent'), accent2: col('accent2'), muted, card, cardInk: cardInkFor(card), line: raw(d?.line) || muted },
+    fonts: { title: stackOf(d?.fonts?.title), body: stackOf(d?.fonts?.body) },
+    signoff: raw(d?.deck?.signoff),
+    ...(faces.length ? { fontFaces: faces } : {}),
   };
+}
+
+/** The font files a deck can use: one a role (the first wins), a clean family name, the file present and really a
+ *  font. `embedOnly` (the default) keeps only the files whose licence the author says lets them travel: what a deck
+ *  that is sent may carry. The in-app preview passes false. */
+export function fontFacesOf(p: Project, embedOnly = true): NonNullable<DeckTheme['fontFaces']> {
+  const out: NonNullable<DeckTheme['fontFaces']> = []; const seen = new Set<string>();
+  const files = p.pitch?.design?.fontFiles;
+  for (const f of Array.isArray(files) ? files : []) {
+    if (!f || typeof f !== 'object' || (f.role !== 'title' && f.role !== 'body') || seen.has(f.role)) continue;
+    const family = cleanFamily(f.family);
+    if (!family || !fontSrcOk(f.dataUrl) || (embedOnly && f.embedOk !== true)) continue;
+    seen.add(f.role);
+    out.push({ family, src: f.dataUrl, role: f.role });
+    if (out.length >= MAX_FONT_FACES) break;
+  }
+  return out;
 }
 
 // ---------- the parts the project fills in ----------
@@ -347,18 +376,21 @@ function pathsOf(p: Project): DeckData['paths'] {
   return { ...x, cases: x.cases.filter(c => c.gross > 0) };
 }
 
+/** The look book's pictures that can be read at all: a hand-edited file can hold anything in that list. */
+const looks = (x: unknown): LookImage[] => (Array.isArray(x) ? x.filter((i): i is LookImage => isObj(i) && typeof i.id === 'string' && typeof i.dataUrl === 'string') : []);
+
 /** The deck as the runtime reads it. */
 export function deckData(p0: Project, opts: DeckDataOptions = {}): DeckData {
   const p = withPitch(p0); const pitch = p.pitch!;
-  const pictures = new Map((pitch.lookbook ?? []).filter(i => i.dataUrl).map(i => [i.id, i] as const));
+  const pictures = new Map(looks(pitch.lookbook).filter(i => i.dataUrl).map(i => [i.id, i] as const));
   const slides = cleanSlides(p).filter(s => !s.hidden).map(s => slideOf(p, s, pictures));
   const usedIds = new Set(slides.map(s => s.imageId).filter((id): id is string => !!id));
-  const images: DeckImage[] = [...pictures.values()].filter(i => usedIds.has(i.id)).map(i => ({ id: i.id, src: i.dataUrl, alt: i.caption.trim() || 'Look book picture' }));
+  const images: DeckImage[] = [...pictures.values()].filter(i => usedIds.has(i.id)).map(i => ({ id: i.id, src: i.dataUrl, alt: text(i.caption) || 'Look book picture' }));
   const data: DeckData = {
     version: DECK_DATA_VERSION,
     film: p.name,
     coverLine: coverLineOf(opts.today),
-    theme: themeOf(p),
+    theme: themeOf(p, opts),
     images,
     slides,
     recipients: recipientsOf(pitch.recipients),
@@ -369,34 +401,50 @@ export function deckData(p0: Project, opts: DeckDataOptions = {}): DeckData {
   return JSON.parse(JSON.stringify(data)) as DeckData;   // plain JSON, whatever a hand-edited project file carried in
 }
 
-/** What the author should fix, one entry per problem. A recipient's problems carry `recipient:<id>` as the slide id. */
-export function deckWarnings(p0: Project): { slideId: string; message: string }[] {
+/** One thing the author should fix. `slideId` is the slide it is on (`deck` and `design` for the whole deck and the
+ *  design system, `recipient:<id>` for a person). `where` says what to open to fix it, so a page can link there:
+ *  `revenue`, `deal`, `design`, `picture`, `cards`, `lead`, `stat:<id>`, `recipient:<position in the list>`. */
+export interface DeckWarning { slideId: string; message: string; where?: string }
+
+/** What the author should fix, one entry per problem. Nothing here assumes a well-formed file. */
+export function deckWarnings(p0: Project): DeckWarning[] {
   const p = withPitch(p0); const pitch = p.pitch!;
-  const ids = new Set((pitch.lookbook ?? []).map(i => i.id));
-  const out: { slideId: string; message: string }[] = [];
+  const ids = new Set(looks(pitch.lookbook).map(i => i.id));
+  const out: DeckWarning[] = [];
   const typed = slidesOf(p);
-  const clean = typed.map(cleanSpec);
-  const dropped = clean.filter(s => !s).length;
-  if (dropped) out.push({ slideId: 'deck', message: `${dropped} slide${dropped === 1 ? ' is' : 's are'} of a kind this version does not know, and ${dropped === 1 ? 'is' : 'are'} left off the deck.` });
+  const clean = (Array.isArray(typed) ? typed : []).map(cleanSpec);
+  // a slide with an id and a layout this version has no drawing for; nonsense in the list is not a slide and is not counted
+  const dropped = (Array.isArray(typed) ? typed : []).filter((r: unknown) => isObj(r) && !!text(r.id) && !!text(r.layout) && !LAYOUTS.has(text(r.layout))).length;
+  if (dropped) out.push({ slideId: 'deck', message: `${dropped} slide${dropped === 1 ? ' was' : 's were'} made in a newer version of ProfitShare and cannot be shown here.` });
   const paths = pathInputs(p);
   for (const s of clean) {
     if (!s || s.hidden) continue;
-    if (s.layout === 'numbers' && !paths.cases.some(c => c.gross > 0)) out.push({ slideId: s.id, message: 'No revenue cases are typed yet, so this slide shows what investors fund but not what comes back. Add low, mid and high receipts under Revenue.' });
-    if ((s.layout === 'numbers' || s.layout === 'ask') && paths.cashBudget > 0 && pathFor(paths).investors <= 0) out.push({ slideId: s.id, message: 'Grants, credits and perks already cover the whole budget, so this slide asks investors for nothing. Check the amounts under Deal.' });
+    if (s.layout === 'numbers' && !paths.cases.some(c => c.gross > 0)) out.push({ slideId: s.id, where: 'revenue', message: 'No receipts are typed yet, so this slide shows what investors fund but not what comes back. Add low, mid and high receipts under What it could make.' });
+    if ((s.layout === 'numbers' || s.layout === 'ask') && paths.cashBudget > 0 && pathFor(paths).investors <= 0) out.push({ slideId: s.id, where: 'deal', message: 'Grants, credits and perks already cover the whole budget, so this slide asks investors for nothing. Check the amounts on the Deal tab.' });
     if (s.layout === 'stats') {
-      if (s.lead && !sourced(s.lead)) out.push({ slideId: s.id, message: `The lead number${text(s.lead.value) ? ` "${s.lead.value.trim()}"` : ''} has no source, so it is left off the deck.` });
-      for (const x of s.stats ?? []) if (!sourced(x)) out.push({ slideId: s.id, message: `The stat${text(x.value) ? ` "${x.value.trim()}"` : ''} has no source, so it is left off the deck.` });
+      // a number nobody has started typing is not a problem yet
+      if (s.lead && (text(s.lead.value) || text(s.lead.text)) && !sourced(s.lead)) out.push({ slideId: s.id, where: 'lead', message: `The big number${text(s.lead.value) ? ` "${s.lead.value.trim()}"` : ''} has no source, so it is left off the deck.` });
+      for (const x of s.stats ?? []) if ((text(x.value) || text(x.label)) && !sourced(x)) out.push({ slideId: s.id, where: `stat:${x.id}`, message: `The number${text(x.value) ? ` "${x.value.trim()}"` : ''} has no source, so it is left off the deck.` });
     }
-    if ((s.layout === 'cards' || s.layout === 'ways') && (s.cards?.length ?? 0) > MAX_CARDS) out.push({ slideId: s.id, message: `This slide has ${s.cards!.length} cards; a slide holds ${MAX_CARDS} at most.` });
-    if (s.imageId && !ids.has(s.imageId)) out.push({ slideId: s.id, message: 'The picture chosen for this slide is no longer in the look book.' });
+    if ((s.layout === 'cards' || s.layout === 'ways') && (s.cards?.length ?? 0) > MAX_CARDS) out.push({ slideId: s.id, where: 'cards', message: `This slide has ${s.cards!.length} cards; a slide holds ${MAX_CARDS} at most.` });
+    if (s.imageId && !ids.has(s.imageId)) out.push({ slideId: s.id, where: 'picture', message: 'The picture chosen for this slide is no longer in the look book.' });
+  }
+  for (const f of Array.isArray(pitch.design?.fontFiles) ? pitch.design!.fontFiles! : []) {
+    if (!isObj(f) || !text(f.id) || (f.role !== 'title' && f.role !== 'body')) continue;   // not a font file at all
+    const which = f.role === 'title' ? 'title' : 'body'; const data = typeof f.dataUrl === 'string' ? f.dataUrl : '';
+    if (!cleanFamily(f.family)) out.push({ slideId: 'design', where: 'design', message: `The ${which} font file has no name, so the deck cannot use it. Give it one under Design system.` });
+    else if (data && !data.startsWith('idb:') && !fontSrcOk(data)) out.push({ slideId: 'design', where: 'design', message: `The ${which} font file "${cleanFamily(f.family)}" is not a font this deck can read, so it is left out.` });
+    else if (!data) out.push({ slideId: 'design', where: 'design', message: `The ${which} font file "${cleanFamily(f.family)}" is missing from this browser. Attach it again under Design system.` });
   }
   const seen = new Set<string>();
-  for (const r of (Array.isArray(pitch.recipients) ? pitch.recipients : []).filter(x => !!x && typeof x === 'object')) {
-    const slug = slugify(text(r.slug)); const who = text(r.name) || 'A recipient';
-    if (slug && reservedSlug(slug)) out.push({ slideId: `recipient:${r.id}`, message: `${who}'s link ending "${slug}" is one the deck reads as a switch (with, without). Pick another, or they get no link.` });
-    else if (!slug) out.push({ slideId: `recipient:${r.id}`, message: `${who} has no link ending, so there is no deck link for them.` });
-    else if (seen.has(slug)) out.push({ slideId: `recipient:${r.id}`, message: `${who} has the same link ending as someone else ("${slug}"); only the first one gets it.` });
+  (Array.isArray(pitch.recipients) ? pitch.recipients : []).forEach((r: unknown, at) => {
+    if (!isObj(r)) return;
+    const slug = slugify(text(r.slug)); const who = text(r.name) || 'Someone you send it to';
+    const slideId = `recipient:${text(r.id)}`, where = `recipient:${at}`;
+    if (slug && reservedSlug(slug)) out.push({ slideId, where, message: `${who}'s link ending "${slug}" is reserved (the deck uses with and without to switch asks). Try another, such as ${slug}-film, or they get no link.` });
+    else if (!slug) { if (text(r.name) || text(r.coverLine) || text(r.note)) out.push({ slideId, where, message: `${who} has no link ending, so there is no deck link for them.` }); }   // a person nobody has started typing is not a problem yet
+    else if (seen.has(slug)) out.push({ slideId, where, message: `${who} has the same link ending as someone else ("${slug}"); only the first one gets it.` });
     else seen.add(slug);
-  }
+  });
   return out;
 }

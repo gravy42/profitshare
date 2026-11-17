@@ -4,6 +4,7 @@ import { withPitch, defaultDesign, defaultDeckRules } from '../engine/pitch';
 import { deckSlides, type Slide } from '../engine/deck';
 import { money } from './format';
 import { shortDate } from '../engine/calendar';
+import { plainColor } from './color';
 
 const CASE_LABEL: Record<string, string> = { low: 'Low', mid: 'Mid', high: 'High' };
 /** A source line shows where a finding came from, not the whole address. */
@@ -11,9 +12,12 @@ const host = (url: string) => { try { return new URL(url).hostname.replace(/^www
 
 /** The design system as CSS variables on the deck root; the app's own fonts fill in when none are set. */
 export function deckStyle(p: Project): CSSProperties {
-  const d = withPitch(p).pitch!.design ?? defaultDesign();
+  const base = defaultDesign();
+  const d = withPitch(p).pitch!.design ?? base;
   return {
-    '--dk-bg': d.colors.bg, '--dk-ink': d.colors.ink, '--dk-accent': d.colors.accent, '--dk-accent2': d.colors.accent2, '--dk-muted': d.colors.muted, '--dk-line': d.line ?? d.colors.muted,
+    // only plain colours: these go into `background`, where anything else (a url) would be fetched
+    '--dk-bg': plainColor(d.colors?.bg, base.colors.bg), '--dk-ink': plainColor(d.colors?.ink, base.colors.ink), '--dk-accent': plainColor(d.colors?.accent, base.colors.accent), '--dk-accent2': plainColor(d.colors?.accent2, base.colors.accent2),
+    '--dk-muted': plainColor(d.colors?.muted, base.colors.muted), '--dk-line': plainColor(d.line, plainColor(d.colors?.muted, base.colors.muted)),
     '--dk-title': d.fonts.title || 'var(--font-title, inherit)', '--dk-body': d.fonts.body || 'var(--font-body, inherit)',
     '--dk-bleed': `${Math.round((d.deck?.bleed ?? 0.55) * 100)}%`,
   } as CSSProperties;

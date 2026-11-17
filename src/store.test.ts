@@ -33,3 +33,23 @@ describe('projects in the browser', () => {
     expect(adoptLegacy(kv)).toBeNull();   // nothing left to adopt
   });
 });
+
+describe('font files and pictures back from the browser store', () => {
+  it('puts what was read into the project as it is now, and leaves the rest alone', async () => {
+    const { mergeHydrated, stripImages, hydrateImages, IMAGE_IN_DB } = await import('./store');
+    const base = sampleProject();
+    const pitch = { logline: '', why: '', audience: { primary: '', secondary: '', notes: '' }, sections: [], comps: [], revenue: [], feePct: 20, deck: '', sources: [] };
+    const font = (dataUrl: string) => ({ id: 'f1', role: 'body' as const, family: 'Invented Sans', dataUrl, embedOk: true });
+    const design = (dataUrl: string) => ({ name: '', colors: { bg: '#000000', ink: '#ffffff', accent: '#ffffff', accent2: '#ffffff', muted: '#ffffff' }, fonts: { title: '', body: '' }, notes: '', fontFiles: [font(dataUrl)] });
+    const pic = (dataUrl: string) => ({ id: 'i1', dataUrl, caption: 'edited since', section: 'tone' as const });
+    const cur = { ...base, name: 'Renamed since', pitch: { ...pitch, lookbook: [pic(`${IMAGE_IN_DB}i1`)], design: design(`${IMAGE_IN_DB}font:f1`) } };
+    const read = { ...base, pitch: { ...pitch, lookbook: [{ ...pic('data:image/png;base64,AAAA'), caption: '' }], design: design('data:font/woff2;base64,AAAA') } };
+    const merged = mergeHydrated(cur, read);
+    expect(merged.name).toBe('Renamed since');
+    expect(merged.pitch!.lookbook![0]).toEqual({ ...pic('data:image/png;base64,AAAA') });
+    expect(merged.pitch!.design!.fontFiles![0].dataUrl).toBe('data:font/woff2;base64,AAAA');
+    expect(mergeHydrated(read, read)).toBe(read);                 // nothing blanked: the same project back
+    expect(stripImages(read)).toBe(read);                         // no IndexedDB here: the data stays inline
+    expect(await hydrateImages(base)).toBe(base);                 // a project with neither is untouched
+  });
+});

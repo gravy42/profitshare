@@ -13,7 +13,8 @@ import { defaultDeckRules, defaultDesign, withPitch } from '../engine/pitch';
 import type { LookImage, Project, SlideSpec } from '../engine/types';
 import type { DeckData, DeckSlide } from './data';
 import { money, moneyParts, multiple, percent, shares100 } from './format';
-import { cleanPaths, cleanRecipients, contrastRatio, DEFAULT_LEGAL, deckColors, fillAsk, fontStack, initialSwitches, MAX_SOURCES, mixColors, mountDeck, overflows, parseColor, parseHash, readableOn, reservedSlug, safeColor, str, textSafe } from './runtime';
+import { cleanFamily, faceName, fontSrcOk, shortHash } from './fonts';
+import { cleanFontFaces, cleanPaths, cleanRecipients, contrastRatio, DEFAULT_LEGAL, deckColors, fillAsk, fontStack, initialSwitches, MAX_SOURCES, mixColors, mountDeck, overflows, parseColor, parseHash, readableOn, reservedSlug, safeColor, str, textSafe } from './runtime';
 import type { DeckHandle } from './runtime';
 
 // Only the invented sample film, dressed with invented content so that every layout appears.
@@ -560,8 +561,9 @@ describe('what the runtime may import', () => {
     expect('const d = await import(`../ui/${x}`);').toMatch(/\bimport\s*\(/);
   });
   const allowed: Record<string, string[]> = {
-    'runtime.ts': ['../engine/pathMath', './data', './format'],
+    'runtime.ts': ['../engine/pathMath', './data', './format', './fonts'],
     'format.ts': [],
+    'fonts.ts': [],
     'data.ts': ['../engine/pathMath'],
   };
   for (const file of Object.keys(allowed)) {
@@ -1186,14 +1188,14 @@ describe('lifecycle', () => {
     watch('host', host);
     const data = fixture();
     const handle = mountDeck(host, data, { useHash: true, pageKeys: true, css: '.x{}' });
-    expect([...liveListeners].sort()).toEqual(['document:keydown:0', 'window:hashchange:0']);
+    expect([...liveListeners].sort()).toEqual(['document:fullscreenchange:1', 'document:keydown:0', 'window:hashchange:0']);
     expect(observers.made).toBe(2);
     handle.goTo(3); handle.setSwitch('grants', false);
     host.shadowRoot!.querySelector('.psd')!.dispatchEvent(new Event('scroll'));
     expect(vi.getTimerCount()).toBeGreaterThan(0);
     // a remount on the same host, mid-flight: the first deck's listeners go with it
     const again = mountDeck(host, data, { useHash: true, pageKeys: true });
-    expect(liveListeners.size).toBe(2);
+    expect(liveListeners.size).toBe(3);
     expect(observers.live).toBe(2);
     again.goTo(5);
     again.destroy();
@@ -1354,6 +1356,345 @@ describe('formatting, against strings written by hand', () => {
       expect(multiple(n)).not.toMatch(/e|-0\.0x/);
       expect(money(n, 'USD')).not.toMatch(/e|-\$0$/);
     }
+  });
+});
+
+// A font file, as the app would attach it. The bytes are invented: no browser in these tests ever parses them.
+const FONT = 'data:font/woff2;base64,d09GMgABAAAAAA==';
+const OTHER_FONT = 'data:application/octet-stream;base64,AAEAAAAKAIAAAwAg';
+
+describe('font files', () => {
+  /** A stand-in for the browser's FontFace and document.fonts, which jsdom does not have. */
+  function stubFonts() {
+    const made: { family: string; src: string; status: string; load: () => Promise<unknown> }[] = [];
+    const set = new Set<unknown>();
+    class Face { status = 'unloaded'; constructor(public family: string, public src: string) { made.push(this); } load() { this.status = 'loaded'; return Promise.resolve(this); } }
+    vi.stubGlobal('FontFace', Face);
+    (window as unknown as { FontFace: unknown }).FontFace = Face;
+    Object.defineProperty(document, 'fonts', { configurable: true, value: { add: (f: unknown) => { set.add(f); }, delete: (f: unknown) => set.delete(f), ready: Promise.resolve() } });
+    return { made, set };
+  }
+  afterEach(() => { delete (document as unknown as { fonts?: unknown }).fonts; delete (window as unknown as { FontFace?: unknown }).FontFace; });
+  const withFaces = (faces: unknown): DeckData => { const d = fixture(); (d.theme as unknown as { fontFaces: unknown }).fontFaces = faces; return d; };
+  const stackOf = (root: ParentNode, which: 'title' | 'body') => (root.querySelector('.psd') as HTMLElement).style.getPropertyValue(`--psd-${which}-font`);
+
+  it('takes only a base64 font data URL as a source', () => {
+    for (const ok of [FONT, OTHER_FONT, 'data:font/ttf;base64,AAEAAAA=', 'data:font/otf;base64,T1RUTw==', 'data:application/font-woff;base64,d09GRg==', 'data:application/x-font-ttf;base64,AAEAAAA=', 'data:application/font-sfnt;base64,AAEA', 'DATA:FONT/WOFF2;BASE64,d09GMg=='])
+      expect(fontSrcOk(ok)).toBe(true);
+    for (const bad of ['', 'https://example.com/a.woff2', '//example.com/a.woff2', 'a.woff2', 'blob:https://example.com/1', 'data:text/html;base64,PGI+', 'data:image/png;base64,iVBOR', 'data:font/woff2,plain', 'data:font/woff2;base64,', 'data:font/woff2;base64,AA"); x{}', 'data:font/woff2;base64,AAAA) format("woff2"), url(https://example.com/a.woff2', 'data:font/woff2;base64,AA AA', 'data:font/woff2;base64,AA\nAA', 'data:application/javascript;base64,AAAA', 'data:application/octet-streamx;base64,AAAA', ' data:font/woff2;base64,AAAA', 42, null, undefined, {}])
+      expect(fontSrcOk(bad)).toBe(false);
+  });
+  it('cleans a family name down to letters, digits, spaces and hyphens', () => {
+    expect(cleanFamily('Invented Grotesk-2')).toBe('Invented Grotesk-2');
+    expect(cleanFamily('  Made   Up  ')).toBe('Made Up');
+    expect(cleanFamily('x"; } body { display: none } @import url(https://example.com/a.css); "')).toBe('x body display none import urlhttpsexample.coma.css'.replace(/\./g, ''));
+    expect(cleanFamily('a\\b</style>')).toBe('abstyle');
+    expect(cleanFamily("O'Invented")).toBe('OInvented');
+    expect(cleanFamily('é字')).toBe('');
+    expect(cleanFamily('A'.repeat(200))).toHaveLength(60);
+    for (const v of [null, undefined, 7, {}, []]) expect(cleanFamily(v)).toBe('');
+    expect(faceName('title', 'Invented Grotesk', FONT)).toBe(`psd-title Invented Grotesk ${shortHash(FONT)}`);
+    expect(faceName('title', 'Invented Grotesk', FONT)).toMatch(/^psd-title Invented Grotesk [a-z0-9]{1,7}$/);
+    expect(faceName('body', 'Invented Grotesk', FONT)).not.toBe(faceName('title', 'Invented Grotesk', FONT));        // one name a role
+    expect(faceName('title', 'Invented Grotesk', OTHER_FONT)).not.toBe(faceName('title', 'Invented Grotesk', FONT));   // and one a file
+    expect(shortHash('')).toBe(shortHash(''));
+    expect(shortHash('a')).not.toBe(shortHash('b'));
+  });
+  it('drops every face a hand-edited file gets wrong, and reads four at most', () => {
+    expect(cleanFontFaces([
+      { family: 'Good One', src: FONT, role: 'title' },
+      { family: 'Remote', src: 'https://example.com/a.woff2', role: 'title' },
+      { family: '"; }', src: FONT, role: 'body' },
+      { family: 'No Role', src: FONT },
+      { family: 'Odd Role', src: FONT, role: 'caption' },
+      'text', null, 5,
+      { family: 'Good <Two>', src: OTHER_FONT, role: 'body' },
+    ])).toEqual([{ family: 'Good One', src: FONT, role: 'title' }, { family: 'Good Two', src: OTHER_FONT, role: 'body' }]);
+    expect(cleanFontFaces(Array.from({ length: 9 }, (_, i) => ({ family: `F ${i}`, src: FONT, role: 'body' })))).toHaveLength(4);
+    for (const v of [undefined, null, 'x', 3, {}]) expect(cleanFontFaces(v)).toEqual([]);
+  });
+  it('registers each face with the document and puts it in front of its role\'s stack', () => {
+    const { made, set } = stubFonts();
+    const { root, handle } = mount(withFaces([{ family: 'Invented Slab', src: FONT, role: 'title' }, { family: 'Invented Sans', src: OTHER_FONT, role: 'body' }]), { css: '.x{}' });
+    expect(made.map(f => f.family)).toEqual([faceName('title', 'Invented Slab', FONT), faceName('body', 'Invented Sans', OTHER_FONT)]);
+    expect(made[0].src).toBe(`url("${FONT}")`);
+    expect(set.size).toBe(2);
+    expect(stackOf(root, 'title')).toMatch(/^"psd-title Invented Slab [a-z0-9]+", /);
+    expect(stackOf(root, 'title')).toContain('Special Elite');   // the built-in fallback is still behind it
+    expect(stackOf(root, 'title')).not.toContain('Invented Sans');
+    expect(stackOf(root, 'body')).toMatch(/^"psd-body Invented Sans [a-z0-9]+", /);
+    expect(stackOf(root, 'body')).toContain('Work Sans');
+    // nothing is written into the shadow tree as a rule, and nothing into the document's head but the page rule
+    expect([...(root as ParentNode).querySelectorAll('style')].map(st => st.textContent)).toEqual(['.x{}']);
+    expect(document.head.textContent).not.toContain('font-face');
+    handle.destroy();
+    expect(set.size).toBe(0);   // the faces go with the deck
+  });
+  it('never lets a hostile family name or address reach the stylesheet', () => {
+    const { made, set } = stubFonts();
+    const { root } = mount(withFaces([
+      { family: 'Evil"; } .psd { display: none } @import url(https://evil.invalid/x.css); "', src: FONT, role: 'title' },
+      { family: 'Remote', src: 'https://evil.invalid/a.woff2', role: 'body' },
+      { family: 'Breakout', src: 'data:font/woff2;base64,AAAA"), url("https://evil.invalid/a.woff2', role: 'body' },
+      { family: 'Script', src: 'javascript:alert(1)', role: 'body' },
+    ]));
+    expect(made).toHaveLength(1);
+    expect(made[0].family).toMatch(/^psd-title [A-Za-z0-9 -]+$/);
+    expect(set.size).toBe(1);
+    const title = stackOf(root, 'title'), body = stackOf(root, 'body');
+    for (const stack of [title, body]) { expect(stack).not.toMatch(/[;{}()@:/\\]/); expect(stack).not.toContain('evil.invalid'); expect((stack.match(/"/g) ?? []).length % 2).toBe(0); }
+    expect(body).not.toContain('Remote');
+    expect(body).not.toContain('Breakout');
+    expect((root as unknown as Node).textContent).not.toContain('evil.invalid');
+  });
+  it('shares one registration between decks that carry the same file, and keeps it across a remount', () => {
+    const { made, set } = stubFonts();
+    const data = withFaces([{ family: 'Invented Slab', src: FONT, role: 'title' }]);
+    const a = mount(data), b = mount(data);
+    expect(made).toHaveLength(1);
+    expect(set.size).toBe(1);
+    const again = mountDeck(a.host, data);   // a remount on the same host: the face is never dropped and read again
+    mounted.push(again);
+    expect(made).toHaveLength(1);
+    expect(set.size).toBe(1);
+    a.handle.destroy();                      // the handle that was replaced: nothing to let go of twice
+    expect(set.size).toBe(1);
+    again.destroy();
+    expect(set.size).toBe(1);                // the other deck still uses it
+    b.handle.destroy();
+    expect(set.size).toBe(0);
+    mounted.push(mountDeck(a.host, withFaces([{ family: 'Invented Slab', src: OTHER_FONT, role: 'title' }])));   // another file under the same name is another face
+    expect(made).toHaveLength(2);
+  });
+  it('a title file and a body file with the same family name are two faces, each in its own stack', () => {
+    const { made, set } = stubFonts();
+    const { root } = mount(withFaces([{ family: 'Same Name', src: FONT, role: 'title' }, { family: 'Same Name', src: OTHER_FONT, role: 'body' }]));
+    expect(made).toHaveLength(2);
+    expect(new Set(made.map(f => f.family)).size).toBe(2);
+    expect(set.size).toBe(2);
+    const title = made.find(f => f.src === `url("${FONT}")`)!.family, body = made.find(f => f.src === `url("${OTHER_FONT}")`)!.family;
+    expect(stackOf(root, 'title').startsWith(`"${title}", `)).toBe(true);
+    expect(stackOf(root, 'title')).not.toContain(body);
+    expect(stackOf(root, 'body').startsWith(`"${body}", `)).toBe(true);
+    expect(stackOf(root, 'body')).not.toContain(title);
+  });
+  it('two live decks with one family name and different files do not share a face', () => {
+    const { made, set } = stubFonts();
+    const a = mount(withFaces([{ family: 'Same Name', src: FONT, role: 'title' }]));
+    const b = mount(withFaces([{ family: 'Same Name', src: OTHER_FONT, role: 'title' }]));
+    expect(made).toHaveLength(2);
+    expect(made[0].family).not.toBe(made[1].family);
+    expect(stackOf(a.root, 'title')).toContain(made[0].family);
+    expect(stackOf(a.root, 'title')).not.toContain(made[1].family);
+    expect(stackOf(b.root, 'title')).toContain(made[1].family);
+    a.handle.destroy();
+    expect(set.size).toBe(1);
+    expect([...set][0]).toBe(made[1]);   // the other deck's face is still there
+  });
+  it('a mount that fails lets go of the faces it took', () => {
+    const { made, set } = stubFonts();
+    const data = withFaces([{ family: 'Invented Slab', src: FONT, role: 'title' }]);
+    Object.defineProperty(data, 'slides', { get() { throw new Error('a getter that throws'); } });
+    const host = document.createElement('div'); document.body.appendChild(host);
+    expect(() => mountDeck(host, data)).toThrow('a getter that throws');
+    expect(made).toHaveLength(1);
+    expect(set.size).toBe(0);
+    const ok = mount(withFaces([{ family: 'Invented Slab', src: FONT, role: 'title' }]));   // and the next mount starts clean
+    expect(set.size).toBe(1);
+    ok.handle.destroy();
+    expect(set.size).toBe(0);
+  });
+  it('fits the slides again once a face has loaded', async () => {
+    const { made } = stubFonts();
+    const { handle } = mount(withFaces([{ family: 'Invented Slab', src: FONT, role: 'title' }]));
+    const spy = vi.spyOn(handle, 'checkOverflow');
+    await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+    expect(made[0].status).toBe('loaded');
+    expect(spy).not.toHaveBeenCalled();   // the deck refits itself: nobody has to ask
+    expect(handle.checkOverflow()).toEqual([]);
+  });
+  it('mounts without the FontFace API (and with one that throws): the stack still names the face', () => {
+    const plain = mount(withFaces([{ family: 'Invented Slab', src: FONT, role: 'title' }]));
+    expect(stackOf(plain.root, 'title')).toMatch(/^"psd-title Invented Slab [a-z0-9]+", /);
+    vi.stubGlobal('FontFace', class { constructor() { throw new Error('no'); } });
+    (window as unknown as { FontFace: unknown }).FontFace = (globalThis as unknown as { FontFace: unknown }).FontFace;
+    Object.defineProperty(document, 'fonts', { configurable: true, value: { add: () => { throw new Error('no'); }, delete: () => false, ready: Promise.resolve() } });
+    expect(() => mount(withFaces([{ family: 'Invented Slab', src: FONT, role: 'title' }]))).not.toThrow();
+    expect(() => mount(withFaces('nonsense'))).not.toThrow();
+  });
+  it('a deck with no font files is drawn exactly as before', () => {
+    const { made } = stubFonts();
+    const { root } = mount(fixture());
+    expect(made).toHaveLength(0);
+    expect(stackOf(root, 'title')).not.toContain('psd-');
+  });
+});
+
+describe('the preview options', () => {
+  it('opens on the slide asked for, and says nothing about it', () => {
+    const seen: number[] = [];
+    const { root, handle } = mount(fixture(), { startAt: 3, onSlide: i => seen.push(i) });
+    const sections = [...root.querySelectorAll('section')];
+    expect(sections.findIndex(s => s.hasAttribute('data-current'))).toBe(3);
+    expect(sections.filter(s => !s.hasAttribute('inert'))).toHaveLength(1);
+    expect(seen).toEqual([]);
+    handle.goTo(5);
+    expect(seen).toEqual([5]);
+    handle.goTo(5);
+    expect(seen).toEqual([5]);   // only a change is reported
+    handle.goTo(0);
+    expect(seen).toEqual([5, 0]);
+  });
+  it('clamps a start that is out of range, and ignores one that is not a number', () => {
+    const n = fixture().slides.length;
+    const at = (startAt: unknown) => [...mount(fixture(), { startAt: startAt as number }).root.querySelectorAll('section')].findIndex(s => s.hasAttribute('data-current'));
+    expect(at(999)).toBe(n - 1);
+    expect(at(-4)).toBe(0);
+    expect(at(NaN)).toBe(0);
+    expect(at('2')).toBe(0);
+    expect(at(1.6)).toBe(2);
+  });
+  it('after the host is resized the deck goes back to the slide it was on', () => {
+    vi.useFakeTimers();
+    let fire: () => void = () => undefined;
+    class RO { constructor(cb: () => void) { fire = cb; } observe() { /* held in `fire` */ } disconnect() { /* nothing */ } }
+    vi.stubGlobal('ResizeObserver', RO);
+    (window as unknown as { ResizeObserver: unknown }).ResizeObserver = RO;
+    const { root, handle } = mount(fixture());
+    const deck = root.querySelector('.psd') as HTMLElement;
+    Object.defineProperty(deck, 'scrollHeight', { configurable: true, value: 5000 });
+    Object.defineProperty(deck, 'clientHeight', { configurable: true, value: 400 });
+    const calls: ScrollToOptions[] = [];
+    deck.scrollTo = ((o: ScrollToOptions) => { calls.push(o); }) as typeof deck.scrollTo;
+    handle.goTo(4);
+    calls.length = 0;
+    fire(); vi.advanceTimersByTime(200);
+    expect(calls).toHaveLength(1);
+    expect(calls[0].behavior).toBe('instant');
+    expect([...root.querySelectorAll('section')].findIndex(s => s.hasAttribute('data-current'))).toBe(4);
+    handle.goTo(0); calls.length = 0;
+    fire(); vi.advanceTimersByTime(200);
+    expect(calls).toHaveLength(0);   // on the first slide there is nowhere to go back to
+    delete (window as unknown as { ResizeObserver?: unknown }).ResizeObserver;
+  });
+  describe('a resize that re-snaps the scroll', () => {
+    /** A deck laid out by hand (jsdom lays nothing out): 600px slides, the scroll offset under the test's control. */
+    function laidOut(onSlide: (i: number) => void) {
+      vi.useFakeTimers();
+      let fire: () => void = () => undefined;
+      class RO { constructor(cb: () => void) { fire = cb; } observe() { /* held in `fire` */ } disconnect() { /* nothing */ } }
+      vi.stubGlobal('ResizeObserver', RO);
+      (window as unknown as { ResizeObserver: unknown }).ResizeObserver = RO;
+      const { root, handle } = mount(fixture(), { onSlide });
+      const deck = root.querySelector('.psd') as HTMLElement;
+      let top = 0;
+      Object.defineProperty(deck, 'scrollHeight', { configurable: true, value: 7800 });
+      Object.defineProperty(deck, 'clientHeight', { configurable: true, value: 600 });
+      const rect = (t: number, h: number) => ({ top: t, bottom: t + h, left: 0, right: 1200, width: 1200, height: h, x: 0, y: t, toJSON: () => ({}) }) as DOMRect;
+      deck.getBoundingClientRect = () => rect(0, 600);
+      [...root.querySelectorAll<HTMLElement>('.psd-stage')].forEach((st, i) => {
+        st.getBoundingClientRect = () => rect(i * 600 - top, 600);
+        Object.defineProperty(st, 'offsetTop', { configurable: true, get: () => i * 600 });
+      });
+      const jumps: number[] = [];
+      deck.scrollTo = ((o: ScrollToOptions) => { if (o.behavior === 'instant') jumps.push(o.top ?? 0); top = o.top ?? 0; }) as typeof deck.scrollTo;
+      const current = () => [...root.querySelectorAll('section')].findIndex(s => s.hasAttribute('data-current'));
+      const snapTo = (i: number) => { top = i * 600; deck.dispatchEvent(new Event('scroll')); };
+      vi.advanceTimersByTime(1000);   // the mount's own first resize notice has run its course
+      return { handle, deck, current, snapTo, resize: () => fire(), jumps, cleanup: () => { delete (window as unknown as { ResizeObserver?: unknown }).ResizeObserver; } };
+    }
+    it('without a resize, a scroll that settles on another slide is followed (the reader paged by hand)', () => {
+      const seen: number[] = [];
+      const t = laidOut(i => seen.push(i));
+      t.handle.goTo(4); vi.advanceTimersByTime(2000);
+      seen.length = 0;
+      t.snapTo(1); vi.advanceTimersByTime(200);
+      expect(t.current()).toBe(1);
+      expect(seen).toEqual([1]);
+      t.cleanup();
+    });
+    it.each([['the scroll comes first, then the resize notice', true], ['the resize notice comes first, then the scroll', false]])('%s: the slide and the selection stay', (_name, scrollFirst) => {
+      const seen: number[] = [];
+      const t = laidOut(i => seen.push(i));
+      t.handle.goTo(4); vi.advanceTimersByTime(2000);
+      seen.length = 0; t.jumps.length = 0;
+      if (scrollFirst) { t.snapTo(1); vi.advanceTimersByTime(5); t.resize(); } else { t.resize(); vi.advanceTimersByTime(5); t.snapTo(1); }
+      vi.advanceTimersByTime(130);          // the scroll would have settled by now
+      expect(t.current()).toBe(4);
+      expect(seen).toEqual([]);
+      vi.advanceTimersByTime(30);           // the resize handler runs: back to the slide the deck was on
+      expect(t.jumps).toEqual([2400]);
+      t.deck.dispatchEvent(new Event('scroll'));   // the scroll that jump made
+      vi.advanceTimersByTime(250);
+      expect(t.current()).toBe(4);
+      expect(seen).toEqual([]);
+      vi.advanceTimersByTime(400);          // thawed: the reader's own scrolling is followed again
+      t.snapTo(2); vi.advanceTimersByTime(200);
+      expect(t.current()).toBe(2);
+      expect(seen).toEqual([2]);
+      t.cleanup();
+    });
+    it('entering or leaving full screen counts as a resize', () => {
+      const seen: number[] = [];
+      const t = laidOut(i => seen.push(i));
+      t.handle.goTo(3); vi.advanceTimersByTime(2000);
+      seen.length = 0; t.jumps.length = 0;
+      document.dispatchEvent(new Event('fullscreenchange'));
+      t.snapTo(0); vi.advanceTimersByTime(600);
+      expect(t.current()).toBe(3);
+      expect(seen).toEqual([]);
+      expect(t.jumps).toEqual([1800]);
+      t.cleanup();
+    });
+    it('paging with the handle still works while a resize is settling', () => {
+      const seen: number[] = [];
+      const t = laidOut(i => seen.push(i));
+      t.resize();
+      t.handle.goTo(2);
+      expect(t.current()).toBe(2);
+      expect(seen).toEqual([2]);
+      t.cleanup();
+    });
+  });
+  it('a listener that throws does not stop the deck paging', () => {
+    const { root, handle } = mount(fixture(), { onSlide: () => { throw new Error('listener'); } });
+    expect(() => handle.goTo(2)).not.toThrow();
+    expect([...root.querySelectorAll('section')].findIndex(s => s.hasAttribute('data-current'))).toBe(2);
+  });
+  it('with motion off every slide is in its final state, and the deck still pages and switches', () => {
+    const Observer = vi.fn(() => ({ observe: vi.fn(), disconnect: vi.fn() }));
+    vi.stubGlobal('IntersectionObserver', Observer);
+    (window as unknown as { IntersectionObserver: unknown }).IntersectionObserver = Observer;
+    const { root, handle, slide } = mount(fixture(), { motion: false });
+    const deck = root.querySelector('.psd')!;
+    expect(deck.classList.contains('psd-still')).toBe(true);
+    expect(deck.classList.contains('psd-static')).toBe(false);
+    expect([...root.querySelectorAll('section')].every(s => s.classList.contains('psd-seen'))).toBe(true);
+    expect(Observer).not.toHaveBeenCalled();
+    expect(slide('numbers').querySelectorAll('button.psd-toggle').length).toBeGreaterThan(0);   // still the live slide
+    expect((deck as HTMLElement).tabIndex).toBe(0);
+    handle.goTo(1);
+    expect(root.querySelectorAll('section')[1].hasAttribute('data-current')).toBe(true);
+    expect(mount(fixture()).root.querySelector('.psd')!.classList.contains('psd-still')).toBe(false);
+    delete (window as unknown as { IntersectionObserver?: unknown }).IntersectionObserver;
+  });
+  it('the stylesheet holds a still deck where it lands', () => {
+    const css = readFileSync(resolve(process.cwd(), 'src/deck-runtime/deck.css'), 'utf8');
+    expect(css).toMatch(/\.psd-still \.psd-rise \{ opacity: 1; transform: none; \}/);
+    expect(css).toMatch(/\.psd-still \.psd-bar-fill \{ width: var\(--w, 0%\); \}/);
+  });
+  it('a recipient\'s card is picked out on a cards slide as well as a ways slide', () => {
+    const data = fixture();
+    const cards = data.slides.find(s => s.layout === 'cards') as Extract<DeckSlide, { layout: 'cards' }>;
+    const target = cards.cards[1].id;
+    data.recipients = [{ slug: 'ada-example', name: 'Ada Example', coverLine: '', lead: 'with-grants', highlightCardId: target }];
+    const { slide, handle } = mount(data, { recipient: 'ada-example' });
+    const lit = () => [...slide('cards').querySelectorAll<HTMLElement>('.psd-highlight')].map(e => e.dataset.cardId);
+    expect(lit()).toEqual([target]);
+    expect(slide('cards').querySelector('.psd-highlight')!.getAttribute('aria-current')).toBe('true');
+    expect(slide('ways').querySelectorAll('.psd-highlight')).toHaveLength(0);
+    handle.setRecipient(null);
+    expect(lit()).toEqual([]);
   });
 });
 

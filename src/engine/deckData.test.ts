@@ -6,9 +6,9 @@ import { defaultIncentives } from './incentives';
 import { defaultDeckRules, defaultDesign, withPitch } from './pitch';
 import { pathInputs } from './paths';
 import { pathFor } from './pathMath';
-import { DARK_INK, DECK_LEGAL, DEFAULT_CARD, LIGHT_INK, cardInkFor, compactMoney, dateSpan, deckData, deckWarnings, defaultSlides, reservedSlug, firstSentence, slidesOf, slugify } from './deckData';
+import { DARK_INK, DECK_LEGAL, DEFAULT_CARD, LIGHT_INK, cardInkFor, compactMoney, dateSpan, deckData, deckWarnings, defaultSlides, fontFacesOf, reservedSlug, firstSentence, slidesOf, slugify } from './deckData';
 import type { DeckSlide } from '../deck-runtime/data';
-import type { LookImage, Pitch, Project, Recipient, SlideSpec } from './types';
+import type { FontFile, LookImage, Pitch, Project, Recipient, SlideSpec } from './types';
 
 // Only the invented sample film and variants of it; every name and figure below is made up.
 const seed = applyDeal(sampleProject());
@@ -186,7 +186,7 @@ describe('deckData', () => {
     ] });
     expect(deckWarnings(p).map(x => x.slideId)).toEqual(['five', 'lost', 'recipient:r2', 'recipient:r3']);
     expect(deckWarnings(full())).toEqual([]);
-    expect(deckWarnings(seed).map(w => w.message)).toEqual([expect.stringMatching(/^No revenue cases/)]);   // the seed project has no receipts typed
+    expect(deckWarnings(seed).map(w => w.message)).toEqual([expect.stringMatching(/^No receipts are typed yet.*under What it could make\.$/)]);   // the seed project has no receipts typed
     // a picture that is gone is taken off the slide, never left as a dangling id
     const d = deckData(p);
     expect(d.slides.find(s => s.id === 'lost')!.imageId).toBeUndefined();
@@ -403,7 +403,7 @@ describe('hand-edited and newer project files', () => {
     const c = d.slides[2]; expect(c.layout === 'stats' && c.stats.map(s => s.source)).toEqual(['99']);
     expect(c.layout === 'stats' && c.lead).toBeUndefined();
     const cards = d.slides[3]; expect(cards.layout === 'cards' && cards.cards).toEqual([{ id: 'card1', title: 'Only a title', body: '' }]);
-    expect(deckWarnings(p).some(w => w.slideId === 'deck' && /4 slides are of a kind/.test(w.message))).toBe(true);
+    expect(deckWarnings(p).some(w => w.slideId === 'deck' && /^1 slide was made in a newer version of ProfitShare and cannot be shown here\.$/.test(w.message))).toBe(true);
   });
 
   it('gives nobody a link ending the deck reads as a switch', () => {
@@ -411,7 +411,9 @@ describe('hand-edited and newer project files', () => {
     const rec = (id: string, slug: string) => ({ id, slug, name: `Reader ${id}`, coverLine: '', lead: 'with-grants' as const });
     const p: Project = { ...p0, pitch: { ...p0.pitch!, recipients: [rec('1', 'without'), rec('2', 'With Grants'), rec('3', 'ada-without'), rec('4', 'ada'), null as never] } };
     expect(deckData(p).recipients.map(r => r.slug)).toEqual(['ada']);
-    expect(deckWarnings(p).filter(w => /reads as a switch/.test(w.message)).map(w => w.slideId)).toEqual(['recipient:1', 'recipient:2', 'recipient:3']);
+    expect(deckWarnings(p).filter(w => /is reserved/.test(w.message)).map(w => w.slideId)).toEqual(['recipient:1', 'recipient:2', 'recipient:3']);
+    expect(deckWarnings(p).filter(w => /is reserved/.test(w.message)).map(w => w.where)).toEqual(['recipient:0', 'recipient:1', 'recipient:2']);   // where in the list, for a page to link to
+    expect(deckWarnings(p).find(w => /is reserved/.test(w.message))!.message).toContain('such as without-film');
     for (const s of ['with', 'without', 'with-grants', 'without-grants', 'x-without', 'x-with']) expect(reservedSlug(s)).toBe(true);
     for (const s of ['ada', 'withers', 'without-a-doubt', 'grants']) expect(reservedSlug(s)).toBe(false);
   });
@@ -420,6 +422,107 @@ describe('hand-edited and newer project files', () => {
     const p = withPitch(applyDeal(sampleProject()));
     const bare: Project = { ...p, pitch: { ...p.pitch!, revenue: [] } };
     expect(deckData(bare).paths.cases).toEqual([]);
-    expect(deckWarnings(bare).some(w => w.slideId === 'numbers' && /No revenue cases/.test(w.message))).toBe(true);
+    expect(deckWarnings(bare).some(w => w.slideId === 'numbers' && /No receipts are typed/.test(w.message) && w.where === 'revenue')).toBe(true);
+  });
+});
+
+describe('font files in the deck', () => {
+  const FONT = 'data:font/woff2;base64,d09GMgABAAAAAA==';   // invented bytes: nothing here parses them
+  const file = (over: Partial<FontFile> = {}): FontFile => ({ id: 'f1', role: 'title', family: 'Invented Slab', dataUrl: FONT, embedOk: false, ...over });
+  const withFonts = (fontFiles: unknown): Project => pitched(seed, { design: { ...defaultDesign(), fontFiles: fontFiles as FontFile[] } });
+
+  it('a project with no font files has no fontFaces field at all: old files give the deck they always gave', () => {
+    expect('fontFaces' in deckData(seed).theme).toBe(false);
+    expect('fontFaces' in deckData(withFonts([])).theme).toBe(false);
+    expect('fontFaces' in deckData(withFonts(undefined)).theme).toBe(false);
+    expect(deckData(withFonts([])).version).toBe(1);
+    expect(deckWarnings(seed).some(w => w.slideId === 'design')).toBe(false);
+  });
+  it('carries each attached file into the theme by role, family and address, and nothing else', () => {
+    const theme = deckData(withFonts([file(), file({ id: 'f2', role: 'body', family: 'Invented Sans', embedOk: true })]), { fonts: 'all' }).theme;
+    expect(theme.fontFaces).toEqual([{ family: 'Invented Slab', src: FONT, role: 'title' }, { family: 'Invented Sans', src: FONT, role: 'body' }]);
+    expect(theme.fonts).toEqual({ title: '', body: '' });   // the stacks are the design's own; the runtime puts the faces in front
+  });
+  it('one file a role (the first wins), with the family name cleaned', () => {
+    const faces = fontFacesOf(withFonts([file({ family: 'First "; } x' }), file({ id: 'f2', family: 'Second' }), file({ id: 'f3', role: 'body', family: '  Body   Face ' })]), false);
+    expect(faces.map(f => [f.role, f.family])).toEqual([['title', 'First x'], ['body', 'Body Face']]);
+  });
+  it('leaves out a file with no name, one that is not a font, one still in the browser store, and anything malformed', () => {
+    const p = withFonts([
+      file({ family: '!!!' }),
+      file({ id: 'f2', role: 'body', dataUrl: 'https://example.com/font.woff2' }),
+      null, 'x', { id: 'f5', role: 'caption', family: 'Odd', dataUrl: FONT, embedOk: true },
+    ]);
+    expect(fontFacesOf(p)).toEqual([]);
+    expect('fontFaces' in deckData(p).theme).toBe(false);
+    expect(fontFacesOf(withFonts([file({ dataUrl: 'idb:font:f1' })]))).toEqual([]);   // not back from the browser store yet
+    expect(fontFacesOf(withFonts([file({ dataUrl: '' })]))).toEqual([]);
+    expect(fontFacesOf(withFonts('nonsense'))).toEqual([]);
+    expect(fontFacesOf(withFonts([file({ dataUrl: 'data:text/html;base64,PGI+' })]))).toEqual([]);
+  });
+  it('the embeddable deck carries only the files the author cleared to travel', () => {
+    const p = withFonts([file(), file({ id: 'f2', role: 'body', family: 'Invented Sans', embedOk: true })]);
+    expect(fontFacesOf(p, false).map(f => f.family)).toEqual(['Invented Slab', 'Invented Sans']);
+    expect(fontFacesOf(p, true).map(f => f.family)).toEqual(['Invented Sans']);
+    expect(fontFacesOf(p).map(f => f.family)).toEqual(['Invented Sans']);                       // the default is what a deck that is sent may carry
+    expect(deckData(p).theme.fontFaces).toEqual([{ family: 'Invented Sans', src: FONT, role: 'body' }]);
+    expect('fontFaces' in deckData(withFonts([file()])).theme).toBe(false);                    // nothing cleared to travel: nothing travels
+    expect(deckData(p, { fonts: 'embeddable' }).theme.fontFaces).toEqual([{ family: 'Invented Sans', src: FONT, role: 'body' }]);
+    expect(deckData(p, { fonts: 'all' }).theme.fontFaces).toHaveLength(2);
+    expect('fontFaces' in deckData(withFonts([file()]), { fonts: 'embeddable' }).theme).toBe(false);
+    expect(fontFacesOf(withFonts([file({ embedOk: 'yes' as unknown as boolean })]), true)).toEqual([]);   // only a real tick counts
+  });
+  it('warns about a font file the deck cannot use', () => {
+    const msgs = (fontFiles: unknown) => deckWarnings(withFonts(fontFiles)).filter(w => w.slideId === 'design').map(w => w.message);
+    expect(msgs([file()])).toEqual([]);
+    expect(msgs([file({ family: '' })])[0]).toMatch(/title font file has no name/);
+    expect(msgs([file({ role: 'body', dataUrl: 'data:text/plain;base64,AAAA' })])[0]).toMatch(/body font file "Invented Slab" is not a font/);
+    expect(msgs([file({ dataUrl: '' })])[0]).toMatch(/missing from this browser/);
+    expect(msgs([file({ dataUrl: 'idb:font:f1' })])).toEqual([]);   // on its way back from the browser store
+  });
+  it('the deck stays plain JSON with the files in it', () => {
+    const d = deckData(withFonts([file()]));
+    expect(JSON.parse(JSON.stringify(d))).toEqual(d);
+  });
+});
+
+describe('the deck and its warnings read anything', () => {
+  const garbage = (over: Record<string, unknown>): Project => { const q = withPitch(seed); return { ...q, pitch: { ...q.pitch!, ...over } as Pitch }; };
+  it('null and nonsense in every list is skipped, not thrown on', () => {
+    const p = garbage({
+      slides: [null, 7, 'x', [], { id: 'ok', layout: 'stats', headline: 'Fine', stats: [null, 3, { id: 's', value: '1', label: 'one', source: '' }], lead: 'no', cards: 'no' },
+        { id: 'c', layout: 'cards', cards: [null, 'x', { title: 'A card' }, { id: 5 }] }, { id: 'p', layout: 'photo', imageId: 'gone' }, { layout: 'text' }],
+      recipients: [null, 4, 'x', {}, { name: 'No id', slug: 'no-id' }, { id: 'r', name: 9, slug: null }],
+      lookbook: [null, 'x', { id: 'pic' }, { id: 'good', dataUrl: 'data:image/png;base64,AAAA', caption: null }],
+      design: { ...defaultDesign(), fontFiles: [null, 'x', 3, { role: 'title' }, { id: 'f', role: 'body', family: 'Ok Face', dataUrl: 12 }] },
+    });
+    expect(() => deckData(p)).not.toThrow();
+    expect(() => deckWarnings(p)).not.toThrow();
+    expect(deckData(p).slides.map(s => s.id)).toEqual(['ok', 'c', 'p']);
+    expect(deckData(p).recipients.map(r => r.slug)).toEqual(['no-id']);
+    const w = deckWarnings(p);
+    expect(w.find(x => x.where === 'stat:s')?.message).toBe('The number "1" has no source, so it is left off the deck.');
+    expect(w.some(x => x.where === 'picture' && x.slideId === 'p')).toBe(true);
+    expect(w.filter(x => x.slideId === 'design').map(x => x.message)).toEqual(['The body font file "Ok Face" is missing from this browser. Attach it again under Design system.']);   // the entries that are not font files are not reported as ones
+    for (const slides of ['text', 5, {}, null]) expect(() => { deckData(garbage({ slides })); deckWarnings(garbage({ slides })); }).not.toThrow();
+    for (const recipients of ['text', 5, {}]) expect(() => { deckData(garbage({ recipients })); deckWarnings(garbage({ recipients })); }).not.toThrow();
+  });
+  it('a number or a person nobody has started typing is not a problem yet', () => {
+    const blank = garbage({ slides: [{ id: 'a', layout: 'stats', stats: [{ id: 's1', value: '', label: '', source: '' }], lead: { value: '', text: '', source: '' } }], recipients: [{ id: 'r', name: '', slug: '', coverLine: '', lead: 'with-grants' }] });
+    expect(deckWarnings(blank)).toEqual([]);
+    const begun = garbage({ slides: [{ id: 'a', layout: 'stats', stats: [{ id: 's1', value: '', label: 'a share', source: '' }], lead: { value: '7 in 10', text: '', source: '' } }], recipients: [{ id: 'r', name: 'Ada Example', slug: '', coverLine: '', lead: 'with-grants' }] });
+    expect(deckWarnings(begun).map(w => w.where)).toEqual(['lead', 'stat:s1', 'recipient:0']);
+    expect(deckWarnings(begun).map(w => w.message)).toEqual(['The big number "7 in 10" has no source, so it is left off the deck.', 'The number has no source, so it is left off the deck.', 'Ada Example has no link ending, so there is no deck link for them.']);
+  });
+  it('names the panels and tabs the way the page names them', () => {
+    const all = [...deckWarnings(seed), ...deckWarnings(garbage({ slides: [{ id: 'n', layout: 'numbers' }] }))].map(w => w.message).join(' ');
+    expect(all).toContain('What it could make');
+    expect(all).not.toMatch(/under Revenue|\bstat\b|lead number|slug/i);
+  });
+  it('takes CSS variables out of a font stack: they mean nothing inside a deck file', () => {
+    const d = defaultDesign();
+    const theme = deckData(pitched(seed, { design: { ...d, fonts: { title: '"Invented Slab", var(--font-title)', body: 'var(--font-body), "Invented Sans",  serif' } } })).theme;
+    expect(theme.fonts).toEqual({ title: '"Invented Slab"', body: '"Invented Sans", serif' });
+    expect(deckData(pitched(seed, { design: { ...d, fonts: { title: 'var(--font-title)', body: 5 as unknown as string } } })).theme.fonts).toEqual({ title: '', body: '' });
   });
 });

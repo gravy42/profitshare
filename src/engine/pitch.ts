@@ -37,8 +37,9 @@ export const newTeamMember = (): TeamMember => ({ id: uid('tm'), name: '', role:
 export const LOOK_SECTIONS: { id: LookImage['section']; label: string }[] = [{ id: 'tone', label: 'Tone' }, { id: 'world', label: 'The world' }, { id: 'character', label: 'Characters' }, { id: 'reference', label: 'References' }];
 export const RESEARCH_KINDS: { id: ResearchItem['kind']; label: string }[] = [{ id: 'market', label: 'Market' }, { id: 'audience', label: 'Audience' }, { id: 'comp', label: 'Comparable' }, { id: 'press', label: 'Press' }, { id: 'other', label: 'Other' }];
 
-/** Rough size of the project as saved (pictures live in their own store and are not counted). */
-export const projectBytes = (p: Project): number => JSON.stringify({ ...p, pitch: p.pitch ? { ...p.pitch, lookbook: (p.pitch.lookbook ?? []).map(i => ({ ...i, dataUrl: '' })) } : undefined }).length;
+/** Rough size of the project as saved (pictures and font files live in their own store and are not counted). */
+export const projectBytes = (p: Project): number => JSON.stringify({ ...p, pitch: p.pitch ? { ...p.pitch, lookbook: (p.pitch.lookbook ?? []).map(i => ({ ...i, dataUrl: '' })),
+  ...(p.pitch.design?.fontFiles ? { design: { ...p.pitch.design, fontFiles: p.pitch.design.fontFiles.map(f => ({ ...f, dataUrl: '' })) } } : {}) } : undefined }).length;
 
 export const DEFAULT_GROUP = 'Comparable films';
 /** Comps grouped by the argument they support, in first-seen order; ungrouped comps come first. */

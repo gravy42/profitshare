@@ -40,41 +40,118 @@ export function metaOf(p: Project, id: string): ProjectMeta {
   return { id, name: p.name, version: p.version, savedAt: new Date().toISOString(), shootDays: p.shootDays, lines: p.lines.length, scenes: p.board.scenes.length, cashBudget };
 }
 
-// ---- pictures live in IndexedDB, not in the slot ----
+// ---- pictures and font files live in IndexedDB, not in the slot ----
 // A look book is megabytes; localStorage holds about 5 MB a site in UTF-16, which is four or five pictures and then
-// silence. So the slot keeps the project with every picture's data blanked, and the pictures sit in IndexedDB under
-// their ids. Loading a slot puts them back (asynchronously); Save (the .json) always has them inline.
-const stored = new Set<string>();   // image ids known to be in IndexedDB this session, so autosave does not rewrite megabytes every 300ms
-export const IMAGE_IN_DB = 'idb:';   // what a blanked picture's dataUrl says in the slot
-/** The project with picture data moved out: write the pictures to IndexedDB and blank them in the copy that goes to the slot. */
-export function stripImages(p: Project): Project {
-  const lb = p.pitch?.lookbook;
-  if (!lb?.length || !idbAvailable()) return p;
-  const lookbook = lb.map(img => {
-    if (!img.dataUrl.startsWith('data:')) return img;
-    if (!stored.has(img.id)) { stored.add(img.id); void idbSet(STORES.images, img.id, img.dataUrl).catch(() => stored.delete(img.id)); }
-    return { ...img, dataUrl: IMAGE_IN_DB + img.id };
-  });
-  return { ...p, pitch: { ...p.pitch!, lookbook } };
-}
-/** The pictures back from IndexedDB; a picture that is gone stays blank (and the look book shows it as missing). */
-export async function hydrateImages(p: Project): Promise<Project> {
-  const lb = p.pitch?.lookbook;
-  if (!lb?.some(i => i.dataUrl.startsWith(IMAGE_IN_DB)) || !idbAvailable()) return p;
-  const lookbook = await Promise.all(lb.map(async img => {
-    if (!img.dataUrl.startsWith(IMAGE_IN_DB)) return img;
-    const data = await idbGet<string>(STORES.images, img.id).catch(() => undefined);
-    if (data) { stored.add(img.id); return { ...img, dataUrl: data }; }
-    return { ...img, dataUrl: '' };
-  }));
-  return { ...p, pitch: { ...p.pitch!, lookbook } };
+// silence. So the slot keeps the project with every picture's and font file's data blanked, and the data sits in
+// IndexedDB under its id. Loading a slot puts it back (asynchronously); Save (the .json) always has it inline.
+//
+// An asset is only blanked once its write to IndexedDB is known to have landed. Until then, and for good if the
+// write fails, its data stays inline in the slot: a reference to something that was never stored would lose it.
+const stored = new Set<string>();    // keys known to be in IndexedDB
+const writing = new Set<string>();   // keys on their way there
+const failed = new Set<string>();    // keys IndexedDB refused: kept inline
+const lastKeys = new Map<string, Set<string>>();   // what each slot referenced when it was last written, to see what it let go of
+let assetListener: (() => void) | null = null;
+/** Told when an asset has landed in IndexedDB (the slot can be written again, smaller) or has been refused. */
+export function onAssetsChanged(fn: (() => void) | null): void { assetListener = fn; }
+/** True when IndexedDB has refused a picture or font file this session, so it is kept inside the project's slot. */
+export const assetsKeptInline = (): boolean => failed.size > 0;
+/** For tests: forget what this session knows about the store. */
+export function resetAssetState(): void { stored.clear(); writing.clear(); failed.clear(); lastKeys.clear(); }
+
+export const IMAGE_IN_DB = 'idb:';   // what a blanked asset's dataUrl says in the slot
+const fontKey = (id: string) => `font:${id}`;   // font files share the pictures' store, under a key of their own
+type Asset = { id?: unknown; dataUrl?: unknown };
+const isAsset = (x: unknown): x is { id: string; dataUrl: string } => !!x && typeof x === 'object' && typeof (x as Asset).id === 'string' && typeof (x as Asset).dataUrl === 'string';
+const blanked = (x: unknown): x is { id: string; dataUrl: string } => isAsset(x) && x.dataUrl.startsWith(IMAGE_IN_DB);
+const listOf = (x: unknown): unknown[] => (Array.isArray(x) ? x : []);
+
+/** True once the data is safely in IndexedDB. The first time a key is seen its write is started and the answer is no. */
+function safelyStored(key: string, data: string): boolean {
+  if (stored.has(key)) return true;
+  if (failed.has(key) || writing.has(key)) return false;
+  writing.add(key);
+  void idbSet(STORES.images, key, data).then(
+    () => { writing.delete(key); stored.add(key); assetListener?.(); },
+    () => { writing.delete(key); failed.add(key); assetListener?.(); });
+  return false;
 }
 
-/** Write one project to its slot and refresh its row in the index (newest first). */
-export function saveSlot(id: string, p: Project, kv: KV | null = ls()): void {
-  try { kv?.setItem(slotKey(id), JSON.stringify(stripImages(p))); } catch { return; }
+/** The project with picture and font data moved out: each asset that is safely in IndexedDB is blanked in the copy
+ *  that goes to the slot; one that is not there yet (or was refused) keeps its data. */
+export function stripImages(p: Project): Project {
+  const lb = p.pitch?.lookbook, ff = p.pitch?.design?.fontFiles;
+  if ((!listOf(lb).length && !listOf(ff).length) || !idbAvailable()) return p;
+  const out = <T,>(items: T[], keyOf: (id: string) => string): T[] => items.map(x => (isAsset(x) && x.dataUrl.startsWith('data:') && safelyStored(keyOf(x.id), x.dataUrl) ? { ...x, dataUrl: IMAGE_IN_DB + keyOf(x.id) } : x));
+  let pitch = p.pitch!;
+  if (Array.isArray(lb) && lb.length) pitch = { ...pitch, lookbook: out(lb, id => id) };
+  if (Array.isArray(ff) && ff.length) pitch = { ...pitch, design: { ...pitch.design!, fontFiles: out(ff, fontKey) } };
+  return { ...p, pitch };
+}
+/** The pictures and font files back from IndexedDB; one that is gone stays blank (and the page shows it as missing). */
+export async function hydrateImages(p: Project): Promise<Project> {
+  const lb = p.pitch?.lookbook, ff = p.pitch?.design?.fontFiles;
+  if ((!listOf(lb).some(blanked) && !listOf(ff).some(blanked)) || !idbAvailable()) return p;
+  const back = async (key: string) => { const data = await idbGet<string>(STORES.images, key).catch(() => undefined); if (data) stored.add(key); return data ?? ''; };
+  let pitch = p.pitch!;
+  if (listOf(lb).some(blanked)) pitch = { ...pitch, lookbook: await Promise.all(lb!.map(async img => (blanked(img) ? { ...img, dataUrl: await back(img.id) } : img))) };
+  if (listOf(ff).some(blanked)) pitch = { ...pitch, design: { ...pitch.design!, fontFiles: await Promise.all(ff!.map(async f => (blanked(f) ? { ...f, dataUrl: await back(fontKey(f.id)) } : f))) } };
+  return { ...p, pitch };
+}
+/** What came back from IndexedDB put into the project as it is now (it may have been edited while the store was read).
+ *  Only an asset that is still a reference to the same stored thing is filled in: one the user has since replaced (a
+ *  new file, with data of its own) or removed is left exactly as it is. */
+export function mergeHydrated(cur: Project, h: Project): Project {
+  const lb = cur.pitch?.lookbook, ff = cur.pitch?.design?.fontFiles;
+  if (!listOf(lb).some(blanked) && !listOf(ff).some(blanked)) return cur;
+  const read = (items: unknown) => new Map(listOf(items).filter(isAsset).filter(x => !x.dataUrl.startsWith(IMAGE_IN_DB)).map(x => [x.id, x.dataUrl] as const));
+  const pics = read(h.pitch?.lookbook), fonts = read(h.pitch?.design?.fontFiles);
+  const fill = <T,>(items: T[], from: Map<string, string>, keyOf: (id: string) => string): T[] =>
+    items.map(x => (blanked(x) && x.dataUrl === IMAGE_IN_DB + keyOf(x.id) && from.has(x.id) ? { ...x, dataUrl: from.get(x.id)! } : x));
+  let pitch = cur.pitch!;
+  if (listOf(lb).some(blanked)) pitch = { ...pitch, lookbook: fill(lb!, pics, id => id) };
+  if (listOf(ff).some(blanked)) pitch = { ...pitch, design: { ...pitch.design!, fontFiles: fill(ff!, fonts, fontKey) } };
+  return { ...cur, pitch };
+}
+
+/** The IndexedDB keys a project refers to, whether its assets are blanked or still hold their data. */
+export function assetKeys(p: Project | null | undefined): Set<string> {
+  const keys = new Set<string>();
+  for (const img of listOf(p?.pitch?.lookbook)) if (isAsset(img)) keys.add(img.id);
+  for (const f of listOf(p?.pitch?.design?.fontFiles)) if (isAsset(f)) keys.add(fontKey(f.id));
+  return keys;
+}
+/** True when a slot other than `exceptId` still refers to the stored asset `key`: two projects opened from one .json share their ids. */
+function usedElsewhere(key: string, exceptId: string, kv: KV | null): boolean {
+  const needle = JSON.stringify(IMAGE_IN_DB + key);
+  return readIndex(kv).some(m => m.id !== exceptId && (kv?.getItem(slotKey(m.id)) ?? '').includes(needle));
+}
+/** Takes out of IndexedDB each of `keys` that no other slot refers to. */
+function dropAssets(keys: Iterable<string>, exceptId: string, kv: KV | null): void {
+  if (!idbAvailable()) return;
+  for (const key of keys) {
+    if (usedElsewhere(key, exceptId, kv)) continue;
+    stored.delete(key); failed.delete(key);
+    void idbDel(STORES.images, key).catch(() => undefined);
+  }
+}
+const slotKeys = (id: string, kv: KV | null): Set<string> => {
+  const known = lastKeys.get(id); if (known) return known;
+  try { const raw = kv?.getItem(slotKey(id)); return assetKeys(raw ? JSON.parse(raw) : null); } catch { return new Set(); }
+};
+
+/** Write one project to its slot and refresh its row in the index (newest first). A picture or font file the project
+ *  no longer has is taken out of IndexedDB, unless another project in this browser still uses it. False when the
+ *  browser would not take the write (its small store is full). */
+export function saveSlot(id: string, p: Project, kv: KV | null = ls()): boolean {
+  const before = slotKeys(id, kv);
+  try { kv?.setItem(slotKey(id), JSON.stringify(stripImages(p))); } catch { return false; }
+  const now = assetKeys(p);
+  lastKeys.set(id, now);
+  dropAssets([...before].filter(k => !now.has(k)), id, kv);
   const rest = readIndex(kv).filter(m => m.id !== id);
   writeIndex([metaOf(p, id), ...rest], kv);
+  return true;
 }
 /** The slot's project, pictures still blanked: follow with hydrateImages(). */
 export function loadSlot(id: string, kv: KV | null = ls()): Project | null {
@@ -85,10 +162,11 @@ export function loadSlot(id: string, kv: KV | null = ls()): Project | null {
   return null;
 }
 export function deleteSlot(id: string, kv: KV | null = ls()): void {
-  const p = loadSlot(id, kv);
-  for (const img of p?.pitch?.lookbook ?? []) if (img.dataUrl.startsWith(IMAGE_IN_DB)) { stored.delete(img.id); void idbDel(STORES.images, img.id).catch(() => undefined); }
+  const keys = slotKeys(id, kv);
   try { kv?.removeItem(slotKey(id)); } catch { /* ignore */ }
   writeIndex(readIndex(kv).filter(m => m.id !== id), kv);
+  lastKeys.delete(id);
+  dropAssets(keys, id, kv);   // after the slot has gone, and never an asset another project still uses
   if (kv?.getItem(ACTIVE_KEY) === id) { try { kv.removeItem(ACTIVE_KEY); } catch { /* ignore */ } }
 }
 
@@ -143,15 +221,17 @@ export function useProject() {
   const [projects, setProjects] = useState<ProjectMeta[]>(readIndex);
   const past = useRef<Project[]>([]);
   const [dirty, setDirty] = useState(false);
+  const [assetTick, setAssetTick] = useState(0);
+  const [storageNote, setStorageNote] = useState('');
   const idRef = useRef(activeId); idRef.current = activeId;
   // pictures come back from IndexedDB after the slot loads; swapping them in is not an edit
   const hydrate = useCallback((p: Project) => {
     void hydrateImages(p).then(h => {
       if (h === p) return;
-      const data = new Map((h.pitch?.lookbook ?? []).map(i => [i.id, i.dataUrl]));
-      setProjectState(cur => cur === p ? h : (cur.pitch?.lookbook?.some(i => i.dataUrl.startsWith(IMAGE_IN_DB))
-        ? { ...cur, pitch: { ...cur.pitch!, lookbook: cur.pitch!.lookbook!.map(i => i.dataUrl.startsWith(IMAGE_IN_DB) && data.has(i.id) ? { ...i, dataUrl: data.get(i.id)! } : i) } }
-        : cur));
+      // the steps Undo can go back to were taken before the data came back: they get it too, so undoing never brings
+      // back a reference where a picture or a font should be
+      past.current = past.current.map(old => mergeHydrated(old, h));
+      setProjectState(cur => (cur === p ? h : mergeHydrated(cur, h)));
     });
   }, []);
   useEffect(() => { hydrate(project); }, []);   // eslint-disable-line react-hooks/exhaustive-deps
@@ -162,9 +242,15 @@ export function useProject() {
   // autosave, 300ms after the last change, into this project's own slot; nothing is written while no project is open
   useEffect(() => {
     if (!activeId) { if (dirty) adopt(project); return; }   // the first edit on the start screen makes it a project of its own
-    const t = setTimeout(() => { saveSlot(activeId, project); setProjects(readIndex()); }, 300);
+    const t = setTimeout(() => {
+      const ok = saveSlot(activeId, project); setProjects(readIndex());
+      setStorageNote(!ok ? 'This browser\'s store is full, so the last changes are not saved here. Press Save to download the project as a .json file.'
+        : assetsKeptInline() ? 'This browser would not store a picture or font file on its own, so it is kept inside the project here. Press Save to keep a .json copy as well.' : '');
+    }, 300);
     return () => clearTimeout(t);
-  }, [project, activeId, dirty]);   // eslint-disable-line react-hooks/exhaustive-deps
+  }, [project, activeId, dirty, assetTick]);   // eslint-disable-line react-hooks/exhaustive-deps
+  // a picture or font file has landed in the big store (the slot can be written again, without it) or was refused
+  useEffect(() => { onAssetsChanged(() => setAssetTick(n => n + 1)); return () => onAssetsChanged(null); }, []);
   useEffect(() => { rememberActive(activeId); }, [activeId]);
   // another tab saved or deleted something: refresh the list
   useEffect(() => {
@@ -183,8 +269,8 @@ export function useProject() {
 
   const undo = useCallback(() => {
     const prev = past.current.pop();
-    if (prev) setProjectState(prev);
-  }, []);
+    if (prev) { setProjectState(prev); hydrate(prev); }   // a step from before the pictures came back is filled in again
+  }, [hydrate]);
 
   /** A project from a file or a Start button: it becomes a new project in the browser; the one that was open stays in the list. */
   const replace = useCallback((p: Project) => { past.current = []; const n = normalize(p); setProjectState(n); setDirty(false); adopt(n); }, [adopt]);
@@ -203,7 +289,7 @@ export function useProject() {
     if (idRef.current === id) newProject();
   }, [newProject]);
 
-  return { project, setProject, undo, replace, dirty, setDirty, canUndo: past.current.length > 0, projects, activeId, newProject, openProject, deleteProject };
+  return { project, setProject, undo, replace, dirty, setDirty, canUndo: past.current.length > 0, undoDepth: past.current.length, storageNote, projects, activeId, newProject, openProject, deleteProject };
 }
 
 export function downloadJson(p: Project) {

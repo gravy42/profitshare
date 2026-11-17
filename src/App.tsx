@@ -31,7 +31,7 @@ import { money } from './ui/format';
 type Tab = 'start' | 'deal' | 'topsheet' | 'board' | 'calendar' | 'callsheets' | 'breakdowns' | 'points' | 'sag' | 'incentives' | 'pitch' | 'about';
 
 export default function App() {
-  const { project, setProject, undo, replace, canUndo, projects, activeId, newProject, openProject, deleteProject } = useProject();
+  const { project, setProject, undo, replace, canUndo, undoDepth, storageNote, projects, activeId, newProject, openProject, deleteProject } = useProject();
   const [hadSaved] = useState(hadSavedProject);
   const [tab, setTab] = useState<Tab>(hadSaved ? 'topsheet' : 'start');
   // a message to the user: short confirmations fade after a few seconds, anything worth re-reading (an import report, a repricing) stays until dismissed
@@ -284,6 +284,7 @@ export default function App() {
       </nav>}
       <main>
         <div role="status" aria-live="polite">{msg && <div className="notice row msg"><span>{msg.text}</span><button className="x" title="dismiss" aria-label="Dismiss this message" onClick={() => setMsg(null)}>×</button></div>}</div>
+        {storageNote && <div className="notice" role="status">{storageNote}</div>}
         {pendingScript && (
           <div className="notice row">
             <span><b>{pendingScript.name}</b> has {pendingScript.board.scenes.length} scenes and this project already has a board with {project.board.scenes.length}. <b>Merge</b> matches scenes by number and adds the script text, cast and a first pass of tags to the strips you have, keeping your day breaks, strip order, cast numbers, locations and every tag. <b>Replace</b> starts the board over from the script.</span>
@@ -310,7 +311,7 @@ export default function App() {
         {tab === 'points' && <PointsView project={eff} setProject={setProject} />}
         {tab === 'sag' && <SagView project={eff} />}
         {tab === 'incentives' && <IncentivesView project={eff} setProject={setProject} />}
-        {tab === 'pitch' && <PitchView project={eff} setProject={setProject} />}
+        {tab === 'pitch' && <PitchView project={eff} setProject={setProject} onTab={t => setTab(t as Tab)} onUndo={undo} undoDepth={undoDepth} />}
         {tab === 'about' && <About onStart={() => setTab('start')} />}
         <footer>
           <span>ProfitShare · open source, MIT · every project is autosaved in this browser (Projects on the Start tab); Save downloads a .json to keep or share · not legal, tax or financial advice</span>

@@ -13,7 +13,11 @@ export interface DeckTheme {
   colors: { bg: string; ink: string; accent: string; accent2: string; muted: string; card: string; cardInk: string; line: string };
   fonts: { title: string; body: string };   // CSS font-family stacks
   signoff: string;                          // the footer of the last slide; empty for the film's own name
+  /** Font files the deck carries, at most four. `src` is a base64 data URL of the file; `role` says which of the two
+   *  stacks above the face goes in front of. Optional: a deck without it uses the stacks alone. */
+  fontFaces?: DeckFontFace[];
 }
+export interface DeckFontFace { family: string; src: string; role: 'title' | 'body' }
 
 /** A picture a slide can use. `src` is a data URL in an exported deck; in the app's preview it may be a blob: URL. */
 export interface DeckImage { id: string; src: string; alt: string }

@@ -285,7 +285,12 @@ export interface PitchDesign {
   line?: string;              // hairlines and dividers, when the system names one
   card?: string;              // the index-card colour, when the system has one
   deck?: DeckRules;           // how the slides are laid out
+  fontFiles?: FontFile[];     // font files attached for the title and body faces, one a role
 }
+/** A font file the filmmaker attached. `dataUrl` is the file itself (kept in the browser's big store, and inside the
+ *  .json on Save, the way look book pictures are). `embedOk` is their word that the licence lets the file travel
+ *  inside a deck they send; without it the face is used in the in-app preview only. */
+export interface FontFile { id: string; role: 'title' | 'body'; family: string; dataUrl: string; embedOk: boolean }
 /** Layout rules a brand system sets for its slides. */
 export interface DeckRules {
   layout: 'split' | 'plain';  // split: a photo bleeds the left of a text slide, the text column sits right; plain: text on the ground
