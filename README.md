@@ -50,6 +50,8 @@ npm run dev            # http://localhost:5173
 npm test               # engine tests, including round-trips of the sample through every importer
 npm run build          # static site in dist/ (the GitHub Pages workflow deploys this)
 npm run build:single   # one self-contained index.html in dist-single/
+npm run build:deck-runtime   # the pitch deck renderer on its own, in dist-deck/ (stage two of the deck builder; not in the app yet)
+npm run deck:scratch -- deck.json out.html   # a test page from a deck JSON
 npm run sample         # rebuild the sample project and the importer fixtures from tools/make-sample.mjs
 npm run smoke          # Playwright walk-through with screenshots, light and dark
 npm run demo           # re-record a silent, captioned demo/profitshare-demo.mp4 (needs ffmpeg)

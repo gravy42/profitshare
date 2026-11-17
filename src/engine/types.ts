@@ -243,7 +243,38 @@ export interface Pitch {
   research?: ResearchItem[];  // market, audience and comp research, pasted in
   team?: TeamMember[];
   ask?: string;               // the ask, in the filmmaker's words: what you are raising, on what terms, how to reach you
+  slides?: SlideSpec[];       // the authored pitch deck, in order; empty or absent = build the default from the fields above
+  recipients?: Recipient[];   // people the pitch deck is tailored for, each with a link ending of their own
 }
+
+// ---------- the authored pitch deck ----------
+
+export type SlideLayout = 'cover' | 'photo' | 'cards' | 'stats' | 'timeline' | 'text' | 'comps' | 'team' | 'model' | 'ways' | 'numbers' | 'ask' | 'closing';
+
+/** One slide as the author wrote it. The layout decides which fields are read; `deckData()` fills in what the
+ *  project already knows (the comps, the team, the plan, the split, the numbers). */
+export interface SlideSpec {
+  id: string; layout: SlideLayout;
+  eyebrow?: string; headline?: string; punch?: string; body?: string;
+  imageId?: string;        // a look book picture (LookImage.id)
+  scrim?: number;          // 0 to 1
+  cards?: SlideCard[]; stats?: SlideStat[]; milestones?: SlideMilestone[];
+  lead?: { value: string; text: string; source: string };   // stats layout: one big number with a sentence
+  quote?: { text: string; by: string };
+  closing?: string;        // a last line under the slide's main content
+  footnote?: string;
+  byline?: string;         // cover: who made it, under the title
+  columns?: { label: string; lines: string[] }[];   // text: small labelled columns under the paragraphs
+  aside?: { title: string; lines: string[]; footnote?: string };   // team: a card beside the list (who you hope to cast, say)
+  nextStep?: string;       // ask: what you want the reader to do next
+  contact?: string;        // ask: how to reach you
+  hidden?: boolean;
+}
+export interface SlideCard { id: string; kicker?: string; title: string; body: string; footnote?: string }
+export interface SlideStat { id: string; value: string; label: string; source: string }
+export interface SlideMilestone { id: string; when: string; what: string }
+/** Someone the deck is sent to: `slug` is their link ending, `lead` is which ask they read first. */
+export interface Recipient { id: string; slug: string; name: string; coverLine: string; note?: string; lead: 'with-grants' | 'without-grants'; highlightCardId?: string }
 
 export interface PitchDesign {
   name: string;               // "Alone Girl Universe"

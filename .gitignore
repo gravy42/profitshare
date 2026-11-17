@@ -1,6 +1,7 @@
 node_modules
 dist
 dist-single
+dist-deck
 .DS_Store
 demo/*.webm
 demo/vo.mp3
