@@ -18,7 +18,8 @@ A day of running a real project's numbers back through the app and fixing what t
 - **SAG pension & health check.** The SAG tab notes when the budget's SAG-AFTRA fringe and the tier's rate disagree (an imported budget can carry last year's).
 - **The deck describes the right waterfall.** The investors' line on the ask slide said "recoup first" whatever the model; off the gross now reads as the split it is.
 - The credit is figured against the latest letter that precedes the start whether or not its window has closed, so the number does not move the day a window shuts.
-- Ten new tests (`financing.test.ts`); 122 pass.
+- **Funding paths (first stage of the pitch deck builder).** The engine can now say what investors have to fund, and what they get back in each case, under every on/off combination of the film's funding sources: grants and sponsorship, the California credit, the federal credit, local perks. `fundingSources`, `fundingPaths` and the pure `pathFor` (in `pathMath.ts`, which with `split.ts` depends on nothing else, so a deck can carry the same math). The path that is switched on reconciles with the Points tab and the Pitch projections to the cent. A budget that is fully covered now reads as nothing to fund instead of a stray fraction of a cent, and a negative grants figure in a hand-edited file counts as none. Nothing on screen changes yet.
+- New tests in `financing.test.ts` and `paths.test.ts`; 145 pass.
 
 ## 2026-10-22
 

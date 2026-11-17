@@ -1,6 +1,11 @@
 import type { Participant, PointsTier, Project, Waterfall } from './types';
 import { incentiveProceeds } from './incentives';
 import { topSheet } from './budget';
+import { afterDeferrals, investorsAt, poolAt } from './split';
+
+// The split arithmetic lives in split.ts (no dependencies, so it can run outside the app); re-exported here so
+// existing imports keep working.
+export { afterDeferrals, investorsAt, poolAt } from './split';
 
 /** Points for one participant: days × tier multiplier × personal bonus, or a fixed block when the deal sets one. */
 export function participantPoints(pt: Participant, tiers: PointsTier[]): number {
@@ -11,22 +16,6 @@ export function participantPoints(pt: Participant, tiers: PointsTier[]): number 
 
 export function totalPoints(p: Project): number {
   return p.participants.reduce((n, pt) => n + participantPoints(pt, p.tiers), 0);
-}
-
-/** Size of the cast & crew pool at a given producer's-net revenue.
- *  recoup-first: investors take recoupPct % of the cash budget back first, then poolPct % of the rest funds the pool.
- *  off-the-gross (the Sing Sing model): the pool takes grossSharePct % from dollar one until investors have
- *  recouped recoupPct % of the budget from their share; after that the split flips to poolPct %. */
-export function poolAt(w: Waterfall, budget: number, revenue: number): number {
-  const recoup = w.recoupPct / 100, pool = w.poolPct / 100;
-  if (w.model === 'recoup-first') return Math.max(0, revenue - budget * recoup) * pool;
-  const gross = w.grossSharePct / 100, invShare = 1 - gross;
-  const rStar = invShare > 0 ? (budget * recoup) / invShare : Infinity; // revenue at which investors have recouped
-  return revenue <= rStar ? gross * revenue : gross * rStar + pool * (revenue - rStar);
-}
-
-export function investorsAt(w: Waterfall, budget: number, revenue: number): number {
-  return Math.max(0, revenue - poolAt(w, budget, revenue));
 }
 
 export interface PayoutRow {
@@ -51,19 +40,15 @@ export interface WaterfallReport {
 /** The part of the cash budget investors put in and expect back: the budget less grants, donations and the
  *  tax credits and perks switched on under Incentives. */
 export function recoupableBudget(p: Project): number {
-  return Math.max(0, topSheet(p).cashBudget - sponsorNet(p.waterfall) - incentiveProceeds(p));
+  const left = topSheet(p).cashBudget - sponsorNet(p.waterfall) - incentiveProceeds(p);
+  return left < 0.005 ? 0 : left;   // under half a cent is nothing
 }
 
 /** What the fiscal sponsor keeps of the grants and donations, and what reaches the film. */
-export const sponsorFee = (w: Waterfall): number => (w.nonRecoupable ?? 0) * Math.max(0, Math.min(100, w.sponsorFeePct ?? 0)) / 100;
-export const sponsorNet = (w: Waterfall): number => (w.nonRecoupable ?? 0) - sponsorFee(w);
-
-/** Deferred pay is a fixed IOU paid from first proceeds: it comes off the top before investors and the pool split
- *  anything. Returns what a given revenue pays of it and what is left to split. */
-export function afterDeferrals(deferred: number, revenue: number): { paid: number; rest: number } {
-  const paid = Math.max(0, Math.min(deferred, revenue));
-  return { paid, rest: Math.max(0, revenue - paid) };
-}
+/** A hand-edited file can carry a negative figure; grants are never negative money. */
+const grantsOf = (w: Waterfall): number => Math.max(0, w.nonRecoupable ?? 0);
+export const sponsorFee = (w: Waterfall): number => grantsOf(w) * Math.max(0, Math.min(100, w.sponsorFeePct ?? 0)) / 100;
+export const sponsorNet = (w: Waterfall): number => grantsOf(w) - sponsorFee(w);
 
 export function waterfallReport(p: Project): WaterfallReport {
   const budget = recoupableBudget(p);
