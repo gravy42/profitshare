@@ -14,7 +14,7 @@ import type { LookImage, Project, SlideSpec } from '../engine/types';
 import type { DeckData, DeckSlide } from './data';
 import { money, moneyParts, multiple, percent, shares100 } from './format';
 import { cleanFamily, faceName, fontSrcOk, shortHash } from './fonts';
-import { cleanFontFaces, cleanPaths, cleanRecipients, contrastRatio, DEFAULT_LEGAL, deckColors, fillAsk, fontStack, initialSwitches, MAX_SOURCES, mixColors, mountDeck, overflows, parseColor, parseHash, readableOn, reservedSlug, safeColor, str, textSafe } from './runtime';
+import { CENTRE_UNDER, shouldCentre, cleanFontFaces, cleanPaths, cleanRecipients, contrastRatio, DEFAULT_LEGAL, deckColors, fillAsk, fontStack, initialSwitches, MAX_SOURCES, mixColors, mountDeck, overflows, parseColor, parseHash, readableOn, reservedSlug, safeColor, str, textSafe } from './runtime';
 import type { DeckHandle } from './runtime';
 
 // Only the invented sample film, dressed with invented content so that every layout appears.
@@ -565,6 +565,8 @@ describe('what the runtime may import', () => {
     'format.ts': [],
     'fonts.ts': [],
     'data.ts': ['../engine/pathMath'],
+    'exportHtml.ts': ['./data', './fonts', './hash'],   // the page a deck is sent as: text in, text out
+    'hash.ts': [],
   };
   for (const file of Object.keys(allowed)) {
     it(`${file} imports only its neighbours and the pure math modules`, () => {
@@ -1716,4 +1718,56 @@ describe('the scratch page', () => {
     for (const secret of ['Placeholder Fund', 'placeholder-fund', 'A note only the Fund should read.', 'Quiet Person']) expect(d).not.toContain(secret);
     expect(() => run(join(dir, 'deck.json'), join(dir, 'x.html'), '--recipient', 'nobody')).toThrow();
   }, 60_000);
+});
+
+describe('a slide with little on it', () => {
+  it('is centred when its content fills under seven tenths of its room, and only then', () => {
+    expect(CENTRE_UNDER).toBe(0.7);
+    expect(shouldCentre(600, 200)).toBe(true);
+    expect(shouldCentre(600, 419)).toBe(true);
+    expect(shouldCentre(600, 420)).toBe(false);
+    expect(shouldCentre(600, 590)).toBe(false);
+    expect(shouldCentre(600, 900)).toBe(false);     // overflowing: never
+    expect(shouldCentre(0, 0)).toBe(false);         // not laid out: nothing can be said
+    expect(shouldCentre(600, 0)).toBe(false);
+    expect(shouldCentre(-5, 10)).toBe(false);
+  });
+  it('the stylesheet centres the content block, keeps the small print at the foot, and never centres a stacked deck', () => {
+    const css = readFileSync(resolve(process.cwd(), 'src/deck-runtime/deck.css'), 'utf8');
+    expect(css).toMatch(/\.psd-centre \.psd-box::before \{ content: ""; flex: 1 1 0; \}/);
+    expect(css).toMatch(/\.psd-centre \.psd-box::after \{ content: ""; flex: 1\.3 1 0; order: 1; \}/);
+    expect(css).toMatch(/\.psd-centre \.psd-footnote \{ order: 2; margin-top: 0; \}/);
+    expect(css).toMatch(/\.psd-stacked \.psd-centre \.psd-box::before, \.psd-stacked \.psd-centre \.psd-box::after \{ content: none; \}/);
+    expect(css).not.toMatch(/psd-centre[^{]*\{[^}]*text-align/);   // still set from the left
+  });
+  it('is decided from what is measured: with no layout to measure (here), no slide is marked', () => {
+    const { root, handle } = mount(fixture());
+    handle.checkOverflow();
+    expect(root.querySelectorAll('.psd-centre')).toHaveLength(0);
+  });
+  it('marks a short slide and leaves a full one, the numbers slide and a picture slide alone, when there are sizes to measure', () => {
+    const { root, handle } = mount(fixture());
+    const sections = [...root.querySelectorAll<HTMLElement>('section.psd-slide')];
+    // give every slide a 900 px box with 100 px of padding, and content 200 px tall (short) or 700 px (full on the team slide)
+    const rect = (top: number, bottom: number) => ({ top, bottom, left: 0, right: 0, width: 0, height: bottom - top, x: 0, y: top, toJSON: () => ({}) });
+    for (const sec of sections) {
+      const box = sec.querySelector<HTMLElement>('.psd-box')!;
+      Object.defineProperty(box, 'clientHeight', { value: 900, configurable: true });
+      Object.defineProperty(box, 'clientWidth', { value: 1600, configurable: true });
+      Object.defineProperty(box, 'scrollHeight', { value: 900, configurable: true });
+      Object.defineProperty(box, 'scrollWidth', { value: 1600, configurable: true });
+      box.style.paddingTop = '50px'; box.style.paddingBottom = '50px';
+      const kids = [...box.children].filter(k => !k.classList.contains('psd-footnote')) as HTMLElement[];
+      const tall = sec.dataset.layout === 'team' ? 700 : 200;
+      kids.forEach((k, i) => { k.getBoundingClientRect = () => rect(100 + (i * tall) / kids.length, 100 + ((i + 1) * tall) / kids.length) as DOMRect; });
+    }
+    handle.checkOverflow();
+    const centred = sections.filter(s => s.classList.contains('psd-centre')).map(s => s.dataset.layout);
+    for (const layout of ['text', 'cards', 'ways', 'stats', 'timeline', 'comps', 'model', 'ask']) expect(centred, layout).toContain(layout);
+    for (const layout of ['team', 'numbers', 'cover', 'photo', 'closing']) expect(centred, layout).not.toContain(layout);
+    // the mark is taken off before the next measure, and a stacked deck never has it
+    const narrow = mount(fixture(), { stacked: true });
+    narrow.handle.checkOverflow();
+    expect(narrow.root.querySelectorAll('.psd-centre')).toHaveLength(0);
+  });
 });

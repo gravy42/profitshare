@@ -19,6 +19,7 @@ export interface MountOptions {
   lead?: Lead;             // overrides the recipient's lead
   static?: boolean;        // no motion, every slide in its final state, print-safe (for PDF)
   useHash?: boolean;       // read and follow location.hash (default false; the exported file turns it on)
+  fixedRecipient?: boolean;   // a file made for one person (or for nobody): a link ending can switch the ask, never who the deck is for
   css?: string;            // the stylesheet text; when omitted the caller has already provided styles
   pageKeys?: boolean;      // also page on arrow keys pressed while nothing on the page has focus (for a page that is only the deck)
   stacked?: boolean;       // the stacked reading layout: true always; false never (a scaled preview: small print has no pixel floor
@@ -174,6 +175,16 @@ export function overflows(box: { width: number; height: number }, content: { wid
   if (!(box.width > 0) || !(box.height > 0)) return false;   // not laid out: nothing can be said
   return content.height > box.height + tolerance || content.width > box.width + tolerance;
 }
+
+/** Whether a slide's content is short enough to sit in the middle of the slide and not hang from the top: it fills
+ *  less than `share` of the room it has. Sizes are injected, so this is tested without a browser. */
+export const CENTRE_UNDER = 0.7;
+export function shouldCentre(room: number, content: number, share = CENTRE_UNDER): boolean {
+  return room > 0 && content > 0 && content < room * share;
+}
+/** The layouts whose content is centred when it is short. The others place themselves: a cover and a closing slide
+ *  are centred already, a picture slide keeps its words at the foot, and the numbers slide keeps its legal line there. */
+const CENTRED: ReadonlySet<string> = new Set(['text', 'cards', 'ways', 'stats', 'timeline', 'comps', 'team', 'model', 'ask']);
 
 const COLOR_OK = /^(#[0-9a-f]{3,8}|[a-z]+|(rgb|rgba|hsl|hsla|oklch|oklab|lab|lch)\([0-9a-z.,%\s/+-]*\))$/i;
 /** A colour that is safe to put in a custom property: nothing that could load a URL or close the declaration. */
@@ -731,8 +742,19 @@ function mountWith(host: HTMLElement, data: DeckData, opts: MountOptions, taken:
   const spills = (p: Part): boolean =>
     overflows({ width: p.box.clientWidth, height: p.box.clientHeight }, { width: p.box.scrollWidth, height: p.box.scrollHeight })
     || p.cells.some(c => c.clientWidth > 0 && c.scrollWidth > c.clientWidth + 2);   // a child sticking out of its column
+  /** How tall the slide's content is (its first part's top to its last part's foot, small print aside) and how much room it has. */
+  const filled = (p: Part): { room: number; content: number } => {
+    const kids = [...p.box.children].filter(k => !k.classList.contains('psd-footnote') && !(k as HTMLElement).hidden) as HTMLElement[];
+    const note = p.box.querySelector<HTMLElement>(':scope > .psd-footnote');
+    const cs = win?.getComputedStyle?.(p.box);
+    const pad = cs ? (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0) : 0;
+    if (!kids.length) return { room: 0, content: 0 };
+    const top = kids[0].getBoundingClientRect().top, foot = kids[kids.length - 1].getBoundingClientRect().bottom;
+    return { room: p.box.clientHeight - pad - (note ? note.offsetHeight : 0), content: foot - top };
+  };
   function fitPart(p: Part): boolean {
     p.section.style.removeProperty('--psd-fs');
+    p.section.classList.remove('psd-centre');   // measured hanging from the top, as it is laid out
     if (stacked || !(p.box.clientHeight > 0)) {   // the stacked layout grows with its content; a slide not laid out says nothing
       if (stacked) p.section.dataset.overflow = 'false';
       return false;
@@ -744,6 +766,11 @@ function mountWith(host: HTMLElement, data: DeckData, opts: MountOptions, taken:
       if (!bad) break;
     }
     p.section.dataset.overflow = String(bad);
+    // a slide with little on it: its content sits in the middle (a touch above), not in the top half of an empty slide
+    if (!bad && CENTRED.has(p.layout) && !p.section.classList.contains('psd-only-head')) {
+      const f = filled(p);
+      p.section.classList.toggle('psd-centre', shouldCentre(f.room, f.content));
+    }
     if ((p.layout === 'photo' || p.layout === 'closing') && p.section.classList.contains('psd-has-picture')) {   // the scrim is full strength as far up as the text goes
       const top = p.box.querySelector('.psd-photo > *, .psd-closing-slide > *')?.getBoundingClientRect().top, r = p.section.getBoundingClientRect();
       if (top != null && r.height > 0) p.section.style.setProperty('--psd-stop', `${Math.round(Math.max(30, Math.min(100, ((r.bottom - top) / r.height) * 100 + 8)))}%`);
@@ -927,7 +954,8 @@ function mountWith(host: HTMLElement, data: DeckData, opts: MountOptions, taken:
       const raw = win.location?.hash ?? '';
       if (initial && !raw.replace(/^#/, '')) return;   // no link ending: keep what the caller asked for
       const h = parseHash(raw, slugs);
-      applyAudience(h.slug, h.lead ?? null);
+      // a file made for one person stays theirs whatever the link ending says: only the ask can change
+      applyAudience(opts.fixedRecipient ? recipient?.slug ?? null : h.slug, h.lead ?? null);
     };
     fromHash(true);
     listen(win, 'hashchange', () => fromHash(false));

@@ -9,6 +9,7 @@ import { applyDeal } from '../engine/deal';
 import { defaultDesign, withPitch } from '../engine/pitch';
 import type { Project } from '../engine/types';
 import PitchDeck from './PitchDeck';
+import { LoadFailed, forgetWork, loadWork } from './DeckSend';
 import { CardColor, FontFiles, PaletteBuilder } from './DesignBuilder';
 import { Boundary } from './Boundary';
 
@@ -100,5 +101,122 @@ describe('the boundary', () => {
     act(() => { el.querySelector('button')!.click(); });
     expect(el.querySelector('[role="alert"]')).toBeNull();
     expect(el.textContent).toBe('Drawn.');
+  });
+});
+
+describe('Send it', () => {
+  const people = [
+    { id: 'r1', name: 'Ada Example', slug: 'ada-example', coverLine: 'Prepared for Ada Example.', note: 'A note.', lead: 'with-grants' },
+    { id: 'r2', name: 'Placeholder Fund', slug: 'with', coverLine: '', lead: 'with-grants' },     // a reserved link ending: no file
+    { id: 'r3', name: '', slug: '', coverLine: '', lead: 'with-grants' },                          // nobody has started typing: not a row
+  ];
+  const rowsOf = (el: HTMLElement) => [...el.querySelectorAll('.pd-sendtable tbody tr')];
+  it('lists anyone and each person with a link ending, names the files, and sends the rest to their link ending', async () => {
+    const p = withPitchFields({ recipients: people });
+    const el = draw(<PitchDeck project={{ ...p, name: 'Salt Flat', waterfall: { ...p.waterfall, nonRecoupable: 0 } }} setPitch={() => undefined} />);
+    await settle();
+    const rows = rowsOf(el);
+    expect(rows.map(r => r.querySelector('th')!.textContent)).toEqual(['Anyone (no name on it)', 'Ada Example #ada-example', 'Placeholder Fund']);
+    expect([...rows[0].querySelectorAll('button')].map(b => [b.textContent, b.title])).toEqual([['Download web deck', 'salt-flat-deck.html'], ['Download PDF', 'salt-flat-deck.pdf']]);
+    expect([...rows[1].querySelectorAll('button')].map(b => b.title)).toEqual(['salt-flat-deck-ada-example.html', 'salt-flat-deck-ada-example.pdf']);
+    expect(rows[2].textContent).toContain('No file: fix the link ending.');
+    expect(rows[2].querySelector('button')!.textContent).toBe('Go to their link ending');
+    expect(el.querySelector('.pd-sendall')!.textContent).toContain('2 web decks and 2 PDFs');
+    expect(el.querySelector('.pd-where summary')!.textContent).toBe('Where to put it');
+    expect(el.querySelector('.pd-sendfonts')!.textContent).toMatch(/Fonts inside these files: Special Elite and Work Sans\./);
+  });
+  it('offers the PDF with and without grants when the project has both asks', async () => {
+    const p = withPitchFields({ recipients: people });
+    const el = draw(<PitchDeck project={{ ...p, name: 'Salt Flat', waterfall: { ...p.waterfall, nonRecoupable: 60_000 } }} setPitch={() => undefined} />);
+    await settle();
+    expect([...rowsOf(el)[1].querySelectorAll('button')].map(b => [b.textContent, b.title])).toEqual([
+      ['Download web deck', 'salt-flat-deck-ada-example.html'], ['PDF, with grants', 'salt-flat-deck-ada-example-with-grants.pdf'], ['PDF, without grants', 'salt-flat-deck-ada-example-without-grants.pdf']]);
+    expect([...rowsOf(el)[0].querySelectorAll('button')].map(b => b.title)).toEqual(['salt-flat-deck.html', 'salt-flat-deck-with-grants.pdf', 'salt-flat-deck-without-grants.pdf']);
+    expect(el.querySelector('.pd-sendall')!.textContent).toContain('2 web decks and 4 PDFs');
+    expect(el.querySelector('.pd-where')!.textContent).toContain('#without');
+  });
+  it('says how many things are left to fix before a download, and lets it go ahead or shows them', async () => {
+    const p = withPitchFields({ recipients: people });
+    const el = draw(<PitchDeck project={{ ...p, name: 'Salt Flat' }} setPitch={() => undefined} />);
+    await settle();
+    const fixes = el.querySelectorAll('.pd-fixes li').length;
+    expect(fixes).toBeGreaterThan(0);                                   // the reserved link ending, at least
+    expect(el.querySelector('.pd-sendask')).toBeNull();
+    act(() => { rowsOf(el)[0].querySelector('button')!.click(); });
+    const ask = el.querySelector('.pd-sendask')!;
+    expect(ask.textContent).toContain(fixes === 1 ? 'There is 1 thing to fix on this deck.' : `There are ${fixes} things to fix on this deck.`);
+    expect([...ask.querySelectorAll('button')].map(b => b.textContent)).toEqual(['Show me', 'Download anyway']);
+    expect(el.querySelector('#pd-fixes-h')!.textContent).toBe('Things to fix');
+  });
+  it('keeps that question up when the project is only handed over again, and takes it down when the things to fix change', async () => {
+    const p = { ...withPitchFields({ recipients: people }), name: 'Salt Flat' };
+    const el = draw(<PitchDeck project={p} setPitch={() => undefined} />);
+    await settle();
+    act(() => { rowsOf(el)[0].querySelector('button')!.click(); });
+    expect(el.querySelector('.pd-sendask')).not.toBeNull();
+    // the same project as a new object (its pictures came back from the browser's store): nothing she did, nothing to dismiss
+    act(() => { root!.render(<PitchDeck project={{ ...p, pitch: { ...p.pitch!, lookbook: [...(p.pitch!.lookbook ?? [])] } }} setPitch={() => undefined} />); });
+    await settle();
+    expect(el.querySelector('.pd-sendask')).not.toBeNull();
+    expect([...el.querySelectorAll('.pd-sendask button')].map(b => b.textContent)).toEqual(['Show me', 'Download anyway']);
+    // she fixes the link ending: the list of things to fix is another list, and the question about the old one goes
+    act(() => { root!.render(<PitchDeck project={{ ...p, pitch: { ...p.pitch!, recipients: people.map(r => (r.id === 'r2' ? { ...r, slug: 'placeholder-fund' } : r)) } as Project['pitch'] }} setPitch={() => undefined} />); });
+    await settle();
+    expect(el.querySelector('.pd-sendask')).toBeNull();
+  });
+  it('says in the help that making the files fetches nothing from outside the app', async () => {
+    const el = draw(<PitchDeck project={base()} setPitch={() => undefined} />);
+    await settle();
+    expect(el.querySelector('.pd-send .help')!.textContent).toMatch(/fetches nothing from outside this app/);
+    expect(el.querySelector('.pd-send .help')!.textContent).toMatch(/the app's own font files/);
+  });
+});
+
+describe('the note under the preview about a font that does not travel', () => {
+  const FONT = `data:font/woff2;base64,${'QUJD'.repeat(10)}`;
+  const withFonts = (files: unknown[]) => withPitchFields({ design: { ...defaultDesign(), fontFiles: files } });
+  it('names a font file whose box is not ticked, with the way to its box', async () => {
+    const el = draw(<PitchDeck project={withFonts([{ id: 'f1', role: 'title', family: 'Licensed Face', dataUrl: FONT, embedOk: true }, { id: 'f2', role: 'body', family: 'Unlicensed Face', dataUrl: FONT, embedOk: false }])} setPitch={() => undefined} />);
+    await settle();
+    const note = el.querySelector('.pd-fontnote')!;
+    expect(note.textContent).toBe('The preview uses Unlicensed Face; the files you send will not, because its box under Design system is not ticked. Go to Design system');
+    expect(note.querySelector('button')!.textContent).toBe('Go to Design system');
+  });
+  it('is not there when every font file may travel, or there are none', async () => {
+    const ticked = draw(<PitchDeck project={withFonts([{ id: 'f1', role: 'title', family: 'Licensed Face', dataUrl: FONT, embedOk: true }])} setPitch={() => undefined} />);
+    await settle();
+    expect(ticked.querySelector('.pd-fontnote')).toBeNull();
+    act(() => root?.unmount()); box?.remove();
+    const none = draw(<PitchDeck project={base()} setPitch={() => undefined} />);
+    await settle();
+    expect(none.querySelector('.pd-fontnote')).toBeNull();
+  });
+});
+
+describe('loading the export code', () => {
+  const fake = { downloadBlob: () => undefined } as unknown as typeof import('./deckSendFiles');
+  afterEach(() => forgetWork());
+  it('loads it once', async () => {
+    const load = vi.fn(async () => fake);
+    expect(await loadWork(load)).toBe(fake);
+    expect(await loadWork(load)).toBe(fake);
+    expect(load).toHaveBeenCalledTimes(1);
+  });
+  it('after a failure asks for the same file under a new address, which the browser has not seen fail', async () => {
+    const load = vi.fn(async () => { throw new TypeError('Failed to fetch dynamically imported module: http://localhost:4175/profitshare/assets/deckSendFiles-AbC123.js'); });
+    const again = vi.fn(async (_url: string) => fake);
+    expect(await loadWork(load, again)).toBe(fake);
+    expect(again).toHaveBeenCalledTimes(1);
+    expect(again.mock.calls[0][0]).toMatch(/^http:\/\/localhost:4175\/profitshare\/assets\/deckSendFiles-AbC123\.js\?again=[a-z0-9]+$/);
+  });
+  it('says the code could not be loaded, and tries afresh on the next click', async () => {
+    const offline = vi.fn(async () => { throw new TypeError('Failed to fetch dynamically imported module: http://localhost:4175/assets/deckSendFiles-AbC123.js'); });
+    await expect(loadWork(offline, offline as never)).rejects.toBeInstanceOf(LoadFailed);
+    await expect(loadWork(offline, offline as never)).rejects.toBeInstanceOf(LoadFailed);
+    expect(offline).toHaveBeenCalledTimes(4);          // each click: the file, then the file under a new address
+    const noAddress = vi.fn(async () => { throw new TypeError('Importing a module script failed.'); });
+    await expect(loadWork(noAddress, async () => fake)).rejects.toBeInstanceOf(LoadFailed);   // a browser that names no file: nothing to ask for again
+    const back = vi.fn(async () => fake);
+    expect(await loadWork(back)).toBe(fake);            // online again: the failure was not remembered
   });
 });

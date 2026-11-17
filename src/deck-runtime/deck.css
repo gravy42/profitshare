@@ -50,6 +50,13 @@
 .psd-foot .psd-foot-film { font-family: var(--psd-title-font); letter-spacing: .08em; }
 .psd-foot-n { font-variant-numeric: tabular-nums; }
 .psd-footnote { margin-top: auto; padding-top: .8em; font-size: max(.66em, var(--psd-min)); color: var(--psd-muted-text); max-width: 70em; }
+/* A slide with little on it (the runtime adds psd-centre when the content fills under seven tenths of its room): the content
+   block, headline and all, sits in the middle of the slide, a touch above it, still set from the left. The small
+   print stays at the foot. Never in the stacked layout, where a slide is only as tall as what is on it. */
+.psd-centre .psd-box::before { content: ""; flex: 1 1 0; }
+.psd-centre .psd-box::after { content: ""; flex: 1.3 1 0; order: 1; }
+.psd-centre .psd-footnote { order: 2; margin-top: 0; }
+.psd-stacked .psd-centre .psd-box::before, .psd-stacked .psd-centre .psd-box::after { content: none; }
 
 /* headlines */
 .psd-head { margin-bottom: 1.5em; flex: none; }

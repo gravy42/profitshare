@@ -26,7 +26,7 @@ for (const scheme of ['light', 'dark']) {
   }
   console.log(scheme, 'KPI after preset:', (await page.locator('.kpi').innerText()).replace(/\n/g, ' | '));
   // drag-and-drop intake: drop a budget and a board together
-  await page.getByRole('button', { name: 'New…' }).click();
+  await page.getByRole('button', { name: 'New project' }).click();   // the header's button (it was "New…" once)
   await page.evaluate(() => { /* nothing */ });
   const dt = await page.evaluateHandle(async () => new DataTransfer());
   await page.evaluate(() => { const ev = new DragEvent('dragenter', { bubbles: true, dataTransfer: new DataTransfer() }); ev.dataTransfer.items.add(new File(['x'], 'x.csv')); window.dispatchEvent(ev); });

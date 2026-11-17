@@ -13,6 +13,8 @@ import type { DeckData } from '../deck-runtime/data';
 import { mountDeck, type DeckHandle, type Lead } from '../deck-runtime/runtime';
 import deckCss from '../deck-runtime/deck.css?inline';
 import { blobUrlOf } from './deckFiles';
+import DeckSend from './DeckSend';
+import { fontsLeftOut } from '../engine/deckExport';
 import { PANEL, UNDO_KEY, focusSoon, goToId, goToPanel, type PanelKey } from './jump';
 
 type Pitch = NonNullable<Project['pitch']>;
@@ -145,7 +147,7 @@ export default function PitchDeck({ project, setPitch, onTab, onUndo, undoDepth 
           <SlideList slides={slides} own={own} selectedId={selected?.id ?? null} flagged={flagged} numberOf={numberOf} nameOf={nameOf} onSelect={setSelectedId} onMove={move} onDrop={drop} />
           {own && <p className="hint">Drag a slide to move it. With the keyboard: the arrow keys choose a slide, and Alt with an arrow moves it.</p>}
           {own && <AddSlide open={adding} setOpen={setAdding} onAdd={add} />}
-          <h3>Things to fix</h3>
+          <h3 id="pd-fixes-h" tabIndex={-1}>Things to fix</h3>
           {fixes.length === 0 ? <p className="hint">Nothing to fix.</p> : (
             <ul className="pd-fixes">
               {fixes.map((f, i) => {
@@ -168,22 +170,14 @@ export default function PitchDeck({ project, setPitch, onTab, onUndo, undoDepth 
             patch={f => setSlides(x => patchSlide(x, selected.id, f))} onAddCard={() => setSlides(x => addCard(x, selected.id))}
             onHide={() => hide(selected)} onCopy={() => copy(selected)} onDelete={() => remove(selected)} only={slides.length <= 1} overflow={fits.find(f => f.id === selected.id)} />}
           {selected && !own && <p className="hint pd-draftnote">This is slide {numberOf(selected.id)} of the draft: {nameOf(selected)}. Press Build my deck to edit it.</p>}
-          <DeckPreview project={previewProject} today={today} selectedId={selected?.id ?? null} hiddenId={hiddenId} people={sendable} onSlide={setSelectedId} onFit={setFits} draft={!own} />
+          <DeckPreview project={previewProject} today={today} selectedId={selected?.id ?? null} hiddenId={hiddenId} people={sendable} onSlide={setSelectedId} onFit={setFits} draft={!own} leftOut={fontsLeftOut(p).map(f => f.family)} go={go} />
         </div>
       </div>
 
       <People list={people} choices={highlightChoices(slides)} say={say}
         set={f => setPitch(x => ({ ...x, recipients: f(readRecipients(x.recipients)) }))} />
 
-      <div className="pd-send" id={PANEL.send}>
-        <h3>Send it</h3>
-        <p className="help">Downloading the deck you send comes in the next update. The PDF button under Report deck is the automatic report, not this deck.</p>
-        {sendable.length === 0 ? <p className="hint">Add a person above and their link ending shows here. Anyone else gets the plain address of your deck.</p> : (
-          <ul className="pd-links">
-            {sendable.map(r => <li key={r.id}><b>{r.name || 'Someone with no name yet'}</b>: the address of your deck, then <code>#{r.slug}</code></li>)}
-          </ul>
-        )}
-      </div>
+      <DeckSend project={project} today={today} people={people} sendable={sendable} fixes={fixes.map(f => `${f.slideId}: ${f.message}`)} fixesId="pd-fixes-h" />
     </div>
   );
 }
@@ -264,8 +258,9 @@ const signature = (d: DeckData): string => JSON.stringify({
 });
 type Person = { id: string; slug: string; name: string; lead: Lead };
 
-function DeckPreview({ project, today, selectedId, hiddenId, people, onSlide, onFit, draft }: {
+function DeckPreview({ project, today, selectedId, hiddenId, people, onSlide, onFit, draft, leftOut, go }: {
   project: Project; today: string; selectedId: string | null; hiddenId: string | null; people: Person[]; onSlide: (id: string) => void; onFit: (fits: Fit[]) => void; draft: boolean;
+  leftOut: string[]; go: Go;   // font files the preview draws with and a sent file leaves behind
 }) {
   const host = useRef<HTMLDivElement>(null), frame = useRef<HTMLDivElement>(null);
   const handle = useRef<DeckHandle | null>(null);
@@ -388,6 +383,7 @@ function DeckPreview({ project, today, selectedId, hiddenId, people, onSlide, on
         {onHidden && <div className="pd-hiddenbanner">Hidden. Not on the deck.</div>}
         {broken && <div className="pd-hiddenbanner" role="alert">The preview could not be drawn: something in this project is not in a form it can read. Your slides are still here and can still be edited.</div>}
       </div>
+      {leftOut.length > 0 && <p className="hint pd-fontnote">The preview uses {leftOut.join(' and ')}; the files you send will not, because {leftOut.length > 1 ? 'their boxes under Design system are' : 'its box under Design system is'} not ticked. <button type="button" className="pd-link" onClick={() => go({ panel: 'design' })}>Go to Design system</button></p>}
       <p className="hint pd-caption">{person ? <b>As {person.name || person.slug} sees it. </b> : null}{draft ? 'A draft, not saved as slides yet. ' : ''}Click the slide, then use the arrow keys. Buttons on the slide work as they will for your reader. Paging here also selects the slide in the list.</p>
     </div>
   );

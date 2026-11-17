@@ -4,6 +4,12 @@ ProfitShare is built in the open by Cris Graves, with Claude doing the typing, w
 
 The app is local-first: your project lives in your browser and in the `.profitshare.json` files you download. Nothing here changes a saved file without saying so.
 
+## 2026-11-17
+
+- **Send it (fourth stage of the pitch deck builder).** The Pitch deck panel now ends in files you can send. For *Anyone* and for each person with a link ending: **Download web deck**, one `.html` that opens in any browser with no internet, the funding switches working, readable on a phone; and **PDF**, the same slides still, one to a page, with the grants counted or without them. *Download everything* makes one `.zip` of the lot and says how big it will be first. **One person per file:** a person's file opens as theirs and holds only their name, note and cover line; the general file names nobody; `#without` on the end of an address opens the larger ask. What goes inside: only the slides that are not hidden, only the pictures a slide uses, each drawn again at 1,600 pixels on the long side at most (which also drops a camera's location data), and a font file only when its licence box is ticked; the panel lists which fonts are inside and which are not, and the preview says when it is showing one the files will not carry. Nothing else from the project is in the file: no budget lines, no other people, no undo history. The page carries a content policy that lets nothing load from outside and nothing run but the deck's own script, and what you typed is only ever placed as text. If something on the deck wants fixing, the download asks first: *Show me* or *Download anyway*. *Where to put it* explains three routes: attach it to an email, a file share that serves web pages, or your own site with a short address forwarded from your domain. Making the files sends nothing anywhere.
+- The preview and the file are the same code: the app bundles the deck renderer once and both use it (`virtual:deck-runtime`), so what you see is what you send. Slides with room to spare now sit a little above the middle instead of pinned to the top.
+- `npm run smoke` works again. Tests: 457 pass.
+
 ## 2026-11-16
 
 A day of running a real project's numbers back through the app and fixing what the app let slip.
