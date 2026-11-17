@@ -1,5 +1,5 @@
 :root {
-  /* Alone Girl Universe palette (design system, Oct 2026). Raw swatches from Cris's deck cover, reel cover and style pages. */
+  /* House palette (design system, Oct 2026). */
   --periwinkle: #91a9d9; --marigold: #f2b705; --tangerine: #f29f05; --caramel: #d98c4a; --walnut: #8c4e2a;
   --slate: #485b73; --copper: #d27c0e; --teal: #3d697a; --sienna: #a6530a; --midnight: #092827;
   --cobalt: #213872; --brick: #a2130b; --pine: #253730; --paper: #f4eddc; --paper-raised: #fbf7ec; --dusk: #8c9fc2; --sand: #d8cdb5;
@@ -8,7 +8,7 @@
   --bg: var(--paper); --card: var(--paper-raised); --soft: #ece3cd; --line: var(--sand);
   --ink: var(--midnight); --muted: var(--teal); --help: #2f5660;
   --accent: var(--marigold); --on-accent: var(--midnight); --accent-ink: var(--sienna);
-  --lead: var(--cobalt);                 /* Alone Girl's lead as text: cobalt by Day, periwinkle at Night */
+  --lead: var(--cobalt);                 /* the lead colour as text: cobalt by Day, periwinkle at Night */
   --good: #2f6a68; --bad: var(--brick);
   --cash: #2f6a68; --deferred: var(--sienna); --points: var(--cobalt);
   --bar: var(--midnight); --bar-ink: var(--periwinkle); --bar-bright: var(--paper);   /* the masthead and day bars are always Night */
@@ -66,7 +66,7 @@ header.top .kpi { display: flex; gap: 22px; font-size: 11px; text-transform: upp
 header.top .kpi b { display: block; font-size: 18px; color: var(--bar-bright); text-transform: none; letter-spacing: 0; font-variant-numeric: tabular-nums; font-weight: 700; }
 header.top .btns { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 
-/* Buttons are typewriter keys (Alone Girl Universe, components/bundle.css): a tilted cap with a dish, a rim and a stem. */
+/* Buttons are typewriter keys (house design system): a tilted cap with a dish, a rim and a stem. */
 .btn {
   --cap: var(--key-cap); --kink: var(--key-ink); --tilt: -14deg; --lift: 0px;
   position: relative; isolation: isolate; display: inline-grid; place-items: center; gap: 6px;

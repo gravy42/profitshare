@@ -3,10 +3,10 @@ import { parseBrandText, applyBrand, namedColors } from './brand';
 import { defaultDesign } from './pitch';
 
 const DOC = `
-Alone Girl Universe
+Salt Flat Universe
 The film at the center. Everything else leads back to it.
 BRAND SYSTEM · V1 · OCTOBER 2026
-OUT TO LUNCH ENTERTAINMENT
+PLACEHOLDER PICTURES
 
 COLOUR, NIGHT:
 Night is the first theme and the film's own: midnight ground, periwinkle text.
@@ -42,7 +42,7 @@ Gravy · the connector. Work Sans · everything that has to be read: paragraphs,
 describe('reading a brand system', () => {
   it('names colours by the role beside them, splits night from day, finds the faces and the name', () => {
     const b = parseBrandText(DOC, 'fallback');
-    expect(b.name).toBe('Alone Girl Universe');
+    expect(b.name).toBe('Salt Flat Universe');
     expect(b.night).toMatchObject({ bg: '#092827', ink: '#91A9D9', accent: '#F2B705', accent2: '#D27C0E', muted: '#8C9FC2', line: '#3D697A', inkBright: '#F4EDDC', card: '#F4EDDC' });
     expect(b.day).toMatchObject({ bg: '#F4EDDC', ink: '#092827', accent2: '#A2130B', muted: '#3D697A', line: '#D8CDB5' });
     expect(b.colors.bg).toBe('#092827');                 // the deck takes night
@@ -69,8 +69,8 @@ describe('reading a brand system', () => {
 describe('slide rules in words', () => {
   it('reads split layout, the bleed, eyebrows and the sign-off', async () => {
     const { deckRulesFromText } = await import('./brand');
-    const r = deckRulesFromText('DECKSLIDE · SPLIT LAYOUT, ALWAYS NIGHT. Photo bleeds 50 to 60%, text column right with a 48px outer margin. One eyebrow per slide; the slide\'s first word is the eyebrow. The sign-off tag, from the world of ALONE GIRL, goes on anything that is not already the film.');
-    expect(r).toMatchObject({ layout: 'split', eyebrow: true, bleed: 0.55, signoff: 'from the world of ALONE GIRL' });
+    const r = deckRulesFromText('DECKSLIDE · SPLIT LAYOUT, ALWAYS NIGHT. Photo bleeds 50 to 60%, text column right with a 48px outer margin. One eyebrow per slide; the slide\'s first word is the eyebrow. The sign-off tag, from the world of SALT FLAT, goes on anything that is not already the film.');
+    expect(r).toMatchObject({ layout: 'split', eyebrow: true, bleed: 0.55, signoff: 'from the world of SALT FLAT' });
     expect(deckRulesFromText('Colours and type only.')).toEqual({});
   });
 });

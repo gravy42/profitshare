@@ -17,7 +17,7 @@ describe('call sheets', () => {
     expect(s.advance.length).toBe(Math.min(2, days.length - 1));                              // the next two days
     expect(s.advance[0].scenes.length).toBe(days[1].scenes.length);
     expect(s.logistics.parking).toBe(''); expect(s.banner.length).toBeGreaterThan(20);
-    const typed = { ...p, callSheets: { company: 'Out To Lunch', contacts: [], locations: [], crewCall: '06:30', shootingCall: '07:30', lunch: '12:30', wrap: '18:30', days: { 1: { crewCall: '05:00', weather: 'Rain', cast: { [s.cast[0].castId]: { pickup: '04:15', note: 'drives self' } }, depts: { Camera: '04:30' } } } } };
+    const typed = { ...p, callSheets: { company: 'Placeholder Pictures', contacts: [], locations: [], crewCall: '06:30', shootingCall: '07:30', lunch: '12:30', wrap: '18:30', days: { 1: { crewCall: '05:00', weather: 'Rain', cast: { [s.cast[0].castId]: { pickup: '04:15', note: 'drives self' } }, depts: { Camera: '04:30' } } } } };
     const t = buildSheet(typed, 1)!;
     expect(t.crewCall).toBe('05:00'); expect(t.shootingCall).toBe('07:30'); expect(t.weather).toBe('Rain');
     expect(t.cast[0]).toMatchObject({ pickup: '04:15', call: '05:00', note: 'drives self' });

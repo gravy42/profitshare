@@ -277,7 +277,7 @@ export interface SlideMilestone { id: string; when: string; what: string }
 export interface Recipient { id: string; slug: string; name: string; coverLine: string; note?: string; lead: 'with-grants' | 'without-grants'; highlightCardId?: string }
 
 export interface PitchDesign {
-  name: string;               // "Alone Girl Universe"
+  name: string;               // "Salt Flat Universe"
   colors: { bg: string; ink: string; accent: string; accent2: string; muted: string };
   fonts: { title: string; body: string };   // CSS font-family stacks; the deck falls back to the app's own
   logoDataUrl?: string;       // a small image, embedded
@@ -294,7 +294,7 @@ export interface DeckRules {
   coverImageId?: string;      // a look book picture for the cover slide: it fills the slide (the art carries the title), the logline on a band at the foot
   lookSlides?: number;        // full-bleed look slides from the pictures no slide took, 0 to 6 (default 3), one per section in turn
   closingImageId?: string;    // a look book picture for the closing slide
-  signoff: string;            // "from the world of ALONE GIRL": the closing slide's tag; empty for the film's own name
+  signoff: string;            // "from the world of SALT FLAT": the closing slide's tag; empty for the film's own name
 }
 export interface LookImage { id: string; dataUrl: string; caption: string; section: 'tone' | 'world' | 'character' | 'reference'; credit?: string; slide?: boolean }   // slide: chosen for a full-bleed look slide
 export interface ResearchItem { id: string; kind: 'market' | 'audience' | 'comp' | 'press' | 'other'; title: string; body: string; url?: string }

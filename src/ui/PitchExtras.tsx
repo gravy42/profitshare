@@ -230,7 +230,7 @@ export function DesignPanel({ project, setPitch }: { project: Project; setPitch:
       <div className="row" style={{ alignItems: 'flex-start', gap: 18 }}>
         <div style={{ flex: '1 1 420px' }}>
           <div className="row">
-            <div className="ctl" style={{ flex: 1 }}><label>System name</label><input value={d.name} placeholder="Alone Girl Universe" onChange={e => set(x => ({ ...x, name: e.target.value }))} /></div>
+            <div className="ctl" style={{ flex: 1 }}><label>System name</label><input value={d.name} placeholder="Salt Flat Universe" onChange={e => set(x => ({ ...x, name: e.target.value }))} /></div>
           </div>
           <div className="row">
             {colors.map(c => <div className="ctl" key={c.k}><label>{c.label}</label><span className="row" style={{ gap: 4 }}><input type="color" value={d.colors[c.k]} onChange={e => set(x => ({ ...x, colors: { ...x.colors, [c.k]: e.target.value } }))} /><input value={d.colors[c.k]} style={{ width: 84 }} onChange={e => set(x => ({ ...x, colors: { ...x.colors, [c.k]: e.target.value } }))} /></span></div>)}

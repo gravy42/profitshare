@@ -58,7 +58,7 @@ export function CallSheetsView({ project, setProject }: { project: Project; setP
       <details className="panel fold" open={prodOpen} onToggle={e => setProdOpen((e.target as HTMLDetailsElement).open)}>
         <summary><h2>Production <span className="hint">{cs.company || 'company'} · {cs.contacts.length} contacts · crew call {fmtTime(cs.crewCall)}</span></h2></summary>
         <div className="row" style={{ marginTop: 8 }}>
-          <div className="ctl"><label>Production company</label><input value={cs.company} placeholder="Out To Lunch Entertainment" onChange={e => set(c => ({ ...c, company: e.target.value }))} style={{ width: 240 }} /></div>
+          <div className="ctl"><label>Production company</label><input value={cs.company} placeholder="Placeholder Pictures" onChange={e => set(c => ({ ...c, company: e.target.value }))} style={{ width: 240 }} /></div>
           <div className="ctl"><label>Crew call (default)</label><TimeInput value={cs.crewCall} onChange={v => set(c => ({ ...c, crewCall: v || '07:00' }))} /></div>
           <div className="ctl"><label>Shooting call</label><TimeInput value={cs.shootingCall} onChange={v => set(c => ({ ...c, shootingCall: v || '08:00' }))} /></div>
           <div className="ctl"><label>Lunch</label><TimeInput value={cs.lunch} onChange={v => set(c => ({ ...c, lunch: v || '13:00' }))} /></div>
