@@ -84,8 +84,8 @@ export const same = (a: string, b: string) => norm(a) === norm(b);
  *  action is a prop, a sound or a person), so it over-tags a little and misses what the writer didn't name. */
 const ANIMAL = 'cat|kitten|kitty|tabby|dog|puppy|pup|horse|pony|bird|parrot|snake|rat|mouse|rabbit|bunny|cow|goat|pig|chicken|rooster|pigeon|fish|hamster|ferret|donkey|deer|lizard|turtle|tortoise|iguana|gecko|owl|hawk|raccoon|possum|opossum|squirrel|goose|duck';
 
-/** Animals the script names. "JACK, a handsome orange tabby cat stares out the window" makes Jack a cat, and from
- *  then on any scene whose action has Jack in it has the cat on set, whether or not the word "cat" comes up again.
+/** Animals the script names. "BISCUIT, a handsome orange tabby cat stares out the window" makes Biscuit a cat, and from
+ *  then on any scene whose action has Biscuit in it has the cat on set, whether or not the word "cat" comes up again.
  *  Returns name (as written in caps) → species. Cast names are never animals. */
 export function namedAnimals(board: Board): Map<string, string> {
   const cast = new Set(board.castList.map(c => c.name.toUpperCase()));
@@ -105,7 +105,7 @@ export function namedAnimals(board: Board): Map<string, string> {
 const properCase = (n: string) => n.charAt(0) + n.slice(1).toLowerCase();
 const SPECIES_WORDS: Record<string, string> = { cat: 'cat|kitten|kitty|tabby', dog: 'dog|puppy|pup|hound|mutt', horse: 'horse|pony|mare|stallion', bird: 'bird|parrot|budgie|canary', rabbit: 'rabbit|bunny' };
 
-/** Add one tag to a scene's elements without doubling up: "long board" already there swallows "SAM'S LONG BOARD",
+/** Add one tag to a scene's elements without doubling up: "long board" already there swallows "MARA'S LONG BOARD",
  *  "tabby cat" on top of "orange tabby" becomes "orange tabby cat". Returns true when the list changed. */
 export function addTag(out: Record<string, string[]>, cat: string, item: string): boolean {
   const it = clean(item);
@@ -152,13 +152,13 @@ export function autoTag(scene: Scene, castNames: string[] = [], animals: Map<str
     const src = r.cat === 'Visual Effects' ? action : scan;   // inserts are read for VFX, and for nothing else
     for (const m of src.matchAll(r.re)) { if (negated(src, m.index!)) continue; add(r.cat, r.label ? r.label(m as RegExpExecArray, src) : m[0]); }
   }
-  // a named animal is on set whenever the action names it ("Jack sits on the dryer"); a possessive is its thing, not it
+  // a named animal is on set whenever the action names it ("Biscuit sits on the dryer"); a possessive is its thing, not it
   for (const [name, species] of animals) {
     const here = new RegExp(`(?<![\\w'’])(?:${name}|${properCase(name)})(?![\\w'’])`).test(scan);
-    const taggedByName = (out.Animals ?? []).some(x => norm(x) === name.toLowerCase());   // the writer's own tag (Final Draft's "JACK")
+    const taggedByName = (out.Animals ?? []).some(x => norm(x) === name.toLowerCase());   // the writer's own tag (Final Draft's "BISCUIT")
     if (!here && !taggedByName) continue;
     const label = `${properCase(name)} the ${species}`;
-    // "Orange tabby cat" and "Orange tabby" → the named cat; a bare "JACK" → "Jack the cat"
+    // "Orange tabby cat" and "Orange tabby" → the named cat; a bare "BISCUIT" → "Biscuit the cat"
     const kin = SPECIES_WORDS[species] ?? species;
     const list = (out.Animals ??= []).filter(x => norm(x) !== name.toLowerCase() && !(new RegExp(`(?<![\\w-])(?:${kin})(?![\\w-])`, 'i').test(x) && !x.includes(properCase(name))));
     out.Animals = list;

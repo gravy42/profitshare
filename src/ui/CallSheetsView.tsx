@@ -95,7 +95,7 @@ export function CallSheetsView({ project, setProject }: { project: Project; setP
 
       <details className="panel fold" open={locOpen} onToggle={e => setLocOpen((e.target as HTMLDetailsElement).open)}>
         <summary><h2>Locations <span className="hint">{cs.locations.length} · {cs.locations.filter(l => l.address.trim()).length} with an address</span></h2></summary>
-        <p className="help small">A location covers the sets shot there: list them with commas ("SAM'S HOUSE, SAM'S STREET"); a set on the board whose name starts with one of them, like SAM'S HOUSE - KITCHEN, belongs to it. Latitude and longitude (from the pin in Maps) give the sheet sunrise and sunset for the day with no network.</p>
+        <p className="help small">A location covers the sets shot there: list them with commas ("MARA'S HOUSE, MARA'S STREET"); a set on the board whose name starts with one of them, like MARA'S HOUSE - KITCHEN, belongs to it. Latitude and longitude (from the pin in Maps) give the sheet sunrise and sunset for the day with no network.</p>
         <table className="compact locs">
           <thead><tr><th className="l">Location</th><th className="l">Sets on the board</th><th className="l">Address</th><th className="l">Parking</th><th className="l">Nearest hospital</th><th className="l">Lat</th><th className="l">Lng</th><th className="l">Notes</th><th></th></tr></thead>
           <tbody>
@@ -114,7 +114,7 @@ export function CallSheetsView({ project, setProject }: { project: Project; setP
         </table>
         <div className="row" style={{ marginTop: 6 }}>
           <button className="btn small" onClick={() => set(c => ({ ...c, locations: [...c.locations, newLocation()] }))}>Add location</button>
-          <button className="btn small" onClick={() => set(c => ({ ...c, locations: locationsFromBoard(p.board, c.locations) }))} title="One location per set group on the board (SAM'S HOUSE for every SAM'S HOUSE - … set); the ones you have are kept">Add one for each set on the board</button>
+          <button className="btn small" onClick={() => set(c => ({ ...c, locations: locationsFromBoard(p.board, c.locations) }))} title="One location per set group on the board (MARA'S HOUSE for every MARA'S HOUSE - … set); the ones you have are kept">Add one for each set on the board</button>
         </div>
       </details>
 
@@ -159,7 +159,7 @@ export function CallSheetsView({ project, setProject }: { project: Project; setP
               {(over.extras ?? []).map(e => <tr key={e.id}>
                 <td><select value={e.kind} onChange={ev => setExtra(e.id, { kind: ev.target.value as CallExtra['kind'] })}><option value="stunt">Stunt</option><option value="standin">Stand-in / double</option><option value="background">Background</option></select></td>
                 <td><input value={e.name} placeholder={e.kind === 'background' ? '12 diner patrons' : 'name'} onChange={ev => setExtra(e.id, { name: ev.target.value })} /></td>
-                <td><input value={e.role} placeholder={e.kind === 'stunt' ? 'Sam stunt double' : e.kind === 'standin' ? 'stands in for Sam' : 'Sc 12'} onChange={ev => setExtra(e.id, { role: ev.target.value })} /></td>
+                <td><input value={e.role} placeholder={e.kind === 'stunt' ? 'Mara stunt double' : e.kind === 'standin' ? 'stands in for Mara' : 'Sc 12'} onChange={ev => setExtra(e.id, { role: ev.target.value })} /></td>
                 <td><TimeInput value={e.call} placeholder={sheet.crewCall} onChange={v => setExtra(e.id, { call: v })} /></td>
                 <td><TimeInput value={e.onSet} placeholder={sheet.shootingCall} onChange={v => setExtra(e.id, { onSet: v })} /></td>
                 <td><input value={e.note} placeholder="report to crew parking" onChange={ev => setExtra(e.id, { note: ev.target.value })} /></td>

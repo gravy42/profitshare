@@ -152,7 +152,7 @@ export function BreakdownsView({ project, setProject }: { project: Project; setP
           {mode === 'story' && 'Each shoot day with the story days it touches, in schedule order. A day with more than one story day is a continuity jump: hair, makeup and wardrobe need a look change on set.'}
           {mode === 'character' && 'One block per character: every day they work, the story days they play that day, and the scenes. Hand this to the actor, costume and hair.'}
           {mode === 'department' && 'Everything tagged in one category, laid out by shoot day, so a department can see what it carries each day. Tags come from the breakdown on the Stripboard tab.'}
-          {mode === 'element' && 'One element across the schedule, or "All" for the whole department one item at a time: which days, how many pages, where, with whom. One report for the animal trainers (Jack the cat), another for the picture-car vendor (every vehicle and the days it plays). Rename / merge fixes a tag everywhere it appears: type a new name, or pick another item from the list to fold the two into one.'}
+          {mode === 'element' && 'One element across the schedule, or "All" for the whole department one item at a time: which days, how many pages, where, with whom. One report for the animal trainers (Biscuit the cat), another for the picture-car vendor (every vehicle and the days it plays). Rename / merge fixes a tag everywhere it appears: type a new name, or pick another item from the list to fold the two into one.'}
           {' '}Dates appear once days are placed on the Calendar tab.
         </p>
       </div>

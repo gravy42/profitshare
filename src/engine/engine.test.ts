@@ -130,7 +130,7 @@ describe('board', () => {
 });
 
 describe('a scene shot over two days', () => {
-  const sc = (id: string, eighths: number, cast: number[]): Scene => ({ id, number: id.slice(2), ie: 'EXT', set: 'STREET', tod: 'NIGHT', pages: '', eighths, synopsis: '', location: '', scriptDay: '', cast: cast.map(c => ({ id: c, name: `C${c}` })), elements: { Animals: ['Jack the cat'] } });
+  const sc = (id: string, eighths: number, cast: number[]): Scene => ({ id, number: id.slice(2), ie: 'EXT', set: 'STREET', tod: 'NIGHT', pages: '', eighths, synopsis: '', location: '', scriptDay: '', cast: cast.map(c => ({ id: c, name: `C${c}` })), elements: { Animals: ['Biscuit the cat'] } });
   const board: Board = { castList: [1, 2, 8].map(id => ({ id, name: `C${id}` })), targetEighthsPerDay: 44,
     scenes: [sc('sc74', 3, [1, 2]), sc('sc75', 64, [1, 2, 8]), sc('sc10', 1, [1])],
     strips: [{ type: 'scene' as const, sceneId: 'sc74' }, { type: 'scene' as const, sceneId: 'sc75' }, { type: 'daybreak' as const, id: 'd1' }, { type: 'scene' as const, sceneId: 'sc10' }] };
@@ -152,7 +152,7 @@ describe('a scene shot over two days', () => {
     expect(days.map(d => d.eighths)).toEqual([35, 33]);
     expect(days[1].castIds).toEqual([1, 2, 8]);
     expect(dood(b).find(r => r.castId === 8)!.workDays).toEqual([1, 2]);
-    expect(daysWithElements(b, [{ category: 'Animals', item: 'Jack the cat' }])).toBe(2);
+    expect(daysWithElements(b, [{ category: 'Animals', item: 'Biscuit the cat' }])).toBe(2);
     const uneven = setPartEighths(b, 1, 40);
     expect(shootDays(uneven).map(d => d.eighths)).toEqual([43, 25]);
     expect(setPartEighths(b, 1, 99).strips[1]).toEqual({ type: 'scene', sceneId: 'sc75', eighths: 64 });
@@ -524,14 +524,14 @@ import { autoTag, addElement, removeElement, addCast, autoTagBoard, namedAnimals
 
 describe('breakdown tagger', () => {
   it('reads a first pass of tags off the scene text, from action only', () => {
-    const scene: any = { id: 'sc1', set: "SAM'S CAR (DRIVING)", synopsis: '', cast: [{ id: 1, name: 'SAM' }], elements: {}, text: [
-      'SAM PENN (45) rides her long board past her beat-up little green car. JACK, an orange tabby cat, watches.',
-      "Sam's cell phone RINGS. A TEXT MESSAGE from COLIN stares back at her. No purse.",
+    const scene: any = { id: 'sc1', set: "MARA'S CAR (DRIVING)", synopsis: '', cast: [{ id: 1, name: 'MARA' }], elements: {}, text: [
+      'MARA QUILL (41) rides her long board past her beat-up little green car. BISCUIT, an orange tabby cat, watches.',
+      "Mara's cell phone RINGS. A TEXT MESSAGE from COLIN stares back at her. No purse.",
       'She trips on nothing and almost face-plants on the floor.',
-      '                    SAM', '          I love my truck and my dog.', 'ON CARD: WE WERE PERFECTLY INTELLIGENT PEOPLE.', 'CLASSIC JAZZ blasts.',
+      '                    MARA', '          I miss my truck and my dog.', 'ON CARD: NOBODY ASKED THE SURVEYOR.', 'CLASSIC JAZZ blasts.',
     ].join('\n') };
-    const e = autoTag(scene, ['SAM', 'COLIN']);
-    expect(e.Vehicles).toEqual(['Little green car']);                    // "sam's car" from the heading folds into it
+    const e = autoTag(scene, ['MARA', 'COLIN']);
+    expect(e.Vehicles).toEqual(['Little green car']);                    // "mara's car" from the heading folds into it
     expect(e.Vehicles.join()).not.toMatch(/truck/);                       // dialogue is not on set
     expect(e.Animals).toEqual(['Orange tabby cat']);
     expect(e.Props).toEqual(['Long board', 'Cell phone']);                 // not the CARD in the insert
@@ -541,35 +541,35 @@ describe('breakdown tagger', () => {
     expect(e.Stunts).toEqual(['She trips on nothing and almost face-plants on the floor']);
     expect(e.Music).toEqual(['Classic jazz']);
     expect(e['Special Equipment']).toEqual(['car mount / process trailer']);
-    expect(e['Background Actors'] ?? []).not.toContain('we were perfectly intelligent people');
+    expect(e['Background Actors'] ?? []).not.toContain('nobody asked the surveyor');
   });
   it('learns a named animal from its introduction and tags every scene whose action has it', () => {
-    const sc = (id: string, text: string): any => ({ id, number: id, ie: 'INT', set: 'ROOM', tod: 'DAY', pages: '1', eighths: 8, synopsis: '', location: '', scriptDay: '', cast: [{ id: 1, name: 'SAM' }], elements: {}, text });
-    const board: any = { castList: [{ id: 1, name: 'SAM' }], strips: [], targetEighthsPerDay: 44, scenes: [
-      sc('1', 'JACK, a handsome orange tabby cat stares out one of the front windows. Sam waves.'),
-      sc('2', 'Jack sits on the dryer and watches Sam fold.'),
-      sc('3', "Sam fills Jack's bowl. She is alone.\n                    SAM\n          How's Jack?"),
-      sc('4', 'Sam and Jack come into the kitchen. The cat hops onto the counter.'),
+    const sc = (id: string, text: string): any => ({ id, number: id, ie: 'INT', set: 'ROOM', tod: 'DAY', pages: '1', eighths: 8, synopsis: '', location: '', scriptDay: '', cast: [{ id: 1, name: 'MARA' }], elements: {}, text });
+    const board: any = { castList: [{ id: 1, name: 'MARA' }], strips: [], targetEighthsPerDay: 44, scenes: [
+      sc('1', 'BISCUIT, a handsome orange tabby cat stares out one of the front windows. Mara waves.'),
+      sc('2', 'Biscuit sits on the dryer and watches Mara fold.'),
+      sc('3', "Mara fills Biscuit's bowl. She is alone.\n                    MARA\n          How's Biscuit?"),
+      sc('4', 'Mara and Biscuit come into the kitchen. The cat hops onto the counter.'),
       sc('5', 'PETE (40s) walks in with a DOG on a leash.'),
     ] };
-    expect([...namedAnimals(board)]).toEqual([['JACK', 'cat']]);
+    expect([...namedAnimals(board)]).toEqual([['BISCUIT', 'cat']]);
     const b = autoTagBoard(board);
-    expect(b.scenes[0].elements.Animals).toEqual(['Jack the cat']);        // the introduction, not "Orange tabby cat" as well
-    expect(b.scenes[1].elements.Animals).toEqual(['Jack the cat']);        // no animal word in the line at all
+    expect(b.scenes[0].elements.Animals).toEqual(['Biscuit the cat']);        // the introduction, not "Orange tabby cat" as well
+    expect(b.scenes[1].elements.Animals).toEqual(['Biscuit the cat']);        // no animal word in the line at all
     expect(b.scenes[2].elements.Animals).toBeUndefined();                  // his bowl and a line of dialogue: the cat is not on set
-    expect(b.scenes[3].elements.Animals).toEqual(['Jack the cat']);        // "the cat" folds into him
+    expect(b.scenes[3].elements.Animals).toEqual(['Biscuit the cat']);        // "the cat" folds into him
     expect(b.scenes[4].elements.Animals).toEqual(['Dog']);                 // an unnamed animal still tags on its own
   });
   it('keeps hand-made tags across auto-tag, and edits chips and cast', () => {
-    const board: any = { castList: [{ id: 1, name: 'SAM' }], scenes: [{ id: 'sc1', number: '1', ie: 'INT', set: 'ROOM', tod: 'DAY', pages: '1', eighths: 8, synopsis: '', location: '', scriptDay: '', cast: [{ id: 1, name: 'SAM' }], elements: { Props: ['hero mug'] }, text: 'Sam drinks coffee from a mug.' }], strips: [{ type: 'scene', sceneId: 'sc1' }], targetEighthsPerDay: 44 };
+    const board: any = { castList: [{ id: 1, name: 'MARA' }], scenes: [{ id: 'sc1', number: '1', ie: 'INT', set: 'ROOM', tod: 'DAY', pages: '1', eighths: 8, synopsis: '', location: '', scriptDay: '', cast: [{ id: 1, name: 'MARA' }], elements: { Props: ['hero mug'] }, text: 'Mara drinks coffee from a mug.' }], strips: [{ type: 'scene', sceneId: 'sc1' }], targetEighthsPerDay: 44 };
     const b1 = autoTagBoard(board);
     expect(b1.scenes[0].elements.Props).toContain('hero mug');
     const b2 = addElement(b1, 'sc1', 'Wardrobe', ' robe ');
     expect(b2.scenes[0].elements.Wardrobe).toEqual(['robe']);
     const b3 = removeElement(b2, 'sc1', 'Wardrobe', 'robe');
     expect(b3.scenes[0].elements.Wardrobe).toBeUndefined();
-    const b4 = addCast(b3, 'sc1', 'jack');
-    expect(b4.castList.map(c => c.name)).toEqual(['SAM', 'JACK']);
+    const b4 = addCast(b3, 'sc1', 'biscuit');
+    expect(b4.castList.map(c => c.name)).toEqual(['MARA', 'BISCUIT']);
     expect(b4.scenes[0].cast.map(c => c.id)).toEqual([1, 2]);
   });
 });
@@ -1057,20 +1057,20 @@ describe('calendar', () => {
 import { storyDayBreakdown, characterBreakdown, departmentBreakdown, sceneItems, trackElement, itemsIn, elementCategories } from './breakdowns';
 describe('breakdowns', () => {
   const sc = (id: string, day: string, cast: number[], els: Record<string, string[]> = {}): Scene => ({ id, number: id.slice(2), ie: 'INT', set: 'X', tod: 'DAY', pages: '1', eighths: 8, synopsis: '', location: 'LA', scriptDay: day, cast: cast.map(c => ({ id: c, name: `C${c}` })), elements: els });
-  const board: Board = { castList: [{ id: 1, name: 'SAM' }, { id: 2, name: 'PETE' }],
-    scenes: [sc('sc1', '1', [1], { Animals: ['Jack the cat'], Wardrobe: ['hoodie'] }), sc('sc2', '12', [1, 2], { Animals: ['jack the cat'] }), sc('sc3', '12', [2])],
+  const board: Board = { castList: [{ id: 1, name: 'MARA' }, { id: 2, name: 'PETE' }],
+    scenes: [sc('sc1', '1', [1], { Animals: ['Biscuit the cat'], Wardrobe: ['hoodie'] }), sc('sc2', '12', [1, 2], { Animals: ['biscuit the cat'] }), sc('sc3', '12', [2])],
     strips: [{ type: 'scene', sceneId: 'sc1' }, { type: 'scene', sceneId: 'sc2' }, { type: 'daybreak', id: 'd1' }, { type: 'scene', sceneId: 'sc3' }], targetEighthsPerDay: 40 } as any;
   it('shows the story days a shoot day touches and flags the jump', () => {
     const s = storyDayBreakdown(board);
     expect(s[0].storyDays).toEqual(['1', '12']); expect(s[1].storyDays).toEqual(['12']);
     const c = characterBreakdown(board);
-    expect(c.find(x => x.name === 'SAM')!.jumps).toBe(1); expect(c.find(x => x.name === 'PETE')!.days.length).toBe(2);
+    expect(c.find(x => x.name === 'MARA')!.jumps).toBe(1); expect(c.find(x => x.name === 'PETE')!.days.length).toBe(2);
   });
   it('lays a department out by day and tracks one element across the schedule', () => {
     expect(departmentBreakdown(board, 'Wardrobe')[0].items.map(x => x.item)).toEqual(['hoodie']);
-    const t = trackElement(board, 'Animals', 'Jack the cat');
-    expect(t.length).toBe(1); expect(t[0].scenes.map(s => s.number)).toEqual(['1', '2']); expect(t[0].eighths).toBe(16); expect(t[0].cast).toEqual(['SAM', 'PETE']);
-    expect(itemsIn(board, 'Animals')).toEqual([{ item: 'Jack the cat', scenes: 2 }]);
+    const t = trackElement(board, 'Animals', 'Biscuit the cat');
+    expect(t.length).toBe(1); expect(t[0].scenes.map(s => s.number)).toEqual(['1', '2']); expect(t[0].eighths).toBe(16); expect(t[0].cast).toEqual(['MARA', 'PETE']);
+    expect(itemsIn(board, 'Animals')).toEqual([{ item: 'Biscuit the cat', scenes: 2 }]);
     expect(elementCategories(board)[0]).toBe('Animals');
   });
 });
@@ -1095,11 +1095,11 @@ describe('pitch', () => {
 describe('track: what column', () => {
   it('lists every item of the category on a scene, the tracked one first', () => {
     const b = sampleProject().board;
-    const s = { ...b.scenes[0], elements: { ...b.scenes[0].elements, Vehicles: ['PETE\'S SUV', 'Sam\'s green car', "pete's suv"] } };
-    expect(sceneItems(s, 'Vehicles', "SAM'S GREEN CAR")).toEqual(['Sam\'s green car', 'PETE\'S SUV']);
+    const s = { ...b.scenes[0], elements: { ...b.scenes[0].elements, Vehicles: ['PETE\'S SUV', 'Mara\'s green car', "pete's suv"] } };
+    expect(sceneItems(s, 'Vehicles', "MARA'S GREEN CAR")).toEqual(['Mara\'s green car', 'PETE\'S SUV']);
     const b2 = { ...b, scenes: [s, ...b.scenes.slice(1)] };
-    const t = trackElement(b2, 'Vehicles', "sam's green car");
-    expect(t[0].items[0].toLowerCase()).toBe("sam's green car");
+    const t = trackElement(b2, 'Vehicles', "mara's green car");
+    expect(t[0].items[0].toLowerCase()).toBe("mara's green car");
     expect(t[0].items.length).toBe(2);
   });
 });
@@ -1108,12 +1108,12 @@ describe('renameElement', () => {
   it('renames a tag everywhere and folds it into an existing item without duplicates', () => {
     const b = sampleProject().board;
     const [a, c] = b.scenes;
-    const b2 = { ...b, scenes: b.scenes.map(s => s.id === a.id ? { ...s, elements: { ...s.elements, Vehicles: ['Sam\'s little green car', 'PETE\'S SUV'] } } : s.id === c.id ? { ...s, elements: { ...s.elements, Vehicles: ['SAM\'S GREEN CAR', 'sam\'s little green car'] } } : s) };
-    const r = renameElement(b2, 'Vehicles', 'Sam\'s little green car', 'SAM\'S GREEN CAR');
+    const b2 = { ...b, scenes: b.scenes.map(s => s.id === a.id ? { ...s, elements: { ...s.elements, Vehicles: ['Mara\'s little green car', 'PETE\'S SUV'] } } : s.id === c.id ? { ...s, elements: { ...s.elements, Vehicles: ['MARA\'S GREEN CAR', 'mara\'s little green car'] } } : s) };
+    const r = renameElement(b2, 'Vehicles', 'Mara\'s little green car', 'MARA\'S GREEN CAR');
     expect(r.scenes).toBe(2);
-    expect(r.board.scenes.find(s => s.id === a.id)!.elements.Vehicles).toEqual(['SAM\'S GREEN CAR', 'PETE\'S SUV']);
-    expect(r.board.scenes.find(s => s.id === c.id)!.elements.Vehicles).toEqual(['SAM\'S GREEN CAR']);
-    expect(itemsIn(r.board, 'Vehicles').map(x => x.item)).not.toContain('Sam\'s little green car');
+    expect(r.board.scenes.find(s => s.id === a.id)!.elements.Vehicles).toEqual(['MARA\'S GREEN CAR', 'PETE\'S SUV']);
+    expect(r.board.scenes.find(s => s.id === c.id)!.elements.Vehicles).toEqual(['MARA\'S GREEN CAR']);
+    expect(itemsIn(r.board, 'Vehicles').map(x => x.item)).not.toContain('Mara\'s little green car');
   });
 });
 

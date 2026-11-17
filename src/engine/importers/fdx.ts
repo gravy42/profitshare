@@ -82,7 +82,7 @@ export function parseFdx(xml: string): Board {
       };
       scenes.push(cur);
     } else if (type === 'Character' && cur) {
-      // "SAM (O.S.)" → SAM ; "TAYLOR/LIAM" → TAYLOR, LIAM
+      // "MARA (O.S.)" → MARA ; "TAYLOR/LIAM" → TAYLOR, LIAM
       const raw = textOf(p).toUpperCase().replace(/\(.*?\)/g, '').trim();
       for (const name of raw.split('/').map(s => s.trim()).filter(Boolean)) {
         if (!cur.cast.some(c => c.name === name)) cur.cast.push({ name });

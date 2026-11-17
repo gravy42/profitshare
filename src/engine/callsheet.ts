@@ -14,7 +14,7 @@ export const withCallSheets = (p: Project): Project => (p.callSheets ? p : { ...
 
 export const newLocation = (partial: Partial<Location> = {}): Location => ({ id: `loc_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`, name: '', sets: '', address: '', parking: '', hospital: '', notes: '', ...partial });
 
-/** "SAM'S HOUSE - KITCHEN" and "SAM'S HOUSE - BATHROOM" are one location: the set name before the first " - ". */
+/** "MARA'S HOUSE - KITCHEN" and "MARA'S HOUSE - BATHROOM" are one location: the set name before the first " - ". */
 export const setGroup = (set: string) => set.split(/\s+[-–—]\s+/)[0].trim().toUpperCase();
 
 /** One location per distinct set group on the board, for a first locations table; existing ones are kept. */

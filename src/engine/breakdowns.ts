@@ -70,7 +70,7 @@ export function sceneItems(s: Scene, category: string, first?: string): string[]
   return out;
 }
 
-/** One element (Jack the cat, a picture car, a prosthetic) across the schedule: the days it works, what it does, who it works with. */
+/** One element (Biscuit the cat, a picture car, a prosthetic) across the schedule: the days it works, what it does, who it works with. */
 export function trackElement(board: Board, category: string, item: string): TrackedDay[] {
   const key = normItem(item);
   const names = new Map(board.castList.map(c => [c.id, c.name]));

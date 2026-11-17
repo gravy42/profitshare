@@ -24,7 +24,7 @@ describe('call sheets', () => {
     expect(t.depts.find(d => d.dept === 'Camera')?.call).toBe('04:30');
     expect(t.depts.find(d => d.dept === 'Camera')?.people.every(x => x.call === '04:30')).toBe(true);   // the department's call reaches each person
     const loc = newLocation({ name: 'Mesa', sets: days[0].scenes[0].set, parking: 'the lot', hospital: 'Desert General' });
-    const withLoc = buildSheet({ ...p, callSheets: { ...typed.callSheets, locations: [loc], days: { 1: { ...typed.callSheets.days[1], extras: [{ ...newExtra('stunt'), name: 'A. Double', role: 'Sam stunt double' }], instructions: 'Camera: freedom mounts\nbring the generator', crew: { [p.participants.find(x => x.group === 'crew')!.id]: 'O/C' } } } } }, 1)!;
+    const withLoc = buildSheet({ ...p, callSheets: { ...typed.callSheets, locations: [loc], days: { 1: { ...typed.callSheets.days[1], extras: [{ ...newExtra('stunt'), name: 'A. Double', role: 'Mara stunt double' }], instructions: 'Camera: freedom mounts\nbring the generator', crew: { [p.participants.find(x => x.group === 'crew')!.id]: 'O/C' } } } } }, 1)!;
     expect(withLoc.logistics).toMatchObject({ parking: 'the lot', hospital: 'Desert General' });   // the first location fills the strip
     expect(withLoc.extras.find(e => e.kind === 'stunt')?.name).toBe('A. Double');
     expect(withLoc.instructions.find(i => i.dept === 'Camera')?.items).toEqual(['freedom mounts']);
@@ -45,15 +45,15 @@ describe('call sheets', () => {
     expect(departmentOf('Key Hair')).toBe('Hair & Makeup'); expect(departmentOf('Costume Designer')).toBe('Wardrobe'); expect(departmentOf('Composer')).toBe('Other'); expect(departmentOf('Property Master')).toBe('Art'); expect(departmentOf('Craft Service')).toBe('Catering & Craft');
   });
   it('groups sets into locations and finds the location for a set', () => {
-    expect(setGroup("SAM'S HOUSE - KITCHEN")).toBe("SAM'S HOUSE");
+    expect(setGroup("MARA'S HOUSE - KITCHEN")).toBe("MARA'S HOUSE");
     const p = sampleProject();
     const locs = locationsFromBoard(p.board, []);
     expect(locs.length).toBeGreaterThan(0);
     expect(new Set(locs.map(l => l.name)).size).toBe(locs.length);
     expect(locationsFromBoard(p.board, locs)).toHaveLength(locs.length);                 // nothing added twice
-    const home = newLocation({ name: 'The Penn house', sets: "SAM'S HOUSE, SAM'S STREET", address: '1 Elm St' });
-    expect(locationFor("SAM'S HOUSE - KITCHEN", [home])?.id).toBe(home.id);
-    expect(locationFor("sam's street", [home])?.id).toBe(home.id);
+    const home = newLocation({ name: 'The Quill house', sets: "MARA'S HOUSE, MARA'S STREET", address: '1 Elm St' });
+    expect(locationFor("MARA'S HOUSE - KITCHEN", [home])?.id).toBe(home.id);
+    expect(locationFor("mara's street", [home])?.id).toBe(home.id);
     expect(locationFor('DINER', [home])).toBeUndefined();
   });
   it('gives sunrise and sunset to the minute and formats times', () => {
