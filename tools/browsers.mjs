@@ -156,7 +156,7 @@ try {
       need(r.slides === 13, `${r.slides} slides`); need(!r.wide, 'the page scrolls sideways'); need(r.errs.length === 0, r.errs.slice(0, 2).join(' | '));
     });
     await step('sent file: every slide, one by one', async () => {
-      const ctx = await browser.newContext({ viewport: { width: 1600, height: 900 }, offline: true, reducedMotion: 'reduce' });
+      const ctx = await sealed({ viewport: { width: 1600, height: 900 }, reducedMotion: 'reduce' });
       const p = await ctx.newPage(); await p.goto(url); await p.waitForTimeout(1500);
       for (let i = 0; i < 13; i++) {
         await p.evaluate(n => { const root = [...document.querySelectorAll('*')].find(e => e.shadowRoot)?.shadowRoot; root?.querySelectorAll('section.psd-slide')[n]?.scrollIntoView({ behavior: 'instant' }); }, i);
@@ -165,7 +165,7 @@ try {
       await ctx.close();
     });
     await step('sent file: arrow keys page it', async () => {
-      const ctx = await browser.newContext({ viewport: { width: 1600, height: 900 }, offline: true });
+      const ctx = await sealed({ viewport: { width: 1600, height: 900 } });
       const p = await ctx.newPage(); await p.goto(url); await p.waitForTimeout(1500);
       await p.mouse.click(800, 450); for (let i = 0; i < 3; i++) { await p.keyboard.press('ArrowRight'); await p.waitForTimeout(900); }
       const at = await p.evaluate(() => { const root = [...document.querySelectorAll('*')].find(e => e.shadowRoot)?.shadowRoot; const s = [...(root?.querySelectorAll('section.psd-slide') ?? [])]; return s.findIndex(x => { const r = x.getBoundingClientRect(); return r.top > -10 && r.top < 10 && r.left > -10 && r.left < 10; }); });
