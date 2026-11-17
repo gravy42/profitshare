@@ -865,7 +865,7 @@ table.locs input { min-width: 80px; }
 .pd-fixes { margin: 0; padding-left: 18px; font-size: 12.5px; overflow-wrap: anywhere; }
 .pd-fixes li { margin-bottom: 8px; }
 
-.pd-controls { display: flex; flex-wrap: nowrap; gap: 8px 12px; align-items: flex-end; margin-bottom: 6px; }
+.pd-controls { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: flex-end; margin-bottom: 6px; }
 .pd-controls .ctl { min-width: 120px; flex: 1 1 150px; max-width: 220px; }
 .pd-controls .ctl select { width: 100%; min-width: 0; }
 .pd-ask { border: 0; padding: 0; margin: 0; min-width: 0; flex: none; }
@@ -904,6 +904,29 @@ table.locs input { min-width: 80px; }
 .pd-set > .pd-item:first-of-type { border-top: 0; margin-top: 0; }
 .pd-itemhead { display: flex; align-items: center; gap: 10px; justify-content: space-between; font-size: 12.5px; }
 .pd-scrim input[type="range"] { width: min(320px, 100%); padding: 0; border: 0; }
+/* movement and AI assist: choices in plain words, what is sent said before it is sent, every answer a proposal first */
+.pd-checks { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 8px 0; font-size: 13px; }
+.pd-checks label { display: inline-flex; align-items: center; gap: 6px; min-height: 28px; }
+.pd-sub { font-size: 12.5px; font-weight: 700; margin: 12px 0 2px; color: var(--ink); }
+.pd-marker, .pd-request { border-top: 1px dashed var(--pd-edge); margin-top: 10px; padding-top: 2px; }
+.pd-request .ctl { margin-top: 8px; }
+.pd-request textarea { width: 100%; }
+.pd .hint.pd-sends { border-left: 3px solid var(--lead); padding: 2px 0 2px 8px; margin: 6px 0; color: var(--ink); max-width: 70ch; }
+.pd-said { font-size: 12.5px; min-height: 18px; margin: 4px 0; }
+.pd-said:empty { margin: 0; }
+.pd-proposal { border: 1px dashed var(--pd-edge); background: var(--soft); padding: 4px 12px 10px; margin: 8px 0; font-size: 13px; }
+.pd-proposal ul { margin: 4px 0; padding-left: 18px; }
+.pd-proposal .pd-note { border-left: 3px solid var(--accent-ink); padding-left: 8px; margin: 8px 0; }
+.pd-options { list-style: none; padding: 0 !important; }
+.pd-options li { display: flex; align-items: center; gap: 10px; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.pd-options li span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.pd-assist { margin: 8px 0; }
+.pd-assist > .row { align-items: center; }
+.pd-nokey { margin: 8px 0; }
+.pd-read { margin-top: 4px; }
+.pd-read .pd-fixes b { font-weight: 700; }
+.pd-played { min-height: 16px; margin: 4px 0 0; color: var(--ink) !important; }
+.pd-played:empty { min-height: 0; margin: 0; }
 .pd-people, .pd-send { margin-top: 18px; border-top: 2px solid var(--line); padding-top: 2px; }
 .pd-sendwrap { overflow-x: auto; margin: 8px 0 4px; }
 .pd-sendtable { border-collapse: collapse; font-size: 13px; width: auto; min-width: 560px; }

@@ -2,6 +2,8 @@
 // Everything here is invented: the film, the people, the numbers. Run: node tools/make-sample.mjs
 import { writeFileSync, readFileSync } from 'node:fs';
 import * as XLSX from 'xlsx';
+import { build } from 'esbuild';
+import { buildSamplePitch } from './sample-pitch.mjs';
 
 const FILM = 'SALT FLAT';
 const SHOOT_DAYS = 12;
@@ -238,4 +240,13 @@ for (const s of scenes) {
   el('Location', s.location);
 }
 writeFileSync(new URL('../tools/fixtures/SaltFlat_Board.sex', import.meta.url), Buffer.from(bytes));
-console.log('wrote sample-budget.json, sample-board.json, Budget_SaltFlat_Draft3.xlsx, SaltFlat_Board.sex');
+
+// ---------- the pitch: look book, design system, deck, people (tools/sample-pitch.mjs) ----------
+// The colours come from the app's own palette engine, read here the way tools/build-deck-runtime.mjs reads the page assembler.
+const bundled = await build({ entryPoints: [new URL('../src/engine/palette.ts', import.meta.url).pathname], bundle: true, format: 'esm', platform: 'neutral', target: 'es2020', write: false, logLevel: 'silent' });
+const palette = await import(`data:text/javascript;base64,${Buffer.from(bundled.outputFiles[0].text).toString('base64')}`);
+const samplePitch = buildSamplePitch(palette);
+const pitchText = JSON.stringify(samplePitch, null, 1);
+writeFileSync(new URL('../src/data/sample-pitch.json', import.meta.url), pitchText);
+console.log(`pitch: ${samplePitch.pitch.slides.length} slides, ${samplePitch.pitch.lookbook.length} pictures, ${samplePitch.pitch.recipients.length} people, ${(Buffer.byteLength(pitchText) / 1000).toFixed(1)} kB`);
+console.log('wrote sample-budget.json, sample-board.json, sample-pitch.json, Budget_SaltFlat_Draft3.xlsx, SaltFlat_Board.sex');

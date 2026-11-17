@@ -11,6 +11,9 @@ import type { PathInputs, PathResult } from '../engine/pathMath';
 import type { DeckData, DeckRecipient } from './data';
 import { money, moneyParts, multiple, shares100 } from './format';
 import { cleanFamily, faceName, fontSrcOk, MAX_FONT_FACES } from './fonts';
+import { cleanDeckMotion, cleanMotion } from './motion';
+
+export { cleanDeckMotion, cleanMotion };
 
 export type Lead = 'with-grants' | 'without-grants';
 
@@ -28,6 +31,8 @@ export interface MountOptions {
   motion?: boolean;        // false: nothing rises or drops in, every slide is in its final state, and the deck still pages and switches (an editor's preview)
   onSlide?: (index: number) => void;   // told when another slide becomes the current one, by paging or by scrolling
 }
+/** Why `play` did nothing: the reader asked their computer for less motion, or the deck is one that never moves. */
+export type PlayResult = 'played' | 'reduced' | 'still';
 export interface DeckHandle {
   destroy(): void;
   /** Shows the deck as tailored for one recipient (null, or a slug nobody has: the general deck). Every switch goes
@@ -39,6 +44,9 @@ export interface DeckHandle {
   setLead(lead: Lead): void;
   setSwitch(key: string, on: boolean): void;
   goTo(index: number): void;
+  /** Plays one slide's movement again from the start (the current slide when no index is given), even in a deck
+   *  mounted with `motion: false`. Never in a static or stacked deck, and never for a reader who asked for less motion. */
+  play(index?: number): PlayResult;
   readonly slideCount: number;
   /** Fits every slide now (real browsers only): steps a slide's type down while its content spills, sets
    *  `data-overflow` on each and returns the indexes that still overflow at the smallest size. */
@@ -54,6 +62,8 @@ const BODY_FALLBACK = '"Work Sans", system-ui, sans-serif';
 const DEFAULT_SCRIM = 0.7;
 const MIN_SCRIM = 0.85;                 // under the text of a picture slide, at least this much of the background colour
 const FIT_STEPS = [1.4, 1.25, 1.1];     // a slide's base type size, in hundredths of its width; stepped down while it overflows
+const ONE_BY_ONE = 140;                 // milliseconds between parts that arrive one at a time, when the slide names no gap
+const PLAY_MS = 6000;                   // the longest a slide's movement runs: a still deck is still again after this
 const PAGE_STYLE_ID = 'psd-page-style';
 // A named page, so the rule changes nothing else the host document prints.
 const PAGE_CSS = '@page psd-deck{size:1600px 900px;margin:0}';
@@ -286,7 +296,8 @@ export function deckColors(colors: unknown, picture = 0): Record<string, string>
 // ---------- the mount ----------
 
 type Kid = Node | string | null | undefined | false;
-interface Part { index: number; layout: string; section: HTMLElement; box: HTMLElement; cells: HTMLElement[]; update?: () => void }
+interface Part { index: number; layout: string; section: HTMLElement; box: HTMLElement; cells: HTMLElement[]; counts: HTMLElement[]; update?: () => void }
+interface Count { e: HTMLElement; live: HTMLElement; pre: string; post: string; to: number; dec: number; group: boolean }
 type Timer = ReturnType<typeof setTimeout>;
 
 interface TakenFaces { faces: { family: string; src: string; role: 'title' | 'body'; name: string }[]; loads: Promise<unknown>[]; release: () => void }
@@ -385,7 +396,19 @@ function mountWith(host: HTMLElement, data: DeckData, opts: MountOptions, taken:
   const moneyKids = (n: number): Kid[] => moneyParts(n, cur).map(p => (p.symbol ? symbol(p.text) : p.text));
   const symKids = (text: string): Kid[] => text.split(/(\p{Sc}+)/u).map((p, i) => (i % 2 ? symbol(p) : p));
   const putMoney = (e: Element, n: number) => { if (e.textContent !== money(n, cur)) e.replaceChildren(...(moneyKids(n).filter(Boolean) as (Node | string)[])); };
-  const val = (tag: string, cls: string, text: unknown): HTMLElement | null => (has(text) ? el(tag, cls, ...symKids(str(text).trim())) : null);
+  // what the slide being built asked for (set before its layout runs): numbers that count up, a headline typed out, a travelling picture
+  let counting: HTMLElement[] | null = null;
+  let typed = false;
+  let marker: HTMLElement | null = null;
+  /** The number inside `e`, wrapped so that a count can run over it without moving anything. */
+  const numBox = (e: HTMLElement, ...kids: Kid[]): HTMLElement => { const n = el('span', 'psd-num', ...kids); e.appendChild(n); counting?.push(e); return n; };
+  const val = (tag: string, cls: string, text: unknown): HTMLElement | null => {
+    if (!has(text)) return null;
+    const kids = symKids(str(text).trim());
+    if (!counting) return el(tag, cls, ...kids);
+    const e = el(tag, cls); numBox(e, ...kids);
+    return e;
+  };
   const cell = <T extends HTMLElement | null>(e: T): T => { if (e) e.dataset.cell = ''; return e; };   // a column whose children must not stick out sideways
   let riseCount = 0;
   const rise = <T extends HTMLElement | null>(e: T, cls = 'psd-rise'): T => {
@@ -398,6 +421,10 @@ function mountWith(host: HTMLElement, data: DeckData, opts: MountOptions, taken:
   while (shadow.firstChild) shadow.removeChild(shadow.firstChild);
   if (typeof opts.css === 'string') { const st = doc.createElement('style'); st.textContent = opts.css; shadow.appendChild(st); }
   const root = el('div', `psd${isStatic ? ' psd-static' : ''}${opts.stacked === false ? ' psd-scaled' : ''}${opts.motion === false ? ' psd-still' : ''}`);
+  const deckMotion = cleanDeckMotion(d.motion);
+  const brisk = deckMotion?.pace === 'brisk';
+  if (brisk) root.classList.add('psd-brisk');
+  if (deckMotion && deckMotion.entrance !== 'rise') root.dataset.enter = deckMotion.entrance;
   root.setAttribute('role', 'region');
   root.setAttribute('aria-roledescription', 'slide deck');
   root.setAttribute('aria-label', `${film || 'Film'} pitch deck. Use the arrow keys to move between slides.`);
@@ -409,14 +436,30 @@ function mountWith(host: HTMLElement, data: DeckData, opts: MountOptions, taken:
   for (const k of Object.keys(vars)) root.style.setProperty(k, vars[k]);
 
   // --- shared pieces ---
-  const head = (s: Obj, headline: unknown = s.headline): HTMLElement | null => {
+  const head = (s: Obj, headline: unknown = s.headline, lone = true): HTMLElement | null => {
     if (!has(s.eyebrow) && !has(headline) && !has(s.punch)) return null;
     const h = el('header', 'psd-head');
-    if (has(s.eyebrow)) h.appendChild(rise(el('p', 'psd-eyebrow', str(s.eyebrow).trim())));
-    if (has(headline) || has(s.punch)) {
+    const lines = has(headline) || has(s.punch);
+    // a slide has one heading: its headline, or the small label when that is all there is
+    if (has(s.eyebrow)) h.appendChild(rise(el(lines || !lone ? 'p' : 'h2', 'psd-eyebrow', str(s.eyebrow).trim())));
+    if (lines) {
       const a = str(headline).trim().length, b = str(s.punch).trim().length;
       const size = Math.max(a, b) > 80 || a + b > 130 ? ' psd-h-xlong' : Math.max(a, b) > 45 || a + b > 80 ? ' psd-h-long' : '';
-      h.appendChild(rise(el('h2', `psd-h${size}`, txt('span', 'psd-h1', headline), txt('span', 'psd-punch', s.punch))));
+      if (!typed) h.appendChild(rise(el('h2', `psd-h${size}`, txt('span', 'psd-h1', headline), txt('span', 'psd-punch', s.punch))));
+      else {
+        // typed out: the whole headline is there for a screen reader from the start; the copy that appears letter
+        // by letter is for the eye only, and takes its full room before the first letter shows
+        let c = 0;
+        const letters = (cls: string, text: unknown): HTMLElement | null => (has(text) ? el('span', cls, ...[...str(text).trim()].map(ch => {
+          if (/\s/.test(ch)) return ch;
+          const e = el('span', 'psd-ch', ch); e.style.setProperty('--c', String(c++)); return e;
+        })) : null);
+        const seen = el('span', 'psd-typed', letters('psd-h1', headline), letters('psd-punch', s.punch));
+        seen.setAttribute('aria-hidden', 'true');
+        const h2 = el('h2', `psd-h${size}`, hidden([headline, s.punch].filter(has).map(t => str(t).trim()).join(' ')), seen);
+        h2.style.setProperty('--psd-type', `${Math.round(Math.min(34, 1700 / Math.max(1, c)))}ms`);
+        h.appendChild(h2);
+      }
     }
     return h;
   };
@@ -435,7 +478,11 @@ function mountWith(host: HTMLElement, data: DeckData, opts: MountOptions, taken:
     row.style.setProperty('--n', String(shown.length));
     row.dataset.n = String(shown.length);
     shown.forEach((cd, i) => row.appendChild(cardEl(cd, i, shown.length)));
-    return el('div', 'psd-hang', el('div', 'psd-rope'), row);
+    const hang = el('div', 'psd-hang', el('div', 'psd-rope'), marker, row);
+    hang.style.setProperty('--n', String(shown.length));
+    hang.dataset.n = String(shown.length);
+    if (marker) { hang.classList.add('psd-hang-mark'); const size = marker.style.getPropertyValue('--psd-mark'); if (size) hang.style.setProperty('--psd-mark', size); }   // room for the picture under the headline
+    return hang;
   };
 
   // --- the layouts: each returns the slide's content, and may set `part.update` for what changes after mounting ---
@@ -461,6 +508,7 @@ function mountWith(host: HTMLElement, data: DeckData, opts: MountOptions, taken:
     },
     cards(s, part) { return layouts.ways(s, part); },   // a row of cards either way: a recipient can have one of them picked out
     ways(s, part) {
+      const top = head(s);   // built first, so the headline arrives before the cards under it
       const row = cardRow(s.cards);
       part.update = () => {
         row?.querySelectorAll<HTMLElement>('.psd-card').forEach(e => {
@@ -469,7 +517,7 @@ function mountWith(host: HTMLElement, data: DeckData, opts: MountOptions, taken:
           if (on) e.setAttribute('aria-current', 'true'); else e.removeAttribute('aria-current');
         });
       };
-      return [head(s), row];
+      return [top, row];
     },
     stats(s) {
       const ld = obj(s.lead);
@@ -494,9 +542,10 @@ function mountWith(host: HTMLElement, data: DeckData, opts: MountOptions, taken:
       const factRow = facts.length ? el('div', 'psd-facts', ...facts.map(f => rise(cell(el('div', 'psd-fact', val('p', 'psd-fact-val', f.value), txt('p', 'psd-lab', f.label)))))) : null;
       if (factRow) { factRow.style.setProperty('--n', String(facts.length)); factRow.dataset.n = String(facts.length); factRow.classList.toggle('psd-facts-many', facts.length > 4); }
       const miles = list(s.milestones).filter(m => has(m.when) || has(m.what));
-      const track = miles.length ? el('div', 'psd-track', el('div', 'psd-rail'),
+      const track = miles.length ? el('div', 'psd-track', el('div', 'psd-rail'), marker,
         el('ol', 'psd-miles', ...miles.map(m => rise(el('li', 'psd-mile', el('span', 'psd-tick'), txt('span', 'psd-when', m.when), txt('span', 'psd-what', m.what)))))) : null;
       if (track) track.style.setProperty('--n', String(miles.length));
+      if (track && marker) { track.classList.add('psd-track-mark'); const size = marker.style.getPropertyValue('--psd-mark'); if (size) track.style.setProperty('--psd-mark', size); }   // room for the picture between the facts and the rail
       return [head(s), factRow, track, rise(txt('p', 'psd-note', s.note))];
     },
     comps(s) {
@@ -556,9 +605,10 @@ function mountWith(host: HTMLElement, data: DeckData, opts: MountOptions, taken:
       // the control says what it is, whatever the author wrote (or did not write) above it
       const togglesLabel = isStatic ? el('p', 'psd-lab psd-toggles-lab', 'Funding sources')
         : el('p', 'psd-lab psd-toggles-lab', el('span', 'psd-screen', 'Switch a source on or off'), el('span', 'psd-paper', 'Funding sources'));
-      const budget = el('span', 'psd-fig-val'); budget.dataset.part = 'budget';
-      const investors = el('span', 'psd-fig-val'); investors.dataset.part = 'investors';
-      const figs = el('div', 'psd-figs', el('div', 'psd-fig', el('span', 'psd-lab', 'Budget to raise'), budget), el('div', 'psd-fig psd-fig-big', el('span', 'psd-lab', 'Investors fund'), investors));
+      const budgetBox = el('span', 'psd-fig-val'); budgetBox.dataset.part = 'budget';
+      const investorsBox = el('span', 'psd-fig-val'); investorsBox.dataset.part = 'investors';
+      const budget = numBox(budgetBox), investors = numBox(investorsBox);   // a count runs over the figure; what is counted to is always the figure itself
+      const figs = el('div', 'psd-figs', el('div', 'psd-fig', el('span', 'psd-lab', 'Budget to raise'), budgetBox), el('div', 'psd-fig psd-fig-big', el('span', 'psd-lab', 'Investors fund'), investorsBox));
       const stack = el('div', 'psd-stack'); stack.setAttribute('role', 'img');
       const legend = el('ul', 'psd-legend psd-plain');
       const segs = [...sources.map((src, i) => ({ label: src.label, cls: `psd-seg-src psd-seg-${i % 3}` })), { label: 'Investors', cls: 'psd-seg-inv' }].map(x => {
@@ -688,7 +738,8 @@ function mountWith(host: HTMLElement, data: DeckData, opts: MountOptions, taken:
       return [head(s, repeats ? '' : s.headline), rise(body), rise(txt('p', 'psd-next', s.nextStep)), rise(txt('p', 'psd-contact', s.contact))];
     },
     closing(s) {
-      return [el('div', 'psd-closing-slide', head(s), rise(txt('h2', 'psd-title psd-title-end', has(s.title) ? s.title : film)), rise(txt('p', 'psd-signoff', theme.signoff)))];
+      // the title is the slide's heading, unless the slide has a headline of its own above it
+      return [el('div', 'psd-closing-slide', head(s, s.headline, false), rise(txt(has(s.headline) || has(s.punch) ? 'p' : 'h2', 'psd-title psd-title-end', has(s.title) ? s.title : film)), rise(txt('p', 'psd-signoff', theme.signoff)))];
     },
   };
 
@@ -721,12 +772,32 @@ function mountWith(host: HTMLElement, data: DeckData, opts: MountOptions, taken:
       for (const key of Object.keys(safe)) section.style.setProperty(key, safe[key]);
     }
     const box = el('div', 'psd-box');
-    const part: Part = { index, layout, section, box, cells: [] };
+    const part: Part = { index, layout, section, box, cells: [], counts: [] };
+    // movement: words from the fixed list become an attribute or a class, numbers are clamped and set as properties
+    const mo = cleanMotion(s.motion, layout) ?? {};
+    if (mo.entrance) section.dataset.enter = mo.entrance;
+    const gap = mo.order === 'together' ? 0 : mo.stagger ?? (mo.order ? ONE_BY_ONE : null);
+    if (gap != null) section.style.setProperty('--psd-gap', `${gap}ms`);
+    counting = mo.count ? part.counts : null;
+    typed = mo.headline === 'type';
+    const mk = mo.marker ? images.get(mo.marker.imageId) : undefined;
+    marker = null;
+    if (mo.marker && mk) {
+      const im = doc.createElement('img');
+      im.className = `psd-mark${mo.marker.end === 'settle' ? ' psd-mark-settle' : ''}`; im.alt = ''; im.decoding = 'async'; im.src = mk.src as string;
+      im.setAttribute('aria-hidden', 'true');
+      if (mo.marker.size != null) im.style.setProperty('--psd-mark', String(mo.marker.size));
+      marker = im;
+    }
     for (const k of layouts[layout](s, part)) if (k) box.appendChild(typeof k === 'string' ? doc.createTextNode(k) : k);
+    counting = null; typed = false; marker = null;
+    // parts arrive in the order they are read (top to bottom), or last first
+    const moving = [...box.querySelectorAll<HTMLElement>('.psd-rise, .psd-drop')];
+    moving.forEach((e, i) => e.style.setProperty('--i', String(mo.order === 'reverse' ? moving.length - 1 - i : i)));
     // a slide that is only its headline: the headline is the slide
     if (box.children.length === 1 && box.firstElementChild!.classList.contains('psd-head')) section.classList.add('psd-only-head');
     const small = txt('p', 'psd-footnote', s.footnote);
-    if (small) box.appendChild(small);
+    if (small) { box.appendChild(small); section.classList.add('psd-has-footnote'); }
     part.cells = [...box.querySelectorAll<HTMLElement>('[data-cell]')];
     inner.append(box, el('footer', 'psd-foot', el('span', 'psd-foot-film', film), el('span', 'psd-foot-n', `${index + 1} / ${drawable.length}`)));
     section.appendChild(inner);
@@ -784,11 +855,55 @@ function mountWith(host: HTMLElement, data: DeckData, opts: MountOptions, taken:
     root.classList.remove('psd-measuring');
     return bad;
   }
+  let stillT: Timer | null = null;   // set while a still deck is playing one slide
   let refitT: Timer | null = null;
   const refit = () => { if (refitT == null) refitT = later(() => { refitT = null; fitAll(); }, 0); };
 
+  // --- numbers that count up. Only what is drawn over the figure moves: the figure itself is in the document, whole,
+  //     from the start (for a screen reader, for the fit, for print) and is what shows again when the count ends. ---
+  const counts = new Set<Count>();
+  let frame = 0;
+  const raf = win && typeof win.requestAnimationFrame === 'function' ? win : null;
+  function stopCounts() {
+    for (const c of counts) { c.live.remove(); c.e.classList.remove('psd-counting'); }
+    counts.clear();
+    if (frame && raf) raf.cancelAnimationFrame(frame);
+    frame = 0;
+  }
+  cleanups.push(stopCounts);
+  function startCounts(p: Part) {
+    if (!raf || destroyed || !p.counts.length) return;
+    for (const e of p.counts) {
+      if ([...counts].some(c => c.e === e)) continue;
+      const m = /^(\D*)(\d[\d,]*(?:\.\d+)?)([^]*)$/.exec(e.querySelector('.psd-num')?.textContent ?? '');
+      const to = m ? parseFloat(m[2].replace(/,/g, '')) : NaN;
+      if (!m || !Number.isFinite(to) || to <= 0) continue;
+      const live = el('span', 'psd-count-live'); live.setAttribute('aria-hidden', 'true');
+      e.appendChild(live); e.classList.add('psd-counting');
+      counts.add({ e, live, pre: m[1], post: m[3], to, dec: (m[2].split('.')[1] ?? '').length, group: m[2].includes(',') });
+    }
+    const ms = brisk ? 700 : 1100;
+    let t0 = -1;
+    const show = (c: Count, k: number) => {
+      const [whole, frac] = (c.to * k).toFixed(c.dec).split('.');
+      const text = `${c.pre}${c.group ? whole.replace(/\B(?=(\d{3})+$)/g, ',') : whole}${frac ? `.${frac}` : ''}${c.post}`;
+      if (c.live.textContent !== text) c.live.replaceChildren(...(symKids(text).filter(Boolean) as (Node | string)[]));
+    };
+    const step = (now: number) => {
+      frame = 0;
+      if (destroyed) return;
+      if (t0 < 0) t0 = now;
+      const t = Math.min(1, (now - t0) / ms);
+      if (t >= 1 || stacked || reduced()) { stopCounts(); return; }
+      for (const c of counts) show(c, 1 - (1 - t) ** 3);
+      frame = raf.requestAnimationFrame(step);
+    };
+    for (const c of counts) show(c, 0);
+    if (counts.size && !frame) frame = raf.requestAnimationFrame(step);
+  }
+
   // --- state changes ---
-  const recompute = () => { result = pathFor(paths, switches); updateAll(); refit(); };
+  const recompute = () => { stopCounts(); result = pathFor(paths, switches); updateAll(); refit(); };
   function setSwitch(key: string, on: boolean) {
     if (destroyed || !sources.some(s => s.key === key)) return;
     switches = Object.assign(Object.create(null), switches, { [key]: !!on });
@@ -883,7 +998,11 @@ function mountWith(host: HTMLElement, data: DeckData, opts: MountOptions, taken:
       for (const en of entries) {
         // a fifth of the slide, or (a slide taller than the view) two fifths of the view
         if (!en.isIntersecting || !(en.intersectionRatio >= 0.2 || (en.rootBounds && en.intersectionRect.height >= en.rootBounds.height * 0.4))) continue;
-        (en.target as HTMLElement).classList.add('psd-seen');
+        const sec = en.target as HTMLElement;
+        if (sec.classList.contains('psd-seen')) continue;
+        sec.classList.add('psd-seen');
+        const p = parts.find(x => x.section === sec);
+        if (p && !stacked && !reduced()) startCounts(p);
       }
     }, { threshold: [0.02, 0.05, 0.1, 0.2] });
     for (const p of parts) io.observe(p.section);
@@ -972,6 +1091,23 @@ function mountWith(host: HTMLElement, data: DeckData, opts: MountOptions, taken:
     },
     setSwitch,
     goTo,
+    play(index) {
+      const p = parts[index == null ? current : Math.round(index)];
+      if (destroyed || !p || isStatic || stacked) return 'still';
+      if (reduced()) return 'reduced';
+      stopCounts();
+      // back to where the slide starts, with nothing easing on the way there, then let it go
+      p.section.classList.add('psd-reset');
+      root.classList.remove('psd-still');
+      p.section.classList.remove('psd-seen');
+      void p.section.offsetWidth;
+      p.section.classList.remove('psd-reset');
+      void p.section.offsetWidth;
+      p.section.classList.add('psd-seen');
+      startCounts(p);
+      if (opts.motion === false) { cancel(stillT); stillT = later(() => { stillT = null; root.classList.add('psd-still'); }, PLAY_MS); }
+      return 'played';
+    },
     checkOverflow: fitAll,
     destroy() {
       if (destroyed) return;   // a handle that has already gone (or was replaced by a newer mount) does nothing

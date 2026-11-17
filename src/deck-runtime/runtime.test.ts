@@ -32,7 +32,7 @@ function fixture(): DeckData {
       audience: { primary: 'Primary: invented adults', secondary: '', notes: 'How we reach them: invented screenings.' },
       sections: [],
       comps: [
-        { id: 'c1', title: 'Dry Season (invented)', year: '2027', distributor: '', budget: 500_000, domestic: 0, worldwide: 4_000_000, note: '', source: '', group: 'Festival path' },
+        { id: 'c1', title: 'Alkali Sisters (invented)', year: '2027', distributor: '', budget: 500_000, domestic: 0, worldwide: 4_000_000, note: '', source: '', group: 'Festival path' },
         { id: 'c2', title: 'Benchmark (invented)', year: '2030', distributor: '', budget: 2_000_000, domestic: 0, worldwide: 2_600_000, note: '', source: '', group: 'Direct' },
       ],
       revenue: [{ id: 'rv', source: 'All', low: 500_000, mid: 2_250_000, high: 6_000_000 }],
@@ -561,7 +561,8 @@ describe('what the runtime may import', () => {
     expect('const d = await import(`../ui/${x}`);').toMatch(/\bimport\s*\(/);
   });
   const allowed: Record<string, string[]> = {
-    'runtime.ts': ['../engine/pathMath', './data', './format', './fonts'],
+    'runtime.ts': ['../engine/pathMath', './data', './format', './fonts', './motion'],
+    'motion.ts': ['./data'],   // the movement vocabulary: types only come in
     'format.ts': [],
     'fonts.ts': [],
     'data.ts': ['../engine/pathMath'],
@@ -575,7 +576,7 @@ describe('what the runtime may import', () => {
       for (const spec of found) expect(allowed[file].includes(spec), `${file} imports ${spec}`).toBe(true);
       expect(src, `${file} has a dynamic import or a require`).not.toMatch(/\bimport\s*\(|\brequire\s*\(/);
       if (file === 'runtime.ts') expect(found).toContain('../engine/pathMath');
-      if (file === 'data.ts') expect(src).not.toMatch(/^import (?!type\b)/m);   // types only
+      if (file === 'data.ts' || file === 'motion.ts') expect(src).not.toMatch(/^import (?!type\b)/m);   // types only
     });
     it(`${file} builds no markup from strings and runs no strings as code`, () => {
       const src = readFileSync(resolve(here, file), 'utf8');

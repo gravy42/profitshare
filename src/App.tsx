@@ -10,7 +10,7 @@ import { parseScreenplayLines, parseScreenplayText } from './engine/importers/sc
 import { autoTagBoard } from './engine/breakdown';
 import { syncFollowersFromBoard } from './engine/board';
 import { weeklyWageLines, weeksToDays } from './engine/sag';
-import { sampleProject, blankProject, deriveParticipants, standardChartOfAccounts, type BlankOptions } from './data/seed';
+import { sampleDemo, blankProject, deriveParticipants, standardChartOfAccounts, type BlankOptions } from './data/seed';
 import type { Board, Project } from './engine/types';
 import { readTheme, saveTheme, THEME_LABELS, type ThemeChoice } from './theme';
 import { TopSheetView } from './ui/TopSheetView';
@@ -233,7 +233,7 @@ export default function App() {
   // makes a new project; whatever was open before stays in the Projects list, so nothing needs a second click any more.
   const fresh = activeId === null;
   const startBlank = (o: BlankOptions) => { replace(blankProject(o)); setTab('deal'); flash('Blank budget ready. Set the terms here, then build lines on the Top sheet.'); };
-  const startSample = () => { replace(sampleProject()); setTab('deal'); flash('Sample project loaded: SALT FLAT, an invented 12-day feature. These are its terms; change any of them.'); };
+  const startSample = () => { replace(sampleDemo()); setTab('deal'); flash('Sample project loaded: SALT FLAT, an invented 12-day feature. These are its terms; change any of them.'); };
   const startImport = () => { replace(blankProject({ chartOfAccounts: 'empty' })); void importBudget(); };
   const startOpen = () => void openJson();
   const startNew = () => { newProject(); setTab('start'); flash(`${project.name || 'The project'} is saved in this browser; find it under Projects on the Start tab.`); };

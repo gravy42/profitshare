@@ -3,6 +3,7 @@
 // them and every rule is tested without a browser. Ids are made from the ids already there: no clock, no dice.
 import type { FontFile, Recipient, SlideCard, SlideLayout, SlideSpec } from './types';
 import { cleanFamily } from '../deck-runtime/fonts';
+import { cleanMotion } from '../deck-runtime/motion';
 import { MAX_CARDS, reservedSlug, slugify } from './deckData';
 
 /** The thirteen layouts, in the order a deck usually runs, each with a name and a line on what it is for. */
@@ -65,6 +66,8 @@ export function readSlides(raw: unknown): SlideSpec[] {
     for (const k of ['eyebrow', 'headline', 'punch', 'body', 'imageId', 'closing', 'footnote', 'byline', 'nextStep', 'contact'] as const) { const v = str(r[k]); if (v) s[k] = v; }
     if (typeof r.scrim === 'number' && Number.isFinite(r.scrim)) s.scrim = Math.max(0, Math.min(1, r.scrim));
     if (r.hidden === true) s.hidden = true;
+    const motion = cleanMotion(r.motion, layout);
+    if (motion) s.motion = motion;
     const ided = <T extends { id: string }>(items: T[], stem: string): T[] => { const used: string[] = []; return items.map(x => { const own = x.id && !used.includes(x.id) ? x.id : uniqueId(stem, used); used.push(own); return { ...x, id: own }; }); };
     const cards = ided(objs(r.cards).map(c => ({ id: str(c.id), kicker: str(c.kicker), title: str(c.title), body: str(c.body), footnote: str(c.footnote) })), 'card');
     if (cards.length) s.cards = cards;

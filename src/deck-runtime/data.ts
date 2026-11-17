@@ -27,6 +27,20 @@ export interface DeckStat { id: string; value: string; label: string; source: st
 export interface DeckMilestone { id: string; when: string; what: string }
 export interface DeckQuote { text: string; by: string }
 
+/** Movement for the whole deck. Words from a fixed list only: see motion.ts. Left out, the deck is calm and its parts rise. */
+export interface DeckMotion { pace: 'calm' | 'brisk'; entrance: 'rise' | 'fade' | 'none' }
+/** A picture (a DeckImage, by id) that travels once along the cards' line or the timeline and stops at the last card or milestone. */
+export interface SlideMarker { imageId: string; path: 'line' | 'timeline'; end: 'stop' | 'settle'; size?: number }   // size: 0.5 to 2 times the usual height
+/** One slide's movement; every part optional. `stagger` is milliseconds between one part and the next (0 to 400). */
+export interface SlideMotion {
+  entrance?: 'rise' | 'fade' | 'drop' | 'slide-left' | 'slide-right' | 'none';
+  order?: 'together' | 'one-by-one' | 'reverse';
+  stagger?: number;
+  headline?: 'none' | 'type';     // type: the headline is typed out
+  count?: boolean;                // the slide's big numbers count up to what they say
+  marker?: SlideMarker;
+}
+
 /** What every slide has. `headline` is line one; `punch` is line two, drawn in the accent colour. */
 interface SlideBase {
   id: string;
@@ -36,6 +50,7 @@ interface SlideBase {
   imageId?: string;      // a DeckImage behind (or beside) the slide
   scrim?: number;        // 0 to 1: how dark the picture is behind the text (default 0.7)
   footnote?: string;     // small print at the foot of the slide
+  motion?: SlideMotion;  // how the slide moves when it comes into view; left out, the deck's own
 }
 
 export type DeckSlide = SlideBase & (
@@ -67,5 +82,6 @@ export interface DeckData {
   recipients: DeckRecipient[];
   paths: PathInputs;            // everything the numbers and ask slides compute from
   currency: string;             // ISO code, for formatting
+  motion?: DeckMotion;          // optional; nothing in it is ever read as code or as a style
   legal: string;                // the "illustrative, not an offer" line; shown on the numbers slide and never empty
 }

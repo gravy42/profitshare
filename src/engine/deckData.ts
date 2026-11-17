@@ -6,6 +6,7 @@ import type { LookImage, Project, Recipient, SlideCard, SlideSpec, Waterfall } f
 import type { DeckCard, DeckData, DeckImage, DeckMilestone, DeckRecipient, DeckSlide, DeckStat, DeckTheme } from '../deck-runtime/data';
 import { DECK_DATA_VERSION } from '../deck-runtime/data';
 import { cleanFamily, fontSrcOk, MAX_FONT_FACES } from '../deck-runtime/fonts';
+import { cleanDeckMotion, cleanMotion } from '../deck-runtime/motion';
 import { withPitch, defaultDesign, defaultDeckRules, compGroups, compMultiple } from './pitch';
 import { unlabel } from './deck';
 import { topSheet } from './budget';
@@ -278,6 +279,8 @@ function cleanSpec(raw: unknown): SlideSpec | null {
   for (const k of ['eyebrow', 'headline', 'punch', 'body', 'imageId', 'closing', 'footnote', 'byline', 'nextStep', 'contact'] as const) { const v = text(raw[k]); if (v) s[k] = v; }
   if (typeof raw.scrim === 'number') s.scrim = raw.scrim;
   if (raw.hidden === true) s.hidden = true;
+  const motion = cleanMotion(raw.motion, layout);   // only words from the movement vocabulary, whatever the file holds
+  if (motion) s.motion = motion;
   const cards = list(raw.cards).map((c, i) => ({ id: text(c.id) || `card${i + 1}`, kicker: text(c.kicker), title: text(c.title), body: text(c.body), footnote: text(c.footnote) }));
   if (cards.length) s.cards = cards;
   const stats = list(raw.stats).map((x, i) => ({ id: text(x.id) || `stat${i + 1}`, value: text(x.value), label: text(x.label), source: text(x.source) }));
@@ -302,13 +305,18 @@ const sourced = (x: { source?: unknown } | undefined): boolean => !!x && !!text(
 
 function slideOf(p: Project, s: SlideSpec, pictures: Map<string, LookImage>): DeckSlide {
   const pitch = p.pitch!;
-  const base: { id: string; eyebrow?: string; headline?: string; punch?: string; imageId?: string; scrim?: number; footnote?: string } = { id: s.id };
+  const base: { id: string; eyebrow?: string; headline?: string; punch?: string; imageId?: string; scrim?: number; footnote?: string; motion?: SlideSpec['motion'] } = { id: s.id };
   if (text(s.eyebrow)) base.eyebrow = s.eyebrow!.trim();
   if (text(s.headline)) base.headline = s.headline!.trim();
   if (text(s.punch)) base.punch = s.punch!.trim();
   if (s.imageId && pictures.has(s.imageId)) base.imageId = s.imageId;   // an id that matches no picture is dropped, and warned about
   if (typeof s.scrim === 'number' && Number.isFinite(s.scrim)) base.scrim = Math.max(0, Math.min(1, s.scrim));
   if (text(s.footnote)) base.footnote = s.footnote!.trim();
+  if (s.motion) {   // a travelling picture that is no longer in the look book is dropped, and warned about
+    const { marker, ...rest } = s.motion;
+    const motion = marker && pictures.has(marker.imageId) ? { ...rest, marker } : rest;
+    if (Object.keys(motion).length) base.motion = motion;
+  }
   const body = text(s.body), closing = text(s.closing);
 
   switch (s.layout) {
@@ -384,7 +392,7 @@ export function deckData(p0: Project, opts: DeckDataOptions = {}): DeckData {
   const p = withPitch(p0); const pitch = p.pitch!;
   const pictures = new Map(looks(pitch.lookbook).filter(i => i.dataUrl).map(i => [i.id, i] as const));
   const slides = cleanSlides(p).filter(s => !s.hidden).map(s => slideOf(p, s, pictures));
-  const usedIds = new Set(slides.map(s => s.imageId).filter((id): id is string => !!id));
+  const usedIds = new Set(slides.flatMap(s => [s.imageId, s.motion?.marker?.imageId]).filter((id): id is string => !!id));   // a travelling picture goes in the file like any other
   const images: DeckImage[] = [...pictures.values()].filter(i => usedIds.has(i.id)).map(i => ({ id: i.id, src: i.dataUrl, alt: text(i.caption) || 'Look book picture' }));
   const data: DeckData = {
     version: DECK_DATA_VERSION,
@@ -398,12 +406,14 @@ export function deckData(p0: Project, opts: DeckDataOptions = {}): DeckData {
     currency: p.currency,
     legal: DECK_LEGAL,
   };
+  const motion = cleanDeckMotion(pitch.deckMotion);
+  if (motion) data.motion = motion;
   return JSON.parse(JSON.stringify(data)) as DeckData;   // plain JSON, whatever a hand-edited project file carried in
 }
 
 /** One thing the author should fix. `slideId` is the slide it is on (`deck` and `design` for the whole deck and the
  *  design system, `recipient:<id>` for a person). `where` says what to open to fix it, so a page can link there:
- *  `revenue`, `deal`, `design`, `picture`, `cards`, `lead`, `stat:<id>`, `recipient:<position in the list>`. */
+ *  `revenue`, `deal`, `design`, `picture`, `marker`, `cards`, `lead`, `stat:<id>`, `recipient:<position in the list>`. */
 export interface DeckWarning { slideId: string; message: string; where?: string }
 
 /** What the author should fix, one entry per problem. Nothing here assumes a well-formed file. */
@@ -428,6 +438,7 @@ export function deckWarnings(p0: Project): DeckWarning[] {
     }
     if ((s.layout === 'cards' || s.layout === 'ways') && (s.cards?.length ?? 0) > MAX_CARDS) out.push({ slideId: s.id, where: 'cards', message: `This slide has ${s.cards!.length} cards; a slide holds ${MAX_CARDS} at most.` });
     if (s.imageId && !ids.has(s.imageId)) out.push({ slideId: s.id, where: 'picture', message: 'The picture chosen for this slide is no longer in the look book.' });
+    if (s.motion?.marker && !ids.has(s.motion.marker.imageId)) out.push({ slideId: s.id, where: 'marker', message: 'The picture that travels along the line on this slide is no longer in the look book, so it is left off.' });
   }
   for (const f of Array.isArray(pitch.design?.fontFiles) ? pitch.design!.fontFiles! : []) {
     if (!isObj(f) || !text(f.id) || (f.role !== 'title' && f.role !== 'body')) continue;   // not a font file at all

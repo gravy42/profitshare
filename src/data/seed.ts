@@ -3,6 +3,7 @@ import type { Account, Board, Category, LineItem, Participant, PointsTier, Proje
 import budgetJson from './sample-budget.json';
 import boardJson from './sample-board.json';
 import coaJson from './chart-of-accounts.json';
+import pitchJson from './sample-pitch.json';
 import { CA_FRINGES_2026 } from '../engine/importers/shamelXlsx';
 
 export const DEFAULT_TIERS: PointsTier[] = [
@@ -107,8 +108,9 @@ export function deriveParticipants(lines: LineItem[], accounts: { number: string
   return { participants: keep, lines: linked };
 }
 
-/** The sample project: SALT FLAT, an invented 12-day, 26-scene SAG feature. Built by tools/make-sample.mjs;
- *  every name and number in it is fictional. */
+/** The sample's budget, board and deal: SALT FLAT, an invented 12-day, 26-scene SAG feature. Built by
+ *  tools/make-sample.mjs; every name and number in it is fictional. This is the sample with NO pitch content and no
+ *  grants: the fixture the tests pin their figures to. What "Load the sample" opens is `sampleDemo()`, below. */
 export function sampleProject(): Project {
   const b = budgetJson as any;
   // the strips come in shooting order; the day breaks for its 12 days are placed so the board reads as a schedule the moment it opens
@@ -124,6 +126,16 @@ export function sampleProject(): Project {
     board,
     notes: 'Sample project. The strips are in shooting order (grouped by location) with day breaks placed for its 12 days; drag them, or Clear day breaks and place your own.',
   };
+}
+
+/** The sample as "Load the sample" opens it: the project above, with grants through a fiscal sponsor (so the deck has
+ *  two asks) and a whole invented pitch: revenue cases, a look book drawn by the generator, a design system worked out
+ *  from those pictures, a thirteen-slide deck and two people to send it to. The budget lines and the board are
+ *  `sampleProject()`'s, untouched. */
+export function sampleDemo(): Project {
+  const p = sampleProject();
+  const extra = JSON.parse(JSON.stringify(pitchJson)) as { waterfall: Partial<Waterfall>; pitch: NonNullable<Project['pitch']> };
+  return { ...p, waterfall: { ...p.waterfall, ...extra.waterfall }, pitch: extra.pitch };
 }
 
 export { PRESET_GROUPS, PROFIT_SHARE_PRESET_MATCH, type PresetGroup } from '../engine/deal';

@@ -51,7 +51,7 @@ export function AiPanel({ onChange, project, setPitch }: { onChange: (ready: boo
   };
   const mb = (n: number) => `${(n / 1048576).toFixed(1)} MB`;
   return (
-    <details className="panel ai" open={open} onToggle={e => setOpen((e.target as HTMLDetailsElement).open)}>
+    <details className="panel ai" id="pitch-ai" open={open} onToggle={e => setOpen((e.target as HTMLDetailsElement).open)}>
       <summary><h2>AI assist</h2><span className="small muted">{s.key ? `on · ${s.model}` : 'off: paste your own Anthropic key to turn it on'}</span></summary>
       <p className="help">Optional. With a key, every text box on this tab gets a <b>Draft</b> button that writes a first pass from what the project already knows: the logline and case so far, the budget figures, the schedule, the deal, the comps, the research. The key lives in this browser only, never in the project file. When you press Draft, a brief of the film (a few hundred words of your pitch and numbers, no images) is sent to Anthropic and nothing else leaves your machine. Keys are at console.anthropic.com; usage is billed to you.</p>
       <AiKeyFields settings={s} onChange={setS} />

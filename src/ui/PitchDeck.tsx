@@ -4,16 +4,22 @@
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import type { LookImage, Project, Recipient, SlideCard, SlideLayout, SlideMilestone, SlideSpec, SlideStat } from '../engine/types';
 import { withPitch } from '../engine/pitch';
-import { MAX_CARDS, deckData, deckWarnings, defaultSlides, slugify, type DeckWarning } from '../engine/deckData';
+import { ASK_NO_GRANTS, ASK_WITHOUT_GRANTS, ASK_WITH_GRANTS, MAX_CARDS, deckData, deckWarnings, defaultSlides, slugify, type DeckWarning } from '../engine/deckData';
+import { deckChecks, type AiProblem } from '../engine/aiDeck';
+import { PROMISE_TEXT, promiseOfReturns } from '../engine/promise';
+import { pathFor } from '../engine/pathMath';
+import { sponsorNet } from '../engine/waterfall';
 import {
   FROM_BUDGET, LAYOUTS, addCard, addSlide, deleteSlide, duplicateSlide, highlightChoices, layoutName, linkEndingProblem, linkProblemText, moveItem, moveSlide, moveSlideTo,
   neighbourId, newRecipient, nextItemId, patchSlide, readRecipients, readSlides, renameRecipient, setSlideHidden, slideLabel, validRecipients,
 } from '../engine/deckEdit';
 import type { DeckData } from '../deck-runtime/data';
-import { mountDeck, type DeckHandle, type Lead } from '../deck-runtime/runtime';
+import { fillAsk, mountDeck, type DeckHandle, type Lead } from '../deck-runtime/runtime';
+import { money } from '../deck-runtime/format';
 import deckCss from '../deck-runtime/deck.css?inline';
 import { blobUrlOf } from './deckFiles';
 import DeckSend from './DeckSend';
+import { LESS_MOTION, Movement, PersonAssist, ReadMyDeck, SecondLine, kindLabel, type PersonContext, type ReadItem } from './DeckAssist';
 import { fontsLeftOut } from '../engine/deckExport';
 import { PANEL, UNDO_KEY, focusSoon, goToId, goToPanel, type PanelKey } from './jump';
 
@@ -35,7 +41,7 @@ const overflowText = (f: Fit | undefined): string =>
 
 let remembered: string | null = null;   // the slide that was selected when the Pitch tab was last left (this session only)
 
-export default function PitchDeck({ project, setPitch, onTab, onUndo, undoDepth = 0 }: { project: Project; setPitch: SetPitch; onTab?: (tab: string) => void; onUndo?: () => void; undoDepth?: number }) {
+export default function PitchDeck({ project, setPitch, onTab, onUndo, undoDepth = 0, ai = false }: { project: Project; setPitch: SetPitch; onTab?: (tab: string) => void; onUndo?: () => void; undoDepth?: number; ai?: boolean }) {
   const p = withPitch(project); const pitch = p.pitch!;
   const authored = readSlides(pitch.slides);
   const own = authored.length > 0;
@@ -113,9 +119,43 @@ export default function PitchDeck({ project, setPitch, onTab, onUndo, undoDepth 
     const s = slides.find(x => x.id === f.slideId);
     if (!s) { if (f.where === 'design') go({ panel: 'design' }); return; }
     setSelectedId(s.id);
-    if (f.where && !['overflow', 'revenue', 'deal'].includes(f.where)) focusSoon(`.pd-editor [data-field="${f.where}"]`);
-    else focusSoon('.pd-editor h3');
+    // the field the note is about, when the editor has it on show; else the top of the editor
+    const field = !f.where || ['overflow', 'revenue', 'deal', 'other'].includes(f.where) ? '' : f.where === 'numbers' ? '[data-field="lead"], .pd-editor [data-field^="stat:"]' : `[data-field="${f.where.replace(/["\\]/g, '')}"]`;
+    window.setTimeout(() => {
+      const el = (field ? document.querySelector<HTMLElement>(`.pd-editor ${field}`) : null) ?? document.querySelector<HTMLElement>('.pd-editor h3');
+      if (!el) return;
+      el.focus({ preventScroll: true });
+      el.scrollIntoView({ block: 'center', behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    }, 80);
   };
+  /** The link a note starts with: the slide it is about (or the list of people), which opens it. */
+  const fixLink = (f: Fix): ReactNode => {
+    const s = slides.find(x => x.id === f.slideId); const n = s ? numberOf(s.id) : null;
+    if (s) return <><button type="button" className="pd-link" onClick={() => openFix(f)}>{n ? `Slide ${n}` : 'Hidden slide'}, {nameOf(s)}</button>: </>;
+    if (f.where?.startsWith('recipient:')) return <><button type="button" className="pd-link" onClick={() => openFix(f)}>People you send it to</button>: </>;
+    return null;
+  };
+
+  // ---- AI assist and the checks behind Read my deck: the deck's words only, worked out when asked for ----
+  const goAi = () => goToPanel('ai', 'summary');
+  const hasGrants = sponsorNet(p.waterfall) > 0;
+  const wordsOnly = () => deckData({ ...p, pitch: { ...pitch, lookbook: [] } }, { today });   // no picture is read to get at the words
+  const personContext = (): PersonContext => {
+    const d = wordsOnly();
+    const ask = d.slides.find(s => s.layout === 'ask') as Extract<DeckData['slides'][number], { layout: 'ask' }> | undefined;
+    const grants = d.paths.sources.find(s => s.key === 'grants');
+    const filled = (template: string, on: boolean) => fillAsk(template, money(pathFor(d.paths, grants ? { grants: on } : {}).investors, d.currency), grants ? money(Math.min(grants.amount, d.paths.cashBudget), d.currency) : null).map(x => x.text).join('');
+    return { film: d.film, logline: pitch.logline, hasGrants: !!grants,
+      askWith: filled(ask?.withGrants ?? (grants ? ASK_WITH_GRANTS : ASK_NO_GRANTS), true), askWithout: filled(ask?.withoutGrants ?? (grants ? ASK_WITHOUT_GRANTS : ASK_NO_GRANTS), false) };
+  };
+  const FIELD: Record<string, string> = { ask: 'body', tagline: 'byline', numbers: 'numbers' };
+  const checks = (): ReadItem[] => [
+    ...fixes.map(f => ({ slideId: f.slideId, where: f.where, message: f.message })),
+    ...deckChecks(wordsOnly()).map(c => (c.slideId.startsWith('recipient:')
+      ? { slideId: c.slideId, where: `recipient:${Math.max(0, people.findIndex(r => slugify(r.slug) === c.slideId.slice(10)))}`, message: c.message }
+      : { slideId: c.slideId, where: FIELD[c.field] ?? c.field, message: c.message })),
+  ];
+  const aiItem = (x: AiProblem): ReadItem => ({ slideId: x.slideId, where: FIELD[x.field] ?? x.field, message: x.message, label: kindLabel(x) });
   const elsewhere = (f: Fix): { label: string; to: Place } | null =>
     f.where === 'revenue' ? { label: 'Go to What it could make', to: { panel: 'revenue' } } : f.where === 'deal' ? { label: 'Open the Deal tab', to: { tab: 'deal' } }
       : f.where === 'picture' ? { label: 'Go to Look book', to: { panel: 'lookbook' } } : f.where === 'design' ? { label: 'Go to Design system', to: { panel: 'design' } } : null;
@@ -151,10 +191,10 @@ export default function PitchDeck({ project, setPitch, onTab, onUndo, undoDepth 
           {fixes.length === 0 ? <p className="hint">Nothing to fix.</p> : (
             <ul className="pd-fixes">
               {fixes.map((f, i) => {
-                const s = slides.find(x => x.id === f.slideId); const n = s ? numberOf(s.id) : null; const more = elsewhere(f); const person = f.where?.startsWith('recipient:');
+                const s = slides.find(x => x.id === f.slideId); const more = elsewhere(f); const person = f.where?.startsWith('recipient:');
                 return (
                   <li key={i}>
-                    {s && <><button type="button" className="pd-link" onClick={() => openFix(f)}>{n ? `Slide ${n}` : 'Hidden slide'}, {nameOf(s)}</button>: </>}
+                    {s && fixLink(f)}
                     {f.message}
                     {person && <> <button type="button" className="pd-link" onClick={() => openFix(f)}>Go to their link ending</button></>}
                     {more && <> <button type="button" className="pd-link" onClick={() => go(more.to)}>{more.label}</button></>}
@@ -163,18 +203,22 @@ export default function PitchDeck({ project, setPitch, onTab, onUndo, undoDepth 
               })}
             </ul>
           )}
+          <ReadMyDeck ai={ai} checks={checks} deck={wordsOnly} link={fixLink} toItem={aiItem} goAi={goAi} />
         </div>
 
         <div className={`pd-main${own ? '' : ' draft'}`}>
           {selected && own && <SlideEditor key={selected.id} slide={selected} number={numberOf(selected.id)} pictures={Array.isArray(pitch.lookbook) ? pitch.lookbook : []} film={p.name} go={go}
             patch={f => setSlides(x => patchSlide(x, selected.id, f))} onAddCard={() => setSlides(x => addCard(x, selected.id))}
-            onHide={() => hide(selected)} onCopy={() => copy(selected)} onDelete={() => remove(selected)} only={slides.length <= 1} overflow={fits.find(f => f.id === selected.id)} />}
+            onHide={() => hide(selected)} onCopy={() => copy(selected)} onDelete={() => remove(selected)} only={slides.length <= 1} overflow={fits.find(f => f.id === selected.id)}
+            ai={ai} goAi={goAi} onSaid={text => say(text, { reselect: selected.id })} />}
           {selected && !own && <p className="hint pd-draftnote">This is slide {numberOf(selected.id)} of the draft: {nameOf(selected)}. Press Build my deck to edit it.</p>}
-          <DeckPreview project={previewProject} today={today} selectedId={selected?.id ?? null} hiddenId={hiddenId} people={sendable} onSlide={setSelectedId} onFit={setFits} draft={!own} leftOut={fontsLeftOut(p).map(f => f.family)} go={go} />
+          <DeckPreview project={previewProject} today={today} selectedId={selected?.id ?? null} hiddenId={hiddenId} people={sendable} onSlide={setSelectedId} onFit={setFits} draft={!own} leftOut={fontsLeftOut(p).map(f => f.family)} go={go}
+            movement={pitch.deckMotion?.entrance === 'none' ? 'none' : pitch.deckMotion?.pace === 'brisk' ? 'brisk' : 'calm'}
+            onMovement={v => { setPitch(x => { const { deckMotion: _m, ...rest } = x; return v === 'calm' ? rest : { ...rest, deckMotion: v === 'brisk' ? { pace: 'brisk', entrance: 'rise' } : { pace: 'calm', entrance: 'none' } }; }); say(v === 'none' ? 'The deck has no movement of its own now. A slide you gave movement keeps it.' : `The whole deck is ${v} now.`, { reselect: selected?.id ?? null }); }} />
         </div>
       </div>
 
-      <People list={people} choices={highlightChoices(slides)} say={say}
+      <People list={people} choices={highlightChoices(slides)} say={say} ai={ai} hasGrants={hasGrants} context={personContext} goAi={goAi}
         set={f => setPitch(x => ({ ...x, recipients: f(readRecipients(x.recipients)) }))} />
 
       <DeckSend project={project} today={today} people={people} sendable={sendable} fixes={fixes.map(f => `${f.slideId}: ${f.message}`)} fixesId="pd-fixes-h" />
@@ -258,9 +302,11 @@ const signature = (d: DeckData): string => JSON.stringify({
 });
 type Person = { id: string; slug: string; name: string; lead: Lead };
 
-function DeckPreview({ project, today, selectedId, hiddenId, people, onSlide, onFit, draft, leftOut, go }: {
+type DeckPace = 'calm' | 'brisk' | 'none';
+function DeckPreview({ project, today, selectedId, hiddenId, people, onSlide, onFit, draft, leftOut, go, movement, onMovement }: {
   project: Project; today: string; selectedId: string | null; hiddenId: string | null; people: Person[]; onSlide: (id: string) => void; onFit: (fits: Fit[]) => void; draft: boolean;
   leftOut: string[]; go: Go;   // font files the preview draws with and a sent file leaves behind
+  movement: DeckPace; onMovement: (v: DeckPace) => void;
 }) {
   const host = useRef<HTMLDivElement>(null), frame = useRef<HTMLDivElement>(null);
   const handle = useRef<DeckHandle | null>(null);
@@ -277,7 +323,15 @@ function DeckPreview({ project, today, selectedId, hiddenId, people, onSlide, on
   const latest = useRef({ selectedId, slug: person?.slug ?? '', lead, index, full, onSlide, onFit });
   latest.current = { selectedId, slug: person?.slug ?? '', lead, index, full, onSlide, onFit };
   const fitToken = useRef(0);
-  const whoId = useId(), askName = useId();
+  const whoId = useId(), askName = useId(), paceId = useId();
+  const [played, setPlayed] = useState('');
+  const play = () => {
+    const how = handle.current?.play(index) ?? 'still';
+    setPlayed(how === 'played' ? `Playing the movement on slide ${index + 1}.`
+      : how === 'reduced' ? 'This computer is set to show less motion, so there is nothing to play: you are seeing what readers with that setting see, everything at once.'
+        : 'There is nothing to play here.');
+  };
+  useEffect(() => { if (!played) return; const t = window.setTimeout(() => setPlayed(''), 7000); return () => window.clearTimeout(t); }, [played]);
 
   // draw the deck a moment after the last change; a render that changes nothing the deck shows draws nothing
   useEffect(() => {
@@ -371,10 +425,15 @@ function DeckPreview({ project, today, selectedId, hiddenId, people, onSlide, on
             </div>
           </fieldset>
         )}
+        <div className="ctl"><label htmlFor={paceId}>Movement for the whole deck</label>
+          <select id={paceId} value={movement} onChange={e => onMovement(e.target.value === 'brisk' ? 'brisk' : e.target.value === 'none' ? 'none' : 'calm')}>
+            <option value="calm">Calm</option><option value="brisk">Brisk</option><option value="none">None</option>
+          </select></div>
         <div className="pd-pager">
           <button type="button" className="pd-mini" aria-label="Previous slide" title="Previous slide" disabled={index <= 0} onClick={() => handle.current?.goTo(index - 1)}>‹</button>
           <span className="pd-count" aria-live="polite" aria-atomic="true"><span className="pd-vh">Slide </span>{count ? `${index + 1} / ${count}` : 'No slides'}</span>
           <button type="button" className="pd-mini" aria-label="Next slide" title="Next slide" disabled={index >= count - 1} onClick={() => handle.current?.goTo(index + 1)}>›</button>
+          <button type="button" className="btn small" disabled={!count} title="Play this slide's movement here, once" onClick={play}>Play<span className="pd-vh"> this slide's movement</span></button>
           {canFull && <button type="button" className="btn small" onClick={() => void frame.current?.requestFullscreen?.().catch(() => undefined)}>Full screen</button>}
         </div>
       </div>
@@ -384,6 +443,8 @@ function DeckPreview({ project, today, selectedId, hiddenId, people, onSlide, on
         {broken && <div className="pd-hiddenbanner" role="alert">The preview could not be drawn: something in this project is not in a form it can read. Your slides are still here and can still be edited.</div>}
       </div>
       {leftOut.length > 0 && <p className="hint pd-fontnote">The preview uses {leftOut.join(' and ')}; the files you send will not, because {leftOut.length > 1 ? 'their boxes under Design system are' : 'its box under Design system is'} not ticked. <button type="button" className="pd-link" onClick={() => go({ panel: 'design' })}>Go to Design system</button></p>}
+      <p className="hint pd-played" role="status" aria-live="polite">{played}</p>
+      <p className="hint pd-caption">The preview holds still while you edit; Play shows the slide's movement. {LESS_MOTION}</p>
       <p className="hint pd-caption">{person ? <b>As {person.name || person.slug} sees it. </b> : null}{draft ? 'A draft, not saved as slides yet. ' : ''}Click the slide, then use the arrow keys. Buttons on the slide work as they will for your reader. Paging here also selects the slide in the list.</p>
     </div>
   );
@@ -450,9 +511,9 @@ function Optional({ add, legend, filled, children }: { add: string; legend: stri
   return <fieldset className="pd-set" ref={box}><legend>{legend}</legend>{children}</fieldset>;
 }
 
-function SlideEditor({ slide: s, number, pictures, film, go, patch, onAddCard, onHide, onCopy, onDelete, only, overflow }: {
+function SlideEditor({ slide: s, number, pictures, film, go, patch, onAddCard, onHide, onCopy, onDelete, only, overflow, ai, goAi, onSaid }: {
   slide: SlideSpec; number: number | null; pictures: LookImage[]; film: string; go: Go; patch: (f: Partial<SlideSpec>) => void; onAddCard: () => void;
-  onHide: () => void; onCopy: () => void; onDelete: () => void; only: boolean; overflow?: Fit;
+  onHide: () => void; onCopy: () => void; onDelete: () => void; only: boolean; overflow?: Fit; ai: boolean; goAi: () => void; onSaid: (text: string) => void;
 }) {
   const spec = SPEC[s.layout] ?? { head: true };
   const cards = s.cards ?? [], stats = s.stats ?? [], miles = s.milestones ?? [], cols = s.columns ?? [];
@@ -496,12 +557,14 @@ function SlideEditor({ slide: s, number, pictures, film, go, patch, onAddCard, o
 
       {spec.head && (
         <div className="pd-fields">
-          <Field label="Small label above" value={s.eyebrow ?? ''} onChange={v => patch({ eyebrow: v })} className="full" />
-          <Field label={s.layout === 'ask' ? 'Line above the ask' : 'Headline'} value={s.headline ?? ''} onChange={v => patch({ headline: v })} className="full" />
-          <Field label="Second line" value={s.punch ?? ''} onChange={v => patch({ punch: v })} className="full" hint="Shown under the headline, in colour." />
+          <Field label="Small label above" value={s.eyebrow ?? ''} onChange={v => patch({ eyebrow: v })} className="full" field="eyebrow" />
+          <Field label={s.layout === 'ask' ? 'Line above the ask' : 'Headline'} value={s.headline ?? ''} onChange={v => patch({ headline: v })} className="full" field="headline" />
+          <Field label="Second line" value={s.punch ?? ''} onChange={v => patch({ punch: v })} className="full" hint="Shown under the headline, in colour." field="punch" problem={promiseOfReturns(s.punch).flagged ? PROMISE_TEXT : undefined} />
+          <SecondLine ai={ai} headline={s.headline ?? ''} onUse={v => { patch({ punch: v }); onSaid('Second line filled in.'); }}
+            body={[s.body, ...cards.map(c => [c.title, c.body].filter(Boolean).join(': ')), lead.text && `${lead.value} ${lead.text}`, ...stats.map(x => `${x.value} ${x.label}`), quote.text, s.closing].filter(Boolean).join('\n')} />
         </div>
       )}
-      {s.layout === 'cover' && <div className="pd-fields"><Field label="Who made it" value={s.byline ?? ''} onChange={v => patch({ byline: v })} placeholder="Written and directed by Ada Example" className="full" hint={`Beside ${film || 'the title'}.`} /></div>}
+      {s.layout === 'cover' && <div className="pd-fields"><Field label="Who made it" value={s.byline ?? ''} onChange={v => patch({ byline: v })} placeholder="Written and directed by Ada Example" className="full" field="byline" hint={`Beside ${film || 'the title'}.`} /></div>}
 
       {s.layout === 'stats' && (
         <Optional add="Add a big number" legend="The big number" filled={!!(lead.value || lead.text || lead.source)}>
@@ -516,7 +579,7 @@ function SlideEditor({ slide: s, number, pictures, film, go, patch, onAddCard, o
 
       {s.layout === 'ask' && (
         <div className="pd-fields" ref={askBox}>
-          <Field label="The ask, in your words" value={s.body ?? ''} onChange={v => patch({ body: v })} rows={3} className="full" hint="Leave it empty for the standard wording." />
+          <Field label="The ask, in your words" value={s.body ?? ''} onChange={v => patch({ body: v })} rows={3} className="full" field="body" hint="Leave it empty for the standard wording." />
           <div className="full pd-insert">
             <button type="button" className="btn small" onClick={() => insert('{investors}')}>Insert the amount investors fund</button>
             <button type="button" className="btn small" onClick={() => insert('{grants}')}>Insert the grants amount</button>
@@ -524,7 +587,7 @@ function SlideEditor({ slide: s, number, pictures, film, go, patch, onAddCard, o
           </div>
         </div>
       )}
-      {spec.body && <div className="pd-fields"><Field label={spec.body[0]} value={s.body ?? ''} onChange={v => patch({ body: v })} rows={s.layout === 'text' ? 6 : 3} className="full" hint={spec.body[1]} /></div>}
+      {spec.body && <div className="pd-fields"><Field label={spec.body[0]} value={s.body ?? ''} onChange={v => patch({ body: v })} rows={s.layout === 'text' ? 6 : 3} className="full" hint={spec.body[1]} field="body" /></div>}
 
       {s.layout === 'stats' && (
         <Optional add="Add a quote" legend="Quote" filled={!!(quote.text || quote.by)}>
@@ -615,15 +678,15 @@ function SlideEditor({ slide: s, number, pictures, film, go, patch, onAddCard, o
 
       {s.layout === 'ask' && (
         <div className="pd-fields">
-          <Field label="Next step" value={s.nextStep ?? ''} onChange={v => patch({ nextStep: v })} className="full" placeholder="A twenty-minute call this month." hint="What you want the reader to do next." />
-          <Field label="How to reach you" value={s.contact ?? ''} onChange={v => patch({ contact: v })} className="full" placeholder="ada@example.com" />
+          <Field label="Next step" value={s.nextStep ?? ''} onChange={v => patch({ nextStep: v })} className="full" field="nextStep" placeholder="A twenty-minute call this month." hint="What you want the reader to do next." />
+          <Field label="How to reach you" value={s.contact ?? ''} onChange={v => patch({ contact: v })} className="full" field="contact" placeholder="ada@example.com" />
         </div>
       )}
 
-      {spec.closing && <div className="pd-fields"><Field label={spec.closing[0]} value={s.closing ?? ''} onChange={v => patch({ closing: v })} className="full" hint={spec.closing[1]} /></div>}
+      {spec.closing && <div className="pd-fields"><Field label={spec.closing[0]} value={s.closing ?? ''} onChange={v => patch({ closing: v })} className="full" hint={spec.closing[1]} field="closing" /></div>}
 
       <Optional add="Add small print" legend="Small print" filled={!!s.footnote}>
-        <div className="pd-fields"><Field label="Small print, at the foot of the slide" value={s.footnote ?? ''} onChange={v => patch({ footnote: v })} className="full" /></div>
+        <div className="pd-fields"><Field label="Small print, at the foot of the slide" value={s.footnote ?? ''} onChange={v => patch({ footnote: v })} className="full" field="footnote" /></div>
       </Optional>
 
       {shown.length === 0 && !lostPicture ? (
@@ -649,26 +712,33 @@ function SlideEditor({ slide: s, number, pictures, film, go, patch, onAddCard, o
           )}
         </Optional>
       )}
+
+      <Movement slide={s} pictures={shown} ai={ai} patch={patch} onApplied={onSaid} goAi={goAi} goLookbook={() => go({ panel: 'lookbook' })} />
     </section>
   );
 }
 
 // ---------- the people the deck is sent to ----------
 
-function People({ list, choices, set, say }: { list: Recipient[]; choices: { id: string; label: string }[]; set: (f: (r: Recipient[]) => Recipient[]) => void; say: (t: string, undo?: { reselect: string | null }) => void }) {
+function People({ list, choices, set, say, ai, hasGrants, context, goAi }: { list: Recipient[]; choices: { id: string; label: string }[]; set: (f: (r: Recipient[]) => Recipient[]) => void; say: (t: string, undo?: { reselect: string | null }) => void;
+  ai: boolean; hasGrants: boolean; context: () => PersonContext; goAi: () => void }) {
   const patch = (at: number, f: (r: Recipient) => Recipient) => set(all => all.map((r, i) => (i === at ? f(r) : r)));
   return (
     <div className="pd-people" id={PANEL.people}>
       <h3>People you send it to</h3>
       <p className="help">Add each person or fund you send the deck to. Each one gets a link and a file of their own, and never sees anyone else's name, note or cover line.</p>
       {list.map((r, i) => <PersonRow key={r.id} at={i} r={r} others={list.filter((_, j) => j !== i).map(x => x.slug)} choices={choices} patch={f => patch(i, f)}
+        assist={<PersonAssist r={r} ai={ai} hasGrants={hasGrants} context={context} goAi={goAi} onApply={sug => {
+          patch(i, x => { const { note: _n, ...rest } = x; return { ...rest, coverLine: sug.coverLine, lead: sug.lead, ...(sug.note ? { note: sug.note } : {}) }; });
+          say(`Applied to ${r.name.trim() || 'this person'}: the cover line, the note and which ask comes first.`, { reselect: null });
+        }} />}
         onRemove={() => { set(all => all.filter((_, j) => j !== i)); say(`Removed ${r.name.trim() || 'the person'}.`, { reselect: null }); }} />)}
       <button type="button" className="btn small" onClick={() => { set(all => [...all, newRecipient(all)]); focusSoon(`#pd-name-${list.length}`); }}>Add a person</button>
     </div>
   );
 }
 
-function PersonRow({ at, r, others, choices, patch, onRemove }: { at: number; r: Recipient; others: string[]; choices: { id: string; label: string }[]; patch: (f: (r: Recipient) => Recipient) => void; onRemove: () => void }) {
+function PersonRow({ at, r, others, choices, patch, onRemove, assist }: { at: number; r: Recipient; others: string[]; choices: { id: string; label: string }[]; patch: (f: (r: Recipient) => Recipient) => void; onRemove: () => void; assist: ReactNode }) {
   const problemId = useId(), coverId = useId(), noteId = useId(), leadId = useId(), cardId = useId();
   const [touched, setTouched] = useState(() => !!(r.name || r.slug));
   const found = linkEndingProblem(r.slug, others);
@@ -701,6 +771,7 @@ function PersonRow({ at, r, others, choices, patch, onRemove }: { at: number; r:
           </select>
           <div className="hint">{choices.length ? 'Outlined in their copy only.' : 'There are no cards to highlight yet: a Cards on a line or Ways to take part slide has them.'}</div></div>
       </div>
+      {assist}
       <button type="button" className="btn small" onClick={onRemove}>Remove {r.name.trim() || 'this person'}</button>
     </fieldset>
   );

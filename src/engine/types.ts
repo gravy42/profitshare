@@ -245,9 +245,22 @@ export interface Pitch {
   ask?: string;               // the ask, in the filmmaker's words: what you are raising, on what terms, how to reach you
   slides?: SlideSpec[];       // the authored pitch deck, in order; empty or absent = build the default from the fields above
   recipients?: Recipient[];   // people the pitch deck is tailored for, each with a link ending of their own
+  deckMotion?: DeckMotion;    // movement for the whole deck: calm or brisk, and whether parts rise, fade or simply appear
 }
 
 // ---------- the authored pitch deck ----------
+
+/** Movement, as the deck's contract has it (src/deck-runtime/data.ts holds the same shapes; a test keeps the two in
+ *  step). Words from fixed lists and clamped numbers only: `cleanMotion()` in deck-runtime/motion.ts is the one door in. */
+export interface DeckMotion { pace: 'calm' | 'brisk'; entrance: 'rise' | 'fade' | 'none' }
+export interface SlideMotion {
+  entrance?: 'rise' | 'fade' | 'drop' | 'slide-left' | 'slide-right' | 'none';
+  order?: 'together' | 'one-by-one' | 'reverse';
+  stagger?: number;          // milliseconds between one part and the next, 0 to 400
+  headline?: 'none' | 'type';
+  count?: boolean;
+  marker?: { imageId: string; path: 'line' | 'timeline'; end: 'stop' | 'settle'; size?: number };   // a look book picture that travels along the line
+}
 
 export type SlideLayout = 'cover' | 'photo' | 'cards' | 'stats' | 'timeline' | 'text' | 'comps' | 'team' | 'model' | 'ways' | 'numbers' | 'ask' | 'closing';
 
@@ -269,6 +282,7 @@ export interface SlideSpec {
   nextStep?: string;       // ask: what you want the reader to do next
   contact?: string;        // ask: how to reach you
   hidden?: boolean;
+  motion?: SlideMotion;    // how this slide moves: words from the fixed list in deck-runtime/motion.ts, never code
 }
 export interface SlideCard { id: string; kicker?: string; title: string; body: string; footnote?: string }
 export interface SlideStat { id: string; value: string; label: string; source: string }

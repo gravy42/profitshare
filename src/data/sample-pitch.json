@@ -1,0 +1,462 @@
+{
+ "waterfall": {
+  "nonRecoupable": 90000,
+  "sponsorFeePct": 7
+ },
+ "pitch": {
+  "logline": "Two estranged sisters push a dead station wagon across the desert to deliver their mother's last letter.",
+  "why": "I spent my summers in a motel my aunt ran at the edge of a dry lake. Nobody stayed more than a night, and everybody told her more than they meant to.\n\nSalt Flat is that place and those people: one road, one motel, two sisters who have run out of ways to avoid each other. I wrote it for what a small crew can shoot well in twelve days.",
+  "audience": {
+   "primary": "Women over thirty who go to independent films with a sister, a mother or a friend.",
+   "secondary": "Anyone who has driven a long way with family and not talked about why.",
+   "notes": "A festival first, then the podcasts and newsletters this audience already trusts."
+  },
+  "sections": [
+   {
+    "id": "sec_story",
+    "heading": "The story",
+    "body": "Lena wants the letter burned. June wants it read. Their mother asked for it to be left under a stone on the salt flats, and the only way there is together.\n\nBy the time they reach the stone, the car is the least broken thing they have fixed."
+   }
+  ],
+  "comps": [
+   {
+    "id": "comp_alkali",
+    "title": "Alkali Sisters (invented)",
+    "year": "2027",
+    "distributor": "",
+    "budget": 600000,
+    "domestic": 1900000,
+    "worldwide": 3100000,
+    "note": "Festival premiere, then a small theatrical run.",
+    "source": "",
+    "group": "Festival first"
+   },
+   {
+    "id": "comp_shoulder",
+    "title": "The Long Shoulder (invented)",
+    "year": "2028",
+    "distributor": "",
+    "budget": 900000,
+    "domestic": 1500000,
+    "worldwide": 2600000,
+    "note": "Festival premiere, sold for streaming.",
+    "source": "",
+    "group": "Festival first"
+   },
+   {
+    "id": "comp_mile",
+    "title": "Mile Marker 40 (invented)",
+    "year": "2029",
+    "distributor": "",
+    "budget": 1400000,
+    "domestic": 2000000,
+    "worldwide": 3200000,
+    "note": "Sold to a streamer before its premiere.",
+    "source": "",
+    "group": "Streaming first"
+   },
+   {
+    "id": "comp_gypsum",
+    "title": "Gypsum (invented)",
+    "year": "2026",
+    "distributor": "",
+    "budget": 750000,
+    "domestic": 700000,
+    "worldwide": 1100000,
+    "note": "Released by its makers, online.",
+    "source": "",
+    "group": "Streaming first"
+   }
+  ],
+  "revenue": [
+   {
+    "id": "rv_dom",
+    "source": "Domestic (theatrical + streaming license)",
+    "low": 500000,
+    "mid": 1300000,
+    "high": 2800000
+   },
+   {
+    "id": "rv_intl",
+    "source": "International sales",
+    "low": 250000,
+    "mid": 700000,
+    "high": 1400000
+   },
+   {
+    "id": "rv_tvod",
+    "source": "TVOD / AVOD / library",
+    "low": 150000,
+    "mid": 400000,
+    "high": 800000
+   }
+  ],
+  "feePct": 20,
+  "deck": "",
+  "sources": [],
+  "design": {
+   "name": "Salt Flat",
+   "colors": {
+    "bg": "#10101f",
+    "ink": "#ecefed",
+    "accent": "#c67467",
+    "accent2": "#6d88cd",
+    "muted": "#909196"
+   },
+   "card": "#dbe1dd",
+   "fonts": {
+    "title": "\"Special Elite\", \"Courier New\", monospace",
+    "body": "\"Work Sans\", system-ui, sans-serif"
+   },
+   "notes": "Worked out from the look book: a night ground, a sand card, one warm accent and the cool blue of the flats at noon. Typewriter titles, plain text.",
+   "deck": {
+    "layout": "split",
+    "eyebrow": false,
+    "bleed": 0.55,
+    "lookSlides": 3,
+    "coverImageId": "look_dawn",
+    "closingImageId": "look_dusk",
+    "signoff": "Thank you for reading"
+   }
+  },
+  "lookbook": [
+   {
+    "id": "look_dawn",
+    "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNjAwIiBoZWlnaHQ9IjkwMCIgdmlld0JveD0iMCAwIDE2MDAgOTAwIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9Imxvb2tfZGF3bi1za3kiIHgxPSIwIiB5MT0iMCIgeDI9IjAiIHkyPSIxIj48c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjMWMyMjQyIi8+PHN0b3Agb2Zmc2V0PSIzMyUiIHN0b3AtY29sb3I9IiM2YTQ0NjgiLz48c3RvcCBvZmZzZXQ9IjY3JSIgc3RvcC1jb2xvcj0iI2Q5Nzk1YSIvPjxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iI2Y0YmQ3YyIvPjwvbGluZWFyR3JhZGllbnQ+PHJhZGlhbEdyYWRpZW50IGlkPSJsb29rX2Rhd24tZ2xvdyI+PHN0b3Agb2Zmc2V0PSIzOCUiIHN0b3AtY29sb3I9IiNmZmUyYTgiIHN0b3Atb3BhY2l0eT0iLjMiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiNmZmUyYTgiIHN0b3Atb3BhY2l0eT0iMCIvPjwvcmFkaWFsR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSIxNjAwIiBoZWlnaHQ9IjYxMCIgZmlsbD0idXJsKCNsb29rX2Rhd24tc2t5KSIvPjxjaXJjbGUgY3g9IjExODAiIGN5PSI1OTAiIHI9IjEyMCIgZmlsbD0idXJsKCNsb29rX2Rhd24tZ2xvdykiLz48Y2lyY2xlIGN4PSIxMTgwIiBjeT0iNTkwIiByPSI0NiIgZmlsbD0iI2ZmZTJhOCIvPjxwYXRoIGQ9Ik0wIDYxMCBMMCA1MjEgTDUwIDUyMiBMMTAwIDUyOSBMMTUwIDUzMiBMMjAwIDU1MSBMMjUwIDU0NCBMMzAwIDUxMSBMMzUwIDUxNiBMNDAwIDUyNCBMNDUwIDUxOSBMNTAwIDUxOCBMNTUwIDU0MCBMNjAwIDUzMCBMNjUwIDUzOCBMNzAwIDU0NCBMNzUwIDUxNiBMODAwIDQ5NyBMODUwIDQ4OSBMOTAwIDQ5MSBMOTUwIDQ5MiBMMTAwMCA1MDUgTDEwNTAgNDg2IEwxMTAwIDUwMSBMMTE1MCA1MTEgTDEyMDAgNTA5IEwxMjUwIDUzNCBMMTMwMCA1NDkgTDEzNTAgNTU4IEwxNDAwIDUzNiBMMTQ1MCA1MzkgTDE1MDAgNTE4IEwxNTUwIDQ5MSBMMTYwMCA1MTQgTDE2MDAgNjEwWiIgZmlsbD0iIzRhMzM1OCIvPjxwYXRoIGQ9Ik0wIDYxMCBMMCA1OTIgTDUwIDU4MCBMMTAwIDU2NiBMMTUwIDU3NyBMMjAwIDU3MSBMMjUwIDU3NCBMMzAwIDU3NyBMMzUwIDU4OSBMNDAwIDU3MiBMNDUwIDU4NiBMNTAwIDU5NCBMNTUwIDU4NSBMNjAwIDU2NSBMNjUwIDU1MiBMNzAwIDU3MSBMNzUwIDU3MiBMODAwIDU3NCBMODUwIDU2NiBMOTAwIDU2OSBMOTUwIDU3OSBMMTAwMCA1NjMgTDEwNTAgNTcxIEwxMTAwIDU1NiBMMTE1MCA1NTkgTDEyMDAgNTY5IEwxMjUwIDU4OCBMMTMwMCA1ODIgTDEzNTAgNTc5IEwxNDAwIDU3MiBMMTQ1MCA1NTcgTDE1MDAgNTcwIEwxNTUwIDU2OSBMMTYwMCA1ODAgTDE2MDAgNjEwWiIgZmlsbD0iIzJjMjE0MCIvPjxyZWN0IHk9IjYxMCIgd2lkdGg9IjE2MDAiIGhlaWdodD0iMjkwIiBmaWxsPSIjMWExNjI2Ii8+PHBhdGggZD0iTTUwNyA2MTAgTDUzMyA2MTAgTDgzMCA5MDAgTDIxMCA5MDBaIiBmaWxsPSIjMmIyNTM1Ii8+PHBhdGggZD0iTTUxOSA2MTAgTDUyMSA2MTAgTDUzMSA5MDAgTDUwOSA5MDBaIiBmaWxsPSIjZThjOThhIi8+PC9zdmc+",
+    "caption": "Dawn on the highway shoulder (drawn for the sample)",
+    "section": "tone"
+   },
+   {
+    "id": "look_flats",
+    "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNjAwIiBoZWlnaHQ9IjkwMCIgdmlld0JveD0iMCAwIDE2MDAgOTAwIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9Imxvb2tfZmxhdHMtc2t5IiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+PHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iIzVmOTNiZCIvPjxzdG9wIG9mZnNldD0iNTAlIiBzdG9wLWNvbG9yPSIjYTljOGRjIi8+PHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjZTZlZWYwIi8+PC9saW5lYXJHcmFkaWVudD48cmFkaWFsR3JhZGllbnQgaWQ9Imxvb2tfZmxhdHMtZ2xvdyI+PHN0b3Agb2Zmc2V0PSIzOCUiIHN0b3AtY29sb3I9IiNmZmZhZjAiIHN0b3Atb3BhY2l0eT0iLjMiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiNmZmZhZjAiIHN0b3Atb3BhY2l0eT0iMCIvPjwvcmFkaWFsR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSIxNjAwIiBoZWlnaHQ9IjUyMCIgZmlsbD0idXJsKCNsb29rX2ZsYXRzLXNreSkiLz48Y2lyY2xlIGN4PSIzMDAiIGN5PSIxNTAiIHI9Ijk5IiBmaWxsPSJ1cmwoI2xvb2tfZmxhdHMtZ2xvdykiLz48Y2lyY2xlIGN4PSIzMDAiIGN5PSIxNTAiIHI9IjM4IiBmaWxsPSIjZmZmYWYwIi8+PHBhdGggZD0iTTAgNTIwIEwwIDQ4MiBMNTAgNDc1IEwxMDAgNDgzIEwxNTAgNDgxIEwyMDAgNDgwIEwyNTAgNDc3IEwzMDAgNDgxIEwzNTAgNDk1IEw0MDAgNTAyIEw0NTAgNDg3IEw1MDAgNDk0IEw1NTAgNDg2IEw2MDAgNDc4IEw2NTAgNDkzIEw3MDAgNTAxIEw3NTAgNDk4IEw4MDAgNTAyIEw4NTAgNDg5IEw5MDAgNDg4IEw5NTAgNDkzIEwxMDAwIDUwNCBMMTA1MCA0OTQgTDExMDAgNTAyIEwxMTUwIDQ5MyBMMTIwMCA0ODUgTDEyNTAgNDk0IEwxMzAwIDQ4NSBMMTM1MCA0OTIgTDE0MDAgNDg5IEwxNDUwIDQ5MCBMMTUwMCA1MDEgTDE1NTAgNTA1IEwxNjAwIDUxMCBMMTYwMCA1MjBaIiBmaWxsPSIjOGVhOGJmIi8+PHBhdGggZD0iTTAgNTIwIEwwIDUxNCBMNTAgNTE1IEwxMDAgNTE3IEwxNTAgNTE3IEwyMDAgNTEyIEwyNTAgNTA5IEwzMDAgNTEwIEwzNTAgNTE0IEw0MDAgNTE4IEw0NTAgNTE5IEw1MDAgNTE4IEw1NTAgNTE0IEw2MDAgNTE3IEw2NTAgNTEyIEw3MDAgNTEwIEw3NTAgNTEzIEw4MDAgNTA5IEw4NTAgNTExIEw5MDAgNTE1IEw5NTAgNTE3IEwxMDAwIDUwOSBMMTA1MCA1MTAgTDExMDAgNTExIEwxMTUwIDUxMyBMMTIwMCA1MTEgTDEyNTAgNTA4IEwxMzAwIDUwNCBMMTM1MCA1MDAgTDE0MDAgNTAwIEwxNDUwIDUwNCBMMTUwMCA1MDEgTDE1NTAgNTA1IEwxNjAwIDUxMSBMMTYwMCA1MjBaIiBmaWxsPSIjYTliOWM2Ii8+PHJlY3QgeT0iNTIwIiB3aWR0aD0iMTYwMCIgaGVpZ2h0PSIzODAiIGZpbGw9IiNlZmU4ZDgiLz48cmVjdCB5PSI2MDAiIHdpZHRoPSIxNjAwIiBoZWlnaHQ9IjMiIGZpbGw9IiNkZWQ1YzEiLz48cmVjdCB5PSI3MDAiIHdpZHRoPSIxNjAwIiBoZWlnaHQ9IjQiIGZpbGw9IiNkZWQ1YzEiLz48cmVjdCB5PSI4MjAiIHdpZHRoPSIxNjAwIiBoZWlnaHQ9IjYiIGZpbGw9IiNkOGNkYjUiLz48cmVjdCB4PSIxMDkwIiB5PSI0NzAiIHdpZHRoPSIzMCIgaGVpZ2h0PSI1OCIgZmlsbD0iIzRhNDMzOCIvPjxyZWN0IHg9IjEwODIiIHk9IjUyNCIgd2lkdGg9IjQ2IiBoZWlnaHQ9IjgiIGZpbGw9IiMzYTM0MmMiLz48L3N2Zz4=",
+    "caption": "The flats at noon: white to the horizon (drawn for the sample)",
+    "section": "world"
+   },
+   {
+    "id": "look_motel",
+    "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNjAwIiBoZWlnaHQ9IjkwMCIgdmlld0JveD0iMCAwIDE2MDAgOTAwIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9Imxvb2tfbW90ZWwtc2t5IiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+PHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iIzA3MGIxYyIvPjxzdG9wIG9mZnNldD0iNTAlIiBzdG9wLWNvbG9yPSIjMTAxYTNhIi8+PHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjMjIzMTVjIi8+PC9saW5lYXJHcmFkaWVudD48cmFkaWFsR3JhZGllbnQgaWQ9Imxvb2tfbW90ZWwtZ2xvdyI+PHN0b3Agb2Zmc2V0PSIzOCUiIHN0b3AtY29sb3I9IiNlOWVkZjUiIHN0b3Atb3BhY2l0eT0iLjMiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiNlOWVkZjUiIHN0b3Atb3BhY2l0eT0iMCIvPjwvcmFkaWFsR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSIxNjAwIiBoZWlnaHQ9IjYwMCIgZmlsbD0idXJsKCNsb29rX21vdGVsLXNreSkiLz48Y2lyY2xlIGN4PSI4MzgiIGN5PSI2NiIgcj0iMyIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSIxNDYzIiBjeT0iNjUiIHI9IjEiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iOTE0IiBjeT0iMzU1IiByPSIyIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9IjEzNjgiIGN5PSI5MCIgcj0iMSIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSIxMDcwIiBjeT0iMTEiIHI9IjIiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iMTU4NSIgY3k9IjQ2MSIgcj0iMSIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSI0NzUiIGN5PSIxNTciIHI9IjMiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iODE2IiBjeT0iMjEwIiByPSIzIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9IjExOTEiIGN5PSIyNTEiIHI9IjIiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iNzM0IiBjeT0iNTAzIiByPSIyIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9IjQwOSIgY3k9IjU5IiByPSIxIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9IjExNzYiIGN5PSIyNDUiIHI9IjIiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iMTMzMiIgY3k9IjQwNyIgcj0iMyIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSI3MzYiIGN5PSIyNTEiIHI9IjEiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iNDg1IiBjeT0iMTY3IiByPSIzIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9IjU3NiIgY3k9IjEzOSIgcj0iMiIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSIxMyIgY3k9IjQ3MiIgcj0iMiIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSIxOCIgY3k9IjIwIiByPSIyIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9IjYwOSIgY3k9IjEwNCIgcj0iMiIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSIyMDIiIGN5PSIyMzEiIHI9IjMiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iMTI4MSIgY3k9IjIwOSIgcj0iMyIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSI0MTAiIGN5PSI3MyIgcj0iMSIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSI0NjIiIGN5PSIyNzEiIHI9IjMiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iMTM1IiBjeT0iMTU0IiByPSIyIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9IjEwNzUiIGN5PSIyNzYiIHI9IjIiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iNjEzIiBjeT0iMzc3IiByPSIyIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9IjEwMjUiIGN5PSIyMzYiIHI9IjEiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iNDc5IiBjeT0iNDQ3IiByPSIxIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9IjUwNSIgY3k9IjQwIiByPSIxIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9IjMzNSIgY3k9IjI3MiIgcj0iMiIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSIxOCIgY3k9IjEyNSIgcj0iMiIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSI1NDkiIGN5PSIzMzgiIHI9IjEiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iNDQ1IiBjeT0iMzcxIiByPSIyIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9IjE2NCIgY3k9IjIyMiIgcj0iMSIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSIxMTUxIiBjeT0iMTMiIHI9IjIiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iMTMwOCIgY3k9IjQ5MiIgcj0iMiIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSI3NjQiIGN5PSIzNjgiIHI9IjIiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iMTQ4NyIgY3k9IjQ0NCIgcj0iMSIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSI4MjMiIGN5PSIyNzgiIHI9IjIiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iODYzIiBjeT0iMjg4IiByPSIzIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9IjYwMCIgY3k9IjM3NSIgcj0iMiIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSIzNDgiIGN5PSIxNDMiIHI9IjEiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iMTM2MSIgY3k9IjI2OCIgcj0iMyIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSIxNTg1IiBjeT0iMTE0IiByPSIxIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9IjE4MyIgY3k9IjM4OCIgcj0iMyIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSIzNTciIGN5PSI1MDciIHI9IjMiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iMTE2NiIgY3k9IjM2NiIgcj0iMSIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSI2MjYiIGN5PSIxNjgiIHI9IjMiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iNjM2IiBjeT0iMzQ5IiByPSIyIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9IjE1MTkiIGN5PSIzODIiIHI9IjEiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iNDA2IiBjeT0iMTk3IiByPSIyIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9IjEyODAiIGN5PSI0MTUiIHI9IjIiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iMTE0OSIgY3k9IjMwNiIgcj0iMiIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSI4NDYiIGN5PSIyMTciIHI9IjIiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iMTI3MSIgY3k9IjE5MyIgcj0iMiIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSIxMiIgY3k9IjEzIiByPSIxIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9IjE1NTUiIGN5PSIzNTgiIHI9IjMiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iMTQ5MCIgY3k9IjQwIiByPSIzIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9IjE1NDEiIGN5PSIzMDIiIHI9IjIiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iMTQ5NCIgY3k9IjIzIiByPSIyIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9Ijk1MiIgY3k9IjQ1MyIgcj0iMiIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSIxNTg3IiBjeT0iNTgiIHI9IjMiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iNTkyIiBjeT0iNDQyIiByPSIyIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9IjY2OSIgY3k9IjQyMSIgcj0iMSIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSI0MzYiIGN5PSIzMTgiIHI9IjIiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iNzYiIGN5PSIzMDkiIHI9IjIiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iODM0IiBjeT0iMTQ0IiByPSIzIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9IjgyIiBjeT0iOTUiIHI9IjIiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iOTUyIiBjeT0iMjAiIHI9IjIiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iNzY4IiBjeT0iOTEiIHI9IjIiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iMTMyMCIgY3k9IjE3MCIgcj0iODgiIGZpbGw9InVybCgjbG9va19tb3RlbC1nbG93KSIvPjxjaXJjbGUgY3g9IjEzMjAiIGN5PSIxNzAiIHI9IjM0IiBmaWxsPSIjZTllZGY1Ii8+PHBhdGggZD0iTTAgNjAwIEwwIDU2MCBMNTAgNTc2IEwxMDAgNTU3IEwxNTAgNTY1IEwyMDAgNTU0IEwyNTAgNTU5IEwzMDAgNTQ5IEwzNTAgNTY2IEw0MDAgNTY5IEw0NTAgNTY2IEw1MDAgNTY3IEw1NTAgNTc0IEw2MDAgNTYyIEw2NTAgNTY5IEw3MDAgNTc5IEw3NTAgNTg2IEw4MDAgNTkzIEw4NTAgNTc1IEw5MDAgNTc0IEw5NTAgNTc4IEwxMDAwIDU2MSBMMTA1MCA1NjAgTDExMDAgNTQ5IEwxMTUwIDU1NyBMMTIwMCA1NTIgTDEyNTAgNTYyIEwxMzAwIDU1NiBMMTM1MCA1NjIgTDE0MDAgNTYxIEwxNDUwIDU2MyBMMTUwMCA1NzYgTDE1NTAgNTY4IEwxNjAwIDU2MSBMMTYwMCA2MDBaIiBmaWxsPSIjMGIxMTI2Ii8+PHJlY3QgeT0iNjAwIiB3aWR0aD0iMTYwMCIgaGVpZ2h0PSIzMDAiIGZpbGw9IiMwYzBmMWEiLz48cmVjdCB4PSIxODAiIHk9IjUwMCIgd2lkdGg9IjY0MCIgaGVpZ2h0PSIxMjAiIGZpbGw9IiMxNjFiMmUiLz48cmVjdCB4PSIxODAiIHk9IjQ4OCIgd2lkdGg9IjY0MCIgaGVpZ2h0PSIxNCIgZmlsbD0iIzIzMjk0YSIvPjxyZWN0IHg9IjYwMCIgeT0iNTM2IiB3aWR0aD0iNzAiIGhlaWdodD0iNTIiIGZpbGw9IiNmMmIyNGEiLz48cmVjdCB4PSIyNTAiIHk9IjUzNiIgd2lkdGg9IjcwIiBoZWlnaHQ9IjUyIiBmaWxsPSIjMWUyNTQwIi8+PHJlY3QgeD0iNDI1IiB5PSI1MzYiIHdpZHRoPSI3MCIgaGVpZ2h0PSI1MiIgZmlsbD0iIzFlMjU0MCIvPjxyZWN0IHg9Ijk0MCIgeT0iNzAwIiB3aWR0aD0iNDcwIiBoZWlnaHQ9IjkwIiBmaWxsPSIjMWY1YTY2Ii8+PHJlY3QgeD0iOTQwIiB5PSI3MDAiIHdpZHRoPSI0NzAiIGhlaWdodD0iMTAiIGZpbGw9IiMzZDg3OTEiLz48L3N2Zz4=",
+    "caption": "The motel at night: one lit window, the empty pool (drawn for the sample)",
+    "section": "world"
+   },
+   {
+    "id": "look_dusk",
+    "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNjAwIiBoZWlnaHQ9IjkwMCIgdmlld0JveD0iMCAwIDE2MDAgOTAwIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9Imxvb2tfZHVzay1za3kiIHgxPSIwIiB5MT0iMCIgeDI9IjAiIHkyPSIxIj48c3RvcCBvZmZzZXQ9IjAlIiBzdG9wLWNvbG9yPSIjMjMxYTQ1Ii8+PHN0b3Agb2Zmc2V0PSIzMyUiIHN0b3AtY29sb3I9IiM3YTNmNmIiLz48c3RvcCBvZmZzZXQ9IjY3JSIgc3RvcC1jb2xvcj0iI2RlNmY0YSIvPjxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iI2Y3Yzc2NSIvPjwvbGluZWFyR3JhZGllbnQ+PHJhZGlhbEdyYWRpZW50IGlkPSJsb29rX2R1c2stZ2xvdyI+PHN0b3Agb2Zmc2V0PSIzOCUiIHN0b3AtY29sb3I9IiNmZmQ5OGEiIHN0b3Atb3BhY2l0eT0iLjMiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiNmZmQ5OGEiIHN0b3Atb3BhY2l0eT0iMCIvPjwvcmFkaWFsR3JhZGllbnQ+PC9kZWZzPjxyZWN0IHdpZHRoPSIxNjAwIiBoZWlnaHQ9IjY0MCIgZmlsbD0idXJsKCNsb29rX2R1c2stc2t5KSIvPjxjaXJjbGUgY3g9IjQyMCIgY3k9IjYzMiIgcj0iMTU2IiBmaWxsPSJ1cmwoI2xvb2tfZHVzay1nbG93KSIvPjxjaXJjbGUgY3g9IjQyMCIgY3k9IjYzMiIgcj0iNjAiIGZpbGw9IiNmZmQ5OGEiLz48cGF0aCBkPSJNMCA2NDAgTDAgNTM2IEw1MCA1NjAgTDEwMCA1MzcgTDE1MCA1NjggTDIwMCA1NDMgTDI1MCA1NTAgTDMwMCA1MzAgTDM1MCA1NTMgTDQwMCA1NTcgTDQ1MCA1ODIgTDUwMCA1ODQgTDU1MCA2MDEgTDYwMCA2MDIgTDY1MCA2MDggTDcwMCA2MjEgTDc1MCA2MDggTDgwMCA1NzYgTDg1MCA1ODkgTDkwMCA1NTkgTDk1MCA1NjEgTDEwMDAgNTYwIEwxMDUwIDU4NCBMMTEwMCA1OTQgTDExNTAgNjAwIEwxMjAwIDU3NCBMMTI1MCA1ODAgTDEzMDAgNTcxIEwxMzUwIDU0OCBMMTQwMCA1MjggTDE0NTAgNTQ1IEwxNTAwIDUzMSBMMTU1MCA1MjAgTDE2MDAgNTQ4IEwxNjAwIDY0MFoiIGZpbGw9IiM1YTJmNTIiLz48cGF0aCBkPSJNMCA2NDAgTDAgNjA2IEw1MCA2MTYgTDEwMCA2MjUgTDE1MCA2MTEgTDIwMCA2MjMgTDI1MCA2MzIgTDMwMCA2MjYgTDM1MCA2MTEgTDQwMCA2MDQgTDQ1MCA2MDAgTDUwMCA2MTQgTDU1MCA2MDEgTDYwMCA2MTMgTDY1MCA2MTQgTDcwMCA2MjMgTDc1MCA2MjggTDgwMCA2MTMgTDg1MCA2MjUgTDkwMCA2MzIgTDk1MCA2MzYgTDEwMDAgNjM5IEwxMDUwIDYyNyBMMTEwMCA2MjcgTDExNTAgNjMxIEwxMjAwIDYyOCBMMTI1MCA2MjMgTDEzMDAgNjA3IEwxMzUwIDYxMiBMMTQwMCA2MDAgTDE0NTAgNjE0IEwxNTAwIDYxMiBMMTU1MCA2MjIgTDE2MDAgNjExIEwxNjAwIDY0MFoiIGZpbGw9IiMyZjFjM2EiLz48cmVjdCB5PSI2NDAiIHdpZHRoPSIxNjAwIiBoZWlnaHQ9IjI2MCIgZmlsbD0iIzFiMTMyMiIvPjxwYXRoIGQ9Ik0xMDM1IDY0MCBMMTA2NSA2NDAgTDE0MDAgOTAwIEw3MDAgOTAwWiIgZmlsbD0iIzJhMWYzMCIvPjxyZWN0IHg9IjEwMjYiIHk9IjYxOCIgd2lkdGg9IjQ4IiBoZWlnaHQ9IjE4IiBmaWxsPSIjMTIwZDE4Ii8+PHJlY3QgeD0iMTAzNiIgeT0iNjA4IiB3aWR0aD0iMjYiIGhlaWdodD0iMTIiIGZpbGw9IiMxMjBkMTgiLz48L3N2Zz4=",
+    "caption": "Dusk: the wagon, small against the sky (drawn for the sample)",
+    "section": "tone"
+   },
+   {
+    "id": "look_night",
+    "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNjAwIiBoZWlnaHQ9IjkwMCIgdmlld0JveD0iMCAwIDE2MDAgOTAwIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9Imxvb2tfbmlnaHQtc2t5IiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+PHN0b3Agb2Zmc2V0PSIwJSIgc3RvcC1jb2xvcj0iIzA1MDgxNiIvPjxzdG9wIG9mZnNldD0iMzMlIiBzdG9wLWNvbG9yPSIjMGQxNzM2Ii8+PHN0b3Agb2Zmc2V0PSI2NyUiIHN0b3AtY29sb3I9IiMxYzJjNWEiLz48c3RvcCBvZmZzZXQ9IjEwMCUiIHN0b3AtY29sb3I9IiMzNDQzN2EiLz48L2xpbmVhckdyYWRpZW50PjxyYWRpYWxHcmFkaWVudCBpZD0ibG9va19uaWdodC1nbG93Ij48c3RvcCBvZmZzZXQ9IjM4JSIgc3RvcC1jb2xvcj0iI2YxZWNkYyIgc3RvcC1vcGFjaXR5PSIuMyIvPjxzdG9wIG9mZnNldD0iMTAwJSIgc3RvcC1jb2xvcj0iI2YxZWNkYyIgc3RvcC1vcGFjaXR5PSIwIi8+PC9yYWRpYWxHcmFkaWVudD48L2RlZnM+PHJlY3Qgd2lkdGg9IjE2MDAiIGhlaWdodD0iNjYwIiBmaWxsPSJ1cmwoI2xvb2tfbmlnaHQtc2t5KSIvPjxjaXJjbGUgY3g9Ijk0OSIgY3k9IjEwMyIgcj0iMiIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSI2NDEiIGN5PSIxNjUiIHI9IjMiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iNDg1IiBjeT0iNDgzIiByPSIzIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9Ijg5MCIgY3k9IjQ4NyIgcj0iMiIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSIxMjQ1IiBjeT0iMzkzIiByPSIyIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9IjEyNTkiIGN5PSIyNjUiIHI9IjIiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iNjIzIiBjeT0iNTQ5IiByPSIyIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9IjE4NiIgY3k9IjE1OSIgcj0iMyIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSI2MDkiIGN5PSI2IiByPSIyIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9IjE3NCIgY3k9IjMzMyIgcj0iMyIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSIxMjUyIiBjeT0iNTQwIiByPSIyIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9IjY1MCIgY3k9Ijk2IiByPSIyIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9IjE0NDYiIGN5PSI0NyIgcj0iMiIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSIxMzM2IiBjeT0iNTI0IiByPSIzIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9IjEzNzYiIGN5PSI1MjMiIHI9IjIiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iNTcyIiBjeT0iMjQ1IiByPSIzIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9Ijk1OCIgY3k9IjM1OSIgcj0iMyIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSIyMTQiIGN5PSI0NDIiIHI9IjMiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iNDI2IiBjeT0iMzA0IiByPSIyIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9IjQxMSIgY3k9IjM1OCIgcj0iMSIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSI0NDEiIGN5PSIzNzgiIHI9IjIiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iMTU3IiBjeT0iNDEzIiByPSIxIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9Ijk3MCIgY3k9IjMxOCIgcj0iMyIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSIxMDAyIiBjeT0iNDgiIHI9IjEiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iMTU0IiBjeT0iMjk2IiByPSIzIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9IjE0MjYiIGN5PSIxNTUiIHI9IjMiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iNzM0IiBjeT0iMzgzIiByPSIyIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9IjYyIiBjeT0iNzUiIHI9IjIiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iMTQyMyIgY3k9IjE2OCIgcj0iMiIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSI0MCIgY3k9IjM2MCIgcj0iMyIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSIxMTQ4IiBjeT0iMzcxIiByPSIxIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9Ijc3IiBjeT0iMjg2IiByPSIyIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9IjgyOSIgY3k9IjQ2MyIgcj0iMyIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSI4NjkiIGN5PSI1MDMiIHI9IjMiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iMTQ0NSIgY3k9IjMyNiIgcj0iMSIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSI4NTUiIGN5PSI0MyIgcj0iMiIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSI0NDIiIGN5PSIzNzgiIHI9IjIiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iMTEwNyIgY3k9IjM5OSIgcj0iMyIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSIxNDUzIiBjeT0iMTkiIHI9IjIiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iNjUzIiBjeT0iNTU0IiByPSIzIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9Ijg2MiIgY3k9IjE5NCIgcj0iMSIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSIxMDYzIiBjeT0iMzgzIiByPSIzIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9IjEyOTUiIGN5PSIzNyIgcj0iMiIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSIyMjkiIGN5PSIyNzkiIHI9IjMiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iMzIyIiBjeT0iNTAwIiByPSIyIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9IjY1NyIgY3k9IjQwOCIgcj0iMiIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSIxMjE4IiBjeT0iNTQwIiByPSIzIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9IjEyMTgiIGN5PSI0MTkiIHI9IjIiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iNDg5IiBjeT0iNTQxIiByPSIxIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9IjE0MTUiIGN5PSIxODAiIHI9IjIiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iMTIwNCIgY3k9IjY0IiByPSIxIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9IjIyOCIgY3k9IjIxNSIgcj0iMSIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSI4NDciIGN5PSIyNjQiIHI9IjIiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iMjcwIiBjeT0iNDE5IiByPSIyIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9Ijg2OSIgY3k9IjM0NyIgcj0iMiIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSIxNDIxIiBjeT0iOTIiIHI9IjIiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iMTM4OSIgY3k9IjQ0OSIgcj0iMiIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSI5MDIiIGN5PSIzODMiIHI9IjIiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iNjQ0IiBjeT0iNTEiIHI9IjEiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iMTA0OSIgY3k9IjE3MyIgcj0iMiIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSI4NzUiIGN5PSI0MTgiIHI9IjIiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iMzAiIGN5PSI0NTAiIHI9IjIiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iNjQwIiBjeT0iMzc0IiByPSIxIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9IjE0MSIgY3k9IjYwIiByPSIyIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9IjIyMSIgY3k9IjQ2NCIgcj0iMyIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSIxMDE4IiBjeT0iNTI0IiByPSIyIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9Ijg3NyIgY3k9Ijg0IiByPSIzIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9IjgzOSIgY3k9IjI0NCIgcj0iMSIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSI0NDMiIGN5PSIyNzkiIHI9IjIiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iOTQzIiBjeT0iMjUyIiByPSIyIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9IjEzMTUiIGN5PSI0MTkiIHI9IjMiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iNTYxIiBjeT0iNDkiIHI9IjEiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iMTU3NSIgY3k9IjM3NCIgcj0iMyIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSI2OTEiIGN5PSIzMTQiIHI9IjMiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iMzQ2IiBjeT0iNDM4IiByPSIxIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9IjEwMDIiIGN5PSI0OTgiIHI9IjMiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iMTA3OCIgY3k9IjI4MCIgcj0iMiIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSI1MzgiIGN5PSI1MDAiIHI9IjIiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iMTQ4OSIgY3k9IjQxMiIgcj0iMSIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSIxNTAzIiBjeT0iMzk2IiByPSIxIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9IjM3MCIgY3k9IjU1NSIgcj0iMSIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSIxNDc4IiBjeT0iNDM0IiByPSIzIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9IjEzNjYiIGN5PSI1MDEiIHI9IjIiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iMTEwNyIgY3k9IjM3NCIgcj0iMSIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSIxMzQ5IiBjeT0iMzU0IiByPSIyIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9IjkwMiIgY3k9IjE4NCIgcj0iMyIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSI4NjEiIGN5PSIxNjIiIHI9IjEiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iNDAiIGN5PSIzMCIgcj0iMyIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSI0MjciIGN5PSI1NTYiIHI9IjMiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iMTQyNiIgY3k9IjE5NSIgcj0iMyIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSIzOTYiIGN5PSIxOTAiIHI9IjIiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iMTczIiBjeT0iNDc5IiByPSIxIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9IjEzNDYiIGN5PSI0MjciIHI9IjIiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iMTIiIGN5PSIxNzQiIHI9IjIiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iODA1IiBjeT0iMzk0IiByPSIyIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9IjU1MiIgY3k9IjQxNyIgcj0iMiIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSIxOTYiIGN5PSIyMjgiIHI9IjIiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iMTE2NiIgY3k9IjQyOSIgcj0iMyIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSI4NDQiIGN5PSIxMjMiIHI9IjEiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iMTEzMyIgY3k9IjQyIiByPSIyIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9IjExNzQiIGN5PSIyNjIiIHI9IjEiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iNDk2IiBjeT0iMzc1IiByPSIxIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9IjE0NjciIGN5PSI0NDciIHI9IjEiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iNzgyIiBjeT0iNDMwIiByPSIzIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9IjE0MDciIGN5PSI0NSIgcj0iMiIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSI1NTQiIGN5PSIyMzQiIHI9IjIiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii44Ii8+PGNpcmNsZSBjeD0iMTU0NSIgY3k9IjM1IiByPSIyIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9IjEyNzgiIGN5PSI3MiIgcj0iMyIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSIxMjk1IiBjeT0iMTExIiByPSIxIiBmaWxsPSIjZjRlZGRjIiBvcGFjaXR5PSIuOCIvPjxjaXJjbGUgY3g9IjkxMiIgY3k9IjEzNSIgcj0iMSIgZmlsbD0iI2Y0ZWRkYyIgb3BhY2l0eT0iLjgiLz48Y2lyY2xlIGN4PSIyNjAiIGN5PSIyMTAiIHI9IjE0MCIgZmlsbD0idXJsKCNsb29rX25pZ2h0LWdsb3cpIi8+PGNpcmNsZSBjeD0iMjYwIiBjeT0iMjEwIiByPSI1NCIgZmlsbD0iI2YxZWNkYyIvPjxwYXRoIGQ9Ik0wIDY2MCBMMCA2MDkgTDUwIDU3OSBMMTAwIDU5MCBMMTUwIDYwMyBMMjAwIDU5OCBMMjUwIDU3MSBMMzAwIDU1NSBMMzUwIDU3NyBMNDAwIDU2NyBMNDUwIDU2OCBMNTAwIDYwNiBMNTUwIDYxNiBMNjAwIDYxMSBMNjUwIDYwOSBMNzAwIDYyNyBMNzUwIDYxOSBMODAwIDY0MyBMODUwIDYyNiBMOTAwIDYyOCBMOTUwIDYyMCBMMTAwMCA2MjggTDEwNTAgNTg5IEwxMTAwIDU5NiBMMTE1MCA2MDYgTDEyMDAgNTcwIEwxMjUwIDU0MCBMMTMwMCA1MzkgTDEzNTAgNTY2IEwxNDAwIDU0NyBMMTQ1MCA1ODcgTDE1MDAgNTU1IEwxNTUwIDU1NiBMMTYwMCA1NDIgTDE2MDAgNjYwWiIgZmlsbD0iIzE0MWQ0MCIvPjxwYXRoIGQ9Ik0wIDY2MCBMMCA2MjcgTDUwIDYyNyBMMTAwIDYyMCBMMTUwIDYyNiBMMjAwIDYyMCBMMjUwIDYyNCBMMzAwIDYzMCBMMzUwIDYyNiBMNDAwIDY0MiBMNDUwIDY1MSBMNTAwIDY0MiBMNTUwIDY0OSBMNjAwIDY0NCBMNjUwIDYyOSBMNzAwIDY0MyBMNzUwIDY0NCBMODAwIDYzMiBMODUwIDYzNSBMOTAwIDYyNSBMOTUwIDYyNSBMMTAwMCA2MzUgTDEwNTAgNjQ3IEwxMTAwIDYzNyBMMTE1MCA2MjcgTDEyMDAgNjIwIEwxMjUwIDYxNSBMMTMwMCA2MjggTDEzNTAgNjIxIEwxNDAwIDYyNiBMMTQ1MCA2MTggTDE1MDAgNjMyIEwxNTUwIDYyOCBMMTYwMCA2MTkgTDE2MDAgNjYwWiIgZmlsbD0iIzBhMGYyNCIvPjxyZWN0IHk9IjY2MCIgd2lkdGg9IjE2MDAiIGhlaWdodD0iMjQwIiBmaWxsPSIjMDgwYjE4Ii8+PHBhdGggZD0iTTg5MCA2NjAgTDkxMCA2NjAgTDExNjAgOTAwIEw2NDAgOTAwWiIgZmlsbD0iIzExMTYzMCIvPjxyZWN0IHg9Ijg4NCIgeT0iNjY0IiB3aWR0aD0iMTIiIGhlaWdodD0iNiIgZmlsbD0iI2YyYjI0YSIvPjxyZWN0IHg9IjkwNCIgeT0iNjY0IiB3aWR0aD0iMTIiIGhlaWdodD0iNiIgZmlsbD0iI2YyYjI0YSIvPjwvc3ZnPg==",
+    "caption": "Night drive on the ranger road (drawn for the sample)",
+    "section": "tone"
+   },
+   {
+    "id": "look_mark",
+    "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0ODAiIGhlaWdodD0iMzAwIiB2aWV3Qm94PSIwIDAgNDgwIDMwMCI+PHBhdGggZD0iTTE1MCAyMTRhOTAgOTAgMCAwIDEgMTgwIDBaIiBmaWxsPSIjZjJiMjRhIi8+PHJlY3QgeD0iNDAiIHk9IjIxNCIgd2lkdGg9IjQwMCIgaGVpZ2h0PSIxNCIgcng9IjciIGZpbGw9IiNmNGVkZGMiLz48cmVjdCB4PSIxMTAiIHk9IjI0NiIgd2lkdGg9IjI2MCIgaGVpZ2h0PSIxMCIgcng9IjUiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii43Ii8+PHJlY3QgeD0iMTgwIiB5PSIyNzQiIHdpZHRoPSIxMjAiIGhlaWdodD0iOCIgcng9IjQiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii40NSIvPjwvc3ZnPg==",
+    "caption": "The film's mark: a low sun on a line (drawn for the sample)",
+    "section": "reference"
+   }
+  ],
+  "research": [
+   {
+    "id": "rs_siblings",
+    "kind": "market",
+    "title": "Sisters, not sidekicks",
+    "body": "Six in ten art-house regulars in an invented survey said they want more films about adult siblings.",
+    "url": "Invented Audience Survey, 2030"
+   },
+   {
+    "id": "rs_desert",
+    "kind": "market",
+    "title": "Open country travels",
+    "body": "In an invented ten-year sample, road films earned back their budgets twice as often as city dramas.",
+    "url": "Invented Box Office Review, 2029"
+   },
+   {
+    "id": "rs_small",
+    "kind": "market",
+    "title": "Small is the point",
+    "body": "Buyers in an invented poll called \"made for under a million\" a reason to look, not a reason to pass.",
+    "url": "Invented Buyers Poll, 2030"
+   }
+  ],
+  "team": [
+   {
+    "id": "tm_wren",
+    "name": "Wren Calloway",
+    "role": "Writer and director",
+    "bio": "Two short films, both shot in the desert in under a week."
+   },
+   {
+    "id": "tm_dana",
+    "name": "Dana Okafor",
+    "role": "Line producer",
+    "bio": "Five features brought in on budget, none over a million."
+   },
+   {
+    "id": "tm_ines",
+    "name": "Ines Calderón",
+    "role": "Director of photography",
+    "bio": "Shoots by available light. Her last feature used four lamps."
+   },
+   {
+    "id": "tm_theo",
+    "name": "Theo Lindqvist",
+    "role": "Production designer",
+    "bio": "Turned a closed motel into a working one for a series."
+   }
+  ],
+  "ask": "",
+  "slides": [
+   {
+    "id": "cover",
+    "layout": "cover",
+    "imageId": "look_dawn",
+    "scrim": 0.55,
+    "byline": "Written and directed by Wren Calloway",
+    "footnote": "A sample deck. The film, the people, the studies and every figure in it are invented."
+   },
+   {
+    "id": "why",
+    "layout": "text",
+    "eyebrow": "Why this film, why me",
+    "headline": "I grew up one town over from nowhere.",
+    "punch": "I know what that road does to a family.",
+    "body": "I spent my summers in a motel my aunt ran at the edge of a dry lake. Nobody stayed more than a night, and everybody told her more than they meant to.\n\nSalt Flat is that place and those people: one road, one motel, two sisters who have run out of ways to avoid each other. I wrote it for what a small crew can shoot well in twelve days.",
+    "columns": [
+     {
+      "label": "Where",
+      "lines": [
+       "One motel, one gas station, the flats"
+      ]
+     },
+     {
+      "label": "When",
+      "lines": [
+       "Twelve shoot days in spring 2031"
+      ]
+     },
+     {
+      "label": "Who",
+      "lines": [
+       "Two leads, six supporting parts"
+      ]
+     }
+    ]
+   },
+   {
+    "id": "gap",
+    "layout": "cards",
+    "eyebrow": "The gap",
+    "headline": "Audiences are asking for this film.",
+    "punch": "Nobody is making it.",
+    "cards": [
+     {
+      "id": "gap1",
+      "kicker": "Invented finding",
+      "title": "Sisters, not sidekicks",
+      "body": "Six in ten art-house regulars in an invented survey said they want more films about adult siblings.",
+      "footnote": "Invented Audience Survey, 2030"
+     },
+     {
+      "id": "gap2",
+      "kicker": "Invented finding",
+      "title": "Open country travels",
+      "body": "In an invented ten-year sample, road films earned back their budgets twice as often as city dramas.",
+      "footnote": "Invented Box Office Review, 2029"
+     },
+     {
+      "id": "gap3",
+      "kicker": "Invented finding",
+      "title": "Small is the point",
+      "body": "Buyers in an invented poll called \"made for under a million\" a reason to look, not a reason to pass.",
+      "footnote": "Invented Buyers Poll, 2030"
+     }
+    ],
+    "motion": {
+     "entrance": "drop",
+     "order": "one-by-one",
+     "stagger": 140
+    }
+   },
+   {
+    "id": "opportunity",
+    "layout": "comps",
+    "eyebrow": "The opportunity",
+    "headline": "Small road films have paid their way.",
+    "closing": "Four invented films. None cost more than $1.4 million.",
+    "footnote": "Every title here is invented for the sample. In your own deck, these are real films with sources."
+   },
+   {
+    "id": "audience",
+    "layout": "stats",
+    "eyebrow": "The audience",
+    "headline": "Women over thirty buy the tickets.",
+    "punch": "This film is about them.",
+    "lead": {
+     "value": "7 in 10",
+     "text": "art-house tickets in the survey were bought by women over thirty.",
+     "source": "Invented Audience Survey, 2030"
+    },
+    "stats": [
+     {
+      "id": "stat_friend",
+      "value": "41%",
+      "label": "went to a film because a friend sent them the trailer",
+      "source": "Invented Audience Survey, 2030"
+     },
+     {
+      "id": "stat_listen",
+      "value": "2.3x",
+      "label": "as likely to rent a film they first heard about on a podcast",
+      "source": "Invented Listener Study, 2030"
+     },
+     {
+      "id": "stat_road",
+      "value": "58%",
+      "label": "call a road film a reason to leave the house",
+      "source": "Invented Audience Survey, 2030"
+     }
+    ],
+    "quote": {
+     "text": "I would drive two hours to see my sister and me on a screen.",
+     "by": "A respondent, Invented Audience Survey, 2030"
+    },
+    "closing": "How we reach them: a festival first, then the podcasts and newsletters they already trust.",
+    "motion": {
+     "count": true
+    }
+   },
+   {
+    "id": "story",
+    "layout": "photo",
+    "imageId": "look_flats",
+    "scrim": 0.6,
+    "eyebrow": "The story",
+    "headline": "A letter, a dead car and a stone on the flats.",
+    "body": "Lena wants the letter burned. June wants it read. Their mother asked for it to be left under a stone on the salt flats, and the only way there is together.\n\nBy the time they reach the stone, the car is the least broken thing they have fixed."
+   },
+   {
+    "id": "team",
+    "layout": "team",
+    "eyebrow": "The team",
+    "headline": "People who make small films work.",
+    "aside": {
+     "title": "Also attached",
+     "lines": [
+      "Casting: an invented casting office",
+      "Music: an invented composer, on a package"
+     ],
+     "footnote": "Everyone on this slide is invented."
+    }
+   },
+   {
+    "id": "plan",
+    "layout": "timeline",
+    "eyebrow": "The plan",
+    "headline": "Twelve days, one unit, one stretch of desert.",
+    "milestones": [
+     {
+      "id": "ms_close",
+      "when": "Autumn 2030",
+      "what": "Financing closes"
+     },
+     {
+      "id": "ms_shoot",
+      "when": "Spring 2031",
+      "what": "Twelve shoot days"
+     },
+     {
+      "id": "ms_post",
+      "when": "Summer 2031",
+      "what": "Edit, sound and colour"
+     },
+     {
+      "id": "ms_out",
+      "when": "Winter 2032",
+      "what": "Festival premiere"
+     }
+    ],
+    "closing": "Every set is within twenty minutes of the motel, so no day is lost to a company move."
+   },
+   {
+    "id": "model",
+    "layout": "model",
+    "eyebrow": "The model",
+    "headline": "Everyone who makes the film shares in it.",
+    "body": "Cast and crew work at scale and hold points in a shared pool. Investors are paid from the first dollar the film earns.",
+    "closing": "The same terms for every investor."
+   },
+   {
+    "id": "ways",
+    "layout": "ways",
+    "eyebrow": "Ways to take part",
+    "headline": "Three ways in.",
+    "cards": [
+     {
+      "id": "invest",
+      "title": "Invest",
+      "body": "You take 60 cents of every dollar the film earns until you have 120% of your investment back, then half of everything after.",
+      "footnote": "From $10,000."
+     },
+     {
+      "id": "give",
+      "title": "Give",
+      "body": "A grant or a donation through the film's fiscal sponsor. It is never repaid, and every dollar of it lowers what investors put in.",
+      "footnote": "The fiscal sponsor keeps 7% of each gift."
+     },
+     {
+      "id": "lend",
+      "title": "Lend",
+      "body": "A location, a truck, a week of your time. Help in kind comes off the budget the same way cash does.",
+      "footnote": "Credited on screen."
+     }
+    ],
+    "motion": {
+     "order": "one-by-one",
+     "stagger": 160
+    }
+   },
+   {
+    "id": "numbers",
+    "layout": "numbers",
+    "eyebrow": "The numbers",
+    "headline": "What investors fund,",
+    "punch": "and what comes back.",
+    "body": "Three cases, from a quiet release to a good one. In the low case investors do not get their money back."
+   },
+   {
+    "id": "ask",
+    "layout": "ask",
+    "eyebrow": "The ask",
+    "nextStep": "Next: a twenty-minute call this month, and the script if you would like to read it.",
+    "contact": "wren@example.com"
+   },
+   {
+    "id": "closing",
+    "layout": "closing",
+    "imageId": "look_dusk",
+    "scrim": 0.5
+   }
+  ],
+  "recipients": [
+   {
+    "id": "to_ada",
+    "slug": "ada-example",
+    "name": "Ada Example",
+    "coverLine": "Prepared for Ada Example.",
+    "note": "Ada, you asked what the raise is if no grant comes in. This copy opens on that number.",
+    "lead": "without-grants"
+   },
+   {
+    "id": "to_fund",
+    "slug": "placeholder-fund",
+    "name": "Placeholder Fund",
+    "coverLine": "Prepared for the Placeholder Fund.",
+    "note": "The Give card is the one that fits how the Fund works: a grant through our fiscal sponsor.",
+    "lead": "with-grants",
+    "highlightCardId": "give"
+   }
+  ]
+ }
+}

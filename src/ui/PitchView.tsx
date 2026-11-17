@@ -158,7 +158,7 @@ export function PitchView({ project, setProject, onTab, onUndo, undoDepth }: { p
 
       <Boundary what="The pitch deck builder">
         <Suspense fallback={<div className="panel"><h2>Pitch deck</h2><p className="help">Loading the deck builder…</p></div>}>
-          <PitchDeck project={p} setPitch={set} onTab={onTab} onUndo={onUndo} undoDepth={undoDepth} />
+          <PitchDeck project={p} setPitch={set} onTab={onTab} onUndo={onUndo} undoDepth={undoDepth} ai={ai} />
         </Suspense>
       </Boundary>
 

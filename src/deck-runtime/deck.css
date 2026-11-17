@@ -78,6 +78,7 @@
 .psd-p { font-size: 1.22em; line-height: 1.5; max-width: 36em; color: var(--psd-soft); white-space: pre-line; overflow-wrap: break-word; }
 .psd-p + .psd-p { margin-top: .8em; }
 .psd-lede { font-size: 1.45em; line-height: 1.45; max-width: 30em; white-space: pre-line; }
+.psd-lede + .psd-lede { margin-top: .6em; }
 /* small print never goes under --psd-min (11px), however small the slide is drawn */
 .psd-lab { font-size: max(.7em, var(--psd-min)); font-weight: 600; letter-spacing: .15em; text-transform: uppercase; color: var(--psd-muted-text); }
 .psd-src { font-size: max(.66em, var(--psd-min)); letter-spacing: .03em; color: var(--psd-muted-text); }
@@ -113,6 +114,8 @@
 .psd-title-xlong { font-size: 2.9em; line-height: 1.08; }
 .psd-byline { margin-top: 2.2em; font-size: .8em; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: var(--psd-ink); }
 .psd-tagline { padding-top: 1em; margin-bottom: -.9em; font-family: var(--psd-title-font); font-size: 1.5em; line-height: 1.3; color: var(--psd-ink); max-width: 32em; }
+/* small print under the cover: the line above it keeps clear of it */
+.psd-has-footnote .psd-tagline { margin-bottom: 0; }
 .psd-closing-slide { flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
 .psd-title-end { font-size: 6em; color: var(--psd-ink); }
 .psd-signoff { margin-top: 1.6em; font-size: .85em; font-weight: 600; letter-spacing: .22em; text-transform: uppercase; color: var(--psd-accent-text); }
@@ -310,10 +313,52 @@
 .psd-contact { margin-top: .5em; font-family: var(--psd-title-font); font-size: 1.1em; color: var(--psd-accent-text); max-width: 44em; overflow-wrap: anywhere; }
 
 /* motion: parts rise and fade when their slide is first seen; cards settle; bars grow */
-.psd-rise { opacity: 0; transform: translateY(.7em); transition: opacity .55s ease, transform .55s ease; transition-delay: calc(min(var(--i, 0), 10) * 60ms); }
+.psd-rise { opacity: 0; transform: var(--psd-from, translateY(.7em)); transition: opacity var(--psd-dur, .55s) ease, transform var(--psd-dur, .55s) ease; transition-delay: calc(min(var(--i, 0), 10) * var(--psd-gap, 60ms)); }
 .psd-seen .psd-rise { opacity: 1; transform: none; }
-.psd-drop { opacity: 0; transform: translateY(-1.2em) rotate(calc(var(--r, 0deg) - 4deg)); transition: opacity .45s ease, transform .7s cubic-bezier(.3, 1.45, .5, 1); transition-delay: calc(min(var(--i, 0), 10) * 60ms); }
+.psd-drop { opacity: 0; transform: var(--psd-from-card, translateY(-1.2em) rotate(-4deg)) rotate(var(--r, 0deg)); transition: opacity calc(var(--psd-dur, .55s) * .8) ease, transform calc(var(--psd-dur, .55s) * 1.27) cubic-bezier(.3, 1.45, .5, 1); transition-delay: calc(min(var(--i, 0), 10) * var(--psd-gap, 60ms)); }
 .psd-seen .psd-drop { opacity: 1; transform: rotate(var(--r, 0deg)); }
+/* Movement is a fixed vocabulary (motion.ts). The runtime writes a word from it as data-enter or a class, and a
+   clamped number as a property; everything those can mean is written out here. Nothing a deck carries is read as a style. */
+.psd-brisk { --psd-dur: .32s; --psd-gap: 35ms; --psd-walk: 1.7s; }
+.psd[data-enter="fade"], .psd-slide[data-enter="fade"] { --psd-from: translateY(0); --psd-from-card: translateY(0); }
+.psd-slide[data-enter="rise"] { --psd-from: translateY(.7em); --psd-from-card: translateY(.7em); }
+.psd-slide[data-enter="drop"] { --psd-from: translateY(-1.2em); --psd-from-card: translateY(-1.2em) rotate(-4deg); }
+.psd-slide[data-enter="slide-left"] { --psd-from: translateX(3em); --psd-from-card: translateX(3em); }
+.psd-slide[data-enter="slide-right"] { --psd-from: translateX(-3em); --psd-from-card: translateX(-3em); }
+/* none: for the whole deck (a slide that names its own way in keeps it), or for one slide */
+.psd[data-enter="none"] .psd-slide:not([data-enter]) :is(.psd-rise, .psd-drop, .psd-bar-fill), .psd-slide[data-enter="none"] :is(.psd-rise, .psd-drop, .psd-bar-fill) { transition: none; }
+.psd[data-enter="none"] .psd-slide:not([data-enter]) .psd-rise, .psd-slide[data-enter="none"] .psd-rise { opacity: 1; transform: none; }
+.psd[data-enter="none"] .psd-slide:not([data-enter]) .psd-drop, .psd-slide[data-enter="none"] .psd-drop { opacity: 1; transform: rotate(var(--r, 0deg)); }
+.psd[data-enter="none"] .psd-slide:not([data-enter]) .psd-bar-fill, .psd-slide[data-enter="none"] .psd-bar-fill { width: var(--w, 0%); }
+/* a headline typed out: every letter has its place from the start, and shows when its turn comes */
+.psd-ch { opacity: 0; transition: opacity .01s linear calc(var(--c, 0) * var(--psd-type, 28ms) + .25s); }
+.psd-seen .psd-ch { opacity: 1; }
+/* a number counting up is drawn over the number itself, which keeps its room and its place in the document */
+.psd-counting { position: relative; }
+.psd-counting > .psd-num { opacity: 0; }
+.psd-count-live { position: absolute; left: 0; top: 0; white-space: nowrap; }
+/* a picture that travels along the line (cards) or the timeline, once, and stops just before the last card's pin or at the last milestone */
+.psd-hang { --psd-end: calc(100% - (100% - (var(--n, 3) - 1) * 2.2em) / var(--n, 3) / 2 - .6em); }
+.psd-hang[data-n="1"] { --psd-end: 11.4em; }
+.psd-hang[data-n="2"] { --psd-end: min(34.6em, 75% + .55em - .6em); }
+.psd-track { --psd-end: calc(100% - (100% - (var(--n, 3) - 1) * 2em) / var(--n, 3)); }
+/* It comes to rest with its right edge at the pin or the milestone's tick; where that would put any of it left of the
+   line's own start (one milestone, one card, a big picture), it rests with its left edge there instead. Its width is
+   capped at twice its height, so the room it can take is known before the picture has loaded. */
+.psd-mark { position: absolute; z-index: 2; --psd-mark-h: calc(var(--psd-mark, 1) * 2.6em); left: max(var(--psd-end, 100%), var(--psd-mark-h) * 2); top: 0; height: var(--psd-mark-h); width: auto; max-width: calc(var(--psd-mark-h) * 2); object-fit: contain; object-position: 100% 100%; pointer-events: none; transform-origin: 50% 100%;
+  transform: translate(-100%, -100%) translateX(-100cqw); transition: transform var(--psd-walk, 2.6s) cubic-bezier(.4, 0, .6, 1) .35s; }
+.psd-mark-settle { transition-timing-function: cubic-bezier(.3, .2, .2, 1); }
+.psd-seen .psd-mark { transform: translate(-100%, -100%); }
+.psd-seen .psd-mark-settle { animation: psd-settle .9s ease-out calc(var(--psd-walk, 2.6s) + .3s) 1; }
+@keyframes psd-settle { 30% { rotate: 7deg; } 62% { rotate: -4deg; } 100% { rotate: 0deg; } }
+/* on a timeline the picture stands on the rail, under the facts: the rail moves down by the picture's height, so the
+   picture never covers a fact or its label, whatever its size */
+.psd-track-mark { margin-top: calc(var(--psd-mark, 1) * 2.6em + 1.1em); }
+/* and above cards a big picture pushes the line down, so it never stands on the headline */
+.psd-hang-mark { margin-top: max(1.4em, calc(var(--psd-mark, 1) * 2.6em - 1.2em)); }
+.psd-stacked .psd-hang-mark { margin-top: 3.4em; }
+/* while a slide is put back to where it starts (Play), nothing eases on the way there */
+.psd-reset, .psd-reset * { transition: none !important; animation: none !important; }
 .psd-bar-fill { transition: width .9s cubic-bezier(.2, .7, .2, 1) .25s; }
 .psd-seen .psd-bar-fill { width: var(--w, 0%); }
 .psd-seg { transition: flex-basis .6s cubic-bezier(.2, .7, .2, 1); }
@@ -329,6 +374,10 @@
   .psd-rise { opacity: 1; transform: none; }
   .psd-drop { opacity: 1; transform: rotate(var(--r, 0deg)); }
   .psd-bar-fill { width: var(--w, 0%); }
+  .psd-ch { opacity: 1 !important; transition: none !important; }
+  .psd-mark { transform: translate(-100%, -100%) !important; transition: none !important; animation: none !important; }
+  .psd-count-live { display: none !important; }
+  .psd-counting > .psd-num { opacity: 1 !important; }
 }
 
 /* static: for PDF. Final state at once, no blurred shadows, one slide per page. */
@@ -346,6 +395,10 @@
 .psd-static .psd-rise { opacity: 1; transform: none; }
 .psd-static .psd-drop { opacity: 1; transform: rotate(var(--r, 0deg)); }
 .psd-static .psd-bar-fill { width: var(--w, 0%); }
+:is(.psd-static, .psd-still, .psd-stacked) .psd-ch { opacity: 1 !important; transition: none !important; }
+:is(.psd-static, .psd-still) .psd-mark { transform: translate(-100%, -100%) !important; transition: none !important; animation: none !important; }
+:is(.psd-static, .psd-still, .psd-stacked) .psd-count-live { display: none !important; }
+:is(.psd-static, .psd-still, .psd-stacked) .psd-counting > .psd-num { opacity: 1 !important; }
 .psd-static .psd-card { box-shadow: none; outline: 1px solid color-mix(in srgb, var(--psd-card-ink) 35%, transparent); }
 .psd-static .psd-highlight { outline: .22em solid var(--psd-accent-text); }
 .psd-static .psd-pinned::before { box-shadow: none; }
@@ -368,6 +421,10 @@
 .psd-stacked .psd-foot { position: relative; left: auto; right: auto; bottom: auto; padding: 0 1.4em 1.2em; }
 .psd-stacked .psd-rise, .psd-stacked .psd-drop { opacity: 1; transform: none; transition: none; }
 .psd-stacked .psd-bar-fill { width: var(--w, 0%); transition: none; }
+/* the travelling picture stands at the end of the line, still */
+.psd-stacked .psd-track-mark { margin-top: 4em; }
+.psd-stacked .psd-mark { left: auto; right: 0; height: min(var(--psd-mark-h), 3.2em); transform: translateY(-100%) !important; transition: none !important; animation: none !important; }
+.psd-stacked .psd-track .psd-mark { top: -.4em; }
 .psd-stacked :is(.psd-cards, .psd-aside, .psd-stats, .psd-facts) { grid-template-columns: repeat(auto-fit, minmax(13em, 1fr)); }
 .psd-stacked .psd-facts { grid-template-columns: repeat(auto-fit, minmax(8em, 1fr)); }
 .psd-stacked :is(.psd-numbers, .psd-stats-top.psd-two, .psd-comps.psd-two, .psd-team-grid.psd-two) { grid-template-columns: repeat(auto-fit, minmax(19em, 1fr)); gap: 2em; }
@@ -431,6 +488,10 @@
   .psd-drop { opacity: 1 !important; transform: rotate(var(--r, 0deg)) !important; }
   .psd-stacked .psd-drop { transform: none !important; }
   .psd-bar-fill { width: var(--w, 0%) !important; }
+  .psd-ch { opacity: 1 !important; }
+  .psd:not(.psd-stacked) .psd-mark { transform: translate(-100%, -100%) !important; animation: none !important; }
+  .psd-count-live { display: none !important; }
+  .psd-counting > .psd-num { opacity: 1 !important; }
   .psd-card { box-shadow: none; outline: 1px solid color-mix(in srgb, var(--psd-card-ink) 35%, transparent); }
   .psd-highlight { outline: .22em solid var(--psd-accent-text); }
   .psd-pinned::before { box-shadow: none; }

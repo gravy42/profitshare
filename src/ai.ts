@@ -4,6 +4,10 @@
 // few hundred words); AI breakdown sends the scene text and the cast list. Nothing goes until the person presses it.
 import type { Board, Project, Scene } from './engine/types';
 import { BREAKDOWN_SYSTEM, BREAKDOWN_TOOL, breakdownPrompt, parseBreakdownReply, type AiSceneTags } from './engine/aiBreakdown';
+import { NOT_IN_FORM, motionRequest, readMotionReply, type AiRequest, type MotionPicture, type MotionProposal } from './engine/aiMotion';
+import { critiqueRequest, personRequest, punchRequest, readCritiqueReply, readPersonReply, readPunchReply, type AiProblem, type PersonBrief, type PersonSuggestion } from './engine/aiDeck';
+import type { DeckData } from './deck-runtime/data';
+import type { SlideLayout } from './engine/types';
 import { withPitch, compGroups, compStats, projections } from './engine/pitch';
 import { topSheet } from './engine/budget';
 import { sagReport } from './engine/sag';
@@ -81,7 +85,7 @@ export async function ask(system: string, prompt: string, opts: { maxTokens?: nu
 
 /** One forced tool call: the model answers through `tool` and its input comes back as data. No documents ride along:
  *  the look book has no business going out with a script. Throws with the API's message on failure. */
-export async function askTool(system: string, prompt: string, tool: { name: string; description: string; input_schema: object }, opts: { maxTokens?: number; model?: string; signal?: AbortSignal } = {}): Promise<unknown> {
+export async function askTool(system: string, prompt: string, tool: { name: string; description: string; input_schema: object }, opts: { maxTokens?: number; model?: string; signal?: AbortSignal; cutOff?: string; nothing?: string } = {}): Promise<unknown> {
   const s = aiSettings();
   if (!s.key) throw new Error('No API key. Paste one under AI assist.');
   const r = await fetch('https://api.anthropic.com/v1/messages', {
@@ -90,13 +94,37 @@ export async function askTool(system: string, prompt: string, tool: { name: stri
   });
   if (!r.ok) {
     let msg = `${r.status}`; try { const j = await r.json(); msg = j.error?.message ?? msg; } catch { /* keep status */ }
-    throw new Error(msg);
+    throw Object.assign(new Error(msg), { status: r.status });   // the status rides along, so the page can say what went wrong in plain words
   }
-  const j = await r.json();
-  if (j.stop_reason === 'max_tokens') throw new Error('the reply was cut off before it finished; try fewer scenes at a time');
+  let j: any;
+  try { j = await r.json(); } catch { throw new Error(opts.nothing ?? 'the reply could not be read'); }   // a reply that is not JSON at all: said plainly, never as the parser's own words
+  if (j.stop_reason === 'max_tokens') throw new Error(opts.cutOff ?? 'the reply was cut off before it finished; try fewer scenes at a time');
   const use = (j.content ?? []).find((c: any) => c.type === 'tool_use' && c.name === tool.name);
-  if (!use) throw new Error('the model did not return a breakdown');
+  if (!use) throw new Error(opts.nothing ?? 'the model did not return a breakdown');
   return use.input;
+}
+
+// ---- the pitch deck: movement on request, a line for one person, a second line, a read of the deck ----
+// Each sends exactly what its request builder (engine/aiMotion.ts, engine/aiDeck.ts) puts in the prompt and the tool,
+// through the forced tool call above; no documents ride along. What comes back goes through that file's reader.
+const deckAsk = (req: AiRequest, maxTokens: number, signal?: AbortSignal) =>
+  askTool(req.system, req.prompt, req.tool, { maxTokens, signal, cutOff: 'the answer was cut off before it finished', nothing: NOT_IN_FORM });
+
+/** Movement for one slide, from a request in the person's words. */
+export async function motionOnRequest(text: string, layout: SlideLayout, pictures: MotionPicture[], signal?: AbortSignal): Promise<MotionProposal> {
+  return readMotionReply(await deckAsk(motionRequest(text, layout, pictures), 500, signal), layout, pictures);
+}
+/** A cover line, a note and which ask first, for one person. */
+export async function suggestForPerson(brief: PersonBrief, signal?: AbortSignal): Promise<PersonSuggestion> {
+  return readPersonReply(await deckAsk(personRequest(brief), 600, signal), brief.hasGrants);
+}
+/** Three options for a headline's second line. */
+export async function suggestSecondLines(headline: string, body: string, signal?: AbortSignal): Promise<string[]> {
+  return readPunchReply(await deckAsk(punchRequest(headline, body), 400, signal), headline);
+}
+/** A read of the deck: at most eight problems, each tied to a slide that is on it. */
+export async function readTheDeck(deck: DeckData, signal?: AbortSignal): Promise<AiProblem[]> {
+  return readCritiqueReply(await deckAsk(critiqueRequest(deck), 2000, signal), deck.slides.map(s => s.id));
 }
 
 /** Break down one run of scenes. `done` is what earlier runs proposed, so labels and script days carry on. */
