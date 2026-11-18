@@ -32,9 +32,10 @@ export function deckRuntime(): Plugin {
 }
 
 // SINGLEFILE=1 inlines everything into one index.html (one file that can be handed to someone).
-// Normal builds are plain static files served from GitHub Pages at /profitshare/.
+// Normal builds are plain static files. Every address in them is relative, so the same build works wherever it is
+// served from: profitshare.alonegirlmovie.com, or gravy42.github.io/profitshare/ before the domain was set.
 export default defineConfig({
-  base: process.env.SINGLEFILE ? './' : '/profitshare/',
+  base: './',
   // cspPlugin: the built page's Content-Security-Policy (tools/csp.mjs); last, so it sees the page as it will be served
   plugins: process.env.SINGLEFILE ? [react(), deckRuntime(), viteSingleFile(), cspPlugin({ oneFile: true })] : [react(), deckRuntime(), cspPlugin()],
   test: { environment: 'jsdom', exclude: ['node_modules/**', 'scratch/**'] },

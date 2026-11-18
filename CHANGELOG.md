@@ -27,6 +27,8 @@ Two independent reviews of the combined work found more, fixed the same day:
 
 - **Build and test tools brought up to date.** Vite 5 to 8, Vitest 2 to 5, esbuild 0.21 to 0.28, which clears every advisory in the tools used to build and test the app. Working on the code now needs Node 22.12 or newer. One slow spot turned up on the way: cutting a very long file name down for a ZIP did its sums again for every letter; it now counts once.
 
+- **ProfitShare gets its own address,** profitshare.alonegirlmovie.com. The built app no longer assumes the folder it is served from, so the same build works there and at the old GitHub address. Projects saved in a browser at the old address stay there: open the old address, press Save on each, and Open them at the new one.
+
 Also: help text on the Deal tab and the look book no longer mentions a "Financing" tab or the report deck's layouts. Tests: 997 pass.
 
 ## 2026-11-17

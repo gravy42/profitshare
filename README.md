@@ -12,7 +12,7 @@ The top sheet, the SAG-AFTRA tier check, the schedule and the points schedule al
 
 Written by a director budgeting her first feature, because none of the tools would let her model the deal she was actually making.
 
-**Use it now: https://gravy42.github.io/profitshare/** (nothing to install, no account). Press *Load the sample* to look around an invented film, *Salt Flat*.
+**Use it now: https://profitshare.alonegirlmovie.com/** (nothing to install, no account). Press *Load the sample* to look around an invented film, *Salt Flat*.
 
 ![The Deal tab with the sample film loaded. One sentence at the top says what the film costs to raise, which SAG-AFTRA tier it fits and how much is on the back end; under it a table prices the film at every tier under four pay models.](docs/screenshots/deal.png)
 
