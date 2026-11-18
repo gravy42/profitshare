@@ -81,7 +81,7 @@ await cue('Three ways in: start from scratch, drop in a budget you already have,
 await click(page.getByRole('button', { name: 'Load the sample' }), 900);
 
 // 3. the deal tab
-await cue('One page for every term of the deal, on top of the budget, never rewriting it. Salt Flat: an invented 12-day SAG feature, $811,758 as budgeted.', 6000);
+await cue('One page for every term of the deal, on top of the budget, never rewriting it. Salt Flat: an invented 12-day SAG feature, $805,312 as budgeted.', 6000);
 await scrollTo(560, 900);
 
 // 4. everyone at scale

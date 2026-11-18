@@ -8,8 +8,11 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { sampleDemo, sampleProject } from './seed';
-import { applyDeal } from '../engine/deal';
+import type { Project } from '../engine/types';
+import { applyDeal, withDeal } from '../engine/deal';
+import { adoptBoardDays, dood, syncCastDaysFromBoard } from '../engine/board';
 import { topSheet } from '../engine/budget';
+import budgetJson from './sample-budget.json';
 import { deckChecks, slideText } from '../engine/aiDeck';
 import { deckData, deckWarnings, defaultSlides } from '../engine/deckData';
 import { LAYOUTS, highlightChoices, readSlides, validRecipients } from '../engine/deckEdit';
@@ -46,6 +49,47 @@ describe('the sample with no pitch content (the fixture other tests pin their fi
     const a = sampleDemo(); a.pitch!.slides![0].id = 'changed'; a.pitch!.lookbook!.length = 0;
     expect(sampleDemo().pitch!.slides![0].id).toBe('cover');
     expect(sampleDemo().pitch!.lookbook).toHaveLength(11);
+  });
+});
+
+// The stripboard owns the cast's shoot days: every project that comes into the app goes through `normalize` in
+// src/store.ts, which is the chain below, and the cast lines take the day-out-of-days count. A sample whose budget was
+// written with other day counts would show one total in its files and another on screen, so the generator
+// (tools/make-sample.mjs) reads the cast days off the board, and this holds it there.
+describe('the sample agrees with its own stripboard', () => {
+  const SAMPLE_TOTAL = 805_312.06;                       // the one figure the README, the tests and the demo quote
+  const load = (p: Project): Project => syncCastDaysFromBoard(adoptBoardDays(withDeal(p)));   // `normalize` in src/store.ts
+  const plain = (p: Project) => p.lines.map(l => ({ ...l, daysFrom: undefined }));             // the flag is the only thing loading may add
+  for (const [name, make] of [['sampleProject()', sampleProject], ['sampleDemo()', sampleDemo]] as const) {
+    it(`${name}: loading it changes no line, no person's days and no total`, () => {
+      const before = make(), after = load(before);
+      expect(plain(after)).toEqual(plain(before));
+      expect(after.participants).toEqual(before.participants);
+      expect(topSheet(after)).toEqual(topSheet(before));
+      expect(topSheet(applyDeal(after))).toEqual(topSheet(applyDeal(before)));
+      expect(topSheet(before).cashBudget).toBe(SAMPLE_TOTAL);
+      expect(topSheet(applyDeal(after)).cashBudget).toBe(SAMPLE_TOTAL);   // what the top sheet shows once the sample is open
+      expect(load(after)).toEqual(after);                                 // and a second load has nothing left to do
+    });
+  }
+  it('the total the generator wrote into the file is that same figure', () => {
+    expect((budgetJson as { totals: { grandTotal: number } }).totals.grandTotal).toBe(SAMPLE_TOTAL);
+  });
+  it('every cast line carries the days the board gives that part, and the board owns each of those lines', () => {
+    const p = load(sampleProject());
+    const cast = p.participants.filter(x => x.castId != null);
+    expect(cast).toHaveLength(7);                        // eight speaking parts on the cast list; DEL is in no scene, so no line
+    const onBoard = new Map(dood(p.board).map(r => [r.castId, r.total]));
+    for (const pt of cast) {
+      const owned = p.lines.filter(l => l.participantId === pt.id && l.daysFrom === 'board');
+      expect(owned).toHaveLength(1);
+      expect([pt.name, owned[0].amount]).toEqual([pt.name, onBoard.get(pt.castId!)]);
+      expect([pt.name, pt.days]).toEqual([pt.name, onBoard.get(pt.castId!)]);
+    }
+    expect(cast.map(x => [x.name, x.days])).toEqual([['LENA', 11], ['JUNE', 10], ['WALT', 3], ['RANGER PRICE', 3], ['THE MECHANIC', 2], ['KID', 2], ['WAITRESS', 2]]);
+    // the agent fees are a tenth of the same days at scale
+    const fees = p.lines.filter(l => /^Agent fee/.test(l.description)).map(l => l.rate);
+    expect(fees).toEqual([11 * 449, 10 * 449]);
   });
 });
 
