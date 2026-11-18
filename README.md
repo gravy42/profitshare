@@ -2,95 +2,224 @@
 
 Open-source budgeting, scheduling and profit-share modelling for independent films.
 
-Commercial budgeting software stops at what you pay up front. ProfitShare is for films where part of everyone's pay is a share of the back end, the way *Sing Sing* was made: everyone takes scale up front, and the upside is split by points. Every budget line carries a pay type: up front (what you raise; `cash` in the file), deferred (a fixed IOU paid from first proceeds) or points (contingent profit participation). The top sheet, the SAG-AFTRA tier check, the stripboard's day-out-of-days and the points schedule all read from the same lines, so moving a producer fee to points, or dragging a scene to a different day, reprices the whole film at once.
+Commercial budgeting software stops at what you pay up front. ProfitShare is for films where part of everyone's pay is a share of the back end, the way *Sing Sing* was made: everyone takes scale up front, and the upside is split by points. Every budget line carries a pay type:
+
+- **Up front**: what you have to raise.
+- **Deferred**: a fixed IOU, paid out of the film's first proceeds.
+- **Points**: a share of the back end, worth something only if the film makes money.
+
+The top sheet, the SAG-AFTRA tier check, the schedule and the points schedule all read the same lines, so moving a producer's fee to points, or dragging a scene to another day, reprices the whole film at once.
 
 Written by a director budgeting her first feature, because none of the tools would let her model the deal she was actually making.
 
-## Demo
+**Use it now: https://gravy42.github.io/profitshare/** (nothing to install, no account). Press *Load the sample* to look around an invented film, *Salt Flat*.
 
-[▶ Narrated walkthrough, 2:41](demo/profitshare-demo.mp4): the Deal tab repricing the sample live, the top sheet showing what the deal set, the SAG check, the waterfall, day breaks, and a drag-and-drop import of a budget and a script. Captions are a subtitle track you can switch on (CC in QuickTime or VLC); `demo/profitshare-demo.srt` and `.vtt` sit beside it for YouTube or a web player. `npm run demo` re-records a captioned silent cut from `tools/demo.mjs`; `npm run demo:vo` records a clean cut timed to `demo/vo.mp3` and lays the narration and subtitles on (the script is `demo/voiceover.txt`).
+![The Deal tab with the sample film loaded. One sentence at the top says what the film costs to raise, which SAG-AFTRA tier it fits and how much is on the back end; under it a table prices the film at every tier under four pay models.](docs/screenshots/deal.png)
 
-## Try it
+*The Deal tab, with the sample's producer fees moved to points. Every screenshot here is the invented sample.*
 
-The live demo is at **https://gravy42.github.io/profitshare/**. It opens on a start screen with three ways in:
+## What it is and what it is not
 
-- **From scratch.** An empty budget with a standard feature chart of accounts (1100 Story & Screenplay through 5200 General Expenses) and California payroll fringes. Open a category, open an account, press *+ line*. *Edit accounts* renames, adds and removes categories and accounts; the *Fringes* panel sets rates and caps.
-- **Start from a script alone.** Drop a screenplay on the Start tab with nothing else and ProfitShare breaks it down, schedules it at your pages per day, and draws a first budget around it: a generic indie crew with prep and wrap, cast at the SAG tier you pick, what the tags imply (stunts, animals, vehicles, effects, background), department allowances, post, insurance and legal. Every line is tagged `starter` and says how it was sized; it is a starting place to argue with, not a quote.
-- **Drop files on the page.** ProfitShare works out what each one is. A Shamel Studio `.xlsx` export comes in whole, fringes included. A Movie Magic Budgeting Excel or CSV export (File → Export) is matched by its column headers, as is any spreadsheet with Account, Description, Amount, Units, X, Rate and Total columns. Weekly crew and staff wage lines come in as days (five to the week, rate ÷ 5, same money), because everything here is priced by the day; SAG weekly deals and weekly rentals stay as they are, and *Weeks → days* on the top sheet does the same for a project you already have open. Spreadsheet rows that carry no money (blank spacers, `CAST #3: COLIN` headers, a prop list with a quantity on each row) are folded into a note on the line they belong to, so a 900-row export reads as the 300 lines that cost something; *Fold memo lines* on the top sheet does it for an open project, every line can take a note (✎), and *hide empty* tucks away the zero-day placeholders. A Movie Magic Scheduling `.sex` board keeps its strip order and breakdown tags (and a position on the points schedule can follow a tag: an animal wrangler on every day the cat is in a scene, a picture-car wrangler with the Datsun, the way a studio teacher follows the minors; the ⇢ button on a person's row sets it, and the days move with the schedule); a script gives scenes, eighths and speaking cast, from Final Draft `.fdx` (with its scene numbers, and if you tagged the script in Final Draft's tagger, every one of those tags: cast, background with their counts, props, vehicles, animals, effects, music, script days, locations, under Final Draft's own category names), Fountain or plain text (Highland, Celtx, WriterDuet, Final Draft's save-as-text) or a screenplay PDF with real text in it; a saved `.json` reopens a project. Drop a script on a project that already has a board and ProfitShare offers to **merge** it: scenes match by number, the strips you have get the scene text, the cast and a first pass of tags, and your day breaks, strip order, cast numbers, locations and hand-made tags stay exactly as they were (or replace the board, if that's what you want); a tagged `.fdx` brings the writer's tags with it, and any position following a tag gets its days recounted on the spot. Replace asks first, and the board it replaced stays in the browser until you say otherwise: Undo brings it straight back, and a Restore button on the Stripboard survives a reload. Drop them together or one at a time. Movie Magic's native `.mbd` is a closed format, so export first.
-- **Script breakdown.** A dropped script becomes a first-pass board: one strip per scene heading with INT/EXT, set, time of day, scene number if the script has them (numbered in script order if it doesn't), a length in eighths measured from where the headings fall on the page, the first action line as a synopsis, and the cast. Cast is everyone who speaks in the scene plus any speaking character the action names in caps or Title Case (so Lena floating alone in the pool still counts). The cast list is numbered the way a breakdown numbers it, most scenes first; the day-out-of-days pops out to full size (⤢ on the board) and there you can renumber by scenes, by first appearance, or by dragging rows, and the strips and points schedule follow. Text copied and pasted out of a PDF works too, page numbers and all. A scanned PDF has no text to read, so export the PDF from the writing app instead.
-- **Tagging.** Every strip keeps the scene as written. Open a strip's ⌄ to read it, select any words and file them under a category (Background Actors, Stunts, Vehicles, Props, Animals, Wardrobe, Makeup/Hair, Set Dressing, Art Department, Greenery, Special Effects, Mechanical Effects, Visual Effects, Sound, Music, Camera, Special Equipment, Security, Additional Labor, Notes: the Movie Magic set, so a `.sex` board and a tagged script agree), the way Final Draft's tagger works; tagged words light up in the text, chips come off with ×, and a name tagged as Cast joins the cast list. On import every scene gets an automatic first pass from the action lines (never the dialogue): CAPS phrases and a keyword vocabulary for vehicles, animals, sounds, music, wardrobe, makeup, set dressing, effects, screen inserts, stunts (the whole beat, as a sentence) and props; a DRIVING heading adds a car mount; an animal the script introduces by name ("BISCUIT, a handsome orange tabby cat") is tagged in every scene whose action has him, whether or not the word cat comes up again. It over-tags a little and misses what the writer didn't name, which is what a first pass is for. *Auto-tag all scenes* and the per-scene *Auto-tag* keep the tags you've added. `tools/fixtures/SaltFlat_Script.fountain` and the PDF made from it by `tools/make-script-pdf.mjs` are the test scripts.
-- **AI breakdown (optional, your own key).** *AI breakdown* on the Stripboard, or *AI tag* inside one strip, has a model read the scenes the way an AD and a line producer would: every prop, vehicle, practical, mechanical and visual effect, stunt, makeup note, sound and the rest under the board's categories, plus the story day, a one-line synopsis, cast on screen without speaking, and whether a scene is VFX only. It reads in runs of fifteen scenes, each told the labels already used so one gun keeps one name across the script. Nothing lands until you've seen it: every proposed item has a tick box, VFX-only suggestions start unticked, it adds to your tags unless you ask it to replace them, and Apply is one Undo. It sends the scene text and the cast list to Anthropic with your key (the same one the Pitch tab uses, kept in this browser only) and nothing else from the project.
-- **Pitch and investor deck.** The Pitch tab holds the logline, the case, the audience, comparable films and three revenue cases run through the deal's waterfall, plus a look book (pictures resized and kept inside the project), a design system (your colours, type and mark), research findings and the team. **Investor deck** draws 16:9 slides from all of it and from the budget, the schedule and the deal, the look book pictures as its look and the financing stack on the ask (sponsorship, credits, investors, and what the ask becomes without them); Download the PDF writes a true 16:9 file in the browser. AI assist is optional and uses your own key.
-- **Pitch deck builder.** On the Pitch tab, *Build my deck* drafts an investor deck from what the tab holds; you reorder and edit the slides beside a live preview, add the people you send it to, and give it a look from a brand book or from your own pictures. The money slides read the budget and the deal. *Send it* downloads a web deck (one `.html`, works offline, funding switches live) and PDFs, one set per person: each person's file holds only their own name and note, and nothing else from the project. Slides can move, from a fixed set of choices (cards one at a time, numbers counting up, a picture of yours travelling along the plan's timeline); with your own key you can describe the movement you want, get a cover line and note suggested for a person, and have the deck read for problems, each as a proposal you apply or discard. Cards, the cover title, a quote and an aside are drawn on a paper you choose (plain, postcard, letter, notebook page, torn page, or a mix), all drawn in code, with an optional handwriting face. Fonts can be picked from Google Fonts: the chosen font is saved into the project, so a sent deck never needs the network. The sample loads with a finished invented deck.
-- **Where you shoot.** On the Deal tab, the places and the shoot days in each: the share outside the Los Angeles zone feeds the California credit and the highest local minimum wage checks the floor for non-shoot days. A fiscal sponsor's fee sits beside the grants, and deferred pay comes out of first proceeds before investors and the pool split anything.
-- **Incentives.** Tax credits and perks as toggles, on their own tab. Nothing there changes what the film spends; it changes who puts the money in: whatever comes back reduces what investors fund and recoup, the way grants do. The **California Film & Television Tax Credit** (Program 4.0 as amended in 2025) is figured from the budget: 35% of below-the-line cash spend in California, wages, fringes and vendors, with the writer, producers, director and cast left out (every category is a checkbox), plus the out-of-zone, local-hire, VFX and trainee uplifts, on the first $20M; then the costs of turning it into money: the Career Pathways contribution, the CPA audit, selling the credit at so many cents on the dollar or the 90%-over-five-years refund, and a bridge loan if the money has to be in the bank for the shoot. The **federal credit** is the Motion Picture, Television, and Entertainment Revitalization Act as announced in September 2026 (20% of labor, +5% independent, transferable, productions starting after 2026); it is a bill, not a law, and the tab says so. Put in a start date and the tab names the California application window to hit, the allocation-letter date and the day camera has to roll by. California's fee waivers and hotel-tax exemption are a checklist with a dollar estimate each. Not legal or tax advice; check the CFC's qualified-expenditure charts and the bill text before you count on any of it.
-- **Hiring.** *+ Add position* on the Points tab makes the wage line in the right account (suggested from the title, and created if the budget doesn't carry it: 1501 Stunt Coordinator, 1503 Intimacy Coordinator, 2112 Studio Teacher, 2806 Set Medic, 3502 Health & Safety) and the person on the schedule, linked, in one go. A position can follow cast instead of carrying a day count: a studio teacher on set whenever the minors work takes its days from the stripboard and keeps them when *Push cast days → budget* runs.
-- **Open or explore.** Open a saved `.json`, or load the sample: *Salt Flat*, an invented 12-day, 26-scene SAG feature with a 154-line budget and a board in shooting order. Every name and number in it is made up (`tools/make-sample.mjs` builds it).
+- **US dollars, California rules.** Payroll fringes (the taxes and fees an employer pays on top of a wage) default to a California set, and the state incentive it models is the California film tax credit.
+- **SAG-AFTRA low-budget theatrical tiers.** Ultra Low Budget, Moderate Low Budget, Low Budget and Theatrical Basic, with the rates effective 7/1/2026.
+- **Built for a laptop screen.** On a phone some tabs scroll sideways. The pitch decks it makes do work on phones.
+- **Not legal, tax or financial advice.** It does not replace a payroll company, a SAG-AFTRA signatory rep or an attorney. Check the numbers with them before anyone signs.
+- **About the decks.** The money slide of a deck carries a line saying the figures are illustrative and not a promise of returns. Sending a deck to potential investors can be subject to securities rules, so have a lawyer look before you send.
 
-Then:
+## Privacy
 
-1. **Set the terms on the Deal tab.** Shoot days and a 10- or 12-hour day; the SAG tier and DIC; how people are paid (as budgeted, or everyone at scale, the *Sing Sing* deal, with the crew rate you choose); what happens to producer fees, the script purchase and star allowances (up front, points, deferred, or gone); prep, wrap and post days at a floor rate with the balance to the back end; grants that investors never recoup; and the waterfall. The budget you imported is never rewritten. The terms sit on top of it, every tab recomputes live, and you can change any term at any time.
-2. **Place day breaks** on the stripboard (*Fit to N days* keeps your order and balances the pages), then *Push cast days → budget* so cast lines and the points schedule match the schedule.
-3. **Save.** Your project is one `.json` file, terms included. Nothing leaves your browser unless you send it somewhere.
+Your projects live in your browser and in the `.json` file you save. There are no accounts, there is no server, and nothing is uploaded. Clearing your browser's site data removes any project you never saved to a file, so press *Save* for anything you want to keep.
+
+Two things contact the network, and only when you ask:
+
+- **AI assist (optional).** It is off until you paste your own Anthropic API key, which is kept in this browser and never in the project file. Each AI button says what it sends before it sends it, and the request goes from your browser straight to Anthropic. *Draft* on the Pitch tab sends a short brief of your pitch and figures, plus any PDFs you added for it to read. *AI breakdown* on the Stripboard sends the scene text, the cast list and the tag names in use. Nothing is applied until you accept it.
+- **The Google Fonts picker (optional).** It asks first. If you agree, font previews and the font you pick are fetched from Google, which sees your computer's address and which fonts you look at, and nothing about your project. The picked font is saved into the project, so a deck you send never needs Google.
+
+The app page carries a Content-Security-Policy that lets it talk only to itself, `api.anthropic.com` and the two Google Fonts hosts.
 
 ## What it does
 
-- **Deal tab.** Every term in one place, applied as a layer over the raw budget: day length, SAG tier, pay model (as budgeted or everyone at scale with overtime priced off the 8-hour rate), premiums, non-shoot-day floor rate, producers' headcount and days, grants, waterfall. Lines the deal sets are marked on the top sheet; days and descriptions stay editable.
-- **Top sheet and budget.** Movie-Magic-style chart of accounts with per-line fringes (a rate plus a wage-base cap per line; the model was fitted against a real Shamel Studio export and reproduces its math to the cent). Add, edit and remove lines, accounts, categories and fringes in place. Shows the budget to raise, deferred total and points value side by side.
-- **Stripboard.** Drag to reorder, insert day breaks, or auto-break at a pages-per-day target without changing your scene order. Day summaries, day-out-of-days with work and hold days, and a one-click sync of cast work days into the cast budget lines and the points schedule.
-- **Call sheets.** One sheet per shoot day, front and back the way a feature prints it. The front: the general crew call with rehearsal, shooting call and lunch, the date and day count, weather, sunrise and sunset (computed from the location's coordinates, no network), the safety line, a strip for crew parking, basecamp, bathrooms, lunch, working trucks and the nearest hospital, the scenes with sets, D/N, synopsis, cast numbers, pages and location with company moves marked, the cast with SAG status codes (SW, W, WF, SWF) and report, hair/makeup, wardrobe and ready-on-set times, stunts, stand-ins and background, special instructions by department drawn from the scene tags (props, vehicles, animals, wardrobe, effects, sound and the rest) plus what you type, two days of advance schedule, and the UPM and ADs in the footer. The back: every crew call by department in three columns, O/C for on call, with safety bulletins, the hospital, the lunch count and the quote of the day. A Locations table says which sets are where. Defaults fill every field; what you type stays with that day. Tick a box and the sheet takes the design system from the Pitch tab (its colours on the header and the call box, its title face, its logo). Print one day or the run, two pages a day.
-- **Points and waterfall.** Two waterfalls: recoup-first, and off-the-gross where the pool takes a share from dollar one. Tiers are multipliers on days worked, with a per-person bonus multiplier. Payouts at three revenue scenarios, investor multiples, and each person's wages next to their points.
-- **SAG tier.** Total production cost the way SAG measures it (deferred pay counts, points do not). Ultra Low, Moderate Low, Low Budget and Basic caps, with and without the Diversity in Casting incentive, checked against the effective budget.
-- **Local-first.** No accounts, no server, no telemetry, and no network unless you use AI assist with your own Anthropic key (the key stays in your browser; each Draft on the Pitch tab sends a few hundred words of your pitch and figures, and an AI breakdown on the Stripboard sends the scene text and cast list, to Anthropic and nothing else). Every project you start or open is autosaved in your browser on its own (*Projects* on the Start tab lists them; *New project* closes the one you have open and keeps it); Save and Open a `.json` project file to keep it or hand it to a collaborator.
+### Start a budget
+
+The start screen has four ways in:
+
+- **From a script.** Drop a screenplay (Final Draft `.fdx`, Fountain, plain text, or a PDF with real text in it). ProfitShare breaks it into scenes, schedules it at your pages per day and draws a first budget around it. Every line says how it was sized. It is a starting place, not a quote.
+- **From scratch.** An empty budget with a standard feature chart of accounts and California fringes.
+- **Import a budget.** A Shamel Studio `.xlsx` export, a Movie Magic Budgeting Excel or CSV export, or any spreadsheet with Account, Description, Amount, Units, X, Rate and Total columns. A Movie Magic Scheduling `.sex` board can be dropped too.
+- **Open or explore.** Open a saved `.json`, or load the sample: *Salt Flat*, an invented 12-day, 26-scene SAG feature with a 154-line budget. Every name and number in it is made up.
+
+Every project is autosaved in the browser; *Save* downloads it as one `.json` file to keep or hand to a collaborator.
+
+### Set the deal
+
+The Deal tab holds every term in one place, as a layer over the budget. The budget you brought in is never rewritten, and any term can change at any time.
+
+- Shoot days, a 10- or 12-hour day, the SAG-AFTRA tier, and DIC (the Diversity in Casting incentive, which raises the budget cap on two of the tiers).
+- How people are paid: as budgeted, or everyone at scale (the *Sing Sing* deal).
+- What happens to producer fees, the script purchase and star allowances: up front, points, deferred, or gone.
+- Prep, wrap and post days at a floor rate, with the balance going to the back end.
+- Where you shoot, grants and a fiscal sponsor's fee, and the waterfall.
+- A table that prices the film at every SAG tier under each pay model.
+
+### Budget
+
+- A top sheet (the one-page summary of a budget by category) over a chart of accounts you can edit.
+- Each line is amount × rate, with fringes on top, and a pay type you can change in place.
+- Up front, deferred and points totals sit side by side. Lines the deal sets are marked.
+- Print the top sheet or the full budget.
+
+### Schedule
+
+- **Stripboard.** One strip per scene. Drag to reorder, place day breaks by hand, break at a pages-per-day target, or fit to a number of days. Split a scene across two days. A day-out-of-days (who works on which day) comes with it.
+- Cast work days flow from the board into the cast lines of the budget and the points schedule on their own.
+- **Tagging.** Open a strip to read the scene and tag props, vehicles, animals, stunts, effects and the rest. Imported scripts get an automatic first pass.
+- **Calendar.** Put shoot days and other events on real dates, skip US holidays, stamp the dates onto the board, export `.ics`, and print sides for a day.
+
+### Points and the waterfall
+
+A waterfall is the order in which money that comes in gets paid out. Recoupment is investors getting their money back, usually with a premium, before or while everyone else shares.
+
+- Two models: recoup first, or off the gross, where the cast and crew pool takes a share from the first dollar.
+- Points are days worked × a tier multiplier, with an optional bonus or a fixed block.
+- Payouts at three revenue figures, the investor multiple, what one point is worth, and each person's wages beside their points.
+- Deferred pay comes off the top before the split. Grants are never repaid.
+- *Add position* makes the wage line and the person on the schedule in one go. A position can follow the cast or a tag on the board (a wrangler on every day the animal works).
+
+### SAG tier check
+
+Total production cost the way SAG-AFTRA measures it (deferred pay counts, points do not), checked against each tier's cap, with and without DIC.
+
+### Incentives
+
+Credits and perks are switches. They do not change what the film spends; they reduce what investors have to put in.
+
+- The California Film & Television Tax Credit (Program 4.0), figured from the budget, with the cost of turning it into cash and the application window that fits your start date.
+- A proposed federal credit. It is a bill, not a law, and the tab says so.
+- California fee waivers and exemptions as a checklist.
+
+### Call sheets and breakdowns
+
+- **Call sheets.** One per shoot day, front and back, drawn from the board, the calendar and the points schedule and edited in place. Sunrise and sunset come from the location's coordinates with no network. Print one day or the whole run.
+- **Breakdowns.** Story days by shoot day, by character, by department, or one element across the schedule. Print any of them.
+
+### Pitch
+
+- **Write the pitch.** Logline, the case, the audience, comparable films, and three revenue cases run through your waterfall. *Print* gives an investor summary.
+- **Look book.** Pictures, or the pages of a PDF, resized and kept inside the project.
+- **Design.** Your colours, type and logo, read from a brand book PDF or built from your own pictures. Fonts from Google Fonts or your own font files.
+- **Research and team.** Findings with their sources, and the people attached.
+
+**The pitch deck builder** drafts a deck from what the tab holds, then it is yours to reorder and edit beside a live preview.
+
+- Fourteen kinds of slide: cover, picture and a line, look book, words, cards, proof (numbers and a quote), comparable films, team, plan, how the money flows, ways to take part, the money, the ask, closing.
+- The plan and money slides read the budget, the schedule and the deal. A number with no source is left off.
+- Cards are drawn on a paper you choose (plain, postcard, letter, notebook, torn page, or a mix) in a shade you choose (your own card colour, white, cream, aged, kraft, newsprint).
+- Slides can move, from a fixed set of choices. It is off until you add it.
+- **People you send it to.** Each gets a cover line, a note and a file of their own that names nobody else.
+- **Send it.** A web deck (one `.html` that opens offline, with funding switches that work, and a strict security policy that loads nothing from outside) and PDFs, one set per person, or everything in one `.zip`. The files hold only what the deck shows: no budget lines, no other people, no hidden slides.
+- With your own key, optional helpers suggest a line for a person, propose movement, or read the deck for problems. Each is a proposal you apply or discard.
+
+## Screenshots
+
+![The start screen: four panels titled From a script, From scratch, Import a budget, and Open or explore.](docs/screenshots/start.png)
+
+*The start screen, with its four ways in.*
+
+![The top sheet: budget to raise, deferred and points totals across the top, and the producers account opened to show two fee lines marked as set by the deal and paid in points.](docs/screenshots/top-sheet.png)
+
+*The top sheet. The two producer fees are marked "deal" because the Deal tab moved them to points.*
+
+![The stripboard: colour-coded scene strips with day breaks between them, and a table of days with scenes, pages and cast counts on the right.](docs/screenshots/stripboard.png)
+
+*The stripboard, with day breaks and the day table.*
+
+![Points and waterfall: what the cast and crew pool and the investors receive at three revenue figures, and the tiers that turn days worked into points.](docs/screenshots/points-waterfall.png)
+
+*Points & waterfall: who gets what at three revenue figures.*
+
+![The pitch deck builder: a list of fourteen slides on the left, the editor for the cover slide in the middle, and a live preview of the cover on the right showing a motel at dusk with the title on a postcard.](docs/screenshots/pitch-deck.jpg)
+
+*The pitch deck builder: slides, the editor and the live preview.*
+
+## Browsers
+
+Every pull request is tested in Safari's engine (WebKit), Firefox and Chromium by the workflow in `.github/workflows/browsers.yml`.
 
 ## Run it locally
+
+Needs Node 20 or newer (the workflows run Node 22).
 
 ```bash
 npm install
 npm run dev            # http://localhost:5173
-npm test               # engine tests, including round-trips of the sample through every importer
+npm test               # the engine and UI tests
 npm run build          # static site in dist/ (the GitHub Pages workflow deploys this)
+npm run preview        # serve dist/ locally
 npm run build:single   # one self-contained index.html in dist-single/
-npm run build:deck-runtime   # the pitch deck renderer on its own, in dist-deck/ (stage two of the deck builder; not in the app yet)
+npm run sample         # rebuild the sample project and the importer fixtures
+npm run smoke          # Playwright walk through the single-file build, light and dark
+npm run browsers       # walk the built app and a sent deck in one engine (BROWSER=webkit, firefox or chromium)
+npm run build:deck-runtime   # the pitch deck renderer on its own, in dist-deck/
 npm run deck:scratch -- deck.json out.html   # a test page from a deck JSON
-npm run sample         # rebuild the sample project and the importer fixtures from tools/make-sample.mjs
-npm run smoke          # Playwright walk-through with screenshots, light and dark
-npm run demo           # re-record a silent, captioned demo/profitshare-demo.mp4 (needs ffmpeg)
-npm run demo:vo        # narrated cut: analyze demo/vo.mp3, re-record clean, mux voice + subtitle track (VO_SILENCE=0.7 for tighter pauses)
+npm run fonts:catalogue      # rebuild the bundled list of Google Fonts families
 ```
 
-Needs Node 20 or newer. The Pages workflow in `.github/workflows/pages.yml` builds and deploys on every push to `main`; turn on Pages in the repo settings with *Source: GitHub Actions*.
+The Pages workflow in `.github/workflows/pages.yml` builds and deploys on every push to `main`. To host your own copy, turn on Pages in the repo settings with *Source: GitHub Actions*.
 
 ## How it's built
 
+React, Vite and TypeScript. It is a static site: everything runs in the browser.
+
 ```
-src/engine/            pure TypeScript, no React: budget math, the deal layer (deal.ts), SAG tiers, waterfall, board, importers
+src/engine/            pure TypeScript, no React: budget math, the deal layer (deal.ts), SAG tiers,
+                       waterfall, board, call sheets, incentives, the deck's data, importers
 src/engine/*.test.ts   vitest
-src/data/              the sample project, the standard chart of accounts, and the seed builder
+src/deck-runtime/      the pitch deck renderer: no framework, no network
+src/data/              the sample project, the standard chart of accounts, the Google Fonts list
 src/ui/                React views
-tools/                 make-sample.mjs (builds the sample and its fixtures), smoke tests, test fixtures
+tools/                 make-sample.mjs (builds the sample and its fixtures), smoke and browser walks, fixtures
 ```
 
 `src/engine/types.ts` is the whole data model. A project file is that object as JSON, so anything that can read JSON can read a ProfitShare project.
 
-The `.sex` reader was reverse-engineered from a Shamel Studio export (there is no public spec); `tools/make-sample.mjs` writes the test fixture in the same layout. The spreadsheet importer (`src/engine/importers/genericBudget.ts`) matches columns by header name and treats rows with a number and a name but no money as account or category headers, which is the shape Movie Magic Budgeting exports. The script reader (`src/engine/importers/screenplay.ts`) is one parser for Fountain, plain text and the positioned lines pdf.js pulls out of a PDF (`pdfScript.ts`, loaded on first use): a character cue is an all-caps line that sits further in than the action and has dialogue under it. If a file from another app fails to import, open an issue and attach it.
+The deck preview in the app and the web deck you send are the same renderer, bundled once, so what you see is what you send. PDFs are written in the browser with pdf-lib; screenplay PDFs are read with pdf.js. Spreadsheets are read by the app's own small reader.
+
+<details>
+<summary>Importer notes</summary>
+
+- **Budgets.** The spreadsheet importer (`src/engine/importers/genericBudget.ts`) matches columns by header name and treats rows with a number and a name but no money as account or category headers, which is the shape Movie Magic Budgeting exports. Weekly crew wage lines come in as days (five to the week, same money). Rows that carry no money are folded into a note on the line they belong to.
+- **Boards.** The `.sex` reader was reverse-engineered from a Shamel Studio export (there is no public spec). It keeps strip order and breakdown tags. Movie Magic's native `.mbd` is a closed format and is not read; export to Excel or CSV first.
+- **Scripts.** One parser (`src/engine/importers/screenplay.ts`) reads Fountain, plain text and the positioned lines pdf.js pulls out of a PDF. A Final Draft `.fdx` keeps its scene numbers and any tags made in Final Draft's tagger. A scanned PDF has no text to read, so export the PDF from the writing app instead.
+- **Merging.** Drop a script on a project that already has a board and ProfitShare offers to merge it: scenes match by number, and your day breaks, strip order and tags stay. Replacing the board asks first and keeps the old one for Undo.
+- `tools/fixtures/` holds the test files, all invented.
+
+If a file from another app fails to import, open an issue and attach it.
+
+</details>
 
 ## Rates and disclaimers
 
-SAG-AFTRA low-budget minimums are the 7/1/2026 figures, which rise 3 % every July through 2030; P&H is 22 % from 9/6/2026. Fringes default to a California 2026 set: FICA 7.65 %, FUI 0.6 % and CA SUI 6.2 % on the first $7,000 per line, workers' comp 4.48 %, payroll fee 1.75 %, SAG P&H 21 %. Change them in the Fringes panel under the top sheet.
+- **SAG-AFTRA.** Day rates are the 7/1/2026 figures: Ultra Low $257, Moderate Low $449, Low Budget $834, Theatrical Basic $1,321. Caps are $300,000, $700,000 ($1,050,000 with DIC) and $2,000,000 ($3,750,000 with DIC). The low-budget rates rise 3% every July through 2030. Pension and health (P&H) is 22% from 9/6/2026.
+- **Fringes.** The default California 2026 set: FICA 7.65%, FUI 0.6% and CA SUI 6.2% on the first $7,000 per line, workers' comp 4.48%, payroll fee 1.75%, SAG-AFTRA P&H 21% for principals. The SAG tier tab tells you when the budget's P&H rate and the tier's disagree. Change any of them in the Fringes panel under the top sheet.
+- **California credit.** 35% base, plus the out-of-zone, local-hire, VFX and trainee uplifts, on the first $20M of qualified spend. Sources and check dates are in `src/engine/incentives.ts`.
 
-None of this is legal, tax or financial advice. Check the numbers with your payroll company, your SAG-AFTRA signatory rep and your attorney before anyone signs.
+These numbers move. None of this is legal, tax or financial advice. Check the numbers with your payroll company, your SAG-AFTRA signatory rep and your attorney before anyone signs.
 
 ## Roadmap
 
-- Call sheet and one-liner exports from the board
-- Participation-agreement exhibit generated from the points schedule
-- CSV and XLSX export of the top sheet and points schedule
-- Movie Magic Budgeting native `.mbd` files (needs a sample; the Excel/CSV export already imports)
+Not built yet:
+
+- Export of the top sheet and points schedule to Excel or CSV (today they print, and print can save a PDF)
+- A participation-agreement exhibit generated from the points schedule
+- Movie Magic Budgeting native `.mbd` files (needs a sample; the Excel and CSV exports already import)
+- Reading notes for a sent deck ("who opened it"), planned as a collector you host yourself
+- An installable version that works offline
 
 ## Contributing
 
-[CHANGELOG.md](CHANGELOG.md) is kept by day, newest first, so you can see what changed and why before you start. Issues and pull requests are welcome. Engine changes need a test; the sample budget must still total $811,758.05 and round-trip through the importers.
+[CHANGELOG.md](CHANGELOG.md) is kept by day, newest first, so you can see what changed and why before you start. Issues and pull requests are welcome. Engine changes need a test; the sample budget must still total {{SAMPLE_TOTAL}} and round-trip through the importers.
+
+An older narrated walkthrough is in [`demo/profitshare-demo.mp4`](demo/profitshare-demo.mp4) (2:41). It was recorded before the pitch deck builder existed, so it shows an earlier app.
 
 ## License
 
