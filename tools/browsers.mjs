@@ -162,6 +162,19 @@ try {
         await p.evaluate(n => { const root = [...document.querySelectorAll('*')].find(e => e.shadowRoot)?.shadowRoot; root?.querySelectorAll('section.psd-slide')[n]?.scrollIntoView({ behavior: 'instant' }); }, i);
         await p.waitForTimeout(350); await p.screenshot({ path: `${out}/20-slide-${String(i + 1).padStart(2, '0')}.png` });
       }
+      // One small sheet of all thirteen, printed into the log when asked (BROWSER_SHEET=1), so a run on a machine nobody
+      // can open still shows what the browser drew.
+      if (process.env.BROWSER_SHEET) {
+        const imgs = Array.from({ length: 13 }, (_, i) => `<img src="data:image/png;base64,${readFileSync(`${out}/20-slide-${String(i + 1).padStart(2, '0')}.png`).toString('base64')}">`).join('');
+        const sheet = await ctx.newPage(); await sheet.setViewportSize({ width: 1640, height: 1200 });
+        await sheet.setContent(`<body style="margin:0;background:#222;display:grid;grid-template-columns:repeat(4,400px);gap:8px;padding:8px">${imgs}<style>img{width:400px;display:block}</style></body>`);
+        await sheet.waitForTimeout(800);
+        const jpg = await sheet.screenshot({ type: 'jpeg', quality: 62, fullPage: true });
+        writeFileSync(`${out}/sheet.jpg`, jpg);
+        const b64 = jpg.toString('base64'); console.log('SHEET-BEGIN');
+        for (let i = 0; i < b64.length; i += 4000) console.log('SHEET ' + b64.slice(i, i + 4000));
+        console.log('SHEET-END');
+      }
       await ctx.close();
     });
     await step('sent file: arrow keys page it', async () => {

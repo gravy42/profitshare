@@ -30,6 +30,7 @@ jobs:
       - run: node tools/browsers.mjs
         env:
           BROWSER: ${{ matrix.browser }}
+          BROWSER_SHEET: ${{ matrix.os == 'macos-latest' && '1' || '' }}
       - if: always()
         uses: actions/upload-artifact@v4
         with:
