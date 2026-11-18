@@ -130,7 +130,7 @@ export function sampleProject(): Project {
 
 /** The sample as "Load the sample" opens it: the project above, with grants through a fiscal sponsor (so the deck has
  *  two asks) and a whole invented pitch: revenue cases, a look book drawn by the generator, a design system worked out
- *  from those pictures, a thirteen-slide deck and two people to send it to. The budget lines and the board are
+ *  from those pictures, a fourteen-slide deck and two people to send it to. The budget lines and the board are
  *  `sampleProject()`'s, untouched. */
 export function sampleDemo(): Project {
   const p = sampleProject();

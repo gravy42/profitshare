@@ -70,10 +70,11 @@ interface SlideBase {
 export type DeckSlide = SlideBase & (
   | { layout: 'cover'; title: string; tagline: string; byline: string }            // the cover line itself comes from the recipient
   | { layout: 'photo'; body: string }                                              // a picture, a headline, a short paragraph
+  | { layout: 'look'; pictures: { imageId: string; caption?: string; credit?: string }[] }   // a page of look book pictures (one to six), each a DeckImage by id
   | { layout: 'text'; body: string; aside?: { label: string; lines: string[] }[]; closing?: string }   // paragraphs; `aside` is small labelled columns under them
   | { layout: 'cards'; cards: DeckCard[] }                                         // two to four cards in a row
   | { layout: 'stats'; lead?: { value: string; text: string; source: string }; body?: string; stats: DeckStat[]; quote?: DeckQuote; note?: string }
-  | { layout: 'timeline'; facts: { value: string; label: string }[]; milestones: DeckMilestone[]; note?: string }
+  | { layout: 'timeline'; facts: { value: string; label: string }[]; milestones: DeckMilestone[]; note?: string; agreement?: string }   // agreement: the SAG-AFTRA agreement the film is budgeted under
   | { layout: 'comps'; bars: { label: string; value: number; note?: string }[]; barsLabel: string; groups: { group: string; rows: { title: string; year: string; multiple: number | null }[] }[]; callout?: string }
   | { layout: 'team'; members: { name: string; role: string; bio: string }[]; aside?: { title: string; lines: string[]; footnote?: string } }
   | { layout: 'model'; body: string; steps: { label: string; title: string; body: string }[]; closing?: string }

@@ -7,16 +7,17 @@ import { cleanMotion } from '../deck-runtime/motion';
 import { cleanSlidePaper, cleanSlidePaperShade, PAPER_LAYOUTS } from '../deck-runtime/paper';
 import { MAX_CARDS, reservedSlug, slugify } from './deckData';
 
-/** The thirteen layouts, in the order a deck usually runs, each with a name and a line on what it is for. */
+/** The fourteen layouts, in the order a deck usually runs, each with a name and a line on what it is for. */
 export const LAYOUTS: { id: SlideLayout; name: string; about: string }[] = [
   { id: 'cover', name: 'Cover', about: 'The title, a line for who the deck is for, and who made the film.' },
   { id: 'photo', name: 'Picture and a line', about: 'One picture, a headline and a short paragraph.' },
+  { id: 'look', name: 'Look book', about: 'A page of pictures from your look book, one to six, with their captions.' },
   { id: 'text', name: 'Words', about: 'A headline and a few paragraphs, with small labelled columns under them if you want.' },
   { id: 'cards', name: 'Cards', about: 'Two to four cards in a row: findings, reasons, steps.' },
   { id: 'stats', name: 'Proof (numbers and a quote)', about: 'One big number, a few smaller ones and a quote. Every number needs its source.' },
   { id: 'comps', name: 'Comparable films', about: 'Bars and a table drawn from the Comparable films list.' },
   { id: 'team', name: 'Team', about: 'The people in the Team list, with a card beside them for who else is attached.' },
-  { id: 'timeline', name: 'Plan', about: 'Shoot days, scenes, cast and budget from the project, and your milestones in order.' },
+  { id: 'timeline', name: 'Plan', about: 'Shoot days, scenes, sets, cast, crew and budget from the project, and your milestones in order.' },
   { id: 'model', name: 'How the money flows', about: 'Who gets paid, and in what order: investors, then the cast and crew pool.' },
   { id: 'ways', name: 'Ways to take part', about: 'A card for each way in: invest, give. One can be highlighted for each person you send it to.' },
   { id: 'numbers', name: 'The money', about: 'What investors fund and what comes back, with a switch for each funding source.' },
@@ -111,6 +112,10 @@ export function readSlides(raw: unknown): SlideSpec[] {
     if (isObj(r.quote)) s.quote = { text: str(r.quote.text), by: str(r.quote.by) };
     const cols = objs(r.columns).map(c => ({ label: str(c.label), lines: Array.isArray(c.lines) ? c.lines.map(str) : [] }));
     if (cols.length) s.columns = cols;
+    if (Array.isArray(r.looks)) s.looks = [...new Set(r.looks.map(str).filter(Boolean))];
+    if (['tone', 'world', 'character', 'reference'].includes(str(r.lookSection))) s.lookSection = str(r.lookSection) as SlideSpec['lookSection'];
+    if (r.captions === false) s.captions = false;
+    if (r.agreement === false) s.agreement = false;
     if (isObj(r.aside)) { const a = r.aside; s.aside = { title: str(a.title), lines: Array.isArray(a.lines) ? a.lines.map(str) : [], ...(str(a.footnote) ? { footnote: str(a.footnote) } : {}) }; }
     out.push(s);
   }

@@ -16,7 +16,7 @@ export interface AiRequest { system: string; prompt: string; tool: AiTool }
 export const REQUEST_MAX = 400, NOTE_MAX = 200, PICTURES_MAX = 40, CAPTION_MAX = 80;
 
 const LAYOUT_WORDS: Record<SlideLayout, string> = {
-  cover: 'cover (the title on a card)', photo: 'picture and a line', text: 'words (a headline and paragraphs)', cards: 'cards (two to four cards in a row)',
+  cover: 'cover (the title on a card)', photo: 'picture and a line', look: 'look book (a page of pictures)', text: 'words (a headline and paragraphs)', cards: 'cards (two to four cards in a row)',
   stats: 'proof (one big number, smaller numbers, a quote)', timeline: 'plan (facts in big numbers above a timeline of milestones)', comps: 'comparable films (bars and a table)',
   team: 'team (a list of people)', model: 'how the money flows (three steps)', ways: 'ways to take part (cards in a row)', numbers: 'the money (figures and tables)',
   ask: 'the ask', closing: 'closing (the title once more)',
@@ -114,7 +114,7 @@ export function readMotionReply(input: unknown, layout: SlideLayout, pictures: M
 const ENTRANCE_WORDS: Record<NonNullable<SlideMotion['entrance']>, string> = { rise: 'rise in', fade: 'fade in', drop: 'drop in', 'slide-left': 'slide in from the right', 'slide-right': 'slide in from the left', none: 'are simply there' };
 const ORDER_WORDS: Record<NonNullable<SlideMotion['order']>, string> = { together: 'all together', 'one-by-one': 'one at a time', reverse: 'one at a time, last first' };
 /** What moves on a slide, as its first word: "Cards" where the slide is cards, "Milestones" on a plan. */
-export const movingParts = (layout: SlideLayout): string => (layout === 'cards' || layout === 'ways' ? 'Cards' : layout === 'timeline' ? 'Facts and milestones' : layout === 'stats' ? 'Numbers' : layout === 'team' ? 'People' : 'Parts of the slide');
+export const movingParts = (layout: SlideLayout): string => (layout === 'cards' || layout === 'ways' ? 'Cards' : layout === 'timeline' ? 'Facts and milestones' : layout === 'stats' ? 'Numbers' : layout === 'team' ? 'People' : layout === 'look' ? 'Pictures' : 'Parts of the slide');
 
 /** A slide's movement in words, one sentence a setting: "Cards: drop in, one at a time, 120 ms apart." Empty when
  *  the slide has no movement of its own. */

@@ -746,6 +746,20 @@ function mountWith(host: HTMLElement, data: DeckData, opts: MountOptions, taken:
         rise(txt('p', 'psd-tagline', s.tagline)))];
     },
     photo(s) { return [el('div', 'psd-photo', head(s), ...paras(s.body, 'psd-lede'))]; },
+    look(s) {
+      // a page of look book pictures: one to six, laid out by how many there are, each with its caption under it
+      const shown = list(s.pictures).map(x => ({ x, img: has(x.imageId) ? images.get(str(x.imageId)) : undefined })).filter(v => !!v.img).slice(0, 6);
+      if (!shown.length) return [head(s)];
+      const grid = el('div', 'psd-look', ...shown.map(({ x, img }) => {
+        const pic = doc.createElement('img');
+        pic.className = 'psd-look-pic'; pic.alt = str(img!.alt); pic.decoding = 'async'; pic.src = img!.src as string;
+        const words = [x.caption, x.credit].filter(has).map(t => str(t).trim());
+        const cap = words.length ? el('figcaption', 'psd-look-cap', words[0], words[1] ? el('span', 'psd-look-credit', ` · ${words[1]}`) : null) : null;
+        return rise(el('figure', 'psd-look-fig', pic, cap));
+      }));
+      grid.dataset.n = String(shown.length);
+      return [head(s), grid];
+    },
     text(s) {
       const cols = list(s.aside).filter(a => has(a.label) || texts(a.lines).length);
       const aside = cols.length ? el('div', 'psd-aside', ...cols.map(a => rise(el('div', 'psd-aside-col', txt('p', 'psd-lab', a.label), ...texts(a.lines).map(l => el('p', 'psd-aside-line', l)))))) : null;
@@ -792,7 +806,7 @@ function mountWith(host: HTMLElement, data: DeckData, opts: MountOptions, taken:
         el('ol', 'psd-miles', ...miles.map(m => rise(el('li', 'psd-mile', el('span', 'psd-tick'), txt('span', 'psd-when', m.when), txt('span', 'psd-what', m.what)))))) : null;
       if (track) track.style.setProperty('--n', String(miles.length));
       if (track && marker) { track.classList.add('psd-track-mark'); const size = marker.style.getPropertyValue('--psd-mark'); if (size) track.style.setProperty('--psd-mark', size); }   // room for the picture between the facts and the rail
-      return [head(s), factRow, track, rise(txt('p', 'psd-note', s.note))];
+      return [head(s), factRow, track, rise(txt('p', 'psd-note', s.note)), rise(txt('p', 'psd-note psd-agreement', s.agreement))];
     },
     comps(s) {
       const bars = list(s.bars).filter(b => num(b.value) > 0);

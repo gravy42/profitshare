@@ -267,7 +267,7 @@ export type PaperStyle = 'plain' | 'postcard' | 'letter' | 'notebook' | 'torn';
 /** The tone a paper is drawn in: the design system's card colour ('theme'), or a paper of a fixed tone. */
 export type PaperShade = 'theme' | 'white' | 'cream' | 'aged' | 'kraft' | 'newsprint';
 
-export type SlideLayout = 'cover' | 'photo' | 'cards' | 'stats' | 'timeline' | 'text' | 'comps' | 'team' | 'model' | 'ways' | 'numbers' | 'ask' | 'closing';
+export type SlideLayout = 'cover' | 'photo' | 'look' | 'cards' | 'stats' | 'timeline' | 'text' | 'comps' | 'team' | 'model' | 'ways' | 'numbers' | 'ask' | 'closing';
 
 /** One slide as the author wrote it. The layout decides which fields are read; `deckData()` fills in what the
  *  project already knows (the comps, the team, the plan, the split, the numbers). */
@@ -284,6 +284,10 @@ export interface SlideSpec {
   byline?: string;         // cover: who made it, under the title
   columns?: { label: string; lines: string[] }[];   // text: small labelled columns under the paragraphs
   aside?: { title: string; lines: string[]; footnote?: string };   // team: a card beside the list (who you hope to cast, say)
+  looks?: string[];        // look: the look book pictures chosen by hand, in order (six at most); left out, the slide takes them from the look book itself
+  lookSection?: LookImage['section'];   // look: with no pictures chosen by hand, the section they come from; left out, the whole look book
+  captions?: boolean;      // look: false leaves the captions and credits off
+  agreement?: boolean;     // timeline (the plan): false leaves the SAG-AFTRA agreement off
   nextStep?: string;       // ask: what you want the reader to do next
   contact?: string;        // ask: how to reach you
   hidden?: boolean;

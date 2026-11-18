@@ -54,9 +54,9 @@ try {
   for (const label of ['Top sheet & budget', 'Deal', 'Stripboard', 'Points & waterfall', 'SAG tier', 'Pitch']) {
     await step(`tab: ${label}`, async () => { await page.getByRole('button', { name: label, exact: true }).click(); await page.waitForTimeout(500); await shot(`02-tab-${label.toLowerCase().replace(/[^a-z]+/g, '-')}`); });
   }
-  await step('the pitch deck preview draws 13 slides', async () => {
+  await step('the pitch deck preview draws 14 slides', async () => {
     await page.locator('#pitch-deck').scrollIntoViewIfNeeded();
-    await page.waitForFunction(() => document.querySelector('#pitch-deck .pd-host')?.shadowRoot?.querySelectorAll('section.psd-slide').length === 13, null, { timeout: 20000 });
+    await page.waitForFunction(() => document.querySelector('#pitch-deck .pd-host')?.shadowRoot?.querySelectorAll('section.psd-slide').length === 14, null, { timeout: 20000 });
     await page.locator('#pitch-deck .pd-preview').scrollIntoViewIfNeeded(); await page.waitForTimeout(800); await shot('03-pitch-deck');
   });
   await step('no slide overflows in the preview', async () => {
@@ -66,7 +66,7 @@ try {
   await step('the preview pages with its buttons', async () => {
     for (let i = 0; i < 4; i++) { await page.getByRole('button', { name: 'Next slide' }).click(); await page.waitForTimeout(700); }
     const at = (await page.locator('#pitch-deck .pd-count').innerText()).replace(/\s+/g, ' ').trim();
-    need(/5 \/ 13$/.test(at), `the counter says "${at}"`); await shot('04-pitch-slide-5');
+    need(/5 \/ 14$/.test(at), `the counter says "${at}"`); await shot('04-pitch-slide-5');
   });
   await step('Play replays a slide', async () => { await page.getByRole('button', { name: /^Play/ }).first().click(); await page.waitForTimeout(1500); await shot('05-play'); });
   await step('the design builder proposes looks from pictures', async () => {
@@ -105,7 +105,7 @@ try {
   await step('download: deck PDF', async () => {
     const d = await download(() => page.locator('#pitch-send button', { hasText: /^PDF/ }).first().click(), 'deck.pdf');
     const n = await pdfPages(d.path); const kb = readFileSync(d.path).length / 1000;
-    need(n === 13, `the PDF has ${n} pages, not 13`); need(kb > 300, `the PDF is only ${kb.toFixed(0)} kB, so its pages are probably blank`);
+    need(n === 14, `the PDF has ${n} pages, not 14`); need(kb > 300, `the PDF is only ${kb.toFixed(0)} kB, so its pages are probably blank`);
     return `${d.name}, ${n} pages, ${kb.toFixed(0)} kB`;
   });
   await step('download: everything as a zip', async () => {
@@ -155,7 +155,7 @@ try {
     let withGrants = '';
     await step('sent file, offline, 1600x900', async () => {
       const r = await reader('1600', { width: 1600, height: 900 });
-      need(r.slides === 13, `${r.slides} slides`); need(r.errs.length === 0, r.errs.slice(0, 3).join(' | ')); need(r.asked.length === 0, `asked for ${r.asked[0]}`);
+      need(r.slides === 14, `${r.slides} slides`); need(r.errs.length === 0, r.errs.slice(0, 3).join(' | ')); need(r.asked.length === 0, `asked for ${r.asked[0]}`);
       need(r.over === 0, `${r.over} slides overflow`); need(r.failed.length === 0, `fonts failed: ${r.failed.join(', ')}`);
       withGrants = r.ask; return `${r.ask}; fonts ${[...new Set(r.fonts)].join(', ') || 'none loaded'}`;
     });
@@ -163,22 +163,22 @@ try {
       const r = await reader('without', { width: 1600, height: 900 }, '#without');
       need(r.ask && r.ask !== withGrants, `the ask reads "${r.ask}" both ways`); return r.ask;
     });
-    await step('sent file, 1024x768', async () => { const r = await reader('1024', { width: 1024, height: 768 }); need(r.slides === 13 && r.over === 0 && r.errs.length === 0, `${r.slides} slides, ${r.over} overflow, ${r.errs[0] ?? ''}`); });
+    await step('sent file, 1024x768', async () => { const r = await reader('1024', { width: 1024, height: 768 }); need(r.slides === 14 && r.over === 0 && r.errs.length === 0, `${r.slides} slides, ${r.over} overflow, ${r.errs[0] ?? ''}`); });
     await step('sent file on a phone, 390x844', async () => {
       const r = await reader('phone', { width: 390, height: 844 });
-      need(r.slides === 13, `${r.slides} slides`); need(!r.wide, 'the page scrolls sideways'); need(r.errs.length === 0, r.errs.slice(0, 2).join(' | '));
+      need(r.slides === 14, `${r.slides} slides`); need(!r.wide, 'the page scrolls sideways'); need(r.errs.length === 0, r.errs.slice(0, 2).join(' | '));
     });
     await step('sent file: every slide, one by one', async () => {
       const ctx = await sealed({ viewport: { width: 1600, height: 900 }, reducedMotion: 'reduce' });
       const p = await ctx.newPage(); await p.goto(url); await p.waitForTimeout(1500);
-      for (let i = 0; i < 13; i++) {
+      for (let i = 0; i < 14; i++) {
         await p.evaluate(n => { const root = [...document.querySelectorAll('*')].find(e => e.shadowRoot)?.shadowRoot; root?.querySelectorAll('section.psd-slide')[n]?.scrollIntoView({ behavior: 'instant' }); }, i);
         await p.waitForTimeout(350); await p.screenshot({ path: `${out}/20-slide-${String(i + 1).padStart(2, '0')}.png` });
       }
-      // One small sheet of all thirteen, printed into the log when asked (BROWSER_SHEET=1), so a run on a machine nobody
+      // One small sheet of all fourteen, printed into the log when asked (BROWSER_SHEET=1), so a run on a machine nobody
       // can open still shows what the browser drew.
       if (process.env.BROWSER_SHEET) {
-        const imgs = Array.from({ length: 13 }, (_, i) => `<img src="data:image/png;base64,${readFileSync(`${out}/20-slide-${String(i + 1).padStart(2, '0')}.png`).toString('base64')}">`).join('');
+        const imgs = Array.from({ length: 14 }, (_, i) => `<img src="data:image/png;base64,${readFileSync(`${out}/20-slide-${String(i + 1).padStart(2, '0')}.png`).toString('base64')}">`).join('');
         const sheet = await ctx.newPage(); await sheet.setViewportSize({ width: 1640, height: 1200 });
         await sheet.setContent(`<body style="margin:0;background:#222;display:grid;grid-template-columns:repeat(4,400px);gap:8px;padding:8px">${imgs}<style>img{width:400px;display:block}</style></body>`);
         await sheet.waitForTimeout(800);

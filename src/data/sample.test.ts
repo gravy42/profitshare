@@ -50,10 +50,10 @@ describe('the sample with no pitch content (the fixture other tests pin their fi
 });
 
 describe('the sample deck', () => {
-  it('has thirteen slides in the default order, one of every layout, none hidden', () => {
-    expect(pitch.slides!.map(s => s.id)).toEqual(['cover', 'why', 'gap', 'opportunity', 'audience', 'story', 'team', 'plan', 'model', 'ways', 'numbers', 'ask', 'closing']);
+  it('has fourteen slides in the default order, one of every layout, none hidden', () => {
+    expect(pitch.slides!.map(s => s.id)).toEqual(['cover', 'why', 'gap', 'opportunity', 'audience', 'story', 'look', 'team', 'plan', 'model', 'ways', 'numbers', 'ask', 'closing']);
     expect([...pitch.slides!.map(s => s.layout)].sort()).toEqual(LAYOUTS.map(l => l.id).sort());
-    expect(deck.slides).toHaveLength(13);
+    expect(deck.slides).toHaveLength(14);
     expect(readSlides(pitch.slides).map(s => [s.id, s.layout, s.motion])).toEqual(pitch.slides!.map(s => [s.id, s.layout, s.motion]));   // the editor reads every one of them
   });
   it('has nothing to fix: no warnings, and nothing the checks behind Read my deck find', () => {
@@ -73,7 +73,10 @@ describe('the sample deck', () => {
     expect(by.team.members).toHaveLength(4);
     expect(by.team.aside.footnote).toBe('Everyone on this slide is invented.');
     expect(by.plan.milestones).toHaveLength(4);
-    expect(by.plan.facts.map((f: { label: string }) => f.label)).toEqual(['shoot days', 'scenes', 'sets', 'speaking parts', 'cash budget']);
+    expect(by.plan.facts.map((f: { label: string }) => f.label)).toEqual(['shoot days', 'scenes', 'sets', 'speaking parts', 'crew', 'cash budget']);
+    expect(by.plan.agreement).toMatch(/^Budgeted under the SAG-AFTRA .+ agreement\.$/);
+    expect(by.look.pictures.map((x: { imageId: string }) => x.imageId)).toEqual(['look_motel', 'look_door', 'look_pool', 'look_moon', 'look_dunes', 'look_road']);
+    for (const x of by.look.pictures) { expect(deck.images.some(i => i.id === x.imageId)).toBe(true); expect(x.caption).toMatch(/drawn for the sample/); }
     expect(by.ways.cards.map((c: { id: string }) => c.id)).toEqual(['invest', 'give', 'lend']);
     expect(by.ask.withGrants).not.toBe(by.ask.withoutGrants);
     expect(by.ask.nextStep).toMatch(/call/);
@@ -191,8 +194,8 @@ describe('the sample\'s look', () => {
       expect(svg, id).not.toMatch(/NaN|undefined|Infinity/);
     }
   });
-  it('uses three of them: the motel sign behind the cover, the flats behind the story, the wagon behind the closing slide', () => {
-    expect(deck.images.map(i => i.id).sort()).toEqual(['look_flats', 'look_sign', 'look_wagon']);
+  it('uses nine of them: the motel sign behind the cover, the flats behind the story, six on the look book slide, the wagon behind the closing slide', () => {
+    expect(deck.images.map(i => i.id).sort()).toEqual(['look_door', 'look_dunes', 'look_flats', 'look_moon', 'look_motel', 'look_pool', 'look_road', 'look_sign', 'look_wagon']);
     expect(Object.fromEntries(deck.slides.filter(s => s.imageId).map(s => [s.id, s.imageId]))).toEqual({ cover: 'look_sign', story: 'look_flats', closing: 'look_wagon' });
     expect(pitch.design!.deck).toMatchObject({ coverImageId: 'look_sign', closingImageId: 'look_wagon' });
   });
@@ -228,7 +231,7 @@ describe('the sample is invented, all of it', () => {
 });
 
 describe('the sample deck, drawn', () => {
-  it('draws thirteen slides with one heading each, the film in every footer, and its movement as words from the list', () => {
+  it('draws fourteen slides with one heading each, the film in every footer, and its movement as words from the list', () => {
     const host = document.createElement('div'); document.body.appendChild(host);
     mounted.push(mountDeck(host, deck));
     const sections = [...host.shadowRoot!.querySelectorAll<HTMLElement>('section.psd-slide')];

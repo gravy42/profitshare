@@ -26,15 +26,15 @@ for (const scheme of ['light', 'dark']) {
     await page.screenshot({ path: `${out}${scheme}-${name}.png`, fullPage: name === 'deal' });
   }
   console.log(scheme, 'KPI after preset:', (await page.locator('.kpi').innerText()).replace(/\n/g, ' | '));
-  // the pitch deck: the sample's own thirteen slides in the preview, paged, and the web deck anyone can be sent, downloaded
+  // the pitch deck: the sample's own fourteen slides in the preview, paged, and the web deck anyone can be sent, downloaded
   await page.getByRole('button', { name: 'Pitch', exact: true }).click(); await page.waitForTimeout(400);
   await page.locator('#pitch-deck').scrollIntoViewIfNeeded();
-  await page.waitForFunction(() => document.querySelector('#pitch-deck .pd-host')?.shadowRoot?.querySelectorAll('section.psd-slide').length === 13, null, { timeout: 15000 });
+  await page.waitForFunction(() => document.querySelector('#pitch-deck .pd-host')?.shadowRoot?.querySelectorAll('section.psd-slide').length === 14, null, { timeout: 15000 });
   const count = page.locator('#pitch-deck .pd-count');
   await page.locator('#pitch-deck .pd-preview').scrollIntoViewIfNeeded();
   const at = async () => (await count.innerText()).replace(/\s+/g, ' ').trim();
   for (let i = 0; i < 4; i++) { await page.getByRole('button', { name: 'Next slide' }).click(); await page.waitForTimeout(700); }
-  if (!/5 \/ 13$/.test(await at())) throw new Error(`${scheme}: the preview did not page to slide 5 of 13 (it says "${await at()}")`);
+  if (!/5 \/ 14$/.test(await at())) throw new Error(`${scheme}: the preview did not page to slide 5 of 14 (it says "${await at()}")`);
   await page.screenshot({ path: `${out}${scheme}-pitch-deck.png` });
   await page.getByRole('button', { name: 'Previous slide' }).click(); await page.waitForTimeout(500);
   const [download] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.locator('#pitch-send button', { hasText: 'Download web deck' }).first().click()]);

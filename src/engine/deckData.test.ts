@@ -5,7 +5,7 @@ import { defaultIncentives } from './incentives';
 import { defaultDeckRules, defaultDesign, withPitch } from './pitch';
 import { pathInputs } from './paths';
 import { pathFor } from './pathMath';
-import { DARK_INK, DECK_LEGAL, DEFAULT_CARD, LIGHT_INK, cardInkFor, compactMoney, dateSpan, deckData, deckWarnings, defaultSlides, fontFacesOf, reservedSlug, firstSentence, slidesOf, slugify, unlabel } from './deckData';
+import { DARK_INK, DECK_LEGAL, DEFAULT_CARD, LIGHT_INK, cardInkFor, compactMoney, dateSpan, deckData, deckWarnings, defaultSlides, fontFacesOf, reservedSlug, firstSentence, slidesOf, slugify, unlabel, lookPictures, MAX_LOOKS } from './deckData';
 import type { DeckSlide } from '../deck-runtime/data';
 import type { FontFile, LookImage, Pitch, Project, Recipient, SlideSpec } from './types';
 
@@ -251,10 +251,11 @@ describe('deckData', () => {
 
   it('states the plan in facts the project holds', () => {
     const t = byLayout(seed, 'timeline');
-    expect(t.facts.map(f => f.label)).toEqual(['shoot days', 'scenes', 'sets', 'speaking parts', 'cash budget']);
+    expect(t.facts.map(f => f.label)).toEqual(['shoot days', 'scenes', 'sets', 'speaking parts', 'crew', 'cash budget']);
     expect(t.facts[0].value).toBe('12');
     expect(t.facts[1].value).toBe('26');
-    expect(t.facts[4].value).toMatch(/^\$\d+(\.\d)?[KM]$/);
+    expect(t.facts[4].value).toBe(String(seed.participants.filter(x => x.group === 'crew').length));
+    expect(t.facts[5].value).toMatch(/^\$\d+(\.\d)?[KM]$/);
     expect(t.milestones).toEqual([]);   // no calendar, no credit: nothing to date
     const dated: Project = { ...seed, calendar: { from: '2031-03', to: '2031-04', dayOne: '2031-03-10', workDays: [1, 2, 3, 4, 5], skipHolidays: false, events: [] } };
     expect(byLayout(dated, 'timeline').milestones).toEqual([{ id: 'shoot', when: 'Mar 10 to Mar 25, 2031', what: 'Principal photography' }]);
@@ -365,6 +366,71 @@ describe('deckData', () => {
     expect(deckData(p)).toStrictEqual(now);
     expect(defaultSlides(p)).toStrictEqual(defaultSlides(full()));
     expect(byLayout(p, 'timeline').milestones.map(m => m.id)).toEqual(['ca-window', 'shoot']);
+  });
+});
+
+describe('a look book slide', () => {
+  const book = (): LookImage[] => [
+    { id: 'w1', dataUrl: 'data:image/png;base64,AAAA', caption: 'The motel', section: 'world', credit: 'Ada Example' },
+    { id: 't1', dataUrl: 'data:image/png;base64,AAAB', caption: '', section: 'tone' },
+    { id: 'w2', dataUrl: 'data:image/png;base64,AAAC', caption: 'The road', section: 'world' },
+    { id: 'gone', dataUrl: '', caption: 'Not in this browser', section: 'world' },
+    ...Array.from({ length: 7 }, (_, i): LookImage => ({ id: `c${i}`, dataUrl: `data:image/png;base64,AAA${i}`, caption: `Face ${i}`, section: 'character' })),
+  ];
+  const withLook = (spec: Partial<SlideSpec>, lookbook = book()): Project => pitched(seed, { lookbook, slides: [{ id: 'cover', layout: 'cover' }, { id: 'look', layout: 'look', ...spec }] });
+  const look = (p: Project) => byLayout(p, 'look');
+
+  it('takes the first six of the look book, or of one section, unless pictures are chosen by hand', () => {
+    expect(MAX_LOOKS).toBe(6);
+    expect(look(withLook({})).pictures.map(x => x.imageId)).toEqual(['w1', 't1', 'w2', 'c0', 'c1', 'c2']);   // a picture with nothing to show is passed over
+    expect(look(withLook({ lookSection: 'world' })).pictures.map(x => x.imageId)).toEqual(['w1', 'w2']);
+    expect(look(withLook({ lookSection: 'character' })).pictures).toHaveLength(6);
+    expect(look(withLook({ lookSection: 'reference' })).pictures).toEqual([]);
+    expect(look(withLook({ looks: ['w2', 'c5', 'w1'] })).pictures.map(x => x.imageId)).toEqual(['w2', 'c5', 'w1']);   // in the order they were chosen
+    expect(look(withLook({ looks: ['w2', 'nope', 'gone', 'w2', 'w1'] })).pictures.map(x => x.imageId)).toEqual(['w2', 'w1']);
+    expect(look(withLook({ looks: [], lookSection: 'world' })).pictures).toEqual([]);                      // chosen by hand, none chosen yet: the section is not used
+    expect(look(withLook({ looks: ['c0', 'c1', 'c2', 'c3', 'c4', 'c5', 'c6'] })).pictures).toHaveLength(6);
+    expect(lookPictures({ id: 'x', layout: 'look' }, [])).toEqual([]);
+  });
+  it('carries each caption and credit, or neither when captions are off, and puts its pictures in the file', () => {
+    const d = deckData(withLook({ looks: ['w1', 't1'] }));
+    expect(byLayout(withLook({ looks: ['w1', 't1'] }), 'look').pictures).toEqual([{ imageId: 'w1', caption: 'The motel', credit: 'Ada Example' }, { imageId: 't1' }]);
+    expect(d.images.map(i => i.id).sort()).toEqual(['t1', 'w1']);                                         // only the pictures a slide shows
+    expect(look(withLook({ looks: ['w1'], captions: false })).pictures).toEqual([{ imageId: 'w1' }]);
+  });
+  it('has no picture behind it, whatever the file says', () => {
+    const s = look(withLook({ imageId: 'w1', scrim: 0.4, headline: 'The look' }));
+    expect(s.imageId).toBeUndefined(); expect(s.scrim).toBeUndefined(); expect(s.headline).toBe('The look');
+    expect(deckWarnings(withLook({ imageId: 'nope', looks: ['w1'] }))).toEqual([]);
+  });
+  it('reads anything a hand-edited file holds without failing', () => {
+    const p = withLook({ looks: [7, null, 'w1', { id: 'w2' }, 'w1'] as never, lookSection: 'everything' as never, captions: 'no' as never });
+    expect(look(p).pictures).toEqual([{ imageId: 'w1', caption: 'The motel', credit: 'Ada Example' }]);
+    expect(look(withLook({ looks: 'w1' as never })).pictures).toHaveLength(6);                              // not a list: not chosen by hand
+  });
+  it('says so when it would be empty, when a chosen picture has gone, and when too many are chosen', () => {
+    const says = (p: Project) => deckWarnings(p).filter(w => w.slideId === 'look').map(w => [w.where, w.message]);
+    expect(says(withLook({ looks: ['w1'] }))).toEqual([]);
+    expect(says(withLook({}, []))).toEqual([['looks', 'The look book has no pictures yet, so this slide is empty. Add some to the Look book.']]);
+    expect(says(withLook({ looks: [] }))).toEqual([['looks', 'No pictures are chosen for this slide yet, so it is empty.']]);
+    expect(says(withLook({ lookSection: 'reference' }))).toEqual([['looks', 'The look book has no pictures in that section, so this slide is empty.']]);
+    expect(says(withLook({ looks: ['w1', 'lost', 'lost2'] }))).toEqual([['looks', '2 of the pictures chosen for this slide are no longer in the look book, so they are left off.']]);
+    expect(says(withLook({ looks: ['w1', 'lost'] }))[0][1]).toMatch(/^1 of the pictures chosen for this slide is no longer/);
+    expect(says(withLook({ looks: ['c0', 'c1', 'c2', 'c3', 'c4', 'c5', 'c6'] }))).toEqual([['looks', 'This slide has 7 pictures chosen; a slide holds 6 at most, so the rest are left off.']]);
+  });
+});
+
+describe('the plan says who is making the film', () => {
+  it('counts the crew, and names the SAG-AFTRA agreement only when there are speaking parts and the author has not turned it off', () => {
+    const t = byLayout(seed, 'timeline');
+    expect(t.facts.find(f => f.label === 'crew')!.value).toBe(String(seed.participants.filter(x => x.group === 'crew').length));
+    expect(t.agreement).toMatch(/^Budgeted under the SAG-AFTRA .+ agreement\.$/);
+    const off = pitched(seed, { slides: [{ id: 'plan', layout: 'timeline', agreement: false }] });
+    expect('agreement' in byLayout(off, 'timeline')).toBe(false);
+    const noCast: Project = { ...seed, board: { ...seed.board, castList: [] } };
+    expect('agreement' in byLayout(noCast, 'timeline')).toBe(false);
+    const noCrew: Project = { ...seed, participants: seed.participants.filter(x => x.group !== 'crew') };
+    expect(byLayout(noCrew, 'timeline').facts.some(f => f.label === 'crew')).toBe(false);
   });
 });
 

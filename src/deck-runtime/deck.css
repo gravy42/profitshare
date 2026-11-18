@@ -279,6 +279,16 @@
 
 /* photo */
 .psd-photo { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: flex-end; padding-bottom: 1.2em; }
+/* a look book page: one to six pictures filling the slide under its heading, each cropped to its cell, a caption under it */
+.psd-look { flex: 1 1 0; min-height: 0; display: grid; gap: .8em 1em; grid-template-columns: repeat(6, minmax(0, 1fr)); grid-auto-rows: minmax(0, 1fr); margin-top: .5em; }
+.psd-look-fig { grid-column: span 2; margin: 0; min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: .35em; }
+.psd-look[data-n="1"] .psd-look-fig { grid-column: span 6; }
+.psd-look[data-n="2"] .psd-look-fig, .psd-look[data-n="4"] .psd-look-fig { grid-column: span 3; }
+.psd-look[data-n="5"] .psd-look-fig:nth-child(n + 4) { grid-column: span 3; }
+.psd-look-pic { flex: 1 1 0; min-height: 0; width: 100%; object-fit: cover; display: block; }
+.psd-look-cap { flex: none; font-size: max(.66em, var(--psd-min)); line-height: 1.3; color: var(--psd-muted-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.psd-look-credit { opacity: .8; }
+.psd-agreement { margin-top: .5em; font-size: max(.78em, var(--psd-min)); color: var(--psd-muted-text); }
 .psd-photo .psd-head { margin-bottom: 1.1em; }
 .psd-photo .psd-h { font-size: 3.5em; }
 .psd-photo .psd-h-long { font-size: 2.6em; }
@@ -591,6 +601,11 @@
 .psd-stacked .psd-track .psd-mark { top: -.4em; }
 .psd-stacked :is(.psd-cards, .psd-aside, .psd-stats, .psd-facts) { grid-template-columns: repeat(auto-fit, minmax(13em, 1fr)); }
 .psd-stacked .psd-facts { grid-template-columns: repeat(auto-fit, minmax(8em, 1fr)); }
+.psd-stacked .psd-look { flex: none; display: grid; grid-template-columns: 1fr 1fr; grid-auto-rows: auto; }   /* the page grows with what is on it: the pictures set the height */
+.psd-stacked .psd-look .psd-look-fig { grid-column: auto; min-height: auto; }
+.psd-stacked .psd-look[data-n="1"] .psd-look-fig { grid-column: span 2; }
+.psd-stacked .psd-look-pic { flex: none; aspect-ratio: 4 / 3; height: auto; }
+.psd-stacked .psd-look-cap { white-space: normal; }
 .psd-stacked :is(.psd-numbers, .psd-stats-top.psd-two, .psd-comps.psd-two, .psd-team-grid.psd-two) { grid-template-columns: repeat(auto-fit, minmax(19em, 1fr)); gap: 2em; }
 .psd-stacked .psd-team-cols { grid-template-columns: minmax(0, 1fr); }
 .psd-stacked .psd-team-cols .psd-member:nth-child(2) { border-top: 0; }

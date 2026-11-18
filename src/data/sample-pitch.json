@@ -372,6 +372,20 @@
     "body": "Lena wants the letter burned. June wants it read. Their mother asked for it to be left under a stone on the salt flats, and the only way there is together.\n\nBy the time they reach the stone, the car is the least broken thing they have fixed."
    },
    {
+    "id": "look",
+    "layout": "look",
+    "eyebrow": "The look",
+    "headline": "Dusk, salt and one long road.",
+    "looks": [
+     "look_motel",
+     "look_door",
+     "look_pool",
+     "look_moon",
+     "look_dunes",
+     "look_road"
+    ]
+   },
+   {
     "id": "team",
     "layout": "team",
     "paper": "letter",

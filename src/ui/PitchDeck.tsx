@@ -3,8 +3,8 @@
 // its own (React.lazy), so the runtime and its stylesheet are not in the app's first download.
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import type { LookImage, Project, Recipient, SlideCard, SlideLayout, SlideMilestone, SlideSpec, SlideStat } from '../engine/types';
-import { withPitch } from '../engine/pitch';
-import { ASK_NO_GRANTS, ASK_WITHOUT_GRANTS, ASK_WITH_GRANTS, MAX_CARDS, deckData, deckWarnings, defaultSlides, slugify, type DeckWarning } from '../engine/deckData';
+import { withPitch, LOOK_SECTIONS } from '../engine/pitch';
+import { ASK_NO_GRANTS, ASK_WITHOUT_GRANTS, ASK_WITH_GRANTS, MAX_CARDS, MAX_LOOKS, lookPictures, deckData, deckWarnings, defaultSlides, slugify, type DeckWarning } from '../engine/deckData';
 import { deckChecks, type AiProblem } from '../engine/aiDeck';
 import { PROMISE_TEXT, promiseOfReturns } from '../engine/promise';
 import { pathFor } from '../engine/pathMath';
@@ -158,7 +158,7 @@ export default function PitchDeck({ project, setPitch, onTab, onUndo, undoDepth 
   const aiItem = (x: AiProblem): ReadItem => ({ slideId: x.slideId, where: FIELD[x.field] ?? x.field, message: x.message, label: kindLabel(x) });
   const elsewhere = (f: Fix): { label: string; to: Place } | null =>
     f.where === 'revenue' ? { label: 'Go to What it could make', to: { panel: 'revenue' } } : f.where === 'deal' ? { label: 'Open the Deal tab', to: { tab: 'deal' } }
-      : f.where === 'picture' ? { label: 'Go to Look book', to: { panel: 'lookbook' } } : f.where === 'design' ? { label: 'Go to Design system', to: { panel: 'design' } } : null;
+      : f.where === 'picture' || f.where === 'looks' ? { label: 'Go to Look book', to: { panel: 'lookbook' } } : f.where === 'design' ? { label: 'Go to Design system', to: { panel: 'design' } } : null;
 
   // a hidden slide that is selected is shown in the preview (and only there: the deck that is sent never has it), so it can be edited by eye
   const hiddenId = own && selected?.hidden ? selected.id : null;
@@ -462,11 +462,12 @@ interface Spec {
 const SPEC: Record<SlideLayout, Spec> = {
   cover: { head: false, from: ['The title is the film\'s name, at the top of the page. The line under it is the first sentence of the ', { label: 'logline', to: { panel: 'write' } }, '. The line above the title says who the deck is for: the month you send it, or a person\'s own cover line (', { label: 'People you send it to', to: { panel: 'people' } }, ').'] },
   photo: { head: true, body: ['Paragraph', 'A short one. It sits under the headline, over the picture.'] },
+  look: { head: true, from: ['The pictures, their captions and their credits come from the ', { label: 'Look book', to: { panel: 'lookbook' } }, '.'] },
   text: { head: true, body: ['Paragraphs', 'Leave an empty line between paragraphs.'], closing: ['Last line'] },
   cards: { head: true },
   ways: { head: true, from: ['Each person you send it to can have one of these cards highlighted: choose it under ', { label: 'People you send it to', to: { panel: 'people' } }, '.'] },
   stats: { head: true, body: ['Paragraph beside the numbers'], closing: ['Note under the numbers'] },
-  timeline: { head: true, closing: ['Note under the milestones'], from: ['Shoot days, scenes, sets and speaking parts come from the ', { label: 'Stripboard tab', to: { tab: 'board' } }, '; the cash budget comes from the ', { label: 'Top sheet & budget tab', to: { tab: 'topsheet' } }, '.'] },
+  timeline: { head: true, closing: ['Note under the milestones'], from: ['Shoot days, scenes, sets and speaking parts come from the ', { label: 'Stripboard tab', to: { tab: 'board' } }, '; the cash budget comes from the ', { label: 'Top sheet & budget tab', to: { tab: 'topsheet' } }, '; the crew count comes from the ', { label: 'Deal tab', to: { tab: 'deal' } }, ' and the agreement from the ', { label: 'SAG tier tab', to: { tab: 'sag' } }, '.'] },
   comps: { head: true, closing: ['Highlighted line', 'One sentence on what the films have in common.'], from: ['The bars and the table come from ', { label: 'Comparable films', to: { panel: 'comps' } }, '.'] },
   team: { head: true, from: ['Team members come from ', { label: 'The team', to: { panel: 'team' } }, '.'] },
   model: { head: true, body: ['Paragraph above the steps'], closing: ['Last line'], from: ['Who gets paid, and in what order, comes from the ', { label: 'Deal tab', to: { tab: 'deal' } }, '.'] },
@@ -532,7 +533,8 @@ function SlideEditor({ slide: s, number, pictures, film, go, patch, onAddCard, o
   const linesOf = (v: string) => v.split('\n');
   const shown = pictures.filter(i => !!i && typeof i === 'object' && typeof i.id === 'string' && typeof i.dataUrl === 'string' && i.dataUrl.startsWith('data:'));
   const scrim = typeof s.scrim === 'number' ? s.scrim : 0.7;
-  const scrimId = useId(), paperId = useId(), shadeId = useId();
+  const scrimId = useId(), paperId = useId(), shadeId = useId(), lookId = useId();
+  const picked = Array.isArray(s.looks) ? s.looks.filter(id => shown.some(i => i.id === id)) : [];   // the ones chosen by hand that are still in the look book
   const lostPicture = !!s.imageId && !pictures.some(i => !!i && i.id === s.imageId);
   const askBox = useRef<HTMLDivElement>(null);
   const insert = (token: string) => {
@@ -651,6 +653,45 @@ function SlideEditor({ slide: s, number, pictures, film, go, patch, onAddCard, o
         </fieldset>
       )}
 
+      {s.layout === 'timeline' && (
+        <div className="pd-fields"><label className="pd-tick full"><input type="checkbox" checked={s.agreement !== false} onChange={e => patch({ agreement: e.target.checked ? undefined : false })} /> Say which SAG-AFTRA agreement the film is budgeted under</label></div>
+      )}
+
+      {s.layout === 'look' && (
+        <fieldset className="pd-set"><legend>Pictures</legend>
+          {shown.length === 0 ? (
+            <p className="hint">The look book has no pictures yet: add some to the <button type="button" className="pd-link" onClick={() => go({ panel: 'lookbook' })}>Look book</button>.</p>
+          ) : (<>
+            <div className="pd-fields">
+              <div className="ctl full"><label htmlFor={lookId}>Which pictures</label>
+                <select id={lookId} data-field="looks" value={Array.isArray(s.looks) ? 'pick' : s.lookSection ?? ''}
+                  onChange={e => { const v = e.target.value; if (v === 'pick') patch({ looks: lookPictures(s, shown).map(i => i.id), lookSection: undefined }); else patch({ looks: undefined, lookSection: (v || undefined) as SlideSpec['lookSection'] }); }}>
+                  <option value="">The first {MAX_LOOKS} in the look book</option>
+                  {LOOK_SECTIONS.map(x => <option key={x.id} value={x.id}>The first {MAX_LOOKS} under {x.label}</option>)}
+                  <option value="pick">Ones I choose</option>
+                </select>
+                <div className="hint">A slide holds one to {MAX_LOOKS} pictures and lays them out by how many there are. To change their order in a section, move them in the Look book.</div>
+              </div>
+            </div>
+            {Array.isArray(s.looks) && (<>
+              <p className="hint">{picked.length} of {MAX_LOOKS} chosen. They appear in the order you choose them.</p>
+              <ul className="thumbs" aria-label="Pictures on this slide">
+                {shown.map((img, n) => {
+                  const at = picked.indexOf(img.id), on = at >= 0;
+                  return (
+                    <li key={img.id}><button type="button" className="thumb" aria-pressed={on} disabled={!on && picked.length >= MAX_LOOKS} onClick={() => patch({ looks: on ? picked.filter(id => id !== img.id) : [...picked, img.id] })}>
+                      <img src={img.dataUrl} alt={(typeof img.caption === 'string' ? img.caption.trim() : '') || `Look book picture ${n + 1}`} loading="lazy" />
+                      <span className="thumb-mark">{on ? `✓ Picture ${at + 1}` : 'Choose'}</span>
+                    </button></li>
+                  );
+                })}
+              </ul>
+            </>)}
+            <div className="pd-fields"><label className="pd-tick full"><input type="checkbox" checked={s.captions !== false} onChange={e => patch({ captions: e.target.checked ? undefined : false })} /> Show captions and credits under the pictures</label></div>
+          </>)}
+        </fieldset>
+      )}
+
       {s.layout === 'text' && (
         <Optional add="Add small columns" legend="Small columns under the text" filled={cols.length > 0}>
           {cols.map((c, i) => (
@@ -689,7 +730,7 @@ function SlideEditor({ slide: s, number, pictures, film, go, patch, onAddCard, o
         <div className="pd-fields"><Field label="Small print, at the foot of the slide" value={s.footnote ?? ''} onChange={v => patch({ footnote: v })} className="full" field="footnote" /></div>
       </Optional>
 
-      {shown.length === 0 && !lostPicture ? (
+      {s.layout === 'look' ? null : shown.length === 0 && !lostPicture ? (
         <p className="hint pd-optional">No pictures to put behind this slide yet: add some to the <button type="button" className="pd-link" onClick={() => go({ panel: 'lookbook' })}>Look book</button>.</p>
       ) : (
         <Optional add="Add a picture" legend="Picture" filled={!!s.imageId}>

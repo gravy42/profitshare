@@ -752,6 +752,8 @@ table.locs input { min-width: 80px; }
 .pd-fields .ctl { min-width: 0; }
 .pd-fields .wide { grid-column: span 2; }
 .pd-fields .full { grid-column: 1 / -1; }
+.pd-tick { display: flex; align-items: center; justify-content: flex-start; gap: 8px; font-size: 13px; }
+.pd-tick input[type="checkbox"] { width: auto; flex: none; margin: 0; }
 .pd-fields input, .pd-fields select { width: 100%; }
 .pd-insert { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .pd-insert .hint { flex: 1 1 100%; }

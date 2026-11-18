@@ -307,7 +307,7 @@ describe('Read my deck', () => {
     type(labelled<HTMLInputElement>(el.querySelector('.pd-editor')!, 'How to reach you'), '');
     click(button(el, 'Read my deck'));
     const items = [...el.querySelectorAll('.pd-read .pd-fixes li')].map(li => li.textContent);
-    expect(items).toEqual(['Slide 2, Words, A guaranteed return.: This reads like a promise of returns. A deck must not promise returns: change the wording. ("guaranteed")', 'Slide 12, The ask: The ask does not say how to reach you.']);
+    expect(items).toEqual(['Slide 2, Words, A guaranteed return.: This reads like a promise of returns. A deck must not promise returns: change the wording. ("guaranteed")', 'Slide 13, The ask: The ask does not say how to reach you.']);
     click(el.querySelector('.pd-read .pd-fixes li .pd-link')!);
     await tick(120);
     expect(el.querySelector('.pd-row.on')!.getAttribute('data-slide')).toBe('why');
@@ -330,7 +330,7 @@ describe('Read my deck', () => {
     expect(body).toContain('id=gap | layout=cards');
     for (const secret of ['Ada Example', 'Placeholder', 'data:image', 'look_dawn', 'Script purchase', '83,700', 'you asked what the raise is']) expect(body, secret).not.toContain(secret);
     const items = [...read.querySelectorAll('.pd-fixes li')].map(li => li.textContent);
-    expect(items).toEqual(['Slide 3, Cards, Audiences are asking for this film.: Vague. The second card does not say which ten years.', 'Slide 12, The ask: Unclear ask. <i>What</i> does an investor get?']);
+    expect(items).toEqual(['Slide 3, Cards, Audiences are asking for this film.: Vague. The second card does not say which ten years.', 'Slide 13, The ask: Unclear ask. <i>What</i> does an investor get?']);
     expect(read.querySelectorAll('.pd-fixes i')).toHaveLength(0);
     expect(read.textContent).toContain('Nothing on your deck was changed.');
   });
@@ -484,6 +484,6 @@ describe('the net for a promise of returns, on the page', () => {
     pick(el, 'model');
     type(labelled<HTMLTextAreaElement>(el.querySelector('.pd-editor')!, 'Paragraph above the steps'), 'Zero risk to your principal.');
     click(button(el, 'Read my deck'));
-    expect([...el.querySelectorAll('.pd-read .pd-fixes li')].map(li => li.textContent)).toEqual(['Slide 9, How the money flows, Everyone who makes the film shares in it.: This reads like a promise of returns. A deck must not promise returns: change the wording. ("Zero risk")']);
+    expect([...el.querySelectorAll('.pd-read .pd-fixes li')].map(li => li.textContent)).toEqual(['Slide 10, How the money flows, Everyone who makes the film shares in it.: This reads like a promise of returns. A deck must not promise returns: change the wording. ("Zero risk")']);
   });
 });

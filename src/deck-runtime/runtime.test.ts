@@ -1775,6 +1775,64 @@ describe('a slide with little on it', () => {
   });
 });
 
+// ---------- a look book slide ----------
+
+describe('a look book slide, drawn', () => {
+  const px = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+  const deckWith = (pictures: unknown[], extra: Record<string, unknown> = {}): DeckData => {
+    const d = fixture();
+    d.images = ['a', 'b', 'c', 'd', 'e', 'f', 'g'].map(id => ({ id, src: px, alt: `Picture ${id}` }));
+    d.slides = [{ id: 'look', layout: 'look', eyebrow: 'The look', headline: 'Dusk and salt.', pictures, ...extra } as never];
+    return d;
+  };
+  it('draws one figure for each picture, in order, with its caption and credit under it', () => {
+    const { slide } = mount(deckWith([{ imageId: 'b', caption: 'The motel', credit: 'Ada Example' }, { imageId: 'a' }, { imageId: 'c', caption: 'The road' }]));
+    const s = slide('look'), figs = [...s.querySelectorAll<HTMLElement>('.psd-look > figure.psd-look-fig')];
+    expect(s.querySelector('.psd-look')!.getAttribute('data-n')).toBe('3');
+    expect(figs.map(f => f.querySelector('img')!.alt)).toEqual(['Picture b', 'Picture a', 'Picture c']);
+    expect(figs.map(f => f.querySelector('figcaption')?.textContent ?? null)).toEqual(['The motel · Ada Example', null, 'The road']);
+    expect(figs.every(f => f.classList.contains('psd-rise'))).toBe(true);                                  // they arrive like any other part
+    expect(s.querySelector('h2, h1')!.textContent).toContain('Dusk and salt.');
+    expect(s.querySelector('img.psd-bg')).toBeNull(); expect(s.classList.contains('psd-has-picture')).toBe(false);
+  });
+  it('passes over a picture the file does not carry, shows six at most, and draws only the heading when there is none', () => {
+    const many = mount(deckWith(['a', 'b', 'c', 'd', 'e', 'f', 'g'].map(imageId => ({ imageId }))));
+    expect(many.slide('look').querySelectorAll('.psd-look-fig')).toHaveLength(6);
+    const some = mount(deckWith([{ imageId: 'nope' }, null, 7, { imageId: 'a' }, { caption: 'No picture named' }]));
+    expect(some.slide('look').querySelectorAll('.psd-look-fig')).toHaveLength(1);
+    expect(some.slide('look').querySelector('.psd-look')!.getAttribute('data-n')).toBe('1');
+    const none = mount(deckWith([]));
+    expect(none.slide('look').querySelector('.psd-look')).toBeNull();
+    expect(none.slide('look').textContent).toContain('Dusk and salt.');
+    expect(mount(deckWith('nonsense' as never)).slide('look').querySelector('.psd-look')).toBeNull();
+  });
+  it('never writes a caption as markup', () => {
+    const { slide } = mount(deckWith([{ imageId: 'a', caption: '<img src=x onerror=alert(1)>', credit: '<b>bold</b>' }]));
+    const cap = slide('look').querySelector('figcaption')!;
+    expect(cap.querySelector('img, b')).toBeNull(); expect(cap.textContent).toBe('<img src=x onerror=alert(1)> · <b>bold</b>');
+  });
+  it('lays the pictures out by how many there are, and one after another on a phone', () => {
+    const sheet = readFileSync(resolve(process.cwd(), 'src/deck-runtime/deck.css'), 'utf8');
+    expect(sheet).toContain('.psd-look { flex: 1 1 0; min-height: 0; display: grid;');
+    expect(sheet).toContain('.psd-look[data-n="1"] .psd-look-fig { grid-column: span 6; }');
+    expect(sheet).toContain('.psd-look[data-n="2"] .psd-look-fig, .psd-look[data-n="4"] .psd-look-fig { grid-column: span 3; }');
+    expect(sheet).toContain('.psd-look[data-n="5"] .psd-look-fig:nth-child(n + 4) { grid-column: span 3; }');
+    expect(sheet).toContain('.psd-look-pic { flex: 1 1 0; min-height: 0; width: 100%; object-fit: cover; display: block; }');
+    expect(sheet).toMatch(/\.psd-stacked \.psd-look \{ flex: none; display: grid; grid-template-columns: 1fr 1fr;/);
+  });
+});
+
+describe('the plan slide names the agreement', () => {
+  it('draws the line under the note when the deck carries one, and nothing when it does not', () => {
+    const d = fixture();
+    const plan = d.slides.find(s => s.layout === 'timeline') as unknown as Record<string, unknown>;
+    plan.agreement = 'Budgeted under the SAG-AFTRA Invented agreement.';
+    expect(mount(d).slide('timeline').querySelector('.psd-agreement')!.textContent).toBe('Budgeted under the SAG-AFTRA Invented agreement.');
+    delete plan.agreement;
+    expect(mount(d).slide('timeline').querySelector('.psd-agreement')).toBeNull();
+  });
+});
+
 // ---------- the scrim over a picture: strong behind the words only ----------
 
 describe('the scrim behind the words of a picture slide', () => {

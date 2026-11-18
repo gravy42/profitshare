@@ -74,6 +74,7 @@ export function buildSamplePitch(engine) {
       closing: 'How we reach them: a festival first, then the podcasts and newsletters they already trust.',
       motion: { count: true } },
     { id: 'story', layout: 'photo', imageId: 'look_flats', scrim: 0.45, eyebrow: 'The story', headline: 'A letter, a dead car and a stone on the flats.', body: story },
+    { id: 'look', layout: 'look', eyebrow: 'The look', headline: 'Dusk, salt and one long road.', looks: ['look_motel', 'look_door', 'look_pool', 'look_moon', 'look_dunes', 'look_road'] },
     { id: 'team', layout: 'team', paper: 'letter', eyebrow: 'The team', headline: 'People who make small films work.',
       aside: { title: 'Also attached', lines: ['Casting: an invented casting office', 'Music: an invented composer, on a package'], footnote: 'Everyone on this slide is invented.' } },
     { id: 'plan', layout: 'timeline', eyebrow: 'The plan', headline: 'Twelve days, one unit, one stretch of desert.',

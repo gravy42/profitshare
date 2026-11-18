@@ -41,6 +41,7 @@ export function slideText(s: DeckSlide): SlideWords[] {
   switch (s.layout) {
     case 'cover': add('tagline', 'paragraph', s.tagline); add('byline', 'paragraph', s.byline); break;
     case 'photo': add('body', 'paragraph', s.body); break;
+    case 'look': for (const x of s.pictures) add('pictures', 'paragraph', [x.caption, x.credit].filter(Boolean).join(' · ')); break;
     case 'text': add('body', 'paragraph', s.body); for (const a of s.aside ?? []) add('body', 'paragraph', [a.label, ...a.lines].join(': ')); add('closing', 'paragraph', s.closing); break;
     case 'cards': case 'ways': for (const c of s.cards) add('cards', 'card', [c.kicker, c.title, c.body, c.footnote].filter(Boolean).join(' | ')); break;
     case 'stats':

@@ -17,12 +17,26 @@ const deck = (): SlideSpec[] => [
 ];
 const ids = (s: SlideSpec[]) => s.map(x => x.id);
 
+describe('a look book slide in the editor', () => {
+  it('keeps the pictures chosen by hand (even none), the section, and the two switches when they are off', () => {
+    const [a, b, c] = readSlides([
+      { id: 'a', layout: 'look', looks: ['p1', 7, 'p1', '', 'p2'], lookSection: 'tone', captions: false },
+      { id: 'b', layout: 'look', looks: [], lookSection: 'nowhere', captions: true },
+      { id: 'c', layout: 'timeline', agreement: false, looks: 'p1' },
+    ]);
+    expect(a).toMatchObject({ looks: ['p1', '7', 'p2'], lookSection: 'tone', captions: false });
+    expect(b.looks).toEqual([]); expect('lookSection' in b).toBe(false); expect('captions' in b).toBe(false);
+    expect(c.agreement).toBe(false); expect('looks' in c).toBe(false);
+    expect('agreement' in readSlides([{ id: 'd', layout: 'timeline', agreement: true }])[0]).toBe(false);   // on is the default: nothing is stored
+  });
+});
+
 describe('the layouts', () => {
-  it('are the thirteen the deck draws, each with a name and a line about it', () => {
-    expect(LAYOUTS.map(l => l.id).sort()).toEqual(['ask', 'cards', 'closing', 'comps', 'cover', 'model', 'numbers', 'photo', 'stats', 'team', 'text', 'timeline', 'ways']);
+  it('are the fourteen the deck draws, each with a name and a line about it', () => {
+    expect(LAYOUTS.map(l => l.id).sort()).toEqual(['ask', 'cards', 'closing', 'comps', 'cover', 'look', 'model', 'numbers', 'photo', 'stats', 'team', 'text', 'timeline', 'ways']);
     for (const l of LAYOUTS) { expect(l.name.length).toBeGreaterThan(2); expect(l.about.length).toBeGreaterThan(20); expect(l.about).not.toMatch(/slug/i); }
     expect(layoutName('stats')).toBe('Proof (numbers and a quote)');
-    expect(LAYOUTS.map(l => l.name)).toEqual(['Cover', 'Picture and a line', 'Words', 'Cards', 'Proof (numbers and a quote)', 'Comparable films', 'Team', 'Plan', 'How the money flows', 'Ways to take part', 'The money', 'The ask', 'Closing']);
+    expect(LAYOUTS.map(l => l.name)).toEqual(['Cover', 'Picture and a line', 'Look book', 'Words', 'Cards', 'Proof (numbers and a quote)', 'Comparable films', 'Team', 'Plan', 'How the money flows', 'Ways to take part', 'The money', 'The ask', 'Closing']);
     expect(LAYOUTS.find(l => l.id === 'timeline')!.about).not.toMatch(/timeline/i);
     for (const l of LAYOUTS) expect(`${l.name} ${l.about}`, l.id).not.toMatch(/on a line|pinned|hung|clip|\bpeg/i);
     expect([...FROM_BUDGET].sort()).toEqual(['model', 'numbers', 'timeline']);

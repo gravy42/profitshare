@@ -14,6 +14,7 @@ import { shootDays, parkedScenes } from './board';
 import { shootDates, withCalendar } from './calendar';
 import { letterFor } from './incentives';
 import { sponsorNet } from './waterfall';
+import { sagReport } from './sag';
 import { pathInputs } from './paths';
 import { pathFor } from './pathMath';
 
@@ -226,6 +227,8 @@ function timelineFacts(p: Project): { value: string; label: string }[] {
   if (scenes > 0) out.push({ value: String(scenes), label: scenes === 1 ? 'scene' : 'scenes' });
   if (sets > 0) out.push({ value: String(sets), label: sets === 1 ? 'set' : 'sets' });
   if (cast > 0) out.push({ value: String(cast), label: cast === 1 ? 'speaking part' : 'speaking parts' });
+  const crew = p.participants.filter(x => x.group === 'crew').length;
+  if (crew > 0) out.push({ value: String(crew), label: 'crew' });
   if (cash > 0) out.push({ value: compactMoney(cash, p.currency), label: 'cash budget' });
   return out;
 }
@@ -271,10 +274,21 @@ export const ASK_WITHOUT_GRANTS = 'We are raising {investors} from investors. Th
 // ---------- specs → contract ----------
 
 const text = (s: unknown): string => (typeof s === 'string' ? s : typeof s === 'number' && Number.isFinite(s) ? String(s) : '').trim();
-const LAYOUTS: ReadonlySet<string> = new Set(['cover', 'photo', 'text', 'cards', 'stats', 'timeline', 'comps', 'team', 'model', 'ways', 'numbers', 'ask', 'closing']);
+const LAYOUTS: ReadonlySet<string> = new Set(['cover', 'photo', 'look', 'text', 'cards', 'stats', 'timeline', 'comps', 'team', 'model', 'ways', 'numbers', 'ask', 'closing']);
 const isObj = (x: unknown): x is Record<string, unknown> => !!x && typeof x === 'object' && !Array.isArray(x);
 const list = (x: unknown): Record<string, unknown>[] => (Array.isArray(x) ? x.filter(isObj) : []);
 const lines = (x: unknown): string[] => (Array.isArray(x) ? x.map(text).filter(Boolean) : []);
+
+const LOOK_SECTION_IDS: ReadonlySet<string> = new Set(['tone', 'world', 'character', 'reference']);
+/** How many pictures a look book slide holds. */
+export const MAX_LOOKS = 6;
+/** The pictures a look book slide shows, in order: the ones chosen by hand that are still in the look book; with
+ *  none chosen by hand, the first of its section (or of the whole look book). Never more than `MAX_LOOKS`. */
+export function lookPictures(s: SlideSpec, lookbook: LookImage[]): LookImage[] {
+  const usable = lookbook.filter(i => !!i && typeof i.id === 'string' && typeof i.dataUrl === 'string' && !!i.dataUrl);
+  if (Array.isArray(s.looks)) { const byId = new Map(usable.map(i => [i.id, i] as const)); return s.looks.map(id => byId.get(id)).filter((i): i is LookImage => !!i).slice(0, MAX_LOOKS); }
+  return (s.lookSection ? usable.filter(i => i.section === s.lookSection) : usable).slice(0, MAX_LOOKS);
+}
 
 /** Link endings the deck reads as "which ask first", so nobody's own link can use them. */
 export function reservedSlug(slug: string): boolean {
@@ -311,6 +325,10 @@ function cleanSpec(raw: unknown): SlideSpec | null {
   const cols = list(raw.columns).map(c => ({ label: text(c.label), lines: lines(c.lines) })).filter(c => c.label || c.lines.length);
   if (cols.length) s.columns = cols;
   if (isObj(raw.aside)) { const a = { title: text(raw.aside.title), lines: lines(raw.aside.lines), footnote: text(raw.aside.footnote) }; if (a.title || a.lines.length) s.aside = a.footnote ? a : { title: a.title, lines: a.lines }; }
+  if (Array.isArray(raw.looks)) s.looks = [...new Set(raw.looks.map(text).filter(Boolean))];   // chosen by hand, even when none is chosen yet
+  if (LOOK_SECTION_IDS.has(text(raw.lookSection))) s.lookSection = text(raw.lookSection) as LookImage['section'];
+  if (raw.captions === false) s.captions = false;
+  if (raw.agreement === false) s.agreement = false;
   return s;
 }
 const cleanSlides = (p: Project): SlideSpec[] => slidesOf(p).map(cleanSpec).filter((s): s is SlideSpec => !!s);
@@ -346,6 +364,11 @@ function slideOf(p: Project, s: SlideSpec, pictures: Map<string, LookImage>): De
       return { ...base, layout: 'cover', title: p.name, tagline: first.length <= TAGLINE_MAX ? first : '', byline: (s.byline ?? '').trim() };
     }
     case 'photo': return { ...base, layout: 'photo', body };
+    case 'look': {
+      delete base.imageId; delete base.scrim;   // the pictures are the slide: nothing goes behind them
+      const show = s.captions !== false;
+      return { ...base, layout: 'look', pictures: lookPictures(s, [...pictures.values()]).map(i => ({ imageId: i.id, ...(show && text(i.caption) ? { caption: text(i.caption) } : {}), ...(show && text(i.credit) ? { credit: text(i.credit) } : {}) })) };
+    }
     case 'text': return { ...base, layout: 'text', body, ...(s.columns?.length ? { aside: s.columns.map(c => ({ label: c.label, lines: [...c.lines] })) } : {}), ...(closing ? { closing } : {}) };
     case 'cards': return { ...base, layout: 'cards', cards: cardsOf(s.cards) };
     case 'ways': return { ...base, layout: 'ways', cards: cardsOf(s.cards) };
@@ -359,7 +382,8 @@ function slideOf(p: Project, s: SlideSpec, pictures: Map<string, LookImage>): De
     }
     case 'timeline': {
       const own = (s.milestones ?? []).filter(m => text(m.when) || text(m.what)).map(m => ({ id: m.id, when: text(m.when), what: text(m.what) }));
-      return { ...base, layout: 'timeline', facts: timelineFacts(p), milestones: own.length ? own : derivedMilestones(p), ...(closing ? { note: closing } : {}) };
+      const tier = s.agreement === false || !p.board.castList.length ? '' : text(sagReport(p).target?.name);   // only a film with speaking parts has an agreement to name
+      return { ...base, layout: 'timeline', facts: timelineFacts(p), milestones: own.length ? own : derivedMilestones(p), ...(closing ? { note: closing } : {}), ...(tier ? { agreement: `Budgeted under the SAG-AFTRA ${tier} agreement.` } : {}) };
     }
     case 'comps': {
       const bars = pitch.comps.map(c => ({ c, m: compMultiple(c) })).filter((x): x is { c: typeof x.c; m: number } => x.m != null)
@@ -413,7 +437,7 @@ export function deckData(p0: Project, opts: DeckDataOptions = {}): DeckData {
   const p = withPitch(p0); const pitch = p.pitch!;
   const pictures = new Map(looks(pitch.lookbook).filter(i => i.dataUrl).map(i => [i.id, i] as const));
   const slides = cleanSlides(p).filter(s => !s.hidden).map(s => slideOf(p, s, pictures));
-  const usedIds = new Set(slides.flatMap(s => [s.imageId, s.motion?.marker?.imageId]).filter((id): id is string => !!id));   // a travelling picture goes in the file like any other
+  const usedIds = new Set(slides.flatMap(s => [s.imageId, s.motion?.marker?.imageId, ...(s.layout === 'look' ? s.pictures.map(x => x.imageId) : [])]).filter((id): id is string => !!id));   // a travelling picture goes in the file like any other
   const images: DeckImage[] = [...pictures.values()].filter(i => usedIds.has(i.id)).map(i => ({ id: i.id, src: i.dataUrl, alt: text(i.caption) || 'Look book picture' }));
   const data: DeckData = {
     version: DECK_DATA_VERSION,
@@ -458,7 +482,14 @@ export function deckWarnings(p0: Project): DeckWarning[] {
       for (const x of s.stats ?? []) if ((text(x.value) || text(x.label)) && !sourced(x)) out.push({ slideId: s.id, where: `stat:${x.id}`, message: `The number${text(x.value) ? ` "${x.value.trim()}"` : ''} has no source, so it is left off the deck.` });
     }
     if ((s.layout === 'cards' || s.layout === 'ways') && (s.cards?.length ?? 0) > MAX_CARDS) out.push({ slideId: s.id, where: 'cards', message: `This slide has ${s.cards!.length} cards; a slide holds ${MAX_CARDS} at most.` });
-    if (s.imageId && !ids.has(s.imageId)) out.push({ slideId: s.id, where: 'picture', message: 'The picture chosen for this slide is no longer in the look book.' });
+    if (s.layout === 'look') {
+      const have = looks(pitch.lookbook).filter(i => i.dataUrl);
+      const gone = (s.looks ?? []).filter(id => !ids.has(id)).length;
+      if (gone) out.push({ slideId: s.id, where: 'looks', message: `${gone} of the pictures chosen for this slide ${gone === 1 ? 'is' : 'are'} no longer in the look book, so ${gone === 1 ? 'it is' : 'they are'} left off.` });
+      if ((s.looks?.length ?? 0) > MAX_LOOKS) out.push({ slideId: s.id, where: 'looks', message: `This slide has ${s.looks!.length} pictures chosen; a slide holds ${MAX_LOOKS} at most, so the rest are left off.` });
+      if (!lookPictures(s, have).length) out.push({ slideId: s.id, where: 'looks', message: !have.length ? 'The look book has no pictures yet, so this slide is empty. Add some to the Look book.' : Array.isArray(s.looks) ? 'No pictures are chosen for this slide yet, so it is empty.' : 'The look book has no pictures in that section, so this slide is empty.' });
+    }
+    if (s.layout !== 'look' && s.imageId && !ids.has(s.imageId)) out.push({ slideId: s.id, where: 'picture', message: 'The picture chosen for this slide is no longer in the look book.' });
     if (s.motion?.marker && !ids.has(s.motion.marker.imageId)) out.push({ slideId: s.id, where: 'marker', message: 'The picture that travels along the timeline on this slide is no longer in the look book, so it is left off.' });
   }
   const fontSaid = new Set<string>();   // a family picked from Google Fonts is several files: what is wrong with it is said once
