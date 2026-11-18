@@ -1,4 +1,4 @@
-import * as XLSX from 'xlsx';
+import { isWorkbook, readSpreadsheet, type Workbook } from './spreadsheet';
 import type { Account, Category, FringeDef, LineItem } from '../types';
 import { CA_FRINGES_2026 } from './shamelXlsx';
 import { round2 } from '../budget';
@@ -183,13 +183,11 @@ export function parseGenericRows(rows: any[][], opts: { name?: string; sheet?: s
   };
 }
 
-/** Pick the sheet that looks most like a detail list and parse it. Accepts .xlsx/.xls/.csv/.txt (tab or comma). */
-export function parseGenericBudget(buf: ArrayBuffer, filename = '', standard?: { categories: Category[]; accounts: Account[] }): GenericImport {
-  const isText = /\.(csv|txt|tsv)$/i.test(filename);
-  const wb = isText ? XLSX.read(new TextDecoder().decode(buf), { type: 'string', raw: true }) : XLSX.read(new Uint8Array(buf), { type: 'array' });
+/** Pick the sheet that looks most like a detail list and parse it. Accepts .xlsx and .csv/.tsv/.txt (comma, tab, semicolon or pipe). */
+export function parseGenericBudget(src: ArrayBuffer | Workbook, filename = '', standard?: { categories: Category[]; accounts: Account[] }): GenericImport {
+  const wb = isWorkbook(src) ? src : readSpreadsheet(src, filename);
   let best: GenericImport | null = null; let firstErr: Error | null = null;
-  for (const name of wb.SheetNames) {
-    const rows = XLSX.utils.sheet_to_json<any[]>(wb.Sheets[name], { header: 1, defval: '', raw: true });
+  for (const { name, rows } of wb.sheets) {
     try {
       const imp = parseGenericRows(rows, { name: filename.replace(/\.[^.]+$/, ''), sheet: name, standard });
       if (!best || imp.lines.length > best.lines.length) best = imp;
