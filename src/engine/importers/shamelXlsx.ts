@@ -1,4 +1,4 @@
-import * as XLSX from 'xlsx';
+import { isWorkbook, readSpreadsheet, sheetNamed, type Workbook } from './spreadsheet';
 import type { Account, Category, FringeDef, LineItem, Section } from '../types';
 
 /** Import a Shamel Studio budget export (.xlsx with Budget Metadata / TopSheet / Accounts / Details sheets).
@@ -28,14 +28,15 @@ const sectionOf = (num: string): Section => {
   return n < 2000 ? 'ATL' : n < 4000 ? 'PRODUCTION' : n < 5000 ? 'POST' : 'OTHER';
 };
 
-export function parseShamelXlsx(buf: ArrayBuffer): ShamelImport {
-  const wb = XLSX.read(new Uint8Array(buf), { type: 'array' });
+export function parseShamelXlsx(src: ArrayBuffer | Workbook): ShamelImport {
+  const wb = isWorkbook(src) ? src : readSpreadsheet(src, 'budget.xlsx');
   const need = ['TopSheet', 'Accounts', 'Details'];
-  for (const n of need) if (!wb.Sheets[n]) throw new Error(`Missing sheet "${n}" – is this a Shamel Studio budget export?`);
-  const rows = (name: string) => XLSX.utils.sheet_to_json<any[]>(wb.Sheets[name], { header: 1, defval: '' });
+  for (const n of need) if (!sheetNamed(wb, n)) throw new Error(`Missing sheet "${n}" – is this a Shamel Studio budget export?`);
+  const rows = (name: string): any[][] => sheetNamed(wb, name) ?? [];
 
-  const meta: Record<string, any> = {};
-  if (wb.Sheets['Budget Metadata']) for (const r of rows('Budget Metadata')) if (r[0]) meta[String(r[0])] = r[1];
+  // a Map, not an object: the keys are text from the file
+  const meta = new Map<string, any>();
+  for (const r of rows('Budget Metadata')) if (r[0]) meta.set(String(r[0]), r[1]);
 
   const categories: Category[] = [];
   let reportedGrand: number | undefined, reportedCont: number | undefined;
@@ -65,8 +66,8 @@ export function parseShamelXlsx(buf: ArrayBuffer): ShamelImport {
     });
   });
   return {
-    name: String(meta['Project Name'] ?? 'Untitled'), version: String(meta['Budget Name'] ?? ''),
-    shootDays: Number(meta['Location Shoot Days']) || 0,
+    name: String(meta.get('Project Name') ?? 'Untitled'), version: String(meta.get('Budget Name') ?? ''),
+    shootDays: Number(meta.get('Location Shoot Days')) || 0,
     categories, accounts, fringes, lines, reported: { grandTotal: reportedGrand, contingency: reportedCont },
   };
 }
