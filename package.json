@@ -13,13 +13,11 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "smoke": "npm run build:single && node tools/smoke.mjs",
-    "demo": "npm run build:single && node tools/demo.mjs && ffmpeg -y -loglevel error -i demo/profitshare-demo.webm -c:v libx264 -preset slow -crf 20 -pix_fmt yuv420p -movflags +faststart demo/profitshare-demo.mp4",
     "sample": "node tools/make-sample.mjs",
     "browsers": "node tools/browsers.mjs",
     "build:deck-runtime": "node tools/build-deck-runtime.mjs",
     "deck:scratch": "node tools/deck-scratch.mjs",
-    "fonts:catalogue": "node tools/make-font-catalogue.mjs",
-    "demo:vo": "node tools/vo-mux.mjs analyze demo/vo.mp3 && DEMO_CAPTIONS=off node tools/demo.mjs && node tools/vo-mux.mjs mux demo/vo.mp3"
+    "fonts:catalogue": "node tools/make-font-catalogue.mjs"
   },
   "dependencies": {
     "@fontsource/caveat": "^5.3.0",
