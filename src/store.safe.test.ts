@@ -21,7 +21,7 @@ describe('a saved project that cannot be read', () => {
   const broken: [string, string, RegExp][] = [
     ['cut off', JSON.stringify(sampleProject()).slice(0, 400), /^What this browser saved for it is incomplete\.$/],
     ['no lines', JSON.stringify({ ...sampleProject(), lines: null }), /^The saved copy is missing its budget lines\.$/],
-    ['a newer format', JSON.stringify({ ...sampleProject(), schemaVersion: 2 }), /^The saved copy was made by a newer version of ProfitShare \(format 2\)\. Update the app to open it\.$/],
+    ['a newer format', JSON.stringify({ ...sampleProject(), schemaVersion: 2 }), /^The saved copy was made by a newer version of ProfitShare \(format 2\)\. Reload this page to get the latest version, then open it again\.$/],
     ['not a project', '[1,2,3]', /^The saved copy is not a ProfitShare project\.$/],
     ['a bad line', JSON.stringify({ ...sampleProject(), lines: [{ id: 'L1' }] }), /^The saved copy has a budget line that cannot be read \(number 1 in the file\)\. The trouble is with its account number\.$/],
   ];
@@ -152,3 +152,18 @@ describe('downloading everything from the crash screen', () => {
     expect(savedProjectList(kv)).toEqual([]);
   });
 });
+
+describe('a project list that cannot be read', () => {
+  const listing = (): KV & { m: Map<string, string> } => { const kv = mem(); return Object.defineProperties(kv, { length: { get: () => kv.m.size }, key: { value: (i: number) => [...kv.m.keys()][i] ?? null } }) as KV & { m: Map<string, string> }; };
+  it('is rebuilt from the projects themselves, and the next save keeps them all', () => {
+    const kv = listing();
+    for (const [id, name] of [['a', 'Film A'], ['b', 'Film B'], ['c', 'Film C']]) saveSlot(id, { ...sampleProject(), name }, kv);
+    kv.setItem('profitshare.projects', kv.getItem('profitshare.projects')!.slice(0, 40));          // cut off
+    expect(readIndex(kv).map(m => [m.id, m.name])).toEqual([['a', 'Film A'], ['b', 'Film B'], ['c', 'Film C']]);
+    expect(savedProjectList(kv).map(m => m.name)).toEqual(['Film A', 'Film B', 'Film C']);
+    saveSlot('a', { ...sampleProject(), name: 'Film A' }, kv);
+    expect(readIndex(kv).map(m => m.id).sort()).toEqual(['a', 'b', 'c']);
+    expect(JSON.parse(kv.getItem('profitshare.projects')!)).toHaveLength(3);
+  });
+});
+

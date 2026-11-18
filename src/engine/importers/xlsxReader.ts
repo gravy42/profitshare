@@ -26,7 +26,9 @@ const partKey = (name: string) => (name.charCodeAt(0) === 0x2f ? name.slice(1) :
 
 interface Unpacked { parts: Map<string, Uint8Array>; names: Set<string> }
 /** Unpack only the named parts. Sizes are checked from the zip's directory before anything is inflated, and the
- *  inflater is given a buffer of exactly the declared size, so a part cannot grow past what was checked. */
+ *  inflater is given a buffer of exactly the declared size, so a part cannot grow past what was checked. A stored
+ *  (uncompressed) part is copied by its packed size whatever it declares, so the two must agree and the larger is
+ *  what gets charged: otherwise many entries declaring 0 bytes could each point at one big block. */
 function unpack(zip: Uint8Array, wanted: string[], spent: { bytes: number }): Unpacked {
   const want = new Set(wanted.map(partKey));
   const picked = new Map<string, string>();          // our key -> the entry's own name
@@ -38,7 +40,8 @@ function unpack(zip: Uint8Array, wanted: string[], spent: { bytes: number }): Un
       const key = partKey(f.name);
       if (names.size < LIMITS.zipEntries) names.add(key);
       if (!want.has(key) || picked.has(key) || f.name === '__proto__') return false;
-      spent.bytes += f.originalSize;
+      if (f.compression === 0 && f.size !== f.originalSize) throw damaged();
+      spent.bytes += Math.max(f.size, f.originalSize);
       if (!(spent.bytes <= LIMITS.unzippedBytes)) throw tooBig.unzipped();
       picked.set(key, f.name);
       return true;
@@ -210,6 +213,8 @@ function parseSheet(xml: string, strings: string[], sheetName: string, budget: B
     if (cCol < minC) minC = cCol; if (cCol > maxC) maxC = cCol;
     if (val === undefined || val === '') return;
     if (++budget.cells > LIMITS.cells) throw tooBig.cells();
+    // Shared strings are held once and cited by many cells, so the text has to be counted where it is used.
+    if (typeof val === 'string' && (budget.chars += val.length) > LIMITS.chars) throw tooBig.text();
     atRow.push(cRow); atCol.push(cCol); values.push(val);
   };
 
@@ -337,6 +342,9 @@ function read(zip: Uint8Array, budget: Budget): Workbook {
     if (!rel) return `${base}worksheets/sheet${i + 1}.xml`;
     return isType(rel, 'worksheet') ? resolvePart(base, rel.target) : null;       // chart sheets and the like have no grid
   });
+  // Two sheets naming one part would have it read once per sheet: 200 sheets on one large part is minutes of work.
+  const named = sheetPaths.filter((p): p is string => p !== null).map(partKey);
+  if (new Set(named).size !== named.length || named.includes(partKey(sharedPath))) throw damaged();
   const second = unpack(zip, [sharedPath, ...sheetPaths.filter((p): p is string => p !== null)], spent);
 
   const sharedXml = text(second, sharedPath);

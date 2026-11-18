@@ -57,7 +57,7 @@ describe('the sample with no pitch content (the fixture other tests pin their fi
 // written with other day counts would show one total in its files and another on screen, so the generator
 // (tools/make-sample.mjs) reads the cast days off the board, and this holds it there.
 describe('the sample agrees with its own stripboard', () => {
-  const SAMPLE_TOTAL = 805_312.06;                       // the one figure the README, the tests and the demo quote
+  const SAMPLE_TOTAL = 805_312.06;                       // the one figure the README and the tests quote
   const load = (p: Project): Project => syncCastDaysFromBoard(adoptBoardDays(withDeal(p)));   // `normalize` in src/store.ts
   const plain = (p: Project) => p.lines.map(l => ({ ...l, daysFrom: undefined }));             // the flag is the only thing loading may add
   for (const [name, make] of [['sampleProject()', sampleProject], ['sampleDemo()', sampleDemo]] as const) {

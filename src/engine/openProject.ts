@@ -20,9 +20,9 @@ export type ProjectCheck =
   | { ok: false; reason: string };
 
 export const NOT_A_PROJECT = 'This file is not a ProfitShare project.';
-export const NOT_JSON = 'This file is not valid JSON; it may have been cut off.';
+export const NOT_JSON = 'This file cannot be read as a project. It may have been cut off.';
 export const EMPTY_FILE = 'This file is empty.';
-export const newerVersion = (v: number) => `This file was made by a newer version of ProfitShare (format ${v}). Update the app to open it.`;
+export const newerVersion = (v: number) => `This file was made by a newer version of ProfitShare (format ${v}). Reload this page to get the latest version, then open it again.`;
 
 type Obj = Record<string, unknown>;
 const isObj = (v: unknown): v is Obj => typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -105,8 +105,9 @@ const PARTICIPANT: Shape = {
   fixedPoints: may(num), castId: may(num), followsCastIds: may(nums), followsElements: may(listOf(boardElement)),
 };
 const TIER: Shape = { id: must(str), name: text, multiplier: must(num) };
+const MAX_SCENARIOS = 50;     // revenue figures to price; each is a column on the Points tab, and thousands of them stall it
 const WATERFALL: Shape = {
-  model: must(oneOf('recoup-first', 'off-the-gross')), recoupPct: must(num), poolPct: must(num), grossSharePct: must(num), scenarios: must(nums),
+  model: must(oneOf('recoup-first', 'off-the-gross')), recoupPct: must(num), poolPct: must(num), grossSharePct: must(num), scenarios: must(v => nums(v) && (v as unknown[]).length <= MAX_SCENARIOS),
   nonRecoupable: may(num), sponsorFeePct: may(num),
 };
 const SAG: Shape = { targetTier: must(oneOf(...SAG_IDS)), dic: must(bool), includeContingency: must(bool) };

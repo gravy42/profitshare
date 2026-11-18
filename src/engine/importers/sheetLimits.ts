@@ -26,6 +26,8 @@ export const LIMITS = {
   columns: 2_000,
   /** Cells with something in them, across the whole file. */
   cells: 500_000,
+  /** Letters of text in the cells, across the whole file, counted each time a cell uses them. */
+  chars: 20_000_000,
   /** Cells in the grids we hand back (filled and blank), across the whole file. */
   gridCells: 3_000_000,
 } as const;
@@ -40,13 +42,14 @@ export const tooBig = {
   rows: (sheet: string) => new SpreadsheetError(`${where(sheet)} goes past row ${count(LIMITS.rows)}, which is more than ProfitShare reads. Delete the unused rows at the bottom, or save a copy with only the budget in it, and drop that.`),
   columns: (sheet: string) => new SpreadsheetError(`${where(sheet)} goes past ${count(LIMITS.columns)} columns, which is more than ProfitShare reads. Delete the unused columns on the right, or save a copy with only the budget in it, and drop that.`),
   cells: () => new SpreadsheetError(`This spreadsheet has more than ${count(LIMITS.cells)} filled cells, which is more than ProfitShare reads. Save a copy with only the budget sheets in it and drop that.`),
+  text: () => new SpreadsheetError('This spreadsheet holds far more text than a budget does, so it was not opened. Save a copy with only the budget sheets in it and drop that.'),
   grid: (sheet: string) => new SpreadsheetError(`${where(sheet)} is spread over too large an area to read (more than ${count(LIMITS.gridCells)} cells, counting the blank ones). Delete the unused rows and columns, or save a copy with only the budget in it, and drop that.`),
 };
 const where = (sheet: string) => sheet ? `The sheet "${sheet.length > 40 ? sheet.slice(0, 40) + '…' : sheet}"` : 'This file';
 
 /** Shared across the sheets of one file so the ceilings apply to the file, not to each sheet. */
-export interface Budget { cells: number; gridCells: number }
-export const newBudget = (): Budget => ({ cells: 0, gridCells: 0 });
+export interface Budget { cells: number; gridCells: number; chars: number }
+export const newBudget = (): Budget => ({ cells: 0, gridCells: 0, chars: 0 });
 
 /** Check a grid of `rows` × `columns` against the ceilings and charge it to the file's budget. */
 export function chargeGrid(budget: Budget, sheet: string, rows: number, columns: number): void {

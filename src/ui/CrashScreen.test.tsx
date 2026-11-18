@@ -134,8 +134,10 @@ describe('the crash screen', () => {
     act(() => { root!.render(<AppBoundary><Always /></AppBoundary>); });
     const alert = box.querySelector('[role="alert"]')!;
     expect(alert.textContent).toContain('ProfitShare ran into a problem while drawing the page and had to stop.');
-    expect(alert.textContent).toContain('No projects are saved in this browser yet.');
-    expect(button(box, 'Download every saved project').disabled).toBe(true);
+    // the list of projects is unreadable, so it is rebuilt from the projects themselves: both can still be downloaded
+    expect(alert.textContent).toContain('SALT FLAT');
+    expect(alert.textContent).toContain('Nine Miles');
+    expect(button(box, 'Download every saved project').disabled).toBe(false);
     expect(box.querySelector('pre')!.textContent).toContain('a thrown string');
   });
 });

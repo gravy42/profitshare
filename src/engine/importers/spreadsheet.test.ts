@@ -2,7 +2,8 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { zipSync, strToU8, type Zippable } from 'fflate';
+import { zipSync, unzipSync, strToU8, type Zippable } from 'fflate';
+const unzipParts = (z: Uint8Array) => unzipSync(z);
 import * as XLSX from 'xlsx';          // dev dependency only: writes fixtures and is the reference the reader is checked against
 import { readSpreadsheet, sheetNamed, LIMITS, OLD_EXCEL_MESSAGE, SpreadsheetError, type Cell, type Workbook } from './spreadsheet';
 import { readXlsx } from './xlsxReader';
@@ -603,5 +604,39 @@ describe('hostile and broken files are refused quickly, in plain words, and chan
     expect(seen).toEqual(['<a', '<c', '>c', '17-23', '32-37', '>a']);
     expect(() => scanXml('<!DOCTYPE x>', { open() {}, close() {}, text() {} })).toThrow();
     expect(() => scanXml('<a', { open() {}, close() {}, text() {} })).toThrow();
+  });
+});
+
+describe('files built to get round the limits', () => {
+  const cell = (ref: string, v: string) => `<row><c r="${ref}" t="inlineStr"><is><t>${v}</t></is></c></row>`;
+  it('refuses a stored part whose directory entry lies about its size', () => {
+    const zip = zipSync({ ...Object.fromEntries(Object.entries(unzipParts(handMade([{ name: 'A', xml: sheetXml(cell('A1', 'x'.repeat(4000))) }])))) }, { level: 0 });
+    expect(readSpreadsheet(zip, 'b.xlsx').sheets[0].rows[0][0]).toHaveLength(4000);          // honest and stored: fine
+    const lied = zip.slice(); const view = new DataView(lied.buffer);
+    let patched = 0;
+    for (let i = 0; i + 46 <= lied.length; i++) {
+      if (view.getUint32(i, true) !== 0x02014b50) continue;
+      const nameLen = view.getUint16(i + 28, true), name = new TextDecoder().decode(lied.subarray(i + 46, i + 46 + nameLen));
+      if (name === 'xl/worksheets/sheet1.xml') { view.setUint32(i + 24, 0, true); patched++; }
+    }
+    expect(patched).toBe(1);
+    expect(message(() => readSpreadsheet(lied, 'b.xlsx'))).toMatch(/damaged or incomplete/);
+  });
+  it('refuses two sheets that point at the same part', () => {
+    const rels = `<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${RT}/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="${RT}/worksheet" Target="worksheets/sheet1.xml"/></Relationships>`;
+    const file = handMade([{ name: 'A', xml: sheetXml(cell('A1', 'x')) }, { name: 'B', xml: sheetXml(cell('A1', 'y')) }], undefined, { 'xl/_rels/workbook.xml.rels': strToU8(rels) });
+    expect(message(() => readSpreadsheet(file, 'b.xlsx'))).toMatch(/damaged or incomplete/);
+  });
+  it('counts a shared string every time a cell uses it', () => {
+    const big = 'x'.repeat(1_000_000);
+    const rows = Array.from({ length: 25 }, (_, i) => `<row><c r="A${i + 1}" t="s"><v>0</v></c></row>`).join('');
+    expect(message(() => readSpreadsheet(handMade([{ name: 'A', xml: sheetXml(rows) }], `<si><t>${big}</t></si>`), 'b.xlsx'))).toMatch(/far more text than a budget/);
+    const few = Array.from({ length: 5 }, (_, i) => `<row><c r="A${i + 1}" t="s"><v>0</v></c></row>`).join('');
+    expect(readSpreadsheet(handMade([{ name: 'A', xml: sheetXml(few) }], `<si><t>${big}</t></si>`), 'b.xlsx').sheets[0].rows).toHaveLength(5);
+  });
+  it('reads a .csv saved by Excel on Windows (Windows-1252) as well as UTF-8', () => {
+    const win = new Uint8Array([0x43, 0x61, 0x66, 0xe9, 0x2c, 0xa3, 0x35, 0x0a]);          // Café,£5
+    expect(readSpreadsheet(win, 'b.csv').sheets[0].rows[0]).toEqual(['Café', '£5']);
+    expect(readSpreadsheet(strToU8('Café,£5\n'), 'b.csv').sheets[0].rows[0]).toEqual(['Café', '£5']);
   });
 });

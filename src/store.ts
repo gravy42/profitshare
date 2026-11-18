@@ -24,7 +24,7 @@ const slotKey = (id: string) => `profitshare.project.${id}`;
 export interface ProjectMeta { id: string; name: string; version: string; savedAt: string; shootDays: number; lines: number; scenes: number; cashBudget: number }
 
 /** A minimal Storage so the index logic can be tested without a browser. */
-export interface KV { getItem(k: string): string | null; setItem(k: string, v: string): void; removeItem(k: string): void }
+export interface KV { getItem(k: string): string | null; setItem(k: string, v: string): void; removeItem(k: string): void; readonly length?: number; key?(i: number): string | null }
 const ls = (): KV | null => { try { return typeof localStorage !== 'undefined' ? localStorage : null; } catch { return null; } };
 const ss = (): KV | null => { try { return typeof sessionStorage !== 'undefined' ? sessionStorage : null; } catch { return null; } };
 
@@ -34,8 +34,10 @@ export const newProjectId = () => `p_${Date.now().toString(36)}_${Math.random().
  *  left out, and a row with a field missing is shown with a blank there, so the Projects table can always be drawn. */
 export function readIndex(kv: KV | null = ls()): ProjectMeta[] {
   try {
-    const raw = kv?.getItem(INDEX_KEY); const v: unknown = raw ? JSON.parse(raw) : [];
-    if (!Array.isArray(v)) return [];
+    const raw = kv?.getItem(INDEX_KEY);
+    let v: unknown;
+    try { v = raw ? JSON.parse(raw) : []; } catch { return foundSlots(kv); }
+    if (!Array.isArray(v)) return foundSlots(kv);
     const text = (x: unknown, or = '') => (typeof x === 'string' ? x : or), n = (x: unknown) => (typeof x === 'number' && Number.isFinite(x) ? x : 0);
     const seen = new Set<string>(); const out: ProjectMeta[] = [];
     for (const m of v as Partial<ProjectMeta>[]) {
@@ -45,6 +47,23 @@ export function readIndex(kv: KV | null = ls()): ProjectMeta[] {
     }
     return out;
   } catch { return []; }
+}
+/** When the list itself cannot be read (cut off, or edited by hand), the projects are still in the browser under their
+ *  own keys. List those, so none of them drops out of sight and the next save does not write a list without them. */
+function foundSlots(kv: KV | null): ProjectMeta[] {
+  const out: ProjectMeta[] = [];
+  try {
+    const n = kv?.length ?? 0, prefix = slotKey('');
+    for (let i = 0; i < n; i++) {
+      const k = kv?.key?.(i);
+      if (!k || !k.startsWith(prefix) || k.length === prefix.length) continue;
+      const id = k.slice(prefix.length);
+      let name = 'Untitled';
+      try { const p: unknown = JSON.parse(kv?.getItem(k) ?? ''); const t = (p as { name?: unknown } | null)?.name; if (typeof t === 'string' && t) name = t; } catch { /* listed all the same */ }
+      out.push({ id, name, version: '', savedAt: '', shootDays: 0, lines: 0, scenes: 0, cashBudget: 0 });
+    }
+  } catch { /* nothing to list */ }
+  return out.sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
 }
 function writeIndex(list: ProjectMeta[], kv: KV | null = ls()) { try { kv?.setItem(INDEX_KEY, JSON.stringify(list)); } catch { /* ignore */ } }
 

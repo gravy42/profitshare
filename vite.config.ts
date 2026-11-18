@@ -31,7 +31,7 @@ export function deckRuntime(): Plugin {
   };
 }
 
-// SINGLEFILE=1 inlines everything into one index.html (used for the hosted demo).
+// SINGLEFILE=1 inlines everything into one index.html (one file that can be handed to someone).
 // Normal builds are plain static files served from GitHub Pages at /profitshare/.
 export default defineConfig({
   base: process.env.SINGLEFILE ? './' : '/profitshare/',

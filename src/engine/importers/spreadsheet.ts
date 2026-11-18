@@ -32,7 +32,10 @@ const utf16 = (s: string) => { const out: number[] = []; for (let i = 0; i < s.l
 function decode(bytes: Uint8Array): string {
   if (bytes[0] === 0xff && bytes[1] === 0xfe) return new TextDecoder('utf-16le').decode(bytes);
   if (bytes[0] === 0xfe && bytes[1] === 0xff) return new TextDecoder('utf-16be').decode(bytes);
-  return new TextDecoder('utf-8').decode(bytes);        // drops a UTF-8 byte-order mark
+  // UTF-8 first (this drops its byte-order mark). Excel on Windows saves a plain .csv in Windows-1252, where an é or
+  // a £ is a single byte that is not valid UTF-8, so a file that fails strict UTF-8 is read as Windows-1252.
+  try { return new TextDecoder('utf-8', { fatal: true }).decode(bytes); }
+  catch { return new TextDecoder('windows-1252').decode(bytes); }
 }
 
 export function readSpreadsheet(buf: ArrayBuffer | Uint8Array, filename = ''): Workbook {

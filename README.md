@@ -147,7 +147,7 @@ Every pull request is tested in Safari's engine (WebKit), Firefox and Chromium b
 
 ## Run it locally
 
-Needs Node 20 or newer (the workflows run Node 22).
+Needs Node 20 or newer (the workflows run Node 20 and 22).
 
 ```bash
 npm install

@@ -30,7 +30,7 @@ ProfitShare models the back end, not just the raise. Every budget line carries a
 
 ## Operating Context
 
-- One project is one `.json` file, terms included; it autosaves to the browser and is handed to a collaborator by sending the file. No accounts, no server, no telemetry, no network calls from the app except the opt-in AI assist, which goes only when the person presses it, with her own key.
+- One project is one `.json` file, terms included; it autosaves to the browser and is handed to a collaborator by sending the file. No accounts, no server, no telemetry, no network calls from the app except two the person asks for: AI assist, which goes only when she presses it, with her own key, and the Google Fonts picker, which fetches fonts from Google after she says yes.
 - Inputs are the documents a production already has: a Shamel Studio or Movie Magic Budgeting export (`.xlsx`, `.csv`), a Movie Magic Scheduling board (`.sex`), a screenplay (`.fdx` with Final Draft's tags, Fountain, plain text, or a PDF with real text). Movie Magic's native `.mbd` is closed and is not read.
 - Outputs leave the app on paper: the browser's print dialog saves every report as a PDF (shooting schedule, top sheet, full budget, breakdowns, sides, investor summary) and the calendar exports `.ics`.
 - The work happens across tabs that share one project: Start, Deal, Top sheet & budget, Stripboard, Calendar, Call sheets, Breakdowns, Points & waterfall, SAG tier, Incentives, Pitch, About.
@@ -63,7 +63,6 @@ ProfitShare models the back end, not just the raise. Every budget line carries a
 
 - The sample project SALT FLAT (`tools/make-sample.mjs`): a 12-day, 26-scene SAG feature with a 154-line budget and a board in shooting order. Every name and number invented.
 - Fixtures: `tools/fixtures/SaltFlat_Script.fountain` and its PDF, `tools/fixtures/sample.fdx` with an invented TagData block.
-- A narrated 2:41 demo, `demo/profitshare-demo.mp4`, with captions as a subtitle track.
 - Engine tests (`src/engine/engine.test.ts`) pin the sample's totals and the importers' round-trips.
 - Rate and rule sources are cited in the source files that use them (`src/engine/sag.ts`, `src/engine/incentives.ts`) with check dates.
 - There are no testimonials, user counts, customer names or press; none may be invented. The one real production using it is not named in the repository.
@@ -74,7 +73,7 @@ ProfitShare models the back end, not just the raise. Every budget line carries a
 2. One file, one truth: the top sheet, the board, the schedule, the points and the pitch read the same lines, so a change anywhere shows everywhere.
 3. Explain the number: a figure on screen should be traceable to a line, a rate and a rule, and the rule should carry its source and date.
 4. Built for the filmmaker, printed for the room: the person at the keyboard is doing this alone; the people reading the output have no app and no patience.
-5. Nothing leaves the machine: no accounts, no network, no keys; local files are the product's memory. The one exception is AI assist, which the person turns on with her own key and which says exactly what it sends before it sends it.
+5. Nothing leaves the machine: no accounts, no network, no keys; local files are the product's memory. The two exceptions are AI assist, which the person turns on with her own key and which says exactly what it sends before it sends it, and the Google Fonts picker, which asks before it fetches anything.
 
 ## Accessibility & Inclusion
 

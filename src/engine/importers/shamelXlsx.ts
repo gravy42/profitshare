@@ -31,7 +31,7 @@ const sectionOf = (num: string): Section => {
 export function parseShamelXlsx(src: ArrayBuffer | Workbook): ShamelImport {
   const wb = isWorkbook(src) ? src : readSpreadsheet(src, 'budget.xlsx');
   const need = ['TopSheet', 'Accounts', 'Details'];
-  for (const n of need) if (!sheetNamed(wb, n)) throw new Error(`Missing sheet "${n}" – is this a Shamel Studio budget export?`);
+  for (const n of need) if (!sheetNamed(wb, n)) throw new Error(`This workbook has no sheet named "${n}". Is it a Shamel Studio budget export?`);
   const rows = (name: string): any[][] => sheetNamed(wb, name) ?? [];
 
   // a Map, not an object: the keys are text from the file

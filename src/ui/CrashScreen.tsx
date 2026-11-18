@@ -58,7 +58,7 @@ export class AppBoundary extends Component<{ children: ReactNode; reload?: () =>
         <main>
           <div className="panel" role="alert">
             <h2 ref={this.heading} tabIndex={-1}>This page could not be shown</h2>
-            <p>ProfitShare ran into a problem while drawing {was?.name ? <>“{was.name}”</> : 'the page'} and had to stop. <b>The projects saved in this browser have not been deleted.</b></p>
+            <p>ProfitShare ran into a problem while drawing {was?.name ? <>“{was.name}”</> : 'the page'} and had to stop. <b>The projects saved in this browser have not been deleted.</b> Changes made in the last few seconds may not have been saved.</p>
             <p className="help">You can download a copy of every saved project to be safe, go back to the start screen, or reload. {was?.id ? 'The project that was open stays under Projects; it will not be opened again until you open it yourself.' : ''}</p>
             <div className="row crash-actions">
               <button type="button" className="btn primary" disabled={busy || saved.length === 0} onClick={() => void this.download()}>Download every saved project</button>

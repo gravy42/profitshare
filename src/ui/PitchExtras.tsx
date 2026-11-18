@@ -56,7 +56,7 @@ export function AiPanel({ onChange, project, setPitch }: { onChange: (ready: boo
   return (
     <details className="panel ai" id="pitch-ai" open={open} onToggle={e => setOpen((e.target as HTMLDetailsElement).open)}>
       <summary><h2>AI assist</h2><span className="small muted">{s.key ? `on · ${s.model}` : 'off: paste your own Anthropic key to turn it on'}</span></summary>
-      <p className="help">Optional. With a key, every text box on this tab gets a <b>Draft</b> button that writes a first pass from what the project already knows: the logline and case so far, the budget figures, the schedule, the deal, the comps, the research. The key lives in this browser only, never in the project file. When you press Draft, a brief of the film (a few hundred words of your pitch and numbers, no images) is sent to Anthropic and nothing else leaves your machine. Keys are at console.anthropic.com; usage is billed to you.</p>
+      <p className="help">Optional. With a key, every text box on this tab gets a <b>Draft</b> button that writes a first pass from what the project already knows: the logline and case so far, the budget figures, the schedule, the deal, the comps, the research. The key lives in this browser only, never in the project file. When you press Draft, a brief of the film (a few hundred words of your pitch and numbers) is sent to Anthropic, along with any PDFs you add below. Nothing else leaves your machine. Keys are at console.anthropic.com; usage is billed to you.</p>
       <AiKeyFields settings={s} onChange={setS} />
       {status && <p className="small" style={{ marginTop: 6 }}>{status}</p>}
       <h3 style={{ margin: '14px 0 4px' }}>Documents the AI reads</h3>

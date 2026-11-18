@@ -23,7 +23,7 @@ describe('a file that is not a project is refused in plain words', () => {
     expect(readProjectText('  \n ')).toEqual({ ok: false, reason: 'This file is empty.' });
     expect(readProjectText('SALT FLAT budget, draft 2')).toEqual({ ok: false, reason: NOT_JSON });
     const whole = JSON.stringify(sampleDemo());
-    expect(readProjectText(whole.slice(0, Math.floor(whole.length / 2)))).toEqual({ ok: false, reason: 'This file is not valid JSON; it may have been cut off.' });
+    expect(readProjectText(whole.slice(0, Math.floor(whole.length / 2)))).toEqual({ ok: false, reason: 'This file cannot be read as a project. It may have been cut off.' });
   });
   it('a list, a number, a word, null, an empty object', () => {
     for (const text of ['[]', '[{"schemaVersion":1}]', '7', '"SALT FLAT"', 'null', 'true', '{}', '{"name":"SALT FLAT"}'])
@@ -31,8 +31,8 @@ describe('a file that is not a project is refused in plain words', () => {
     expect(NOT_A_PROJECT).toBe('This file is not a ProfitShare project.');
   });
   it('a file from a newer ProfitShare says so, and says what to do', () => {
-    expect(reason({ ...file(), schemaVersion: 2 })).toBe('This file was made by a newer version of ProfitShare (format 2). Update the app to open it.');
-    expect(reason({ schemaVersion: 3 })).toBe('This file was made by a newer version of ProfitShare (format 3). Update the app to open it.');
+    expect(reason({ ...file(), schemaVersion: 2 })).toBe('This file was made by a newer version of ProfitShare (format 2). Reload this page to get the latest version, then open it again.');
+    expect(reason({ schemaVersion: 3 })).toBe('This file was made by a newer version of ProfitShare (format 3). Reload this page to get the latest version, then open it again.');
     for (const v of [0, -1, '1', null, [1], { v: 1 }, true]) expect(reason({ ...file(), schemaVersion: v }), String(v)).toBe(NOT_A_PROJECT);
   });
 });
