@@ -6,7 +6,7 @@ import { memo, useCallback, useEffect, useId, useMemo, useRef, useState } from '
 import { createPortal } from 'react-dom';
 import type { FontFile } from '../engine/types';
 import {
-  CATEGORY_NAMES, FONT_CATEGORIES, GOOGLE_DISCLOSURE, LICENCE_NAMES, planInWords, previewWeight, searchCatalogue, weightsFor, weightsInWords,
+  CATEGORY_NAMES, FONT_CATEGORIES, GOOGLE_DISCLOSURE, LICENCE_NAMES, planInWords, searchCatalogue, weightsFor, weightsInWords,
   type Catalogue, type CatalogueFamily, type FontCategory, type FontRole, type FontSort,
 } from '../engine/googleFonts';
 import { GoogleFontsError, OFFLINE_WORDS, PreviewLoader, UNREACHABLE_WORDS, allowGoogleFonts, fetchGoogleFamily, googleFontsAllowed, loadCatalogue, type PreviewState } from './googleFontsNet';
@@ -252,17 +252,17 @@ function FontRows({ rows, from, to, rowH, active, listId, current, previews, loa
       {rows.slice(from, to).map((f, k) => {
         const i = from + k;
         return <FontRowView key={f.family} f={f} i={i} n={rows.length} y={i * rowH} h={rowH} id={`${listId}-${i}`} active={i === active} mine={!!current && current === f.family}
-          state={previews ? loader.state(f.family) : undefined} previews={previews} sample={sample} big={big} see={see} onActive={onActive} onUse={onUse} />;
+          state={previews ? loader.state(f.family) : undefined} face={loader.faceName(f.family)} previews={previews} sample={sample} big={big} see={see} onActive={onActive} onUse={onUse} />;
       })}
     </div>
   );
 }
 
 interface RowProps {
-  f: CatalogueFamily; i: number; n: number; y: number; h: number; id: string; active: boolean; mine: boolean; state: PreviewState | undefined; previews: boolean; sample: string; big: boolean;
+  f: CatalogueFamily; i: number; n: number; y: number; h: number; id: string; active: boolean; mine: boolean; state: PreviewState | undefined; face: string; previews: boolean; sample: string; big: boolean;
   see: (el: Element, f: CatalogueFamily) => () => void; onActive: (i: number) => void; onUse: (f: CatalogueFamily) => void;
 }
-const FontRowView = memo(function FontRowView({ f, i, n, y, h, id, active, mine, state, previews, sample, big, see, onActive, onUse }: RowProps) {
+const FontRowView = memo(function FontRowView({ f, i, n, y, h, id, active, mine, state, face, previews, sample, big, see, onActive, onUse }: RowProps) {
   const el = useRef<HTMLDivElement>(null);
   useEffect(() => (el.current ? see(el.current, f) : undefined), [see, f]);
   const ready = state === 'ready';
@@ -276,7 +276,7 @@ const FontRowView = memo(function FontRowView({ f, i, n, y, h, id, active, mine,
       </div>
       {previews && (state === 'failed'
         ? <div className="gf-sample none" aria-hidden="true">No preview just now</div>
-        : <div className={`gf-sample${big ? ' big' : ''}${ready ? '' : ' wait'}`} aria-hidden="true" style={ready ? { fontFamily: `"${f.family}", ${FALLBACK[f.category]}`, fontWeight: previewWeight(f) } : undefined}>{sample}</div>)}
+        : <div className={`gf-sample${big ? ' big' : ''}${ready ? '' : ' wait'}`} aria-hidden="true" style={ready ? { fontFamily: `"${face}", ${FALLBACK[f.category]}` } : undefined}>{sample}</div>)}
     </div>
   );
 });

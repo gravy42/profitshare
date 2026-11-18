@@ -43,7 +43,7 @@
 .gf-name { font-weight: 700; font-size: 13.5px; }
 .gf-meta { font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .gf-mine { margin-left: auto; font-size: 11.5px; font-weight: 700; color: var(--good); }
-.gf-sample { margin-top: 5px; font-size: 21px; line-height: 1.5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gf-sample { font-weight: 400; font-synthesis: none; margin-top: 5px; font-size: 21px; line-height: 1.5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .gf-sample.big { font-size: 28px; line-height: 1.3; margin-top: 3px; }
 .gf-sample.wait { font-family: var(--font-text); opacity: .28; }
 .gf-sample.none { font-size: 12px; line-height: 2.8; color: var(--muted); font-style: italic; }

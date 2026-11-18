@@ -13,7 +13,7 @@ import { defaultDesign, withPitch } from './pitch';
 import { sampleProject } from '../data/seed';
 import type { FontFile, Project } from './types';
 import {
-  GOOGLE_CSS_MAX, GOOGLE_DISCLOSURE, PREVIEW_LETTERS, css2Url, filesToFetch, findFamily, googleFontFiles, isGoogleFontsUrl, parseCss2, planInWords, previewCssUrl, readCatalogue,
+  GOOGLE_CSS_MAX, GOOGLE_DISCLOSURE, PREVIEW_LETTERS, css2Url, filesToFetch, findFamily, googleFontFiles, isGoogleFontsUrl, parseCss2, parsePreviewCss, planInWords, previewCssUrl, previewFaceName, readCatalogue,
   removeRoleFonts, roleFont, searchCatalogue, setRoleFonts, weightsFor, weightsInWords, type CatalogueFamily,
 } from './googleFonts';
 
@@ -329,6 +329,42 @@ describe('reading Google\'s answer', () => {
     expect(parseCss2(`@font-face { src: url(${'a'.repeat(150_000)}) format('woff2') }`)).toEqual([]);
     expect(Date.now() - started).toBeLessThan(2000);
     for (const v of [undefined, null, 7, {}, [], '']) expect(parseCss2(v)).toEqual([]);
+  });
+});
+
+describe('reading a preview\'s stylesheet', () => {
+  const KIT = 'https://fonts.gstatic.com/l/font?kit=KFOMCnqEu92Fr1ME7kSn66aGLdTylUAMQXC89YmC2DPNWubEbGmWggvWl0Qn&skey=a0a0114a1dcab3ac&v=v50';
+  const one = (src: string, extra = '') => `@font-face {\n  font-family: 'Roboto';\n  font-style: normal;\n  font-weight: 400;\n  font-stretch: 100%;\n  font-display: swap;\n  src: ${src};\n${extra}}\n`;
+  it('takes the one address: the cut-down file at fonts.gstatic.com, or a .woff2 there, whatever weight the block says', () => {
+    expect(parsePreviewCss(one(`url(${KIT}) format('woff2')`))).toBe(KIT);
+    expect(parsePreviewCss(one(`url("${KIT}") format("woff2")`))).toBe(KIT);
+    expect(parsePreviewCss(one(`url(${KIT})`))).toBe(KIT);                                      // no format named: the browser reads the bytes either way
+    expect(parsePreviewCss(one(`url(${KIT}) format('woff2')`).replace('font-weight: 400', 'font-weight: 100 900'))).toBe(KIT);   // a variable family's range
+    expect(parsePreviewCss(one(`url(${G}/roboto/v50/abc_D-e.woff2) format('woff2')`))).toBe(`${G}/roboto/v50/abc_D-e.woff2`);
+    // several blocks: the upright latin one
+    const many = block({ subset: 'latin-ext', style: 'italic', url: `${G}/lato/v25/i.woff2`, range: LATIN_EXT }) + block({ subset: 'latin-ext', url: `${G}/lato/v25/e.woff2`, range: LATIN_EXT }) + block({ subset: 'latin', url: `${G}/lato/v25/l.woff2`, range: LATIN });
+    expect(parsePreviewCss(many)).toBe(`${G}/lato/v25/l.woff2`);
+  });
+  it('takes nothing that is not at fonts.gstatic.com over https, or that could carry another address', () => {
+    for (const bad of [
+      'https://evil.invalid/l/font?kit=abc', 'http://fonts.gstatic.com/l/font?kit=abc', '//fonts.gstatic.com/l/font?kit=abc', 'https://fonts.gstatic.com.evil.invalid/l/font?kit=abc',
+      'https://fonts.gstatic.com@evil.invalid/l/font?kit=abc', 'https://fonts.gstatic.com/l/font?kit=abc&next=https://evil.invalid', 'https://fonts.gstatic.com/l/font?kit=abc&v=1#x',
+      'https://fonts.gstatic.com/l/font?kit=a/../../x', 'https://fonts.gstatic.com/l/font', 'https://fonts.gstatic.com/l/font?kit=', 'https://fonts.gstatic.com/l/other?kit=abc',
+      'https://fonts.gstatic.com/l/font?kit=abc&V=1', 'https://fonts.gstatic.com/l/font?kit=a%0Ab', 'https://fonts.gstatic.com/s/roboto/v50/a.ttf', 'javascript:alert(1)', 'data:font/woff2;base64,AAAA', 'blob:https://fonts.gstatic.com/1',
+    ]) expect(parsePreviewCss(one(`url(${bad}) format('woff2')`)), bad).toBeNull();
+    expect(parsePreviewCss(one(`url(${KIT}) format('woff2'), url(https://evil.invalid/a.woff2) format('woff2')`))).toBeNull();
+    expect(parsePreviewCss(one(`url(${KIT}) format('woff2')`, '  src: url(https://evil.invalid/a) format("woff2");\n'))).toBeNull();
+    expect(parsePreviewCss(one(`local('Roboto'), url(${KIT}) format('woff2')`))).toBeNull();
+    for (const extra of ['@import url("https://evil.invalid/x.css");', 'body { color: red }', '<script>alert(1)</script>', '/* never closed'])
+      expect(parsePreviewCss(one(`url(${KIT}) format('woff2')`) + extra), extra).toBeNull();
+    expect(parsePreviewCss(one(`url(${KIT}) format('woff2')`) + ' '.repeat(GOOGLE_CSS_MAX))).toBeNull();
+    for (const v of [undefined, null, 7, {}, '', '   ']) expect(parsePreviewCss(v)).toBeNull();
+    // a bad block beside a good one does not spoil the good one
+    expect(parsePreviewCss(one(`url(https://evil.invalid/a.woff2) format('woff2')`) + one(`url(${KIT}) format('woff2')`))).toBe(KIT);
+  });
+  it('names a preview\'s face as nothing else is named', () => {
+    expect(previewFaceName('Open Sans')).toBe('gfp Open Sans');
+    expect(previewFaceName('Bad"; } x')).toBe('gfp Bad x');
   });
 });
 

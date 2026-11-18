@@ -228,6 +228,37 @@ export function parseCss2(css: unknown): Css2Face[] {
   return out;
 }
 
+// A preview's file: the same host, and either a .woff2 path or the address Google gives a font cut down to a few
+// letters (/l/font?kit=…&skey=…&v=…): plain names and values only, nothing that could carry another address.
+const PREVIEW_URL = /^https:\/\/fonts\.gstatic\.com\/l\/font\?kit=[A-Za-z0-9_-]{1,400}(?:&[a-z]{1,12}=[A-Za-z0-9_.-]{1,80}){0,6}$/;
+const PREVIEW_SRC = /^url\(\s*(["']?)([^"'()\s]+)\1\s*\)(?:\s+format\(\s*(["'])[a-z0-9-]{1,20}\3\s*\))?$/;
+/** The one file a preview stylesheet (css2 with `text=`) names: its address, at fonts.gstatic.com over https and
+ *  nowhere else, or null when the answer is not what Google writes. The same whole-answer rule as parseCss2: anything
+ *  but @font-face blocks and comments, and nothing is taken. Upright before italic; latin when subsets are named. */
+export function parsePreviewCss(css: unknown): string | null {
+  if (typeof css !== 'string' || css.length > GOOGLE_CSS_MAX || !onlyFontFaces(css)) return null;
+  const found: { url: string; rank: number }[] = [];
+  for (const m of css.matchAll(BLOCK)) {
+    const decl = new Map<string, string>(); let twice = false;
+    for (const part of m[2].split(';')) {
+      const at = part.indexOf(':'); if (at < 0) continue;
+      const key = part.slice(0, at).trim().toLowerCase();
+      if (decl.has(key)) twice = true;
+      decl.set(key, part.slice(at + 1).trim());
+    }
+    const src = PREVIEW_SRC.exec(decl.get('src') ?? '');
+    if (twice || !src || src[2].includes('..') || !(FILE_URL.test(src[2]) || PREVIEW_URL.test(src[2]))) continue;
+    const range = decl.get('unicode-range') ?? '';
+    const latin = (m[1] ?? (!range || /^U\+0000-00FF\b/i.test(range) ? 'latin' : 'other')) === 'latin';
+    found.push({ url: src[2], rank: (decl.get('font-style') ?? 'normal') === 'normal' ? (latin ? 0 : 1) : 2 });
+    if (found.length >= 40) break;
+  }
+  return found.sort((a, b) => a.rank - b.rank)[0]?.url ?? null;
+}
+/** The private name a preview's face is registered under: never a name a page, a project or a deck uses. */
+export const previewFaceName = (family: string): string => `gfp ${cleanFamily(family)}`;
+export const GOOGLE_PREVIEW_MAX_BYTES = 400_000;   // a preview is a few letters of one weight
+
 export interface FileToFetch { url: string; weight: FaceWeight; style: 'normal' | 'italic' }
 /** The files of a plan among the faces Google listed: the `latin` file of each weight and style the plan asked for,
  *  of the family that was asked for and no other. Sorted: upright before italic, lighter before heavier. */

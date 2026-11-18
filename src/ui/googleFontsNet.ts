@@ -6,8 +6,8 @@
 import type { FontFile } from '../engine/types';
 import { fontMime } from '../engine/deckEdit';
 import {
-  GOOGLE_CSS_MAX, GOOGLE_CSS_ORIGIN, GOOGLE_FILE_MAX_BYTES, GOOGLE_FILE_ORIGIN, PREVIEW_LETTERS, css2Url, filesToFetch, googleFontFiles, parseCss2, previewCssUrl,
-  previewWeight, readCatalogue, weightsFor, type Catalogue, type CatalogueFamily, type FontRole,
+  GOOGLE_CSS_MAX, GOOGLE_CSS_ORIGIN, GOOGLE_FILE_MAX_BYTES, GOOGLE_FILE_ORIGIN, GOOGLE_PREVIEW_MAX_BYTES, css2Url, filesToFetch, googleFontFiles, parseCss2, parsePreviewCss, previewCssUrl,
+  previewFaceName, readCatalogue, weightsFor, type Catalogue, type CatalogueFamily, type FontRole,
 } from '../engine/googleFonts';
 
 // ---------- the answer to "may this page ask Google?": kept for this session of the tab, never in the project ----------
@@ -105,99 +105,110 @@ export async function fetchGoogleFamily(family: CatalogueFamily, role: FontRole,
   return googleFontFiles(role, family, got);
 }
 
-// ---------- previews: one small stylesheet a family, only for rows on screen, a few at a time ----------
+// ---------- previews: one small face a family, only for rows on screen, a few at a time ----------
+// Nothing is left to the browser's own matching of font names and weights (engines differ, above all for variable
+// families): the preview stylesheet is fetched as text, its one file address read out by the engine's strict
+// reader, the file fetched as bytes, and those bytes given to the FontFace API under a private name the row is then
+// drawn with. No <link>, nothing put into the page as markup; every face is taken off again when the picker closes.
 
 export type PreviewState = 'waiting' | 'ready' | 'failed';
-export const PREVIEW_AT_ONCE = 4;      // stylesheets being fetched at one time
-const PREVIEW_KEEP = 90;               // stylesheets kept in the page; the ones longest out of sight go first
-const PREVIEW_WAIT_MS = 12000;
+export const PREVIEW_AT_ONCE = 4;      // previews being fetched at one time
+const PREVIEW_KEEP = 90;               // faces kept; the ones longest out of sight go first
+const PREVIEW_TRIES = 2;               // a preview that failed is tried once more when its row comes back into view
 const OWN_FAMILIES = ['Work Sans', 'Special Elite', 'Caveat'];   // the app's own pages already carry these
 
-/** Loads previews by adding a stylesheet link to fonts.googleapis.com for a family (the fixed preview letters only),
- *  at most PREVIEW_AT_ONCE at a time, and takes every link out again when it is closed. */
 export class PreviewLoader {
-  private links = new Map<string, HTMLLinkElement>();
+  private faces = new Map<string, FontFace>();          // in the order last seen: the first is the first to go
   private states = new Map<string, PreviewState>();
+  private tries = new Map<string, number>();
+  private flying = new Map<string, AbortController>();
   private queue: CatalogueFamily[] = [];
-  private busy = 0;
   private closed = false;
   private failures = 0;
   private successes = 0;
   constructor(private onChange: () => void, private doc: Document = document) {}
 
   state(family: string): PreviewState | undefined { return this.states.get(family); }
+  /** The font-family name a row whose preview is ready is drawn with. */
+  faceName(family: string): string { return OWN_FAMILIES.includes(family) ? family : previewFaceName(family); }
   /** True when previews have failed and none has ever worked: Google cannot be reached from here. */
   get unreachable(): boolean { return this.successes === 0 && this.failures >= 3; }
 
-  /** A row has come into view: load its preview if it has none. */
+  /** A row has come into view: load its preview if it has none (or try once more one that failed). */
   want(f: CatalogueFamily): void {
     if (this.closed || !googleFontsAllowed() || this.unreachable) return;
-    if (this.states.has(f.family)) { const link = this.links.get(f.family); if (link) { this.links.delete(f.family); this.links.set(f.family, link); } return; }   // seen again: the last to go
+    const now = this.states.get(f.family);
+    if (now === 'ready' || now === 'waiting') { const face = this.faces.get(f.family); if (face) { this.faces.delete(f.family); this.faces.set(f.family, face); } return; }
+    if (now === 'failed' && (this.tries.get(f.family) ?? 0) >= PREVIEW_TRIES) return;
     if (OWN_FAMILIES.includes(f.family)) { this.states.set(f.family, 'ready'); this.onChange(); return; }
     if (offline()) { this.failures++; this.states.set(f.family, 'failed'); this.onChange(); return; }
     this.states.set(f.family, 'waiting');
     this.queue.push(f);
+    if (now === 'failed') this.onChange();
     this.pump();
   }
-  /** A row has gone out of view before its turn came: it gives up its place. */
+  /** A row has gone out of view: it gives up its place in the queue, and a fetch on its way is called off. */
   drop(family: string): void {
     const at = this.queue.findIndex(f => f.family === family);
     if (at >= 0) { this.queue.splice(at, 1); this.states.delete(family); }
+    this.flying.get(family)?.abort();
   }
   /** Forget the failures and let rows ask again. */
   retry(): void {
     this.failures = 0;
-    for (const [family, s] of [...this.states]) if (s === 'failed') { this.states.delete(family); this.links.get(family)?.remove(); this.links.delete(family); }
+    for (const [family, s] of [...this.states]) if (s === 'failed') { this.states.delete(family); this.tries.delete(family); }
     this.onChange();
   }
   close(): void {
     this.closed = true; this.queue = [];
-    for (const link of this.links.values()) link.remove();
-    this.links.clear(); this.states.clear();
+    for (const c of this.flying.values()) c.abort();
+    for (const face of this.faces.values()) this.forget(face);
+    this.faces.clear(); this.states.clear(); this.flying.clear();
   }
 
+  private forget(face: FontFace): void { try { (this.doc.fonts as FontFaceSet | undefined)?.delete(face); } catch { /* already gone */ } }
   private pump(): void {
-    while (!this.closed && this.busy < PREVIEW_AT_ONCE && this.queue.length) {
+    while (!this.closed && this.flying.size < PREVIEW_AT_ONCE && this.queue.length) {
       const f = this.queue.pop()!;   // the row that came into view last is the one being looked at
-      this.busy++;
-      void this.load(f).then(ok => {
-        this.busy--;
+      const ctl = new AbortController();
+      this.flying.set(f.family, ctl);
+      void this.load(f, ctl.signal).then(ok => {
+        if (this.flying.get(f.family) === ctl) this.flying.delete(f.family);
         if (this.closed) return;
-        if (ok) this.successes++; else this.failures++;
-        this.states.set(f.family, ok ? 'ready' : 'failed');
-        if (this.unreachable) { for (const q of this.queue) this.states.delete(q.family); this.queue = []; }
-        this.trim();
+        if (ctl.signal.aborted) this.states.delete(f.family);   // called off: neither a success nor a failure
+        else {
+          if (ok) this.successes++; else { this.failures++; this.tries.set(f.family, (this.tries.get(f.family) ?? 0) + 1); }
+          this.states.set(f.family, ok ? 'ready' : 'failed');
+          if (this.unreachable) { for (const q of this.queue) this.states.delete(q.family); this.queue = []; }
+          this.trim();
+        }
         this.onChange();
         this.pump();
       });
     }
   }
-  private load(f: CatalogueFamily): Promise<boolean> {
-    return new Promise<boolean>(done => {
-      let over = false;
-      const finish = (ok: boolean) => { if (!over) { over = true; clearTimeout(timer); done(ok); } };
-      const timer = setTimeout(() => finish(false), PREVIEW_WAIT_MS);
-      const link = this.doc.createElement('link');
-      link.rel = 'stylesheet';
-      link.referrerPolicy = 'no-referrer';
-      link.dataset.googleFontPreview = f.family;
-      link.onerror = () => finish(false);
-      link.onload = () => {
-        // the stylesheet is in; the letters themselves arrive when something is drawn with them
-        const fonts = this.doc.fonts as FontFaceSet | undefined;
-        if (!fonts?.load) { finish(true); return; }
-        fonts.load(`${previewWeight(f)} 20px "${f.family}"`, PREVIEW_LETTERS).then(faces => finish(faces.length > 0), () => finish(false));
-      };
-      link.href = previewCssUrl(f);   // built by the engine from the catalogue's own name: always fonts.googleapis.com
-      this.links.set(f.family, link);
-      this.doc.head.appendChild(link);
-    });
+  /** The stylesheet as text, its one address, the file as bytes, a face from the bytes. False when any step cannot be done. */
+  private async load(f: CatalogueFamily, signal: AbortSignal): Promise<boolean> {
+    try {
+      const Face = (this.doc.defaultView as (Window & typeof globalThis) | null)?.FontFace ?? (typeof FontFace !== 'undefined' ? FontFace : undefined);
+      const set = this.doc.fonts as FontFaceSet | undefined;
+      if (!Face || !set?.add) return false;
+      const css = new TextDecoder().decode(await bytesOf(await ask(previewCssUrl(f), GOOGLE_CSS_ORIGIN, signal), GOOGLE_CSS_MAX));
+      const url = parsePreviewCss(css);
+      if (!url) return false;
+      const bytes = await bytesOf(await ask(url, GOOGLE_FILE_ORIGIN, signal), GOOGLE_PREVIEW_MAX_BYTES);
+      const face = new Face(previewFaceName(f.family), bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer);
+      await face.load();
+      if (signal.aborted || this.closed) return false;
+      set.add(face);
+      this.faces.set(f.family, face);
+      return true;
+    } catch { return false; }
   }
   private trim(): void {
-    for (const [family, link] of this.links) {
-      if (this.links.size <= PREVIEW_KEEP) break;
-      if (this.states.get(family) === 'waiting') continue;
-      link.remove(); this.links.delete(family); this.states.delete(family);
+    for (const [family, face] of this.faces) {
+      if (this.faces.size <= PREVIEW_KEEP) break;
+      this.forget(face); this.faces.delete(family); this.states.delete(family);
     }
   }
 }

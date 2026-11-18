@@ -17,7 +17,7 @@ const catalogue = readCatalogue(raw);
 const fam = (name: string) => findFamily(catalogue.families, name)!;
 beforeAll(() => { (globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true; Element.prototype.scrollIntoView = () => undefined; });
 let root: Root | null = null; let box: HTMLElement | null = null; let design: PitchDesign;
-afterEach(() => { act(() => root?.unmount()); box?.remove(); root = null; box = null; vi.restoreAllMocks(); vi.unstubAllGlobals(); forgetGoogleFontsAnswer(); sessionStorage.clear(); document.head.querySelectorAll('link').forEach(l => l.remove()); });
+afterEach(() => { act(() => root?.unmount()); box?.remove(); root = null; box = null; vi.restoreAllMocks(); vi.unstubAllGlobals(); forgetGoogleFontsAnswer(); sessionStorage.clear(); });
 
 const woff2 = (n: number, fill = 7) => { const b = new Uint8Array(n).fill(fill); b.set([0x77, 0x4f, 0x46, 0x32]); return b; };   // "wOF2" and invented bytes
 const cssFor = (url: string): string => {
@@ -113,51 +113,131 @@ describe('asking Google for a family', () => {
 });
 
 describe('previews', () => {
-  const links = () => [...document.head.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]')];
   const some = catalogue.families.filter(f => !['Work Sans', 'Special Elite', 'Caveat'].includes(f.family)).slice(0, 12);
-  it('add nothing to the page before a yes', () => {
+  const settle = async (ms = 20) => { await new Promise(r => setTimeout(r, ms)); };
+  /** The browser's FontFace and document.fonts, which jsdom does not have: what was made, and what is registered now. */
+  function faces(opts: { refuse?: boolean } = {}) {
+    const made: { family: string; source: unknown; descriptors?: unknown }[] = []; const set = new Set<unknown>();
+    class Face { status = 'unloaded'; constructor(public family: string, public source: unknown, public descriptors?: unknown) { made.push(this); } load() { if (opts.refuse) return Promise.reject(new Error('not a font')); this.status = 'loaded'; return Promise.resolve(this); } }
+    vi.stubGlobal('FontFace', Face); (window as unknown as { FontFace: unknown }).FontFace = Face;
+    Object.defineProperty(document, 'fonts', { configurable: true, value: { add: (f: unknown) => { set.add(f); }, delete: (f: unknown) => set.delete(f) } });
+    return { made, set };
+  }
+  /** Google for previews: the cut-down stylesheet, then its file. `hold` keeps every answer back until release(). */
+  function previews(opts: { hold?: boolean; fail?: (url: string, n: number) => boolean; css?: (url: string) => string } = {}) {
+    const asked: { url: string; init: RequestInit }[] = []; const waiting: (() => void)[] = []; let n = 0;
+    vi.stubGlobal('fetch', vi.fn(async (url: string, init: RequestInit = {}) => {
+      asked.push({ url, init }); const mine = n++;
+      if (opts.hold) await new Promise<void>((ok, no) => { waiting.push(ok); init.signal?.addEventListener('abort', () => no(Object.assign(new Error('aborted'), { name: 'AbortError' }))); });
+      if (opts.fail?.(url, mine)) throw new TypeError('Failed to fetch');
+      const u = new URL(url);
+      if (u.hostname === 'fonts.googleapis.com') return new Response(opts.css ? opts.css(url) : `@font-face {\n  font-family: '${u.searchParams.get('family')!.split(':')[0]}';\n  font-style: normal;\n  font-weight: 100 900;\n  font-display: swap;\n  src: url(https://fonts.gstatic.com/l/font?kit=${u.searchParams.get('family')!.split(':')[0].replace(/ /g, '')}&skey=1&v=v1) format('woff2');\n}\n`, { status: 200 });
+      return new Response(woff2(64) as unknown as BodyInit, { status: 200 });
+    }));
+    return { asked, release: (k = waiting.length) => { for (const ok of waiting.splice(0, k)) ok(); } };
+  }
+  afterEach(() => { delete (document as unknown as { fonts?: unknown }).fonts; delete (window as unknown as { FontFace?: unknown }).FontFace; });
+
+  it('ask for nothing before a yes', async () => {
+    const { made } = faces(); const { asked } = previews();
     const loader = new PreviewLoader(() => undefined);
     for (const f of some) loader.want(f);
-    expect(links()).toEqual([]);
+    await settle();
+    expect(asked).toEqual([]); expect(made).toEqual([]);
     expect(loader.state(some[0].family)).toBeUndefined();
   });
-  it('are stylesheet links to fonts.googleapis.com only, a few at a time, for a fixed set of letters, and all go when the picker closes', () => {
+  it('fetch the stylesheet and its one file from the two hosts, and give the bytes to a face under a private name: no link, no markup', async () => {
     allowGoogleFonts();
+    const { made, set } = faces(); const { asked } = previews();
+    let changed = 0;
+    const loader = new PreviewLoader(() => { changed++; });
+    loader.want(fam('Roboto')); loader.want(fam('Open Sans'));
+    await settle();
+    expect(asked.map(a => a.url).sort()).toEqual([
+      `https://fonts.googleapis.com/css2?family=Open+Sans:wght@400&text=${encodeURIComponent(PREVIEW_LETTERS)}&display=swap`,
+      `https://fonts.googleapis.com/css2?family=Roboto:wght@400&text=${encodeURIComponent(PREVIEW_LETTERS)}&display=swap`,
+      'https://fonts.gstatic.com/l/font?kit=OpenSans&skey=1&v=v1', 'https://fonts.gstatic.com/l/font?kit=Roboto&skey=1&v=v1',
+    ]);
+    for (const a of asked) expect(a.init).toMatchObject({ credentials: 'omit', referrerPolicy: 'no-referrer', redirect: 'error' });
+    expect(made.map(f => f.family).sort()).toEqual(['gfp Open Sans', 'gfp Roboto']);
+    for (const f of made) { expect(f.source).toBeInstanceOf(ArrayBuffer); expect((f.source as ArrayBuffer).byteLength).toBe(64); expect(f.descriptors).toBeUndefined(); }   // bytes, never an address; no weight to match: a variable family is drawn like any other
+    expect(set.size).toBe(2);
+    expect(loader.state('Roboto')).toBe('ready'); expect(loader.faceName('Roboto')).toBe('gfp Roboto');
+    expect(changed).toBeGreaterThanOrEqual(2);
+    expect(document.querySelector('link')).toBeNull(); expect(document.head.querySelector('style')).toBeNull();
+    loader.close();
+    expect(set.size).toBe(0);                                         // every face goes when the picker closes
+    loader.want(fam('Lato')); await settle();
+    expect(asked).toHaveLength(4);                                     // closed: nothing more is asked
+  });
+  it('fetch a few at a time, the row seen last first; a row that scrolls away gives up its place or is called off', async () => {
+    allowGoogleFonts();
+    const { set } = faces(); const { asked, release } = previews({ hold: true });
     const loader = new PreviewLoader(() => undefined);
     for (const f of some) loader.want(f);
-    expect(links()).toHaveLength(PREVIEW_AT_ONCE);
-    for (const l of links()) {
-      const u = new URL(l.href);
-      expect(u.origin + u.pathname).toBe('https://fonts.googleapis.com/css2');
-      expect(u.searchParams.get('text')).toBe(PREVIEW_LETTERS);
-      expect(some.map(f => f.family)).toContain(u.searchParams.get('family')!.split(':')[0]);
-      expect(l.referrerPolicy).toBe('no-referrer');
-    }
-    act(() => { links()[0].dispatchEvent(new Event('load')); });
-    return Promise.resolve().then(() => Promise.resolve()).then(() => {
-      expect(links()).toHaveLength(PREVIEW_AT_ONCE + 1);              // one finished: the next one starts
-      loader.drop(some[0].family);                                     // a row that scrolled away before its turn gives its place up
-      loader.close();
-      expect(links()).toEqual([]);
-      loader.want(some[1]);
-      expect(links()).toEqual([]);                                     // closed: nothing more is asked
-    });
+    await settle();
+    expect(asked).toHaveLength(PREVIEW_AT_ONCE);
+    loader.drop(some[11].family);                                      // still waiting its turn: out of the queue
+    expect(loader.state(some[11].family)).toBeUndefined();
+    const flying = new URL(asked[0].url).searchParams.get('family')!.split(':')[0];
+    loader.drop(flying);                                               // on its way: called off
+    expect(asked[0].init.signal!.aborted).toBe(true);
+    await settle();
+    expect(loader.state(flying)).toBeUndefined();                      // neither ready nor failed: it can be asked for again
+    expect(loader.unreachable).toBe(false);
+    expect(asked).toHaveLength(PREVIEW_AT_ONCE + 1);                   // its place went to the next row
+    release(); await settle(); release(); await settle();
+    expect(set.size).toBeGreaterThanOrEqual(PREVIEW_AT_ONCE - 1);
+    const at = asked.length;
+    loader.close();
+    release(); await settle();
+    expect(asked.length).toBe(at); expect(set.size).toBe(0);
   });
-  it('the app\'s own three faces need nothing from Google', () => {
-    allowGoogleFonts();
+  it('the app\'s own three faces need nothing from Google', async () => {
+    allowGoogleFonts(); faces(); const { asked } = previews();
     const loader = new PreviewLoader(() => undefined);
-    for (const name of ['Work Sans', 'Special Elite', 'Caveat']) { loader.want(fam(name)); expect(loader.state(name)).toBe('ready'); }
-    expect(links()).toEqual([]);
+    for (const name of ['Work Sans', 'Special Elite', 'Caveat']) { loader.want(fam(name)); expect(loader.state(name)).toBe('ready'); expect(loader.faceName(name)).toBe(name); }
+    await settle(); expect(asked).toEqual([]);
+  });
+  it('a preview that failed is tried once more when its row comes back into view, and then left alone', async () => {
+    allowGoogleFonts();
+    const { set } = faces(); let bad = true;
+    const { asked } = previews({ fail: url => bad && url.includes('family=Lato') });
+    const loader = new PreviewLoader(() => undefined);
+    loader.want(fam('Roboto')); loader.want(fam('Lato')); await settle();
+    expect(loader.state('Roboto')).toBe('ready'); expect(loader.state('Lato')).toBe('failed');
+    loader.want(fam('Lato')); await settle();                           // back in view: once more
+    expect(loader.state('Lato')).toBe('failed');
+    const n = asked.length;
+    loader.want(fam('Lato')); await settle();                           // and no more
+    expect(asked).toHaveLength(n);
+    bad = false; loader.retry(); loader.want(fam('Lato')); await settle();   // unless the person asks
+    expect(loader.state('Lato')).toBe('ready'); expect(set.size).toBe(2);
+    loader.close();
+  });
+  it('a stylesheet that is not Google\'s, or bytes the browser will not take as a font, is no preview and nothing is followed', async () => {
+    allowGoogleFonts();
+    faces(); const evil = previews({ css: () => `@font-face { font-family: 'x'; src: url(https://evil.invalid/a.woff2) format('woff2'); }` });
+    const loader = new PreviewLoader(() => undefined);
+    loader.want(fam('Roboto')); await settle();
+    expect(loader.state('Roboto')).toBe('failed');
+    expect(evil.asked.map(a => new URL(a.url).hostname)).toEqual(['fonts.googleapis.com']);
+    loader.close();
+    const refused = faces({ refuse: true }); previews();
+    const second = new PreviewLoader(() => undefined);
+    second.want(fam('Lato')); await settle();
+    expect(second.state('Lato')).toBe('failed'); expect(refused.set.size).toBe(0);
   });
   it('stop asking once it is plain Google cannot be reached, and can be tried again', async () => {
-    allowGoogleFonts();
+    allowGoogleFonts(); faces(); const { asked } = previews({ fail: () => true });
     const loader = new PreviewLoader(() => undefined);
     for (const f of some) loader.want(f);
-    for (let i = 0; i < 3; i++) { links().filter(l => loader.state(l.dataset.googleFontPreview!) === 'waiting')[0].dispatchEvent(new Event('error')); await Promise.resolve(); await Promise.resolve(); }
+    await settle(40);
     expect(loader.unreachable).toBe(true);
-    const n = links().length;
-    loader.want(some[11]);
-    expect(links()).toHaveLength(n);
+    expect(asked.length).toBeLessThanOrEqual(PREVIEW_AT_ONCE + 2);     // it did not go on through all twelve
+    const n = asked.length;
+    loader.want(some[11]); await settle();
+    expect(asked).toHaveLength(n);
     loader.retry();
     expect(loader.unreachable).toBe(false);
     loader.close();

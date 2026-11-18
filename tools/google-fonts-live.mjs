@@ -129,13 +129,25 @@ try {
   await step('Show the fonts: at least 5 rows draw their preview in the family itself', async () => {
     await dialog.getByRole('button', { name: 'Show the fonts' }).click();
     await rowsOnScreen.first().waitFor({ timeout: 15000 });
+    // A row counts when the picker itself says its preview is ready, the private face it is drawn with is loaded, and
+    // a line set in that face is not as wide as the same line in the fallback behind it: the letters really are the family's.
     const drawn = () => page.evaluate(() => {
-      const rows = [...document.querySelectorAll('.gf-row')].map(r => ({ family: r.querySelector('.gf-name')?.textContent ?? '', ready: !!r.querySelector('.gf-sample:not(.wait):not(.none)'), failed: !!r.querySelector('.gf-sample.none') }));
+      const ctx = document.createElement('canvas').getContext('2d'); const TEXT = 'Hamburgefonstiv Salt Flat 0123';
+      const w = font => { ctx.font = font; return ctx.measureText(TEXT).width; };
       const loaded = [...document.fonts].filter(f => f.status === 'loaded').map(f => f.family.replace(/"/g, ''));
-      return { rows, withFace: rows.filter(r => r.ready && loaded.includes(r.family)).map(r => r.family), loaded: [...new Set(loaded)].filter(f => !f.startsWith('psd-')) };
+      const rows = [...document.querySelectorAll('.gf-row')].map(r => {
+        const sample = r.querySelector('.gf-sample'); const family = r.querySelector('.gf-name')?.textContent ?? '';
+        const state = !sample ? 'no sample' : sample.classList.contains('none') ? 'no preview' : sample.classList.contains('wait') ? 'waiting' : 'ready';
+        const stack = state === 'ready' ? getComputedStyle(sample).fontFamily : ''; const names = stack.split(',').map(x => x.trim());
+        const face = (names[0] ?? '').replace(/"/g, '');
+        const own = state === 'ready' ? w(`400 40px ${stack}`) : 0, fallback = state === 'ready' ? w(`400 40px ${names.slice(1).join(', ') || 'serif'}`) : 0;
+        return { family, variable: /Variable/.test(r.querySelector('.gf-meta')?.textContent ?? ''), state, face, faceLoaded: loaded.includes(face), own: Math.round(own), fallback: Math.round(fallback), real: state === 'ready' && loaded.includes(face) && Math.abs(own - fallback) > 0.5 };
+      });
+      return { rows, real: rows.filter(r => r.real), links: document.querySelectorAll('link[href*="google"], link[href*="gstatic"]').length };
     });
+    const enough = d => d.real.length >= 5 && d.real.filter(r => r.variable).length >= 3;
     let d = await drawn();
-    for (let i = 0; i < 60 && d.withFace.length < 5; i++) { await page.waitForTimeout(500); d = await drawn(); }
+    for (let i = 0; i < 60 && !enough(d); i++) { await page.waitForTimeout(500); d = await drawn(); }
     await shot('02-previews');
     if (process.env.BROWSER_SHEET) {
       // one small picture of the picker as this browser drew it, printed into the log
@@ -148,9 +160,11 @@ try {
       for (let i = 0; i < b64.length; i += 4000) console.log('SHEET ' + b64.slice(i, i + 4000));
       console.log('SHEET-END');
     }
-    need(d.withFace.length >= 5, `only ${d.withFace.length} rows have a loaded face (${d.withFace.join(', ') || 'none'}); rows: ${d.rows.map(r => `${r.family}${r.ready ? '' : r.failed ? ' [no preview]' : ' [waiting]'}`).join(', ')}; failed requests: ${failed.slice(0, 3).join(' | ') || 'none'}; banner: ${(await dialog.locator('.gf-banner.bad').allInnerTexts()).join(' ') || 'none'}`);
+    const say = r => `${r.family}${r.variable ? ' (variable)' : ''}: ${r.state}${r.state === 'ready' ? `, face "${r.face}" ${r.faceLoaded ? 'loaded' : 'NOT loaded'}, ${r.own} px against ${r.fallback} px in the fallback` : ''}`;
+    need(enough(d), `${d.real.length} rows are drawn in their own face, ${d.real.filter(r => r.variable).length} of them variable families (5 and 3 are needed). Rows: ${d.rows.map(say).join('; ')}. Failed requests: ${failed.slice(0, 3).join(' | ') || 'none'}; banner: ${(await dialog.locator('.gf-banner.bad').allInnerTexts()).join(' ') || 'none'}; errors: ${errors.slice(0, 2).join(' | ') || 'none'}`);
+    need(d.links === 0, 'a link to Google is in the page: previews are meant to be fetched, not linked');
     const asked = google().filter(u => u.includes('/css2')).map(u => new URL(u).searchParams.get('family'));
-    return `drawn in their own face: ${d.withFace.join(', ')}; stylesheets asked for: ${asked.length} (${asked.slice(0, 8).join(', ')})`;
+    return `${d.real.length} rows drawn in their own face (${d.real.filter(r => r.variable).length} variable): ${d.real.map(r => `${r.family}${r.variable ? '*' : ''} ${r.own}/${r.fallback} px`).join(', ')}; stylesheets asked for: ${asked.length}`;
   });
   const pickWithKeys = async (which, family) => {
     const search = dialog.getByLabel('Search fonts');
@@ -168,7 +182,7 @@ try {
   await step(`the title: search "${TITLE}", arrow keys, Enter`, async () => {
     const asked = await pickWithKeys('title', TITLE);
     need(await page.locator('#ds-title-font').inputValue() === TITLE, `the title font field says "${await page.locator('#ds-title-font').inputValue()}"`);
-    need(await page.locator('link[data-google-font-preview]').count() === 0, 'preview links are still in the page after the picker closed');
+    need(await page.evaluate(() => [...document.fonts].filter(f => f.family.replace(/"/g, '').startsWith('gfp ')).length) === 0, 'preview faces are still registered after the picker closed');
     need(asked.length >= 2 && asked.every(u => HOSTS.includes(new URL(u).hostname)), `asked: ${asked.join(' , ')}`);
     return `asked: ${asked.join(' , ')}; ${(await page.locator('.gf-pick [role="status"]').first().innerText()).replace(/\s+/g, ' ')}`;
   });

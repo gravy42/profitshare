@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest';
 import raw from '../data/google-fonts.json';
 import { fontMime } from './deckEdit';
 import {
-  GOOGLE_CSS_MAX, GOOGLE_CSS_ORIGIN, GOOGLE_FILE_MAX_BYTES, GOOGLE_FILE_ORIGIN, css2Url, filesToFetch, isGoogleFontsUrl, parseCss2, previewCssUrl, readCatalogue, weightsFor,
+  GOOGLE_CSS_MAX, GOOGLE_CSS_ORIGIN, GOOGLE_FILE_MAX_BYTES, GOOGLE_FILE_ORIGIN, css2Url, filesToFetch, isGoogleFontsUrl, parseCss2, parsePreviewCss, previewCssUrl, readCatalogue, weightsFor,
   type CatalogueFamily, type FontRole,
 } from './googleFonts';
 
@@ -94,10 +94,12 @@ describe.skipIf(!LIVE)('the real Google Fonts (LIVE_GOOGLE=1)', () => {
     const f = pick('Lora', x => !!x.variable);
     const url = previewCssUrl(f); const res = await ask(url); const css = await res.text();
     const addresses = [...css.matchAll(/url\(\s*["']?([^"')\s]+)/g)].map(m => m[1]);
-    console.log(`\nGOOGLE FONTS LIVE: preview\nasked: ${url}\nstatus: ${res.status}; ${css.length} characters; @font-face blocks: ${(css.match(/@font-face/g) ?? []).length}\naddresses: ${addresses.join(' , ')}\nthe pick reader makes of it: ${JSON.stringify(parseCss2(css))} (a preview is loaded by the browser from a <link>, so the reader does not have to read it)`);
+    console.log(`\nGOOGLE FONTS LIVE: preview\nasked: ${url}\nstatus: ${res.status}; ${css.length} characters; @font-face blocks: ${(css.match(/@font-face/g) ?? []).length}\naddresses: ${addresses.join(' , ')}\nthe preview reader takes: ${parsePreviewCss(css)}`);
     expect(res.status, start(css)).toBe(200);
     expect(addresses.length, start(css)).toBeGreaterThan(0);
     for (const a of addresses) expect(a.startsWith(`${GOOGLE_FILE_ORIGIN}/`), `a preview file somewhere else: ${a}${start(css)}`).toBe(true);
+    // the picker reads this stylesheet itself (it fetches the file and hands the bytes to the browser), so its reader must find the address
+    expect(parsePreviewCss(css), `the preview reader found no address${start(css)}`).toBe(addresses[0]);
     const file = await ask(addresses[0]); const bytes = await capped(file, GOOGLE_FILE_MAX_BYTES);
     console.log(`preview file: HTTP ${file.status}, ${bytes.length} bytes, ${fontMime(bytes) ?? 'not a font this app knows'}, content-type ${file.headers.get('content-type')}`);
     expect(file.status).toBe(200);
