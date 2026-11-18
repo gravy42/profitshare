@@ -11,8 +11,7 @@ import type { DeckData, DeckImage } from '../deck-runtime/data';
 import { deckData } from '../engine/deckData';
 import { PICTURE_JPEG_QUALITY, dataUrlMime, fitWithin, pictureFormat, zipStore, type AskKind, type ZipEntry } from '../engine/deckExport';
 import { LATIN_EXT_RANGE, LATIN_RANGE, bundledFacesNeeded, dataFor, deckHtml, deckTitle, fontFaceCss, needsLatinExt, type FaceNeed, type PageFont } from '../deck-runtime/exportHtml';
-import { faceName } from '../deck-runtime/fonts';
-import { cleanFontFaces, mountDeck } from '../deck-runtime/runtime';
+import { mountDeck, namedFontFaces } from '../deck-runtime/runtime';
 import { aborted, pictureHash, slidesToPdf } from './deckPdf';
 export { downloadBlob } from './deckPdf';
 
@@ -192,12 +191,14 @@ export async function pdfDeck(prep: Prepared, opts: { recipient?: string; ask?: 
     const slides = [...rootEl.querySelectorAll<HTMLElement>('section.psd-slide')];
     // the capture is a picture of the page made apart from it, so it is given its typefaces by name: the app's own
     // (which the app's pages load as they need them) and the font files the deck carries
-    const own = cleanFontFaces(data.theme.fontFaces).map(f => ({ ...f, name: faceName(f.role, f.family, f.src) }));
+    const own = namedFontFaces(data.theme.fontFaces);
     const pageFaces = fontsFor(prep, data);
-    const fontCss = [fontFaceCss(pageFaces), ...own.map(f => `@font-face{font-family:"${f.name}";src:url(${f.src})}`)].filter(Boolean).join('\n');
+    // a file that names no weight is a whole face (as it always was); one weight of a family says which weight and style it is
+    const ownCss = own.map(f => (f.weight === undefined && f.style === undefined ? `@font-face{font-family:"${f.name}";src:url(${f.src})}` : fontFaceCss([{ family: f.name, weight: f.weight ?? 400, style: f.style, src: f.src }])));
+    const fontCss = [fontFaceCss(pageFaces), ...ownCss].filter(Boolean).join('\n');
     const fontSet = document.fonts as FontFaceSet | undefined;
     if (fontSet) {
-      const wanted = [...pageFaces.map(f => `${f.style === 'italic' ? 'italic ' : ''}${f.weight} 16px "${f.family}"`), ...own.map(f => `16px "${f.name}"`)];
+      const wanted = [...pageFaces.map(f => `${f.style === 'italic' ? 'italic ' : ''}${typeof f.weight === 'number' ? f.weight : 400} 16px "${f.family}"`), ...own.map(f => `${f.style === 'italic' ? 'italic ' : ''}${typeof f.weight === 'number' ? `${f.weight} ` : ''}16px "${f.name}"`), ...own.filter(f => Array.isArray(f.weight)).map(f => `${f.style === 'italic' ? 'italic ' : ''}600 16px "${f.name}"`)];
       await Promise.all(wanted.map(f => fontSet.load(f).catch(() => undefined)));
       await fontSet.ready;
     }

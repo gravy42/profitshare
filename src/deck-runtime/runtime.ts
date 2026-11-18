@@ -10,7 +10,7 @@ import { allSwitches, pathFor } from '../engine/pathMath';
 import type { PathInputs, PathResult } from '../engine/pathMath';
 import type { DeckData, DeckRecipient, PaperStyle } from './data';
 import { money, moneyParts, multiple, shares100 } from './format';
-import { cleanFamily, faceName, fontSrcOk, HAND_FAMILY, MAX_FONT_FACES } from './fonts';
+import { cleanFamily, cleanStyle, cleanWeight, faceName, familyFaceName, fontSrcOk, HAND_FAMILY, MAX_FONT_FACES, weightText, type FaceWeight } from './fonts';
 import { cleanDeckMotion, cleanMotion } from './motion';
 import { cleanPaper, dealPapers, tornEdge, unevenEdge } from './paper';
 
@@ -78,16 +78,30 @@ interface FaceLike { load?: () => Promise<unknown>; status?: string }
 interface FaceSet { add(f: FaceLike): unknown; delete(f: FaceLike): unknown }
 const facePool = new WeakMap<Document, Map<string, { face: FaceLike; n: number }>>();
 
-/** The font files a theme carries that are safe to use: a clean family name, a base64 font data URL, a known role. */
-export function cleanFontFaces(raw: unknown): { family: string; src: string; role: 'title' | 'body' }[] {
-  const out: { family: string; src: string; role: 'title' | 'body' }[] = [];
+export interface CleanFace { family: string; src: string; role: 'title' | 'body'; weight?: FaceWeight; style?: 'normal' | 'italic' }
+/** The font files a theme carries that are safe to use: a clean family name, a base64 font data URL, a known role;
+ *  a weight (1 to 1000, or a range of them) and a style when the face says which of its family it is. */
+export function cleanFontFaces(raw: unknown): CleanFace[] {
+  const out: CleanFace[] = [];
   for (const f of list(raw)) {
     const family = cleanFamily(f.family);
     if (!family || !fontSrcOk(f.src) || (f.role !== 'title' && f.role !== 'body')) continue;
-    out.push({ family, src: f.src, role: f.role });
+    const weight = cleanWeight(f.weight), style = cleanStyle(f.style);
+    out.push({ family, src: f.src, role: f.role, ...(weight !== undefined ? { weight } : {}), ...(style ? { style } : {}) });
     if (out.length >= MAX_FONT_FACES) break;
   }
   return out;
+}
+/** The same faces with the name each is registered under. A face that says nothing of weight or style is a whole
+ *  face on its own, under a name of its own; the weights of one family for one role share a name, so the browser
+ *  can choose among them. */
+export function namedFontFaces(raw: unknown): (CleanFace & { name: string })[] {
+  const faces = cleanFontFaces(raw);
+  const one = (f: CleanFace) => f.weight !== undefined || f.style !== undefined;
+  const key = (f: CleanFace) => `${f.role}\n${f.family}`;
+  const groups = new Map<string, string[]>();
+  for (const f of faces) if (one(f)) groups.set(key(f), [...(groups.get(key(f)) ?? []), f.src]);
+  return faces.map(f => ({ ...f, name: one(f) ? familyFaceName(f.role, f.family, groups.get(key(f))!) : faceName(f.role, f.family, f.src) }));
 }
 const pageStyles = new WeakMap<Document, { st: HTMLStyleElement; n: number }>();       // one @page rule per document, counted
 
@@ -338,25 +352,29 @@ interface Part { index: number; layout: string; section: HTMLElement; box: HTMLE
 interface Count { e: HTMLElement; live: HTMLElement; pre: string; post: string; to: number; dec: number; group: boolean }
 type Timer = ReturnType<typeof setTimeout>;
 
-interface TakenFaces { faces: { family: string; src: string; role: 'title' | 'body'; name: string }[]; loads: Promise<unknown>[]; release: () => void }
+interface TakenFaces { faces: (CleanFace & { name: string })[]; loads: Promise<unknown>[]; release: () => void }
 /** Registers a theme's font files with the document and says what each was registered as. `release` lets go of them
  *  (once: a second call does nothing); a face another deck still holds stays. */
 function takeFaces(doc: Document, win: (Window & typeof globalThis) | null, theme: unknown): TakenFaces {
-  const faces = cleanFontFaces(obj(theme).fontFaces).map(f => ({ ...f, name: faceName(f.role, f.family, f.src) }));
+  const faces = namedFontFaces(obj(theme).fontFaces);
   const releases: (() => void)[] = [];
   const loads: Promise<unknown>[] = [];
-  const Face = win && (win as unknown as { FontFace?: new (family: string, src: string) => FaceLike }).FontFace;
+  const Face = win && (win as unknown as { FontFace?: new (family: string, src: string, descriptors?: { weight?: string; style?: string }) => FaceLike }).FontFace;
   const set = (doc as unknown as { fonts?: FaceSet }).fonts;
   if (Face && set && typeof set.add === 'function') {
     let pool = facePool.get(doc);
     if (!pool) { pool = new Map(); facePool.set(doc, pool); }
     const mine = pool;
     for (const f of faces) {
-      const key = `${f.name}\n${f.src}`;   // the name carries a hash of the file; the file itself settles the one-in-a-billion clash
+      const sized = f.weight !== undefined || f.style !== undefined;   // one weight of a family: registered as that weight and style
+      const key = `${f.name}\n${f.src}${sized ? `\n${f.weight !== undefined ? weightText(f.weight) : ''}\n${f.style ?? ''}` : ''}`;   // the name carries a hash of the file; the file itself settles the one-in-a-billion clash
       let entry = mine.get(key);
       if (!entry) {
         try {
-          const face = new Face(f.name, `url("${f.src}")`);   // the address was checked: base64 only, so nothing in it can close the quotes
+          // the address was checked: base64 only, so nothing in it can close the quotes
+          const face = sized
+            ? new Face(f.name, `url("${f.src}")`, { ...(f.weight !== undefined ? { weight: weightText(f.weight) } : {}), ...(f.style ? { style: f.style } : {}) })
+            : new Face(f.name, `url("${f.src}")`);
           set.add(face);
           entry = { face, n: 0 };
           mine.set(key, entry);
@@ -469,7 +487,7 @@ function mountWith(host: HTMLElement, data: DeckData, opts: MountOptions, taken:
   if (!isStatic) root.tabIndex = 0;
   const fonts = obj(theme.fonts);
   // a font file goes in front of its role's stack, under the name it was registered with
-  const withFaces = (role: 'title' | 'body', stack: string) => [...faces.filter(f => f.role === role).map(f => `"${f.name}"`), stack].join(', ');
+  const withFaces = (role: 'title' | 'body', stack: string) => [...new Set(faces.filter(f => f.role === role).map(f => `"${f.name}"`)), stack].join(', ');
   const titleFont = withFaces('title', fontStack(fonts.title, TITLE_FALLBACK));
   const vars: Record<string, string> = { ...deckColors(theme.colors), '--psd-title-font': titleFont, '--psd-body-font': withFaces('body', fontStack(fonts.body, BODY_FALLBACK)) };
   const hand = theme.hand === true, tilt = theme.tilt === true;

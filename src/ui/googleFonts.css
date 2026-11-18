@@ -1,0 +1,67 @@
+/* The Google Fonts picker (src/ui/GoogleFonts.tsx, GoogleFontsDialog.tsx). Built from the app's own tokens and its
+   .modal, .btn, .ctl and .row: a dialog of the same paper as every other panel. */
+.gf-pick { margin-top: 6px; }
+.gf-pick p { margin: 6px 0 0; max-width: 46ch; }
+.gf-said { color: var(--good); font-weight: 600; }
+.gf-detail p { margin: 2px 0 0; }
+
+.gf-modal { align-items: flex-start; padding-top: min(6vh, 48px); }
+.modal-card.gf { width: min(96vw, 860px); height: min(88vh, 860px); max-height: none; padding: 0; gap: 0; border-top: 3px solid var(--gold); }
+.modal-card.gf:has(.gf-ask) { height: auto; }
+.gf-head { justify-content: space-between; align-items: center; padding: 14px 18px 12px; border-bottom: 1px solid var(--line); flex-wrap: nowrap; }
+.gf-head h2 { font: 400 20px/1.2 var(--font-title); letter-spacing: .01em; }
+
+.gf-ask { padding: 22px 18px 26px; max-width: 64ch; }
+.gf-ask p { margin: 0 0 16px; font-size: 15px; line-height: 1.55; }
+.gf-ask .row { gap: 12px; }
+.gf-ask .hint { margin: 16px 0 0; font-size: 12px; color: var(--muted); }
+.modal-card.gf > .help, .modal-card.gf > .notice { margin: 18px; }
+
+.gf-tools { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px 14px; padding: 12px 18px 8px; align-items: end; }
+.gf-search input { width: 100%; }
+.gf-tools .ctl input, .gf-tools .ctl select { border-color: var(--pd-edge, var(--line)); min-height: 34px; }
+.gf-tools .ctl input:focus-visible, .gf-tools .ctl select:focus-visible, .gf-chip:focus-visible, .gf-list:focus-visible { outline: 2px solid var(--lead); outline-offset: 2px; }
+.modal-card.gf .btn:focus-visible { outline: none; }
+.modal-card.gf .btn:focus-visible::before { outline: 2px solid var(--lead); outline-offset: 2px; }
+.gf-kinds { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; }
+.gf-chip { border: 1.5px solid var(--pd-edge, var(--line)); border-radius: 999px; padding: 3px 11px; background: var(--card); color: var(--ink); font-size: 12.5px; cursor: pointer; }
+.gf-chip:hover { border-color: var(--lead); }
+.gf-chip[aria-pressed="true"] { background: var(--lead); border-color: var(--lead); color: var(--card); font-weight: 700; }
+.gf-count { padding: 0 18px 8px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.gf-banner { display: flex; gap: 14px; align-items: center; margin: 0 18px 10px; padding: 10px 12px; background: var(--soft); border-left: 3px solid var(--gold); }
+.gf-banner p { margin: 0; flex: 1; }
+.gf-banner .btn { flex: none; }
+.gf-banner.bad { border-left-color: var(--pd-bad, var(--bad)); }
+
+.gf-list { position: relative; flex: 1 1 auto; min-height: 0; overflow-y: auto; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); background: var(--bg); overscroll-behavior: contain; }
+.gf-rows { position: relative; }
+.gf-row { position: absolute; left: 0; right: 0; padding: 9px 18px 0; border-bottom: 1px solid var(--line); cursor: pointer; overflow: hidden; contain: strict; }
+.gf-row:hover { background: var(--soft); }
+.gf-row.on { background: var(--card); box-shadow: inset 4px 0 0 var(--gold); }
+.gf-row-head { display: flex; align-items: baseline; gap: 10px; white-space: nowrap; }
+.gf-name { font-weight: 700; font-size: 13.5px; }
+.gf-meta { font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.gf-mine { margin-left: auto; font-size: 11.5px; font-weight: 700; color: var(--good); }
+.gf-sample { margin-top: 5px; font-size: 21px; line-height: 1.5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gf-sample.big { font-size: 28px; line-height: 1.3; margin-top: 3px; }
+.gf-sample.wait { font-family: var(--font-text); opacity: .28; }
+.gf-sample.none { font-size: 12px; line-height: 2.8; color: var(--muted); font-style: italic; }
+@media (prefers-reduced-motion: no-preference) { .gf-sample { transition: opacity .18s ease; } }
+
+.gf-foot { padding: 12px 18px 14px; }
+.gf-foot p { margin: 0; }
+.gf-use { justify-content: space-between; align-items: center; gap: 16px; flex-wrap: nowrap; }
+.gf-plan { flex: 1; min-width: 0; color: var(--help, var(--muted)); }
+.gf-plan b { color: var(--ink); }
+.gf-use .btn { flex: none; max-width: 46%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gf-confirm p { margin: 0 0 10px; }
+.gf-foot .pd-bad { margin-top: 8px; }
+
+@media (max-width: 640px) {
+  .modal-card.gf { width: 100vw; height: 100vh; }
+  .gf-modal { padding: 0; }
+  .gf-use { flex-wrap: wrap; }
+  .gf-use .btn { max-width: none; }
+  .gf-meta { display: none; }
+}

@@ -3,7 +3,7 @@
 // downloads, the PDF) is in src/ui/deckSendFiles.ts and calls these.
 import type { DeckImage } from '../deck-runtime/data';
 import type { Project } from './types';
-import { cleanFamily, fontSrcOk } from '../deck-runtime/fonts';
+import { cleanFamily } from '../deck-runtime/fonts';
 import { bundledFacesNeeded } from '../deck-runtime/exportHtml';
 import { dataUrlBytes, fileSize } from './deckEdit';
 import { deckData, fontFacesOf, slugify } from './deckData';
@@ -62,17 +62,17 @@ export function heavyFileWarning(bytes: number, images: DeckImage[]): string {
 /** Attached font files that are a font, have a name, and whose licence box is not ticked: the preview draws with
  *  them and a sent file leaves them behind. One a role, as the deck reads them. */
 export function fontsLeftOut(project: Project): { family: string; role: 'title' | 'body' }[] {
-  const out: { family: string; role: 'title' | 'body' }[] = [];
+  const all = roleFonts(fontFacesOf(project, false)), sent = roleFonts(fontFacesOf(project, true));
+  return all.filter(a => !sent.some(s => s.role === a.role && s.family === a.family));
+}
+/** The faces as the one font each role has: a family picked from Google Fonts is several files and one font. */
+const roleFonts = (faces: { family: string; role: 'title' | 'body' }[]): { family: string; role: 'title' | 'body' }[] =>
+  faces.filter((f, i) => faces.findIndex(x => x.role === f.role) === i).map(f => ({ family: f.family, role: f.role }));
+/** A role's font in words: "Lato (your body font, from Google Fonts)", "Invented Slab (your title font file)". */
+function fontWords(project: Project, f: { family: string; role: 'title' | 'body' }): string {
   const files = project?.pitch?.design?.fontFiles;
-  const seen = new Set<string>();
-  for (const f of Array.isArray(files) ? files : []) {
-    if (!f || typeof f !== 'object' || (f.role !== 'title' && f.role !== 'body') || seen.has(f.role)) continue;
-    const family = cleanFamily(f.family);
-    if (!family || !fontSrcOk(f.dataUrl)) continue;
-    seen.add(f.role);
-    if (f.embedOk !== true) out.push({ family, role: f.role });
-  }
-  return out;
+  const google = (Array.isArray(files) ? files : []).some(x => !!x && typeof x === 'object' && x.role === f.role && x.source === 'google' && cleanFamily(x.family) === f.family);
+  return google ? `${f.family} (your ${f.role} font, from Google Fonts)` : `${f.family} (your ${f.role} font file)`;
 }
 
 export interface SendSummary {
@@ -86,9 +86,9 @@ export function sendSummary(project: Project): SendSummary {
   const pitch = project.pitch;
   const light = deckData({ ...project, pitch: pitch ? { ...pitch, lookbook: [], design: pitch.design ? { ...pitch.design, fontFiles: [] } : pitch.design } : pitch });
   const files = fontFacesOf(project, true);
-  const inside: string[] = files.map(f => `${f.family} (your ${f.role} font file)`);
+  const inside: string[] = roleFonts(files).map(f => fontWords(project, f));
   for (const family of new Set(bundledFacesNeeded({ ...light, theme: { ...light.theme, fontFaces: files } }).map(f => f.family))) inside.push(family);
-  return { inside, leftOut: fontsLeftOut(project).map(f => `${f.family} (your ${f.role} font file)`), twoAsks: light.paths.sources.some(s => s.key === 'grants'), slides: light.slides.length };
+  return { inside, leftOut: fontsLeftOut(project).map(f => fontWords(project, f)), twoAsks: light.paths.sources.some(s => s.key === 'grants'), slides: light.slides.length };
 }
 
 // ---------- "Download everything": how big it will be, said before it is made ----------

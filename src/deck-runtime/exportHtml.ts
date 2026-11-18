@@ -6,13 +6,14 @@
 // holds no recipients at all. Nothing an author typed can become markup: the data travels as JSON with every
 // character that could end a script element or open a comment written as a \u escape.
 import type { DeckData } from './data';
-import { cleanFamily, fontSrcOk, HAND_FAMILY, HAND_WEIGHT } from './fonts';
+import { cleanFamily, cleanWeight, fontSrcOk, HAND_FAMILY, HAND_WEIGHT, weightText } from './fonts';
 import { base64, sha256, utf8 } from './hash';
 
 export { base64, sha256, utf8 };
 
-/** A typeface the app itself ships (Work Sans, Special Elite, Caveat), as a data URL, for an @font-face in the page. */
-export interface PageFont { family: string; weight: number; style?: 'normal' | 'italic'; src: string; unicodeRange?: string }
+/** A typeface as a data URL, for an @font-face in a page: one the app itself ships (Work Sans, Special Elite, Caveat),
+ *  or a font file the deck carries. `weight` is one number, or the lightest and heaviest of a variable file. */
+export interface PageFont { family: string; weight: number | [number, number]; style?: 'normal' | 'italic'; src: string; unicodeRange?: string }
 export interface DeckParts {
   runtimeJs: string;       // the runtime bundle: an IIFE that defines window.ProfitShareDeck
   css: string;             // deck.css
@@ -115,11 +116,14 @@ export function fontFaceCss(fonts: PageFont[] | undefined): string {
   const out: string[] = [];
   for (const f of Array.isArray(fonts) ? fonts : []) {
     const family = cleanFamily(f?.family);
-    const weight = Math.round(Number(f?.weight));
-    if (!family || !fontSrcOk(f?.src) || !(weight >= 1 && weight <= 1000)) continue;
+    // a weight outside what a stylesheet takes is a face left out, not one moved to the nearest it does take
+    const whole = (v: unknown) => { const n = Math.round(Number(v)); return n >= 1 && n <= 1000 ? n : undefined; };
+    const raw: unknown = f?.weight;
+    const weight = Array.isArray(raw) ? (raw.length === 2 && raw.every(v => whole(v) !== undefined) ? cleanWeight(raw.map(whole)) : undefined) : whole(raw);
+    if (!family || !fontSrcOk(f?.src) || weight === undefined) continue;
     const range = typeof f.unicodeRange === 'string' && RANGE_OK.test(f.unicodeRange) ? `;unicode-range:${f.unicodeRange}` : '';
     const format = /^data:font\/woff2/i.test(f.src) ? ' format("woff2")' : '';
-    out.push(`@font-face{font-family:"${family}";font-weight:${weight};font-style:${f.style === 'italic' ? 'italic' : 'normal'};font-display:block;src:url(${f.src})${format}${range}}`);
+    out.push(`@font-face{font-family:"${family}";font-weight:${weightText(weight)};font-style:${f.style === 'italic' ? 'italic' : 'normal'};font-display:block;src:url(${f.src})${format}${range}}`);
   }
   return out.join('\n');
 }

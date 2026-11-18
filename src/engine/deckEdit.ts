@@ -2,7 +2,7 @@
 // milestones), and the people the deck is sent to. Pure functions over plain data, so the Pitch tab only has to call
 // them and every rule is tested without a browser. Ids are made from the ids already there: no clock, no dice.
 import type { FontFile, PitchDesign, Recipient, SlideCard, SlideLayout, SlideSpec } from './types';
-import { cleanFamily } from '../deck-runtime/fonts';
+import { cleanFamily, cleanStyle, cleanWeight } from '../deck-runtime/fonts';
 import { cleanMotion } from '../deck-runtime/motion';
 import { cleanSlidePaper, PAPER_LAYOUTS } from '../deck-runtime/paper';
 import { MAX_CARDS, reservedSlug, slugify } from './deckData';
@@ -117,11 +117,28 @@ export function readRecipients(raw: unknown): Recipient[] {
   });
 }
 
-/** The font files a design holds that are files at all: an id, a role, a name and an address, each the right kind of thing. */
+/** The font files a design holds that are files at all: an id, a role, a name and an address, each the right kind of thing.
+ *  A role holds one face. The first file of a role says which: a file that names no weight and no style is the whole
+ *  face (an attached file), and any other file of that role is dropped, as it always was; a file that does name one
+ *  (a font picked from Google Fonts: a regular, a bold, an italic) is joined by the role's other files of the same
+ *  family, one for each weight and style. */
 export function readFontFiles(raw: unknown): FontFile[] {
-  const seen = new Set<string>();
-  return objs(raw).filter(f => typeof f.id === 'string' && f.id && (f.role === 'title' || f.role === 'body') && !seen.has(f.role as string) && !!seen.add(f.role as string))
-    .map(f => ({ id: f.id as string, role: f.role as FontFile['role'], family: str(f.family), dataUrl: str(f.dataUrl), embedOk: f.embedOk === true }));
+  const first = new Map<string, { family: string; sized: boolean; had: Set<string> }>(); const ids = new Set<string>();
+  const out: FontFile[] = [];
+  for (const f of objs(raw)) {
+    if (typeof f.id !== 'string' || !f.id || ids.has(f.id) || (f.role !== 'title' && f.role !== 'body')) continue;
+    const weight = cleanWeight(f.weight), style = cleanStyle(f.style);
+    const sized = weight !== undefined || style !== undefined;
+    const which = `${weight === undefined ? '' : String(weight)}/${style ?? 'normal'}`;
+    const lead = first.get(f.role);
+    if (lead) { if (!lead.sized || !sized || cleanFamily(f.family) !== lead.family || lead.had.has(which)) continue; lead.had.add(which); }
+    else first.set(f.role, { family: cleanFamily(f.family), sized, had: new Set([which]) });
+    ids.add(f.id);
+    const licence = str(f.licence).replace(/[^A-Za-z0-9 .-]/g, '').trim().slice(0, 24);
+    out.push({ id: f.id, role: f.role, family: str(f.family), dataUrl: str(f.dataUrl), embedOk: f.embedOk === true,
+      ...(weight !== undefined ? { weight } : {}), ...(style ? { style } : {}), ...(f.source === 'google' ? { source: 'google' as const } : {}), ...(licence ? { licence } : {}) });
+  }
+  return out;
 }
 
 /** A fresh slide of a layout, with an id nobody in `slides` has. */

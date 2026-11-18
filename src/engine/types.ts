@@ -306,12 +306,20 @@ export interface PitchDesign {
   hand?: boolean;             // card titles and quotes in the handwriting face
   tilt?: boolean;             // each card a fraction of a degree off straight
   deck?: DeckRules;           // how the slides are laid out
-  fontFiles?: FontFile[];     // font files attached for the title and body faces, one a role
+  fontFiles?: FontFile[];     // font files for the title and body faces: one attached file a role, or the files of one family picked from Google Fonts (a weight each)
 }
 /** A font file the filmmaker attached. `dataUrl` is the file itself (kept in the browser's big store, and inside the
  *  .json on Save, the way look book pictures are). `embedOk` is their word that the licence lets the file travel
  *  inside a deck they send; without it the face is used in the in-app preview only. */
-export interface FontFile { id: string; role: 'title' | 'body'; family: string; dataUrl: string; embedOk: boolean }
+export interface FontFile {
+  id: string; role: 'title' | 'body'; family: string; dataUrl: string; embedOk: boolean;
+  /** Which weight of the family this file is: one number, or the lightest and heaviest a variable file holds. A file
+   *  with neither this nor `style` is a whole face on its own (what an attached file is): the role has no other. */
+  weight?: number | [number, number];
+  style?: 'normal' | 'italic';
+  source?: 'google';          // picked from Google Fonts and downloaded into the project; left out for an attached file
+  licence?: string;           // the open licence a picked font came under: OFL, Apache or UFL
+}
 /** Layout rules a brand system sets for its slides. */
 export interface DeckRules {
   layout: 'split' | 'plain';  // split: a photo bleeds the left of a text slide, the text column sits right; plain: text on the ground

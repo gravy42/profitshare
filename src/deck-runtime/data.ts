@@ -16,14 +16,17 @@ export interface DeckTheme {
   colors: { bg: string; ink: string; accent: string; accent2: string; muted: string; card: string; cardInk: string; line: string };
   fonts: { title: string; body: string };   // CSS font-family stacks
   signoff: string;                          // the footer of the last slide; empty for the film's own name
-  /** Font files the deck carries, at most four. `src` is a base64 data URL of the file; `role` says which of the two
+  /** Font files the deck carries, at most eight. `src` is a base64 data URL of the file; `role` says which of the two
    *  stacks above the face goes in front of. Optional: a deck without it uses the stacks alone. */
   fontFaces?: DeckFontFace[];
   paper?: PaperStyle;                       // the paper every card is drawn on, unless a slide names its own; left out, plain
   hand?: boolean;                           // true: card titles, their small labels and the quote are set in the handwriting face
   tilt?: boolean;                           // true: each card sits a fraction of a degree off straight; left out, straight
 }
-export interface DeckFontFace { family: string; src: string; role: 'title' | 'body' }
+/** `weight` (one number, or the lightest and heaviest of a variable file) and `style` are optional: a face with
+ *  neither is a whole face on its own, and bold is drawn from it. Faces of one role and family that carry them are
+ *  one family to the browser, which picks the file by weight and style. */
+export interface DeckFontFace { family: string; src: string; role: 'title' | 'body'; weight?: number | [number, number]; style?: 'normal' | 'italic' }
 
 /** A picture a slide can use. `src` is a data URL in an exported deck; in the app's preview it may be a blob: URL. */
 export interface DeckImage { id: string; src: string; alt: string }

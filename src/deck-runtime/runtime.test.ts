@@ -1404,7 +1404,7 @@ describe('font files', () => {
     expect(shortHash('')).toBe(shortHash(''));
     expect(shortHash('a')).not.toBe(shortHash('b'));
   });
-  it('drops every face a hand-edited file gets wrong, and reads four at most', () => {
+  it('drops every face a hand-edited file gets wrong, and reads eight at most', () => {
     expect(cleanFontFaces([
       { family: 'Good One', src: FONT, role: 'title' },
       { family: 'Remote', src: 'https://example.com/a.woff2', role: 'title' },
@@ -1414,7 +1414,7 @@ describe('font files', () => {
       'text', null, 5,
       { family: 'Good <Two>', src: OTHER_FONT, role: 'body' },
     ])).toEqual([{ family: 'Good One', src: FONT, role: 'title' }, { family: 'Good Two', src: OTHER_FONT, role: 'body' }]);
-    expect(cleanFontFaces(Array.from({ length: 9 }, (_, i) => ({ family: `F ${i}`, src: FONT, role: 'body' })))).toHaveLength(4);
+    expect(cleanFontFaces(Array.from({ length: 12 }, (_, i) => ({ family: `F ${i}`, src: FONT, role: 'body' })))).toHaveLength(8);
     for (const v of [undefined, null, 'x', 3, {}]) expect(cleanFontFaces(v)).toEqual([]);
   });
   it('registers each face with the document and puts it in front of its role\'s stack', () => {

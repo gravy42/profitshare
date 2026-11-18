@@ -5,7 +5,7 @@
 import type { LookImage, Project, Recipient, SlideCard, SlideSpec, Waterfall } from './types';
 import type { DeckCard, DeckData, DeckImage, DeckMilestone, DeckRecipient, DeckSlide, DeckStat, DeckTheme } from '../deck-runtime/data';
 import { DECK_DATA_VERSION } from '../deck-runtime/data';
-import { cleanFamily, fontSrcOk, MAX_FONT_FACES } from '../deck-runtime/fonts';
+import { cleanFamily, cleanStyle, cleanWeight, fontSrcOk, MAX_FONT_FACES } from '../deck-runtime/fonts';
 import { cleanDeckMotion, cleanMotion } from '../deck-runtime/motion';
 import { cleanPaper, cleanSlidePaper, PAPER_LAYOUTS } from '../deck-runtime/paper';
 import { withPitch, defaultDesign, defaultDeckRules, compGroups, compMultiple } from './pitch';
@@ -156,18 +156,26 @@ function themeOf(p: Project, opts: DeckDataOptions = {}): DeckTheme {
   };
 }
 
-/** The font files a deck can use: one a role (the first wins), a clean family name, the file present and really a
- *  font. `embedOnly` (the default) keeps only the files whose licence the author says lets them travel: what a deck
- *  that is sent may carry. The in-app preview passes false. */
+/** The font files a deck can use: one face a role (the first usable file says which), a clean family name, the file
+ *  present and really a font. A file that names no weight and no style is the whole face, and the role has no other;
+ *  a file that names one (a font picked from Google Fonts) is joined by the role's other weights of the same family.
+ *  `embedOnly` (the default) keeps only the files whose licence the author says lets them travel: what a deck that
+ *  is sent may carry. The in-app preview passes false. */
 export function fontFacesOf(p: Project, embedOnly = true): NonNullable<DeckTheme['fontFaces']> {
-  const out: NonNullable<DeckTheme['fontFaces']> = []; const seen = new Set<string>();
+  const out: NonNullable<DeckTheme['fontFaces']> = []; const seen = new Map<string, { family: string; sized: boolean; had: Set<string> }>();
   const files = p.pitch?.design?.fontFiles;
   for (const f of Array.isArray(files) ? files : []) {
-    if (!f || typeof f !== 'object' || (f.role !== 'title' && f.role !== 'body') || seen.has(f.role)) continue;
+    if (!f || typeof f !== 'object' || (f.role !== 'title' && f.role !== 'body')) continue;
+    const lead = seen.get(f.role);
+    if (lead && !lead.sized) continue;
     const family = cleanFamily(f.family);
     if (!family || !fontSrcOk(f.dataUrl) || (embedOnly && f.embedOk !== true)) continue;
-    seen.add(f.role);
-    out.push({ family, src: f.dataUrl, role: f.role });
+    const weight = cleanWeight(f.weight), style = cleanStyle(f.style);
+    const sized = weight !== undefined || style !== undefined;
+    const which = `${weight === undefined ? '' : String(weight)}/${style ?? 'normal'}`;
+    if (lead) { if (!sized || family !== lead.family || lead.had.has(which)) continue; lead.had.add(which); }
+    else seen.set(f.role, { family, sized, had: new Set([which]) });
+    out.push({ family, src: f.dataUrl, role: f.role, ...(weight !== undefined ? { weight } : {}), ...(style ? { style } : {}) });
     if (out.length >= MAX_FONT_FACES) break;
   }
   return out;
@@ -447,12 +455,14 @@ export function deckWarnings(p0: Project): DeckWarning[] {
     if (s.imageId && !ids.has(s.imageId)) out.push({ slideId: s.id, where: 'picture', message: 'The picture chosen for this slide is no longer in the look book.' });
     if (s.motion?.marker && !ids.has(s.motion.marker.imageId)) out.push({ slideId: s.id, where: 'marker', message: 'The picture that travels along the timeline on this slide is no longer in the look book, so it is left off.' });
   }
+  const fontSaid = new Set<string>();   // a family picked from Google Fonts is several files: what is wrong with it is said once
+  const fontNote = (message: string) => { if (!fontSaid.has(message)) { fontSaid.add(message); out.push({ slideId: 'design', where: 'design', message }); } };
   for (const f of Array.isArray(pitch.design?.fontFiles) ? pitch.design!.fontFiles! : []) {
     if (!isObj(f) || !text(f.id) || (f.role !== 'title' && f.role !== 'body')) continue;   // not a font file at all
     const which = f.role === 'title' ? 'title' : 'body'; const data = typeof f.dataUrl === 'string' ? f.dataUrl : '';
-    if (!cleanFamily(f.family)) out.push({ slideId: 'design', where: 'design', message: `The ${which} font file has no name, so the deck cannot use it. Give it one under Design system.` });
-    else if (data && !data.startsWith('idb:') && !fontSrcOk(data)) out.push({ slideId: 'design', where: 'design', message: `The ${which} font file "${cleanFamily(f.family)}" is not a font this deck can read, so it is left out.` });
-    else if (!data) out.push({ slideId: 'design', where: 'design', message: `The ${which} font file "${cleanFamily(f.family)}" is missing from this browser. Attach it again under Design system.` });
+    if (!cleanFamily(f.family)) fontNote(`The ${which} font file has no name, so the deck cannot use it. Give it one under Design system.`);
+    else if (data && !data.startsWith('idb:') && !fontSrcOk(data)) fontNote(`The ${which} font file "${cleanFamily(f.family)}" is not a font this deck can read, so it is left out.`);
+    else if (!data) fontNote(f.source === 'google' ? `The ${which} font "${cleanFamily(f.family)}" is missing from this browser. Pick it again under Design system.` : `The ${which} font file "${cleanFamily(f.family)}" is missing from this browser. Attach it again under Design system.`);
   }
   const seen = new Set<string>();
   (Array.isArray(pitch.recipients) ? pitch.recipients : []).forEach((r: unknown, at) => {
