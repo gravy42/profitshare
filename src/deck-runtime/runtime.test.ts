@@ -16,7 +16,7 @@ import { money, moneyParts, multiple, percent, shares100 } from './format';
 import { cleanFamily, faceName, fontSrcOk, shortHash } from './fonts';
 import { CENTRE_UNDER, shouldCentre, cleanFontFaces, cleanPaths, cleanRecipients, contrastRatio, DEFAULT_LEGAL, deckColors, fillAsk, fontStack, initialSwitches, MAX_SOURCES, mixColors, mountDeck, overflows, parseColor, parseHash, readableOn, reservedSlug, safeColor, str, textSafe } from './runtime';
 import type { DeckHandle } from './runtime';
-import { scrimLight, veilBoxes, footBand, shadeNeeded, readColor, VEILED, VEIL_LABEL, VEIL_NEAR, VEIL_PAD, VEIL_SNAP, FOOT_RISE, SHADE_SPARE, TURN_FROM, TURN_GAIN } from './runtime';
+import { scrimLight, veilBoxes, shadeNeeded, readColor, VEILED, VEIL_LABEL, VEIL_NEAR, VEIL_PAD, VEIL_SNAP, SHADE_SPARE, TURN_FROM, TURN_GAIN } from './runtime';
 
 // Only the invented sample film, dressed with invented content so that every layout appears.
 const pic = (id: string): LookImage => ({ id, dataUrl: `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" id="${id}"/>`, caption: `Picture ${id}`, section: 'tone' });
@@ -1839,17 +1839,12 @@ describe('the scrim behind the words of a picture slide', () => {
     expect(mid.left).toBeGreaterThan(30); expect(mid.top).toBeGreaterThan(40); expect(mid.left + mid.width).toBeLessThan(70); expect(mid.top + mid.height).toBeLessThan(60);
     expect(veilBoxes([{ x: 600, y: 30, w: 400, h: 60 }], frame, 22.4)[0].top).toBe(0);
   });
-  it('the footer has a band along the bottom, starting a little above its words, and no boxes in the corners', () => {
-    expect(FOOT_RISE).toBe(2.6);
-    const film = { x: 126, y: 856, w: 80, h: 14 }, page = { x: 1418, y: 852, w: 56, h: 18 };
-    const band = footBand([film, page], frame, 22.4)!;
-    expect(band.top).toBeLessThan((852 / 900) * 100);                          // above the highest of the words
-    expect((band.top / 100) * 900).toBeCloseTo(852 - 22.4 * 3.1, 0);           // by the rise and the usual padding
-    expect(footBand([{ x: 0, y: 20, w: 50, h: 10 }], frame, 22.4)).toEqual({ top: 0 });   // never above the slide
-    expect(footBand([], frame, 22.4)).toBeNull();
-    expect(footBand([{ x: 0, y: 5000, w: 50, h: 10 }, { x: NaN, y: 0, w: 5, h: 5 }, { x: 5, y: 5, w: 0, h: 5 }], frame, 22.4)).toBeNull();
-    expect(footBand([film], { x: 0, y: 0, w: 0, h: 0 }, 22.4)).toBeNull();
-    expect(footBand([film], frame, NaN)!.top).toBeCloseTo((856 / 900) * 100, 1);   // no type size: from the words themselves
+  it('the footer\'s two labels get a small box each, where they are: no band across the slide', () => {
+    const film = { x: 126, y: 856, w: 80, h: 14 }, page = { x: 1418, y: 856, w: 56, h: 14 };
+    const [a, b] = veilBoxes([film, page], frame, 22.4);
+    expect(a.width).toBeLessThan(8); expect(b.width).toBeLessThan(8);          // a label's width and its padding, no more
+    expect(a.left).toBeGreaterThan(VEIL_SNAP); expect(b.left + b.width).toBeLessThan(100 - VEIL_SNAP);
+    expect(a.top).toBeGreaterThan(90); expect(b.top).toBeGreaterThan(90);
   });
   it('the shade is only as strong as the picture needs: nothing over a dark picture, a lot over a white one, never past the old scrim', () => {
     const fill = (r: number, g: number, b: number, n = 40) => Array.from({ length: n }, () => [r, g, b, 255]).flat();
@@ -1942,8 +1937,7 @@ describe('the scrim behind the words of a picture slide', () => {
     expect(sheet).toContain('.psd-l-photo .psd-scrim, .psd-l-closing .psd-scrim { background: linear-gradient(to top, var(--s) 0%, var(--s) var(--psd-stop, 62%), var(--f) 100%); }');
     const veil = /\.psd-veil \{([^}]*)\}/.exec(sheet)![1];
     expect(veil).toContain('background: var(--psd-shade, var(--psd-bg))'); expect(veil).toContain('opacity: var(--k, var(--psd-scrim, 85%))');   // as strong as the picture needs; not measured, the scrim's own strength
-    const footRule = /\.psd-veil-foot \{([^}]*)\}/.exec(sheet)![1];
-    expect(footRule).toContain('left: 0; right: 0; bottom: 0'); expect(footRule).toContain('opacity: var(--k, var(--psd-scrim, 85%))'); expect(footRule).toMatch(/linear-gradient\(to bottom, transparent/);
+    expect(sheet).toContain('.psd-veil.psd-veil-small { --v: 1.1em; }'); expect(sheet).not.toContain('psd-veil-foot');   // a footer label has a small patch, and there is no band
     expect(veil).toContain('mask-composite: intersect'); expect(veil).toContain('-webkit-mask-composite: source-in');
     expect(veil).toMatch(/#000 var\(--v\), #000 calc\(100% - var\(--v\)\)/);   // nothing fades inside the box itself: the fade is all in the padding round it
     expect(veil).toMatch(/margin: calc\(var\(--v\) \* -1\) 0 0 calc\(var\(--v\) \* -1\); padding: var\(--v\)/);

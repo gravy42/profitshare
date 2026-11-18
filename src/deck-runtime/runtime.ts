@@ -414,8 +414,8 @@ export const VEIL_NEAR = 1.6;   // em: blocks this close above or below one anot
  *  grows. Blocks that sit over or under one another, within `VEIL_NEAR`, are joined (one box round a heading and its
  *  paragraphs, so the shade has one plain shape and not a step for every line). A box that ends within `VEIL_SNAP`
  *  percent of an edge runs off that edge. A block with no size, or wholly off the slide, gets none; a frame with no
- *  size gets none at all (and the slide keeps its scrim everywhere). The footer is not given to this function: it has
- *  its own band along the bottom (`footBand`). */
+ *  size gets none at all (and the slide keeps its scrim everywhere). The footer's two labels are given to this function by themselves,
+ *  and get a small box each. */
 export function veilBoxes(texts: Box[], frame: Box, em: number): { left: number; top: number; width: number; height: number }[] {
   if (!(frame.w > 0) || !(frame.h > 0)) return [];
   const unit = Number.isFinite(em) && em > 0 ? em : 0, p = unit * VEIL_PAD;
@@ -456,23 +456,6 @@ export function veilBoxes(texts: Box[], frame: Box, em: number): { left: number;
   }
   return out.sort((x, y) => x.top - y.top || x.left - y.left);
 }
-export const FOOT_RISE = 2.6;   // em: how far above the footer's words its band takes to reach full strength
-/** Where the footer's band starts, as a percentage down the slide: `FOOT_RISE` above the highest of the footer's
- *  words (the band runs the whole width, from there to the bottom edge). Null when there is nothing to measure. */
-export function footBand(texts: Box[], frame: Box, em: number): { top: number } | null {
-  if (!(frame.w > 0) || !(frame.h > 0)) return null;
-  const unit = Number.isFinite(em) && em > 0 ? em : 0;
-  let top = Infinity;
-  for (const t of texts) {
-    if (![t.x, t.y, t.w, t.h].every(Number.isFinite) || !(t.w > 0) || !(t.h > 0)) continue;
-    if (t.y >= frame.y + frame.h || t.y + t.h <= frame.y) continue;
-    top = Math.min(top, t.y);
-  }
-  if (top === Infinity) return null;
-  const pct = ((top - unit * (FOOT_RISE + VEIL_PAD) - frame.y) / frame.h) * 100;
-  return { top: Math.max(0, Math.min(100, Math.floor(pct * 100) / 100)) };
-}
-
 // ---------- how strong the shade has to be: read from the picture itself ----------
 
 export const SHADE_STEP = 0.05;
@@ -1161,15 +1144,16 @@ function mountWith(host: HTMLElement, data: DeckData, opts: MountOptions, taken:
     return out;
   }
   /** The shade of a picture slide, drawn where its words are: every block of text outside a card is measured where it
-   *  will sit. The words of the slide get one soft shade round each group of them, and the footer a band along the
-   *  bottom; each is only as strong as the picture behind it needs for those words to be readable (never stronger than
+   *  will sit. The words of the slide get one soft shade round each group of them, and each of the footer's labels a
+   *  small patch of its own (none when it reads without); each is only as strong as the picture behind it needs for those words to be readable (never stronger than
    *  the scrim a slide had before). The rest of the picture keeps only the light wash. Until a slide has been measured
    *  (and whenever it cannot be) the scrim is as it always was. */
   function veil(p: Part, on: boolean) {
     const host = p.veils; if (!host) return;
     turn(p, false);   // measured first with the words as the theme has them
     const boxes: ReturnType<typeof veilBoxes> = [];
-    let band: ReturnType<typeof footBand> = null, strong: number | null = null, footStrong: number | null = null;
+    const small: ReturnType<typeof veilBoxes> = [];
+    let strong: number | null = null, footStrong: number | null = null;
     if (on && typeof doc.createRange === 'function') {
       const frame = p.section.getBoundingClientRect(), em = parseFloat((win?.getComputedStyle(host).fontSize) ?? '') || 0;
       const blocks = new Set<Element>();
@@ -1183,7 +1167,7 @@ function mountWith(host: HTMLElement, data: DeckData, opts: MountOptions, taken:
       if (em > 0 && blocks.size) {
         const f = { x: frame.left, y: frame.top, w: frame.width, h: frame.height };
         boxes.push(...veilBoxes(words.filter(x => !x.foot).map(x => x.rect), f, em));
-        band = footBand(words.filter(x => x.foot).map(x => x.rect), f, em);
+        small.push(...veilBoxes(words.filter(x => x.foot).map(x => x.rect), f, em));   // the footer's labels: a small patch each, not a band
         // how strong: read from the picture behind each block of words, with the words as the theme has them and
         // then the other way round; the slide takes whichever needs clearly less shade
         const grid = pictureGrid(p, frame), look = win?.getComputedStyle(host);
@@ -1218,12 +1202,13 @@ function mountWith(host: HTMLElement, data: DeckData, opts: MountOptions, taken:
       if (strong != null) v.style.setProperty('--k', String(strong));
       host.appendChild(v);
     }
-    if (band) {
-      const v = el('i', 'psd-veil-foot'); v.style.top = `${band.top}%`;
+    for (const b of small) {
+      if (footStrong != null && footStrong <= SHADE_SPARE) continue;   // readable as it is: nothing drawn
+      const v = el('i', 'psd-veil psd-veil-small'); v.style.left = `${b.left}%`; v.style.top = `${b.top}%`; v.style.width = `${b.width}%`; v.style.height = `${b.height}%`;
       if (footStrong != null) v.style.setProperty('--k', String(footStrong));
       host.appendChild(v);
     }
-    if (boxes.length || band) p.section.dataset.veil = ''; else delete p.section.dataset.veil;
+    if (boxes.length || small.length) p.section.dataset.veil = ''; else delete p.section.dataset.veil;
   }
   function fitAll(): number[] {
     if (destroyed) return [];

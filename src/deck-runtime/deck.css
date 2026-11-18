@@ -46,7 +46,7 @@
 .psd-l-cover .psd-scrim { background: linear-gradient(to top, var(--s) 0%, var(--s) 22%, transparent 60%), linear-gradient(to right, var(--s) 0%, var(--s) 60%, var(--f) 100%); }
 /* once the runtime has measured where a picture slide's words are (data-veil), the shade is only behind them: one
    soft shape round each group of words (.psd-veil: solid to its edge, then fading to nothing over --v; where a browser
-   cannot cut the corners of the fade it is only larger) and a band along the bottom for the footer (.psd-veil-foot).
+   cannot cut the corners of the fade it is only larger) and a small patch for each of the footer's labels (.psd-veil-small).
    Each is as strong as the picture behind it needs (--k, set by the runtime from the picture; without it, the scrim's
    full strength). Over the rest of the picture there is only a light wash (--psd-scrim-light, 10% to 30%). */
 .psd-veils { position: absolute; inset: 0; display: none; }
@@ -56,7 +56,7 @@
   --across: linear-gradient(to right, transparent, rgba(0, 0, 0, .12) calc(var(--v) * .25), rgba(0, 0, 0, .5) calc(var(--v) * .5), rgba(0, 0, 0, .88) calc(var(--v) * .75), #000 var(--v), #000 calc(100% - var(--v)), rgba(0, 0, 0, .88) calc(100% - var(--v) * .75), rgba(0, 0, 0, .5) calc(100% - var(--v) * .5), rgba(0, 0, 0, .12) calc(100% - var(--v) * .25), transparent);
   --down: linear-gradient(to bottom, transparent, rgba(0, 0, 0, .12) calc(var(--v) * .25), rgba(0, 0, 0, .5) calc(var(--v) * .5), rgba(0, 0, 0, .88) calc(var(--v) * .75), #000 var(--v), #000 calc(100% - var(--v)), rgba(0, 0, 0, .88) calc(100% - var(--v) * .75), rgba(0, 0, 0, .5) calc(100% - var(--v) * .5), rgba(0, 0, 0, .12) calc(100% - var(--v) * .25), transparent);
   -webkit-mask-image: var(--across), var(--down); -webkit-mask-composite: source-in; mask-image: var(--across), var(--down); mask-composite: intersect; }
-.psd-veil-foot { position: absolute; display: block; left: 0; right: 0; bottom: 0; background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--psd-shade, var(--psd-bg)) 35%, transparent) 1.2em, var(--psd-shade, var(--psd-bg)) 2.6em); opacity: var(--k, var(--psd-scrim, 85%)); }
+.psd-veil.psd-veil-small { --v: 1.1em; }   /* a footer label: a small patch with a short fade, so it stays where the label is */
 /* a slide whose picture suits its words better the other way round (.psd-turned, set by the runtime with the words'
    colours): the shade, the light wash and a printed page's scrim are the theme's ink colour, not its background */
 .psd-slide.psd-turned { --psd-shade: var(--psd-turned-bg); }
