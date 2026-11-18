@@ -9,15 +9,14 @@ export const DECK_ENTRANCES = ['rise', 'fade', 'none'] as const;
 export const ENTRANCES = ['rise', 'fade', 'drop', 'slide-left', 'slide-right', 'none'] as const;
 export const ORDERS = ['together', 'one-by-one', 'reverse'] as const;
 export const HEADLINES = ['none', 'type'] as const;
-export const MARKER_PATHS = ['line', 'timeline'] as const;
+export const MARKER_PATHS = ['timeline'] as const;
 export const MARKER_ENDS = ['stop', 'settle'] as const;
 export const STAGGER_MAX = 400;                      // milliseconds between one part and the next
 export const MARKER_SIZE_MIN = 0.5, MARKER_SIZE_MAX = 2;
 const ID_MAX = 200;
 
-/** The layouts a travelling picture has a line to travel along, and which line that is. */
-export const markerPathOf = (layout: unknown): 'line' | 'timeline' | null =>
-  (layout === 'cards' || layout === 'ways' ? 'line' : layout === 'timeline' ? 'timeline' : null);
+/** The one layout a travelling picture has a path on: the plan, along its timeline. */
+export const markerPathOf = (layout: unknown): 'timeline' | null => (layout === 'timeline' ? 'timeline' : null);
 
 const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 const own = (o: Record<string, unknown>, k: string): unknown => (Object.prototype.hasOwnProperty.call(o, k) ? o[k] : undefined);
@@ -25,7 +24,8 @@ const oneOf = <T extends string>(v: unknown, words: readonly T[]): T | undefined
 const clamp = (v: unknown, lo: number, hi: number): number | undefined => (typeof v === 'number' && Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : undefined);
 
 /** A slide's movement with everything that is not in the vocabulary taken out; undefined when nothing is left.
- *  With `layout`, a travelling picture is kept only on a slide that has a line for it, on that line. */
+ *  A travelling picture is kept only on a plan slide, along its timeline: with `layout`, any other slide loses it;
+ *  without, one that names the path cards used to have ('line') loses it, and any other is the timeline's. */
 export function cleanMotion(raw: unknown, layout?: unknown): SlideMotion | undefined {
   if (!isObj(raw)) return undefined;
   const out: SlideMotion = {};
@@ -37,7 +37,7 @@ export function cleanMotion(raw: unknown, layout?: unknown): SlideMotion | undef
   const m = own(raw, 'marker');
   if (isObj(m)) {
     const imageId = own(m, 'imageId');
-    const path = layout === undefined ? oneOf(own(m, 'path'), MARKER_PATHS) ?? 'line' : markerPathOf(layout);
+    const path = layout === undefined ? (own(m, 'path') === 'line' ? null : MARKER_PATHS[0]) : markerPathOf(layout);   // 'line' is the path cards once had: there is none now
     if (typeof imageId === 'string' && imageId.trim() && imageId.length <= ID_MAX && path) {
       out.marker = { imageId, path, end: oneOf(own(m, 'end'), MARKER_ENDS) ?? 'stop' };
       const size = clamp(own(m, 'size'), MARKER_SIZE_MIN, MARKER_SIZE_MAX);

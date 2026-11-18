@@ -10,6 +10,7 @@ import type { LookImage, Pitch, Project, SlideSpec } from './types';
 const seed = applyDeal(sampleProject());
 const pic = (id: string): LookImage => ({ id, dataUrl: `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" id="${id}"/>`, caption: `Picture ${id}`, section: 'tone' });
 const withSlides = (slides: unknown[], over: Partial<Pitch> = {}): Project => { const q = withPitch(seed); return { ...q, pitch: { ...q.pitch!, lookbook: [pic('a'), pic('b')], slides: slides as SlideSpec[], ...over } }; };
+const plan = (motion: unknown, id = 'plan') => ({ id, layout: 'timeline', headline: 'An invented plan', milestones: [{ id: 'm1', when: 'Spring 2031', what: 'Shoot' }], motion });
 const cards = (motion: unknown, extra: Record<string, unknown> = {}) => ({ id: 'gap', layout: 'cards', headline: 'An invented headline', cards: [{ id: 'c1', title: 'One', body: 'First.' }], motion, ...extra });
 
 describe('movement in the deck\'s data', () => {
@@ -32,23 +33,30 @@ describe('movement in the deck\'s data', () => {
     expect('motion' in deckData(withSlides([cards(undefined)], { deckMotion: 'brisk' as never }))).toBe(false);
   });
   it('a travelling picture goes into the deck\'s pictures, once, even when no slide has it behind it', () => {
-    const d = deckData(withSlides([cards({ marker: { imageId: 'b', path: 'line', end: 'settle' } }), cards({ marker: { imageId: 'b', path: 'line', end: 'stop' } }, { id: 'gap2' })]));
+    const d = deckData(withSlides([plan({ marker: { imageId: 'b', path: 'timeline', end: 'settle' } }), plan({ marker: { imageId: 'b', path: 'timeline', end: 'stop' } }, 'plan2')]));
     expect(d.images.map(i => i.id)).toEqual(['b']);
-    expect(d.slides[0].motion).toEqual({ marker: { imageId: 'b', path: 'line', end: 'settle' } });
+    expect(d.slides[0].motion).toEqual({ marker: { imageId: 'b', path: 'timeline', end: 'settle' } });
   });
   it('a travelling picture that is not in the look book is left off the deck, the rest of the movement stays, and the author is told', () => {
-    const p = withSlides([cards({ entrance: 'fade', marker: { imageId: 'gone', path: 'line', end: 'stop' } }), cards({ marker: { imageId: 'gone', path: 'line', end: 'stop' } }, { id: 'gap2' })]);
+    const p = withSlides([plan({ entrance: 'fade', marker: { imageId: 'gone', path: 'timeline', end: 'stop' } }), plan({ marker: { imageId: 'gone', path: 'timeline', end: 'stop' } }, 'plan2')]);
     const d = deckData(p);
     expect(d.slides[0].motion).toEqual({ entrance: 'fade' });
     expect('motion' in d.slides[1]).toBe(false);
     expect(d.images).toEqual([]);
-    expect(deckWarnings(p).filter(w => w.where === 'marker').map(w => w.slideId)).toEqual(['gap', 'gap2']);
-    expect(deckWarnings(withSlides([cards({ marker: { imageId: 'a', path: 'line', end: 'stop' } })]))).toEqual([]);
+    expect(deckWarnings(p).filter(w => w.where === 'marker').map(w => w.slideId)).toEqual(['plan', 'plan2']);
+    expect(deckWarnings(p).find(w => w.where === 'marker')!.message).toBe('The picture that travels along the timeline on this slide is no longer in the look book, so it is left off.');
+    expect(deckWarnings(withSlides([plan({ marker: { imageId: 'a', path: 'timeline', end: 'stop' } })])).filter(w => w.where === 'marker')).toEqual([]);
   });
-  it('keeps a travelling picture only on a slide with a line, on that line', () => {
-    const d = deckData(withSlides([{ id: 's', layout: 'stats', stats: [], motion: { count: true, marker: { imageId: 'a', path: 'line', end: 'stop' } } }, { id: 'p', layout: 'timeline', motion: { marker: { imageId: 'a', path: 'line', end: 'stop' } } }]));
+  it('keeps a travelling picture only on the plan, along its timeline: on cards it is dropped without a word', () => {
+    const p = withSlides([{ id: 's', layout: 'stats', stats: [], motion: { count: true, marker: { imageId: 'a', path: 'line', end: 'stop' } } }, { id: 'p', layout: 'timeline', motion: { marker: { imageId: 'a', path: 'line', end: 'stop' } } },
+      cards({ order: 'one-by-one', stagger: 140, marker: { imageId: 'a', path: 'line', end: 'stop' } }), { ...cards({ marker: { imageId: 'gone', path: 'line', end: 'settle' } }, { id: 'ways' }), layout: 'ways' }] as never);
+    const d = deckData(p);
     expect(d.slides[0].motion).toEqual({ count: true });
     expect(d.slides[1].motion!.marker!.path).toBe('timeline');
+    expect(d.slides[2].motion).toEqual({ order: 'one-by-one', stagger: 140 });   // an old project's cards still arrive one at a time
+    expect('motion' in d.slides[3]).toBe(false);
+    expect(deckWarnings(p).filter(w => w.where === 'marker')).toEqual([]);   // nothing to fix: the picture on cards is simply gone
+    expect(JSON.stringify(d.slides)).not.toContain('"line"');
   });
 });
 

@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { FROM_BUDGET, readFontFiles, readRecipients, readSlides, suggestEnding, validRecipients, FONT_MAX_BYTES, FONT_WARN_BYTES, dataUrlBytes, familyFromFileName, fileSize, fontMime, setFontFile, LAYOUTS, addCard, addSlide, deleteSlide, duplicateSlide, highlightChoices, layoutName, linkEndingProblem, linkProblemText, moveItem, moveSlide, moveSlideTo, neighbourId, newRecipient, newSlide, nextItemId, patchSlide, renameRecipient, setSlideHidden, slideLabel, uniqueId } from './deckEdit';
+import { PAPER_CHOICES, PAPERS, hasPaper } from './deckEdit';
+import { MIX_ORDER, PAPER_STYLES } from '../deck-runtime/paper';
 import { deckData } from './deckData';
 import { applyDeal } from './deal';
 import { sampleProject } from '../data/seed';
@@ -20,8 +22,9 @@ describe('the layouts', () => {
     expect(LAYOUTS.map(l => l.id).sort()).toEqual(['ask', 'cards', 'closing', 'comps', 'cover', 'model', 'numbers', 'photo', 'stats', 'team', 'text', 'timeline', 'ways']);
     for (const l of LAYOUTS) { expect(l.name.length).toBeGreaterThan(2); expect(l.about.length).toBeGreaterThan(20); expect(l.about).not.toMatch(/slug/i); }
     expect(layoutName('stats')).toBe('Proof (numbers and a quote)');
-    expect(LAYOUTS.map(l => l.name)).toEqual(['Cover', 'Picture and a line', 'Words', 'Cards on a line', 'Proof (numbers and a quote)', 'Comparable films', 'Team', 'Plan', 'How the money flows', 'Ways to take part', 'The money', 'The ask', 'Closing']);
+    expect(LAYOUTS.map(l => l.name)).toEqual(['Cover', 'Picture and a line', 'Words', 'Cards', 'Proof (numbers and a quote)', 'Comparable films', 'Team', 'Plan', 'How the money flows', 'Ways to take part', 'The money', 'The ask', 'Closing']);
     expect(LAYOUTS.find(l => l.id === 'timeline')!.about).not.toMatch(/timeline/i);
+    for (const l of LAYOUTS) expect(`${l.name} ${l.about}`, l.id).not.toMatch(/on a line|pinned|hung|clip|\bpeg/i);
     expect([...FROM_BUDGET].sort()).toEqual(['model', 'numbers', 'timeline']);
     expect(layoutName('nope')).toBe('Unknown layout');
   });
@@ -32,6 +35,29 @@ describe('the layouts', () => {
       const data = deckData({ ...base, pitch: { ...base.pitch!, slides } });
       expect(data.slides.map(s => s.layout)).toEqual([l.id]);
     }
+  });
+});
+
+describe('papers, as the editor offers them', () => {
+  it('a slide chooses the deck\'s own, one of the five, or a mix: in plain names', () => {
+    expect(PAPER_CHOICES.map(c => c.name)).toEqual(['Deck default', 'Plain', 'Postcard', 'Letter', 'Notebook', 'Torn page', 'A mix']);
+    expect(PAPER_CHOICES.map(c => c.id)).toEqual(['', ...PAPER_STYLES, 'mixed']);
+    expect(PAPERS.map(p => p.id)).toEqual([...PAPER_STYLES]);
+    for (const p of PAPERS) { expect(p.about.length).toBeGreaterThan(15); expect(`${p.name} ${p.about}`).not.toMatch(/on a line|pinned|hung|clip|\bpeg/i); }
+    for (const m of MIX_ORDER) expect(PAPERS.some(p => p.id === m)).toBe(true);
+  });
+  it('is offered on the slides that draw a card', () => {
+    expect(LAYOUTS.map(l => l.id).filter(hasPaper).sort()).toEqual(['cards', 'cover', 'stats', 'team', 'ways']);
+    expect(hasPaper('hologram')).toBe(false);
+  });
+  it('a slide keeps its paper through reading, copying and patching, and loses a word that is not on the list', () => {
+    const raw = [{ id: 'a', layout: 'cards', paper: 'mixed', cards: [{ id: 'c', title: 'T', body: '' }] }, { id: 'b', layout: 'cover', paper: 'postcard' }, { id: 'c', layout: 'cards', paper: 'glitter' }, { id: 'd', layout: 'team', paper: 7 }];
+    expect(readSlides(raw).map(s => s.paper)).toEqual(['mixed', 'postcard', undefined, undefined]);
+    expect('paper' in readSlides(raw)[2]).toBe(false);
+    const copied = duplicateSlide(readSlides(raw), 'a');
+    expect(copied.slides.find(s => s.id === copied.id)!.paper).toBe('mixed');
+    expect(patchSlide(readSlides(raw), 'a', { paper: 'torn' })[0].paper).toBe('torn');
+    expect('paper' in patchSlide(readSlides(raw), 'a', { paper: undefined })[0]).toBe(false);   // back to the deck's default: the key is gone
   });
 });
 
@@ -227,7 +253,7 @@ describe('recipients', () => {
       { id: 'invest', label: 'Invest (Ways to take part)' }, { id: 'give', label: 'Give (Ways to take part)' },
       { id: 'g1', label: 'First finding (The gap)' }, { id: 'g2', label: 'Untitled card (The gap)' },
     ]);
-    expect(highlightChoices([{ id: 'c', layout: 'cards', cards: [{ id: 'x', title: 'T', body: '' }] }])[0].label).toBe('T (Cards on a line)');
+    expect(highlightChoices([{ id: 'c', layout: 'cards', cards: [{ id: 'x', title: 'T', body: '' }] }])[0].label).toBe('T (Cards)');
   });
 });
 
@@ -307,7 +333,7 @@ describe('a project file with anything in it', () => {
     expect(neighbourId(raw, 'a')).toBe('future');
     expect(patchSlide(raw, 'a', { headline: 'H' })[0].headline).toBe('H');
     expect(addCard(raw, 'c').find(s => s.id === 'c')!.cards).toEqual([{ id: 'k', title: 'K' }, { id: 'card', title: '', body: '' }]);
-    expect(highlightChoices(raw)).toEqual([{ id: 'k', label: 'K (Cards on a line)' }]);
+    expect(highlightChoices(raw)).toEqual([{ id: 'k', label: 'K (Cards)' }]);
     for (const v of [null, undefined, 'x', 4, {}] as never[]) {
       expect(addSlide(v, 'text').slides).toHaveLength(1);
       expect(moveSlide(v, 'a', 1)).toEqual([]); expect(moveSlideTo(v, 'a', 1)).toEqual([]); expect(duplicateSlide(v, 'a').id).toBeNull();

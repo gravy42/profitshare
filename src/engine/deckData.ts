@@ -7,6 +7,7 @@ import type { DeckCard, DeckData, DeckImage, DeckMilestone, DeckRecipient, DeckS
 import { DECK_DATA_VERSION } from '../deck-runtime/data';
 import { cleanFamily, fontSrcOk, MAX_FONT_FACES } from '../deck-runtime/fonts';
 import { cleanDeckMotion, cleanMotion } from '../deck-runtime/motion';
+import { cleanPaper, cleanSlidePaper, PAPER_LAYOUTS } from '../deck-runtime/paper';
 import { withPitch, defaultDesign, defaultDeckRules, compGroups, compMultiple } from './pitch';
 import { unlabel } from './deck';
 import { topSheet } from './budget';
@@ -24,7 +25,7 @@ export interface DeckDataOptions {
 
 export const DECK_LEGAL = 'The figures in this deck are illustrative projections, not a promise of returns. Investing in a film is speculative and investors can lose all of the money they put in. This deck is not an offer to sell securities or a solicitation of an offer to buy them.';
 export const DARK_INK = '#1b1608', LIGHT_INK = '#f4eddc';
-export const DEFAULT_CARD = '#f1e9d6';   // an index card, when the design system names no card colour
+export const DEFAULT_CARD = '#f1e9d6';   // the cards' paper, when the design system names no card colour
 export const MAX_CARDS = 4;
 const TAGLINE_MAX = 120;                 // a logline's first sentence longer than this is not a tagline
 
@@ -149,6 +150,9 @@ function themeOf(p: Project, opts: DeckDataOptions = {}): DeckTheme {
     fonts: { title: stackOf(d?.fonts?.title), body: stackOf(d?.fonts?.body) },
     signoff: raw(d?.deck?.signoff),
     ...(faces.length ? { fontFaces: faces } : {}),
+    ...(cleanPaper(d?.paper) !== 'plain' ? { paper: cleanPaper(d?.paper) } : {}),   // a plain card is what a deck with no word for it draws
+    ...(d?.hand === true ? { hand: true } : {}),
+    ...(d?.tilt === true ? { tilt: true } : {}),
   };
 }
 
@@ -281,6 +285,8 @@ function cleanSpec(raw: unknown): SlideSpec | null {
   if (raw.hidden === true) s.hidden = true;
   const motion = cleanMotion(raw.motion, layout);   // only words from the movement vocabulary, whatever the file holds
   if (motion) s.motion = motion;
+  const paper = cleanSlidePaper(raw.paper);   // a word from the list of papers, or the slide follows the deck
+  if (paper) s.paper = paper;
   const cards = list(raw.cards).map((c, i) => ({ id: text(c.id) || `card${i + 1}`, kicker: text(c.kicker), title: text(c.title), body: text(c.body), footnote: text(c.footnote) }));
   if (cards.length) s.cards = cards;
   const stats = list(raw.stats).map((x, i) => ({ id: text(x.id) || `stat${i + 1}`, value: text(x.value), label: text(x.label), source: text(x.source) }));
@@ -305,7 +311,8 @@ const sourced = (x: { source?: unknown } | undefined): boolean => !!x && !!text(
 
 function slideOf(p: Project, s: SlideSpec, pictures: Map<string, LookImage>): DeckSlide {
   const pitch = p.pitch!;
-  const base: { id: string; eyebrow?: string; headline?: string; punch?: string; imageId?: string; scrim?: number; footnote?: string; motion?: SlideSpec['motion'] } = { id: s.id };
+  const base: { id: string; eyebrow?: string; headline?: string; punch?: string; imageId?: string; scrim?: number; footnote?: string; motion?: SlideSpec['motion']; paper?: SlideSpec['paper'] } = { id: s.id };
+  if (s.paper && PAPER_LAYOUTS.includes(s.layout)) base.paper = s.paper;   // only a slide that draws a card carries a paper
   if (text(s.eyebrow)) base.eyebrow = s.eyebrow!.trim();
   if (text(s.headline)) base.headline = s.headline!.trim();
   if (text(s.punch)) base.punch = s.punch!.trim();
@@ -438,7 +445,7 @@ export function deckWarnings(p0: Project): DeckWarning[] {
     }
     if ((s.layout === 'cards' || s.layout === 'ways') && (s.cards?.length ?? 0) > MAX_CARDS) out.push({ slideId: s.id, where: 'cards', message: `This slide has ${s.cards!.length} cards; a slide holds ${MAX_CARDS} at most.` });
     if (s.imageId && !ids.has(s.imageId)) out.push({ slideId: s.id, where: 'picture', message: 'The picture chosen for this slide is no longer in the look book.' });
-    if (s.motion?.marker && !ids.has(s.motion.marker.imageId)) out.push({ slideId: s.id, where: 'marker', message: 'The picture that travels along the line on this slide is no longer in the look book, so it is left off.' });
+    if (s.motion?.marker && !ids.has(s.motion.marker.imageId)) out.push({ slideId: s.id, where: 'marker', message: 'The picture that travels along the timeline on this slide is no longer in the look book, so it is left off.' });
   }
   for (const f of Array.isArray(pitch.design?.fontFiles) ? pitch.design!.fontFiles! : []) {
     if (!isObj(f) || !text(f.id) || (f.role !== 'title' && f.role !== 'body')) continue;   // not a font file at all

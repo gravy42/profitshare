@@ -1,9 +1,10 @@
 // Editing the authored pitch deck: the slide list (add, move, copy, hide, delete), a slide's lists (cards, stats,
 // milestones), and the people the deck is sent to. Pure functions over plain data, so the Pitch tab only has to call
 // them and every rule is tested without a browser. Ids are made from the ids already there: no clock, no dice.
-import type { FontFile, Recipient, SlideCard, SlideLayout, SlideSpec } from './types';
+import type { FontFile, PitchDesign, Recipient, SlideCard, SlideLayout, SlideSpec } from './types';
 import { cleanFamily } from '../deck-runtime/fonts';
 import { cleanMotion } from '../deck-runtime/motion';
+import { cleanSlidePaper, PAPER_LAYOUTS } from '../deck-runtime/paper';
 import { MAX_CARDS, reservedSlug, slugify } from './deckData';
 
 /** The thirteen layouts, in the order a deck usually runs, each with a name and a line on what it is for. */
@@ -11,7 +12,7 @@ export const LAYOUTS: { id: SlideLayout; name: string; about: string }[] = [
   { id: 'cover', name: 'Cover', about: 'The title, a line for who the deck is for, and who made the film.' },
   { id: 'photo', name: 'Picture and a line', about: 'One picture, a headline and a short paragraph.' },
   { id: 'text', name: 'Words', about: 'A headline and a few paragraphs, with small labelled columns under them if you want.' },
-  { id: 'cards', name: 'Cards on a line', about: 'Three or four index cards on a line: findings, reasons, steps.' },
+  { id: 'cards', name: 'Cards', about: 'Two to four cards in a row: findings, reasons, steps.' },
   { id: 'stats', name: 'Proof (numbers and a quote)', about: 'One big number, a few smaller ones and a quote. Every number needs its source.' },
   { id: 'comps', name: 'Comparable films', about: 'Bars and a table drawn from the Comparable films list.' },
   { id: 'team', name: 'Team', about: 'The people in the Team list, with a card beside them for who else is attached.' },
@@ -22,6 +23,22 @@ export const LAYOUTS: { id: SlideLayout; name: string; about: string }[] = [
   { id: 'ask', name: 'The ask', about: 'What you are raising, the next step and how to reach you.' },
   { id: 'closing', name: 'Closing', about: 'The title once more, over a picture, with your sign-off.' },
 ];
+/** The papers a slide's cards can be drawn on, as the slide editor lists them: the deck's own first, a mix last. */
+export const PAPER_CHOICES: { id: '' | NonNullable<SlideSpec['paper']>; name: string }[] = [
+  { id: '', name: 'Deck default' }, { id: 'plain', name: 'Plain' }, { id: 'postcard', name: 'Postcard' }, { id: 'letter', name: 'Letter' },
+  { id: 'notebook', name: 'Notebook' }, { id: 'torn', name: 'Torn page' }, { id: 'mixed', name: 'A mix' },
+];
+/** The papers a deck can use for every card, each with a line on what it looks like. */
+export const PAPERS: { id: NonNullable<PitchDesign['paper']>; name: string; about: string }[] = [
+  { id: 'plain', name: 'Plain', about: 'A flat card in the card colour.' },
+  { id: 'postcard', name: 'Postcard', about: 'The back of a postcard: a stamp, a postmark and lines for an address.' },
+  { id: 'letter', name: 'Letter', about: 'Old letter paper, folded in three.' },
+  { id: 'notebook', name: 'Notebook', about: 'A ruled page from a small pad, with punched holes and a margin.' },
+  { id: 'torn', name: 'Torn page', about: 'A ruled page torn off along the top.' },
+];
+/** Whether a slide of this layout draws a card, so has a paper to choose. */
+export const hasPaper = (layout: string): boolean => PAPER_LAYOUTS.includes(layout);
+
 /** Layouts whose main content is worked out from the budget, the schedule and the deal, not typed on the slide. */
 export const FROM_BUDGET: ReadonlySet<SlideLayout> = new Set<SlideLayout>(['timeline', 'model', 'numbers']);
 export const layoutName = (id: string): string => LAYOUTS.find(l => l.id === id)?.name ?? 'Unknown layout';
@@ -68,6 +85,8 @@ export function readSlides(raw: unknown): SlideSpec[] {
     if (r.hidden === true) s.hidden = true;
     const motion = cleanMotion(r.motion, layout);
     if (motion) s.motion = motion;
+    const paper = cleanSlidePaper(r.paper);
+    if (paper) s.paper = paper;
     const ided = <T extends { id: string }>(items: T[], stem: string): T[] => { const used: string[] = []; return items.map(x => { const own = x.id && !used.includes(x.id) ? x.id : uniqueId(stem, used); used.push(own); return { ...x, id: own }; }); };
     const cards = ided(objs(r.cards).map(c => ({ id: str(c.id), kicker: str(c.kicker), title: str(c.title), body: str(c.body), footnote: str(c.footnote) })), 'card');
     if (cards.length) s.cards = cards;

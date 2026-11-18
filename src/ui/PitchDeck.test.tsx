@@ -4,13 +4,13 @@
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { sampleProject } from '../data/seed';
+import { sampleDemo, sampleProject } from '../data/seed';
 import { applyDeal } from '../engine/deal';
 import { defaultDesign, withPitch } from '../engine/pitch';
-import type { Project } from '../engine/types';
+import type { PitchDesign, Project } from '../engine/types';
 import PitchDeck from './PitchDeck';
 import { LoadFailed, forgetWork, loadWork } from './DeckSend';
-import { CardColor, FontFiles, PaletteBuilder } from './DesignBuilder';
+import { CardColor, FontFiles, PaletteBuilder, PaperChooser } from './DesignBuilder';
 import { Boundary } from './Boundary';
 
 beforeAll(() => { (globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true; });
@@ -48,7 +48,7 @@ describe('the pitch deck builder with anything in the project file', () => {
     let el!: HTMLElement;
     expect(() => { el = draw(<PitchDeck project={p} setPitch={() => undefined} />); }).not.toThrow();
     expect(el.querySelector('[role="alert"]')).toBeNull();           // drawn, not caught by a boundary
-    expect([...el.querySelectorAll('.pd-row .pd-pick b')].map(b => b.textContent)).toEqual(['Proof (numbers and a quote)', 'Cards on a line', 'Words', 'Team', 'Plan']);
+    expect([...el.querySelectorAll('.pd-row .pd-pick b')].map(b => b.textContent)).toEqual(['Proof (numbers and a quote)', 'Cards', 'Words', 'Team', 'Plan']);
     expect(el.textContent).toContain('1 slide was made in a newer version of ProfitShare and cannot be shown here.');
     await settle();
     expect(el.querySelector('.pd-host')!.shadowRoot!.querySelectorAll('section').length).toBe(5);
@@ -77,6 +77,67 @@ describe('the pitch deck builder with anything in the project file', () => {
     for (const node of [el, ...el.querySelectorAll<HTMLElement>('*')]) expect(node.getAttribute('style') ?? '').not.toMatch(/url\(|example\.invalid/);
     const deck = el.querySelector('.pd-host')!.shadowRoot!.querySelector<HTMLElement>('.psd')!;
     expect(deck.getAttribute('style')).not.toMatch(/url\(|example\.invalid/);
+  });
+});
+
+describe('papers', () => {
+  const sample = (): Project => applyDeal(sampleDemo());
+  it('the design box offers each paper as a named radio button with a card drawn by the deck itself, and the two switches', () => {
+    let d: PitchDesign = { ...defaultDesign() };
+    const set = (f: (x: typeof d) => typeof d) => { d = f(d); act(() => root!.render(<PaperChooser design={d} set={set} />)); };
+    const el = draw(<PaperChooser design={d} set={set} />);
+    const group = el.querySelector('fieldset')!;
+    expect(group.querySelector('legend')!.textContent).toBe('Paper for cards');
+    const radios = [...group.querySelectorAll<HTMLInputElement>('input[type="radio"]')];
+    expect(radios.map(r => r.closest('label')!.textContent)).toEqual(['Plain', 'Postcard', 'Letter', 'Notebook', 'Torn page']);
+    expect(new Set(radios.map(r => r.name)).size).toBe(1);   // one group: the arrow keys move through it
+    expect(radios.map(r => r.checked)).toEqual([true, false, false, false, false]);   // nothing set: plain
+    const thumbs = [...el.querySelectorAll<HTMLElement>('.paperthumb')];
+    expect(thumbs.map(t => t.shadowRoot!.querySelector<HTMLElement>('.psd-card')!.dataset.paper)).toEqual(['plain', 'postcard', 'letter', 'notebook', 'torn']);
+    for (const t of thumbs) { expect(t.getAttribute('aria-hidden')).toBe('true'); expect(t.shadowRoot!.querySelector('.psd')!.classList.contains('psd-swatch')).toBe(true); }
+    act(() => radios[4].click());
+    expect(d.paper).toBe('torn');
+    act(() => el.querySelectorAll<HTMLInputElement>('input[type="radio"]')[0].click());
+    expect('paper' in d).toBe(false);   // plain is nothing in the file
+    const [hand, tilt] = [...el.querySelectorAll<HTMLInputElement>('.pd-checks input[type="checkbox"]')];
+    expect(hand.closest('label')!.textContent).toBe(' Handwriting on the papers');
+    expect(tilt.closest('label')!.textContent).toBe(' Tilt the cards a little');
+    expect([hand.checked, tilt.checked]).toEqual([false, false]);
+    act(() => hand.click());
+    expect(d.hand).toBe(true);
+    expect(el.querySelector('.paperthumb')!.shadowRoot!.querySelector('.psd')!.classList.contains('psd-hand')).toBe(true);   // the samples follow
+    act(() => el.querySelectorAll<HTMLInputElement>('.pd-checks input')[1].click());
+    expect(d.tilt).toBe(true);
+    act(() => el.querySelectorAll<HTMLInputElement>('.pd-checks input')[0].click());
+    expect('hand' in d).toBe(false);
+    expect(el.textContent).not.toMatch(/on a line|pinned|hung|\bclip|\bpeg/i);
+  });
+  it('the chooser takes nonsense for a paper and for every colour', () => {
+    const d = { ...defaultDesign(), paper: 'url(x)', hand: 'yes', tilt: 3, colors: 'red', card: 7, fonts: null } as never;
+    expect(() => draw(<PaperChooser design={d} set={() => undefined} />)).not.toThrow();
+    expect([...box!.querySelectorAll<HTMLInputElement>('input[type="radio"]')].map(r => r.checked)).toEqual([true, false, false, false, false]);
+    for (const node of box!.querySelectorAll<HTMLElement>('*')) expect(node.getAttribute('style') ?? '').not.toMatch(/url\(/);
+  });
+  it('a slide with cards has a Paper choice; a slide with none has not; choosing writes one word to the slide', async () => {
+    let p = sample();
+    const setPitch = (f: (x: NonNullable<Project['pitch']>) => NonNullable<Project['pitch']>) => { p = { ...p, pitch: f(p.pitch!) }; act(() => root!.render(<PitchDeck project={p} setPitch={setPitch} />)); };
+    const el = draw(<PitchDeck project={p} setPitch={setPitch} />);
+    await settle();
+    const pick = (id: string) => act(() => { [...el.querySelectorAll<HTMLButtonElement>('.pd-row .pd-pick')][p.pitch!.slides!.findIndex(s => s.id === id)].click(); });
+    const paper = () => el.querySelector<HTMLSelectElement>('.pd-editor select[data-field="paper"]');
+    pick('why'); expect(paper()).toBeNull();
+    pick('plan'); expect(paper()).toBeNull();
+    pick('gap');
+    expect(el.querySelector(`label[for="${paper()!.id}"]`)!.textContent).toBe('Paper');
+    expect([...paper()!.options].map(o => o.textContent)).toEqual(['Deck default', 'Plain', 'Postcard', 'Letter', 'Notebook', 'Torn page', 'A mix']);
+    expect(paper()!.value).toBe('mixed');
+    const choose = (v: string) => act(() => { const s = paper()!; Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!.call(s, v); s.dispatchEvent(new Event('change', { bubbles: true })); });
+    choose('letter');
+    expect(p.pitch!.slides!.find(s => s.id === 'gap')!.paper).toBe('letter');
+    choose('');
+    expect('paper' in p.pitch!.slides!.find(s => s.id === 'gap')!).toBe(false);
+    for (const id of ['cover', 'audience', 'team', 'ways']) { pick(id); expect(paper(), id).not.toBeNull(); }
+    expect(el.querySelector('.pd-editor')!.textContent).not.toMatch(/on a line|pinned|hung\b/i);
   });
 });
 

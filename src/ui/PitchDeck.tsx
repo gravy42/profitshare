@@ -10,7 +10,7 @@ import { PROMISE_TEXT, promiseOfReturns } from '../engine/promise';
 import { pathFor } from '../engine/pathMath';
 import { sponsorNet } from '../engine/waterfall';
 import {
-  FROM_BUDGET, LAYOUTS, addCard, addSlide, deleteSlide, duplicateSlide, highlightChoices, layoutName, linkEndingProblem, linkProblemText, moveItem, moveSlide, moveSlideTo,
+  FROM_BUDGET, LAYOUTS, PAPER_CHOICES, addCard, hasPaper, addSlide, deleteSlide, duplicateSlide, highlightChoices, layoutName, linkEndingProblem, linkProblemText, moveItem, moveSlide, moveSlideTo,
   neighbourId, newRecipient, nextItemId, patchSlide, readRecipients, readSlides, renameRecipient, setSlideHidden, slideLabel, validRecipients,
 } from '../engine/deckEdit';
 import type { DeckData } from '../deck-runtime/data';
@@ -532,7 +532,7 @@ function SlideEditor({ slide: s, number, pictures, film, go, patch, onAddCard, o
   const linesOf = (v: string) => v.split('\n');
   const shown = pictures.filter(i => !!i && typeof i === 'object' && typeof i.id === 'string' && typeof i.dataUrl === 'string' && i.dataUrl.startsWith('data:'));
   const scrim = typeof s.scrim === 'number' ? s.scrim : 0.7;
-  const scrimId = useId();
+  const scrimId = useId(), paperId = useId();
   const lostPicture = !!s.imageId && !pictures.some(i => !!i && i.id === s.imageId);
   const askBox = useRef<HTMLDivElement>(null);
   const insert = (token: string) => {
@@ -713,6 +713,14 @@ function SlideEditor({ slide: s, number, pictures, film, go, patch, onAddCard, o
         </Optional>
       )}
 
+      {hasPaper(s.layout) && (
+        <div className="pd-fields pd-optional">
+          <div className="ctl full"><label htmlFor={paperId}>Paper</label>
+            <select id={paperId} data-field="paper" style={{ maxWidth: 220 }} value={s.paper ?? ''} onChange={e => patch({ paper: (e.target.value || undefined) as SlideSpec['paper'] })}>{PAPER_CHOICES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
+            <div className="hint">{s.layout === 'cards' || s.layout === 'ways' ? 'What this slide\'s cards are drawn on. A mix gives each card a different paper.' : s.layout === 'cover' ? 'What the title\'s card is drawn on.' : s.layout === 'stats' ? 'What the quote is drawn on.' : 'What the card beside the team is drawn on.'} Deck default is the paper chosen under Design system.</div></div>
+        </div>
+      )}
+
       <Movement slide={s} pictures={shown} ai={ai} patch={patch} onApplied={onSaid} goAi={goAi} goLookbook={() => go({ panel: 'lookbook' })} />
     </section>
   );
@@ -769,7 +777,7 @@ function PersonRow({ at, r, others, choices, patch, onRemove, assist }: { at: nu
             {choices.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
             {!known && <option value={r.highlightCardId}>A card that is no longer on the deck</option>}
           </select>
-          <div className="hint">{choices.length ? 'Outlined in their copy only.' : 'There are no cards to highlight yet: a Cards on a line or Ways to take part slide has them.'}</div></div>
+          <div className="hint">{choices.length ? 'Outlined in their copy only.' : 'There are no cards to highlight yet: a Cards or Ways to take part slide has them.'}</div></div>
       </div>
       {assist}
       <button type="button" className="btn small" onClick={onRemove}>Remove {r.name.trim() || 'this person'}</button>

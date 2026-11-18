@@ -6,7 +6,7 @@ import { useEffect, useId, useRef, useState, type ReactNode, type RefObject } fr
 import type { LookImage, Recipient, SlideLayout, SlideMotion, SlideSpec } from '../engine/types';
 import type { DeckData } from '../deck-runtime/data';
 import { cleanMotion, markerPathOf, STAGGER_MAX } from '../deck-runtime/motion';
-import { aiProblem, MOTION_SENDS, motionPictures, motionWords, NO_MOVEMENT, REQUEST_MAX, TIMEOUT_MS, type MotionProposal } from '../engine/aiMotion';
+import { aiProblem, motionPictures, motionSends, motionWords, NO_MOVEMENT, REQUEST_MAX, TIMEOUT_MS, type MotionProposal } from '../engine/aiMotion';
 import { ABOUT_MAX, COVER_MAX, CRITIQUE_SENDS, KIND_WORDS, NOTE_MAX, PUNCH_SENDS, personSends, type AiProblem, type PersonSuggestion } from '../engine/aiDeck';
 import { PROMISE_TEXT, promiseOfReturns } from '../engine/promise';
 import { motionOnRequest, readTheDeck, suggestForPerson, suggestSecondLines } from '../ai';
@@ -69,10 +69,9 @@ export function Movement({ slide: s, pictures, ai, patch, onApplied, goAi, goLoo
     patch({ motion: cleanMotion(next, s.layout) });
   };
   const enterId = useId(), orderId = useId(), gapId = useId(), endId = useId(), sizeId = useId();
-  const path = markerPathOf(s.layout);
+  const path = markerPathOf(s.layout);   // a picture travels only along a plan's timeline
   const paced = (m.order === 'one-by-one' || m.order === 'reverse') && m.entrance !== 'none';
   const lost = !!m.marker && !pictures.some(i => i.id === m.marker!.imageId);
-  const where = path === 'timeline' ? 'the timeline' : 'the line';
   if (!open) return <div className="pd-optional"><button type="button" className="btn small" onClick={() => { opened.current = true; setOpen(true); }}>Add movement</button></div>;
   return (
     <fieldset className="pd-set pd-move" ref={box}>
@@ -92,8 +91,8 @@ export function Movement({ slide: s, pictures, ai, patch, onApplied, goAi, goLoo
       </div>
       {path && (
         <div className="pd-marker">
-          <p className="pd-sub" id={`${endId}-h`}>A picture that travels along {where}</p>
-          <p className="hint">A small picture from your look book (a logo or a mark works best) crosses the slide once, left to right, along {where}, and comes to rest at the last {path === 'timeline' ? 'milestone' : 'card'}.</p>
+          <p className="pd-sub" id={`${endId}-h`}>A picture that travels along the timeline</p>
+          <p className="hint">A small picture from your look book (a logo or a mark works best) crosses the slide once, left to right, along the timeline, and comes to rest at the last milestone.</p>
           {lost && <p className="pd-bad small">The picture chosen here is no longer in the look book. Pick another, or No picture.</p>}
           {pictures.length === 0 && !lost ? <p className="hint">No pictures to choose from yet: add one to the <button type="button" className="pd-link" onClick={goLookbook}>Look book</button>.</p> : (
             <ul className="thumbs" aria-labelledby={`${endId}-h`}>
@@ -110,7 +109,7 @@ export function Movement({ slide: s, pictures, ai, patch, onApplied, goAi, goLoo
             <div className="pd-fields">
               <div className="ctl"><label htmlFor={endId}>Where it ends</label>
                 <select id={endId} value={m.marker.end} onChange={e => set({ marker: { ...m.marker!, end: e.target.value === 'settle' ? 'settle' : 'stop' } })}>
-                  <option value="stop">It stops at the last {path === 'timeline' ? 'milestone' : 'card'}</option>
+                  <option value="stop">It stops at the last milestone</option>
                   <option value="settle">It rocks once and settles there</option>
                 </select></div>
               <div className="ctl pd-scrim wide"><label htmlFor={sizeId}>Its size: {Math.round((m.marker.size ?? 1) * 100)}%</label>
@@ -140,7 +139,7 @@ function MotionOnRequest({ slide: s, pictures, patch, onApplied }: { slide: Slid
     <div className="pd-request">
       <div className="ctl"><label htmlFor={id}>Describe the movement you want</label>
         <textarea id={id} ref={field} rows={2} maxLength={REQUEST_MAX} value={text} aria-describedby={sendsId} placeholder="Have the cards drop in one at a time" onChange={e => setText(e.target.value)} /></div>
-      <p className="hint pd-sends" id={sendsId}>{MOTION_SENDS}</p>
+      <p className="hint pd-sends" id={sendsId}>{motionSends(s.layout)}</p>
       <div className="row"><Send ask={ask} label="Suggest movement" disabled={!text.trim()} onSend={() => void ask.run(signal => motionOnRequest(text, s.layout, offered, signal))} /></div>
       <Said busy={ask.busy} error={ask.error} note={ask.note} ready={got ? (usable ? 'A suggestion is ready. Nothing changes until you press Apply.' : `${NO_MOVEMENT} Nothing was changed.`) : ''} />
       {got && (

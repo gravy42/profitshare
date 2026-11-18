@@ -526,3 +526,43 @@ describe('the deck and its warnings read anything', () => {
     expect(deckData(pitched(seed, { design: { ...d, fonts: { title: 'var(--font-title)', body: 5 as unknown as string } } })).theme.fonts).toEqual({ title: '', body: '' });
   });
 });
+
+describe('papers in the deck\'s data', () => {
+  const cardsSlide = (extra: Record<string, unknown> = {}) => ({ id: 'gap', layout: 'cards', cards: [{ id: 'c1', title: 'One', body: 'First.' }, { id: 'c2', title: 'Two', body: 'Second.' }], ...extra });
+  const designed = (design: Record<string, unknown>, slides: unknown[] = [cardsSlide()]) => pitched(seed, { design: { ...defaultDesign(), ...design } as never, slides: slides as SlideSpec[] });
+  it('an old project says nothing about paper, and its deck says nothing either: its cards are drawn plain', () => {
+    const d = deckData(full());
+    expect('paper' in d.theme).toBe(false); expect('hand' in d.theme).toBe(false); expect('tilt' in d.theme).toBe(false);
+    for (const s of d.slides) expect('paper' in s, s.id).toBe(false);
+    expect(JSON.stringify(deckData(seed))).not.toMatch(/"paper"|"hand"|"tilt"/);
+  });
+  it('carries the design system\'s paper, handwriting and tilt into the theme, each only when it is set', () => {
+    for (const paper of ['postcard', 'letter', 'notebook', 'torn'] as const) expect(deckData(designed({ paper })).theme.paper).toBe(paper);
+    expect('paper' in deckData(designed({ paper: 'plain' })).theme).toBe(false);   // plain is what a deck with no word for it draws
+    expect(deckData(designed({ hand: true, tilt: true })).theme).toMatchObject({ hand: true, tilt: true });
+    const off = deckData(designed({ hand: false, tilt: false })).theme;
+    expect('hand' in off).toBe(false); expect('tilt' in off).toBe(false);
+  });
+  it('takes only words from the list: anything else in a hand-edited file is the plain card, and never reaches the deck', () => {
+    for (const raw of ['mixed', 'Torn', 'url(x)', '<img src=x>', 7, null, ['torn'], { a: 1 }, true]) {
+      const d = deckData(designed({ paper: raw, hand: 'yes', tilt: 1 }, [cardsSlide({ paper: raw === 'mixed' ? 'everything' : raw })]));
+      expect('paper' in d.theme, String(raw)).toBe(false);
+      expect('hand' in d.theme).toBe(false); expect('tilt' in d.theme).toBe(false);
+      expect('paper' in d.slides[0], String(raw)).toBe(false);
+      expect(JSON.stringify(d)).not.toMatch(/url\(x\)|<img/);
+    }
+  });
+  it('carries a slide\'s own paper, mixed included, on the slides that draw a card and on no other', () => {
+    const slides = [{ id: 'cover', layout: 'cover', paper: 'postcard' }, cardsSlide({ paper: 'mixed' }), { ...cardsSlide({ paper: 'torn' }), id: 'ways', layout: 'ways' },
+      { id: 'proof', layout: 'stats', paper: 'notebook', quote: { text: 'An invented line.', by: 'Somebody invented' } }, { id: 'team', layout: 'team', paper: 'letter' },
+      { id: 'words', layout: 'text', body: 'x', paper: 'torn' }, { id: 'plan', layout: 'timeline', paper: 'postcard' }, { id: 'ask', layout: 'ask', paper: 'mixed' }, { id: 'plain', layout: 'cards', paper: 'plain', cards: [{ id: 'p1', title: 'P', body: '' }] }];
+    const d = deckData(designed({ paper: 'letter' }, slides));
+    expect(Object.fromEntries(d.slides.map(s => [s.id, s.paper]))).toEqual({ cover: 'postcard', gap: 'mixed', ways: 'torn', proof: 'notebook', team: 'letter', words: undefined, plan: undefined, ask: undefined, plain: 'plain' });
+    expect(d.theme.paper).toBe('letter');
+    expect(deckWarnings(designed({ paper: 'letter' }, slides)).filter(w => /paper/i.test(w.message))).toEqual([]);
+  });
+  it('gives the same deck for the same project, papers and all', () => {
+    const p = designed({ paper: 'torn', hand: true }, [cardsSlide({ paper: 'mixed' })]);
+    expect(deckData(p)).toEqual(deckData(p));
+  });
+});

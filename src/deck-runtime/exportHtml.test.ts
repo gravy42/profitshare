@@ -11,7 +11,7 @@ import { deckData } from '../engine/deckData';
 import { withPitch } from '../engine/pitch';
 import type { FontFile, Pitch, Project, Recipient, SlideSpec } from '../engine/types';
 import type { DeckData } from './data';
-import { base64, bundledFacesNeeded, bundledFamilyOf, dataFor, deckHtml, deckTitle, escapeHtml, fontFaceCss, needsLatinExt, safeJson, safeScript, sha256, utf8, LATIN_RANGE } from './exportHtml';
+import { base64, BUNDLED_FAMILIES, bundledFacesNeeded, bundledFamilyOf, hasCards, dataFor, deckHtml, deckTitle, escapeHtml, fontFaceCss, needsLatinExt, safeJson, safeScript, sha256, utf8, LATIN_RANGE } from './exportHtml';
 
 const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
 const FONT_OK = `data:font/woff2;base64,${'TElDRU5TRUQ'.repeat(8)}`, FONT_NO = `data:font/woff2;base64,${'VU5MSUNFTlNFRA'.repeat(8)}`;
@@ -304,6 +304,62 @@ describe('what a file carries', () => {
     expect(needsLatinExt(dataFor(d))).toBe(false);
     d.film = 'Sól Płaski';
     expect(needsLatinExt(dataFor(d))).toBe(true);
+  });
+});
+
+describe('the handwriting face travels only in a deck that writes with it', () => {
+  const HAND = { family: 'Caveat', weight: 600, style: 'normal' };
+  const typed = (d: DeckData) => { delete d.theme.fontFaces; d.theme.fonts = { title: 'Georgia, serif', body: 'Helvetica, Arial, sans-serif' }; return d; };
+  it('is one of the faces the app carries, in one weight', () => { expect([...BUNDLED_FAMILIES]).toEqual(['Work Sans', 'Special Elite', 'Caveat']); });
+  it('is left out when handwriting is off, whatever papers the deck uses', () => {
+    const d = typed(data());
+    expect(bundledFacesNeeded(d)).toEqual([]);
+    d.theme.paper = 'torn';
+    for (const s of d.slides) s.paper = 'mixed';
+    expect(bundledFacesNeeded(d)).toEqual([]);
+    for (const off of [false, undefined, 'true', 1, {}]) { d.theme.hand = off as never; expect(bundledFacesNeeded(d), String(off)).toEqual([]); }
+  });
+  it('is carried, once, when handwriting is on and a slide has a card to write on', () => {
+    const d = typed(data());
+    d.theme.hand = true;
+    expect(hasCards(d)).toBe(true);
+    expect(bundledFacesNeeded(d)).toEqual([HAND]);
+    expect(bundledFacesNeeded(dataFor(d, 'ada-example'))).toEqual([HAND]);
+    const own = data(); own.theme.hand = true; delete own.theme.fontFaces; own.theme.fonts = { title: '', body: '' };
+    expect(bundledFacesNeeded(dataFor(own)).map(f => `${f.family} ${f.weight}`)).toEqual(['Caveat 600', 'Special Elite 400', 'Work Sans 400', 'Work Sans 600']);
+  });
+  it('is left out of a deck with no card in it, handwriting or not', () => {
+    const d = typed(data());
+    d.theme.hand = true;
+    d.slides = d.slides.filter(s => s.layout === 'photo' || s.layout === 'numbers' || s.layout === 'ask');
+    expect(hasCards(d)).toBe(false);
+    expect(bundledFacesNeeded(d)).toEqual([]);
+    d.slides.push({ id: 'empty', layout: 'cards', cards: [{ id: 'x', title: ' ', body: '' }] }, { id: 'proof', layout: 'stats', stats: [] }, { id: 'team', layout: 'team', members: [] });
+    expect(hasCards(d)).toBe(false);   // a row with no card on it, a proof slide with no quote, a team with no card beside it
+    d.slides.push({ id: 'proof2', layout: 'stats', stats: [], quote: { text: 'An invented line.', by: '' } });
+    expect(bundledFacesNeeded(d)).toEqual([HAND]);
+    for (const junk of [null, undefined, 7, 'x', {}]) expect(hasCards({ slides: junk } as never)).toBe(false);
+  });
+  it('is carried for a title stack that names it, with handwriting on the papers off', () => {
+    const d = typed(data());
+    d.theme.fonts.title = '"Caveat", "Segoe Print", cursive';
+    expect(bundledFamilyOf(d.theme.fonts.title, 'title')).toBe('Caveat');
+    expect(bundledFacesNeeded(d)).toEqual([HAND]);
+    d.theme.hand = true;
+    expect(bundledFacesNeeded(d)).toEqual([HAND]);   // never twice
+  });
+  it('goes into the page as one @font-face when it is needed, and the page stays one file with the policy it had', () => {
+    const d = typed(data()); d.theme.hand = true; d.theme.paper = 'postcard';
+    const fonts = bundledFacesNeeded(d).map(f => ({ ...f, src: FONT_OK, unicodeRange: LATIN_RANGE }));
+    const html = deckHtml(d, { ...parts, fonts });
+    expect(html.match(/@font-face\{font-family:"Caveat";font-weight:600/g)).toHaveLength(1);
+    const csp = /<meta http-equiv="Content-Security-Policy" content="([^"]+)">/.exec(html)![1];
+    expect(csp.split('; ').map(x => x.replace(/'sha256-[^']+'/, 'HASH'))).toEqual(["default-src 'none'", 'script-src HASH', "style-src 'unsafe-inline'", 'img-src data:', 'font-src data:', "base-uri 'none'", "form-action 'none'"]);
+    expect(html.match(/https?:\/\/[^\s"'\<)]*/g)).toEqual([TYPED_URL]);
+    expect(deckHtml(typed(data()), parts)).not.toContain('Caveat";font-weight');
+    const { root } = open(html);
+    expect([...root.querySelectorAll<HTMLElement>('.psd-card')].map(c => c.dataset.paper)).toEqual(['postcard', 'postcard', 'postcard']);
+    expect(root.querySelector('.psd')!.classList.contains('psd-hand')).toBe(true);
   });
 });
 

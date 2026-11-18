@@ -87,27 +87,127 @@
 .psd-big { font-family: var(--psd-title-font); font-size: 3.8em; line-height: 1; color: var(--psd-accent-text); white-space: nowrap; }
 .psd-plain { list-style: none; }
 
-/* a paper card */
-.psd-card { position: relative; background: var(--psd-card); color: var(--psd-card-ink); padding: 1.5em 1.4em 1.3em; box-shadow: 0 .9em 1.7em rgba(0, 0, 0, .28), 0 .1em .25em rgba(0, 0, 0, .22); transform: rotate(var(--r, 0deg)); transform-origin: 50% -1.2em; }
-.psd-pinned::before { content: ""; position: absolute; left: 50%; top: -1.75em; width: .7em; height: 2.3em; margin-left: -.35em; border-radius: .14em; background: var(--psd-accent2); box-shadow: 0 .12em .25em rgba(0, 0, 0, .3); }
-.psd-pinned::after { content: ""; position: absolute; left: 50%; top: -.72em; width: .95em; height: .13em; margin-left: -.475em; background: var(--psd-card-ink); opacity: .55; }
+/* Cards, and the papers they are drawn on. A card is its words over a layer of empty elements (.psd-pp) that the
+   rules below shape into a paper: the runtime writes the paper's name as data-paper, its colours as properties
+   (ink at 7:1 on every tone of the paper, small print at 4.5:1) and, for a torn or hand-cut sheet, the outline of
+   its edge. Nothing here is a picture: every paper is gradients, masks and cut-out boxes. */
+.psd-card { position: relative; isolation: isolate; color: var(--psd-card-ink); padding: 1.5em 1.4em 1.3em; transform: rotate(var(--r, 0deg)); }
+.psd-pp { position: absolute; inset: 0; z-index: -1; pointer-events: none; }
+.psd-pp i { position: absolute; display: block; }
+.psd-pp-sheet { inset: 0; background-color: var(--psd-card); box-shadow: 0 .7em 1.5em rgba(0, 0, 0, .24), 0 .1em .25em rgba(0, 0, 0, .2); }
+/* the hairline a sheet with a cut edge gets where shadows are not drawn (a PDF, print): the same outline, a pixel larger */
+.psd-pp .psd-pp-edge { inset: -1px; background: var(--psd-pp-edge); display: none; }
 .psd-kicker { font-size: max(.66em, var(--psd-min)); font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--psd-card-accent); margin-bottom: .6em; }
 .psd-card-title { font-family: var(--psd-title-font); font-weight: 400; font-size: 1.6em; line-height: 1.15; margin-bottom: .45em; overflow-wrap: break-word; }
 .psd-card-body { font-size: .96em; line-height: 1.42; overflow-wrap: break-word; }
 .psd-card-foot { margin-top: auto; padding-top: .9em; font-size: max(.66em, var(--psd-min)); line-height: 1.35; color: var(--psd-card-muted); overflow-wrap: anywhere; }
-.psd-hang { position: relative; margin-top: 1.4em; }
-.psd-rope { position: absolute; left: -5.6em; right: -5.6em; top: 0; height: .1em; background: var(--psd-line); opacity: .8; }
-.psd-cards { display: grid; grid-template-columns: repeat(var(--n, 3), minmax(0, 1fr)); gap: 2.2em; align-items: stretch; padding-top: 1.2em; }
+.psd-card-rules { display: none; }
+/* a slide's cards: one row, two to four across, each as tall as the tallest */
+.psd-cards { display: grid; grid-template-columns: repeat(var(--n, 3), minmax(0, 1fr)); gap: 2.4em; align-items: stretch; margin-top: .4em; }
 .psd-cards .psd-card { display: flex; flex-direction: column; }
-.psd-cards[data-n="1"] { grid-template-columns: minmax(0, 24em); }
-.psd-cards[data-n="2"] { grid-template-columns: repeat(2, minmax(0, 22em)); }
+.psd-cards[data-n="1"] { grid-template-columns: minmax(0, 26em); }
+.psd-cards[data-n="2"] { grid-template-columns: repeat(2, minmax(0, 24em)); gap: 3em; }
+.psd-cards[data-n="4"] { gap: 1.8em; }
 .psd-highlight { outline: .22em solid var(--psd-accent-text); outline-offset: .32em; }
 .psd-highlight .psd-card-title::after { content: ""; display: block; width: 2.2em; height: .12em; margin-top: .3em; background: var(--psd-card-accent); }
+
+/* postcard: the back of one. The words are the message, on the left; a rule down the middle, a stamp, a postmark
+   and lines for an address on the right. --side is how wide the address side is. */
+[data-paper="postcard"] { --side: 5.6em; min-height: 11.5em; padding: 1.35em calc(var(--side) + 1em) 1.2em 1.4em; }
+.psd-cards[data-n="1"] [data-paper="postcard"], .psd-cards[data-n="2"] [data-paper="postcard"] { --side: 8.4em; }
+.psd-cards[data-n="4"] [data-paper="postcard"] { --side: 4.1em; padding-left: 1.1em; padding-right: calc(var(--side) + .7em); }
+.psd-cards:is([data-n="3"], [data-n="4"]) [data-paper="postcard"] .psd-card-title { font-size: 1.4em; }
+.psd-hand .psd-cards:is([data-n="3"], [data-n="4"]) [data-paper="postcard"] .psd-card-title { font-size: 1.8em; }
+[data-paper="postcard"] .psd-pp-sheet { border-radius: .16em; background-image: linear-gradient(135deg, transparent 55%, color-mix(in srgb, var(--psd-pp-shade) 70%, transparent)); }
+[data-paper="postcard"] .psd-pp-divider { top: 1.3em; bottom: 1.2em; right: var(--side); width: max(1px, .07em); background: var(--psd-pp-edge); }
+/* three lines for an address, at the foot of the address side */
+[data-paper="postcard"] .psd-pp-address { right: 1em; bottom: 1.5em; width: calc(var(--side) - 2em); height: 2.9em;
+  background: linear-gradient(var(--psd-pp-edge), var(--psd-pp-edge)) 0 0 / 100% max(1px, .06em) no-repeat, linear-gradient(var(--psd-pp-edge), var(--psd-pp-edge)) 0 50% / 100% max(1px, .06em) no-repeat, linear-gradient(var(--psd-pp-edge), var(--psd-pp-edge)) 0 100% / 72% max(1px, .06em) no-repeat; }
+/* the stamp: a toned square whose edge is punched out all the way round (a mask of dots two fifths of an em apart
+   over its border, the middle left whole), and inside it a small landscape in the theme's own colours */
+[data-paper="postcard"] .psd-pp-stamp { --w: min(4em, calc(var(--side) - 2em)); top: 1em; right: 1em; width: round(down, var(--w), .4em); height: round(down, calc(var(--w) * 1.22), .4em); background: var(--psd-pp-stamp);
+  -webkit-mask: linear-gradient(#000, #000) center / calc(100% - .34em) calc(100% - .34em) no-repeat, radial-gradient(circle at center, transparent .105em, #000 .125em) -.2em -.2em / .4em .4em;
+  mask: linear-gradient(#000, #000) center / calc(100% - .34em) calc(100% - .34em) no-repeat, radial-gradient(circle at center, transparent .105em, #000 .125em) -.2em -.2em / .4em .4em; }
+[data-paper="postcard"] .psd-pp-stamp-art { inset: .34em;
+  background: radial-gradient(circle at 66% 40%, var(--psd-pp-sun) 0, var(--psd-pp-sun) 15%, transparent 16.5%),
+    radial-gradient(ellipse 85% 34% at 88% 106%, var(--psd-pp-dune2) 0, var(--psd-pp-dune2) 98%, transparent 100%),
+    radial-gradient(ellipse 78% 42% at 18% 108%, var(--psd-pp-dune) 0, var(--psd-pp-dune) 98%, transparent 100%),
+    linear-gradient(to bottom, var(--psd-pp-sky), color-mix(in srgb, var(--psd-pp-sky) 55%, var(--psd-card))); }
+/* the postmark: two rings and three bars, struck across the stamp's corner */
+[data-paper="postcard"] .psd-pp-postmark { --w: min(4em, calc(var(--side) - 2em)); --d: min(2.7em, calc(var(--side) - 2.3em)); top: calc(1em + var(--w) * 1.22 - var(--d) * .62); right: calc(1em + var(--w) - var(--d) * .42); width: var(--d); height: var(--d); border-radius: 50%; border: max(1px, .075em) solid var(--psd-pp-post); opacity: .8; transform: rotate(-12deg); }
+[data-paper="postcard"] .psd-pp-postmark::before { content: ""; position: absolute; inset: 14%; border-radius: 50%; border: max(1px, .05em) solid var(--psd-pp-post); }
+[data-paper="postcard"] .psd-pp-postmark::after { content: ""; position: absolute; left: 22%; right: 22%; top: 36%; height: 28%;
+  background: linear-gradient(var(--psd-pp-post), var(--psd-pp-post)) 0 0 / 100% max(1px, .05em) no-repeat, linear-gradient(var(--psd-pp-post), var(--psd-pp-post)) 0 50% / 100% max(1px, .05em) no-repeat, linear-gradient(var(--psd-pp-post), var(--psd-pp-post)) 0 100% / 100% max(1px, .05em) no-repeat; }
+
+/* letter: a sheet cut a little out of true, gone darker at two corners, folded in three and once down the middle */
+[data-paper="letter"] { padding: 1.7em 1.6em 1.4em; }
+[data-paper="letter"] .psd-pp { filter: drop-shadow(0 .55em .7em rgba(0, 0, 0, .24)) drop-shadow(0 .06em .1em rgba(0, 0, 0, .22)); }
+[data-paper="letter"] :is(.psd-pp-sheet, .psd-pp-edge) { clip-path: var(--psd-pp-cut); box-shadow: none; }
+[data-paper="letter"] .psd-pp-sheet { background-image:
+  radial-gradient(ellipse 70% 46% at 4% 2%, var(--psd-pp-shade), transparent 72%),
+  radial-gradient(ellipse 62% 50% at 100% 100%, var(--psd-pp-shade), transparent 70%),
+  radial-gradient(ellipse 30% 22% at 78% 14%, color-mix(in srgb, var(--psd-pp-shade) 60%, transparent), transparent 75%),
+  linear-gradient(to right, color-mix(in srgb, var(--psd-pp-shade) 80%, transparent), transparent 7%, transparent 94%, color-mix(in srgb, var(--psd-pp-shade) 70%, transparent)); }
+/* a crease: a hair of shadow with a hair of light under it, and the paper a shade darker for a little way above */
+.psd-pp-fold { left: 0; right: 0; height: 1.2em; margin-top: -.6em; opacity: .8;
+  background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--psd-pp-shade) 35%, transparent) 40%, var(--psd-pp-shade) 49%, var(--psd-pp-shade) 51%, color-mix(in srgb, var(--psd-pp-light) 60%, transparent) 52%, color-mix(in srgb, var(--psd-pp-light) 60%, transparent) 55%, transparent 80%); }
+.psd-pp-fold-a { top: 34%; } .psd-pp-fold-b { top: 67%; }
+.psd-pp-fold-v { top: 0; bottom: 0; left: 50%; right: auto; width: 1.2em; height: auto; margin: 0 0 0 -.6em; opacity: .55;
+  background: linear-gradient(to right, transparent, color-mix(in srgb, var(--psd-pp-shade) 35%, transparent) 40%, var(--psd-pp-shade) 49%, var(--psd-pp-shade) 51%, color-mix(in srgb, var(--psd-pp-light) 60%, transparent) 52%, color-mix(in srgb, var(--psd-pp-light) 60%, transparent) 55%, transparent 80%); }
+
+/* Ruled papers. The lines are drawn behind the card's text itself (never behind its title or its small print), one
+   line of text to a rule, so every word sits on its rule and no rule runs through a word. --psd-pitch is the gap
+   from one rule to the next; a ruled block sets --fz (its type size) and takes its line height from the two. A
+   rule is drawn .36em under the middle of each line, which is just under the baseline in any typeface. */
+:is([data-paper="notebook"], [data-paper="torn"]) { --psd-pitch: 1.5; }
+:is([data-paper="notebook"], [data-paper="torn"]) :is(.psd-card-body, .psd-quote-text, .psd-card-rules) { --fz: .96; --lh: calc(var(--psd-pitch) / var(--fz)); font-size: calc(var(--fz) * 1em); line-height: var(--lh);
+  margin: 0 calc(-1 * var(--pad-r) / var(--fz)) 0 calc(-1 * var(--pad-l) / var(--fz)); padding: 0 calc(var(--pad-r) / var(--fz)) 0 calc(var(--pad-l) / var(--fz));
+  background: linear-gradient(to bottom, transparent calc(var(--lh) * .5em + .36em), var(--psd-pp-rule) calc(var(--lh) * .5em + .36em), var(--psd-pp-rule) calc(var(--lh) * .5em + .36em + .06em), transparent calc(var(--lh) * .5em + .36em + .06em)) 0 0 / 100% calc(var(--lh) * 1em) repeat-y; }
+:is([data-paper="notebook"], [data-paper="torn"]) .psd-card-fill { flex: 1 0 auto; }
+:is([data-paper="notebook"], [data-paper="torn"]) .psd-card-title { margin-bottom: .35em; }
+:is([data-paper="notebook"], [data-paper="torn"]) .psd-card-foot { margin-top: 0; padding-top: .75em; }
+:is([data-paper="notebook"], [data-paper="torn"]) .psd-quote-text { --fz: 1.3; }
+/* a card with a title and nothing under it (the cover): the lines go on under the title, empty */
+:is([data-paper="notebook"], [data-paper="torn"]) .psd-card-rules { display: block; height: calc(var(--psd-pitch) * 2em / var(--fz)); margin-top: .5em; }
+.psd-team-aside:is([data-paper="notebook"], [data-paper="torn"]) .psd-card-body + .psd-card-body { margin-top: 0; }
+
+/* notebook: a page from a small pad bound at the top: rounded corners, a row of punched holes (real holes, cut
+   with a mask, so whatever is behind the card shows through them) and a margin rule */
+[data-paper="notebook"] { --pad-l: 2.5em; --pad-r: 1.3em; padding: 2.75em var(--pad-r) 1.25em var(--pad-l); }
+[data-paper="notebook"] .psd-pp { filter: drop-shadow(0 .55em .7em rgba(0, 0, 0, .24)) drop-shadow(0 .06em .1em rgba(0, 0, 0, .22)); }
+[data-paper="notebook"] .psd-pp-sheet { border-radius: .85em; box-shadow: none;
+  -webkit-mask: radial-gradient(circle at center, transparent .3em, #000 .33em) 0 0 / 2.1em 2em round no-repeat, linear-gradient(#000, #000) 0 100% / 100% calc(100% - 1.98em) no-repeat;
+  mask: radial-gradient(circle at center, transparent .3em, #000 .33em) 0 0 / 2.1em 2em round no-repeat, linear-gradient(#000, #000) 0 100% / 100% calc(100% - 1.98em) no-repeat; }
+[data-paper="notebook"] .psd-pp-margin { top: 2em; bottom: 0; left: 1.8em; width: max(1px, .07em); background: var(--psd-pp-margin); }
+
+/* torn: a ruled page ripped off its pad. The top edge is the outline the runtime worked out; a paler copy of it
+   shows a little above the page, as the fibre of the tear does. */
+[data-paper="torn"] { --pad-l: 1.4em; --pad-r: 1.4em; padding: 2em var(--pad-r) 1.25em var(--pad-l); }
+[data-paper="torn"] .psd-pp { filter: drop-shadow(0 .55em .7em rgba(0, 0, 0, .25)) drop-shadow(0 .06em .1em rgba(0, 0, 0, .22)); }
+[data-paper="torn"] :is(.psd-pp-sheet, .psd-pp-edge, .psd-pp-rip) { clip-path: var(--psd-pp-cut); box-shadow: none; }
+[data-paper="torn"] .psd-pp-rip { inset: 0; background: var(--psd-pp-light); }
+[data-paper="torn"] .psd-pp-sheet { top: .2em; }
+
+/* handwriting: titles, the small label above them, the quote and a line short enough to be a note, in the
+   handwriting face. Small print, numbers and longer text never are. Nothing handwritten is under 1.15em. */
+.psd-hand .psd-card :is(.psd-card-title, .psd-kicker, .psd-quote-text, .psd-title, .psd-coverline, .psd-short), .psd-hand .psd-quote-text { font-family: var(--psd-hand-font); font-weight: 600; }
+.psd-hand .psd-kicker, .psd-hand .psd-card .psd-coverline { font-size: 1.2em; line-height: 1.1; letter-spacing: .01em; text-transform: none; margin-bottom: .25em; }
+.psd-hand .psd-card-title { font-size: 2em; line-height: 1; }
+.psd-hand .psd-card .psd-short { --fz: 1.3; font-size: 1.3em; line-height: 1.2; }
+.psd-hand .psd-quote-text { --fz: 1.75; font-size: 1.75em; line-height: 1.12; }
+.psd-hand .psd-card .psd-title { font-size: 6.4em; line-height: .92; }
+.psd-hand .psd-card .psd-title-long { font-size: 4.8em; }
+.psd-hand .psd-card .psd-title-xlong { font-size: 3.5em; line-height: 1; }
+.psd-hand :is([data-paper="notebook"], [data-paper="torn"]) :is(.psd-short, .psd-quote-text) { line-height: var(--lh); }
 
 /* cover and closing */
 .psd-cover { flex: 1 0 auto; display: flex; flex-direction: column; align-items: flex-start; }
 .psd-cover-main { margin: auto 0; display: flex; flex-direction: column; align-items: flex-start; max-width: 100%; }
-.psd-cover-card { padding: 1.7em 2.4em 1.6em 2em; max-width: 34em; --r: -1.2deg; transform-origin: 0 0; }
+.psd-cover-card { padding: 1.7em 2.4em 1.6em 2em; max-width: 34em; }
+.psd-cover-card[data-paper="postcard"] { --side: 11em; min-width: 32em; max-width: 42em; min-height: 13.5em; padding: 1.9em calc(var(--side) + 1.6em) 2em 2em; display: flex; flex-direction: column; justify-content: center; }
+.psd-cover-card[data-paper="letter"] { padding: 2.2em 2.8em 2.1em 2.2em; }
+.psd-cover-card[data-paper="notebook"] { padding: 3em 2.4em 1.6em 2.9em; }
+.psd-cover-card[data-paper="torn"] { padding: 2.3em 2.4em 1.6em 2em; }
 .psd-coverline { font-size: .78em; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: var(--psd-card-accent); margin-bottom: .9em; }
 .psd-title { font-family: var(--psd-title-font); font-weight: 400; font-size: 5.2em; line-height: 1.02; overflow-wrap: break-word; }
 .psd-title-long { font-size: 3.9em; }
@@ -142,7 +242,11 @@
 .psd-lead .psd-src { margin-top: .4em; }
 .psd-l-stats .psd-p { font-size: 1.02em; }
 .psd-l-stats .psd-p + .psd-p { margin-top: .35em; }
-.psd-quote { padding: 1.5em 1.6em 1.3em; max-width: 22em; justify-self: end; transform-origin: 50% 50%; }
+.psd-quote { padding: 1.5em 1.6em 1.3em; max-width: 22em; justify-self: end; }
+.psd-quote[data-paper="postcard"] { --side: 5.6em; max-width: 25em; padding: 1.4em calc(var(--side) + 1em) 1.3em 1.4em; }
+.psd-quote[data-paper="notebook"] { padding: 2.75em var(--pad-r) 1.25em var(--pad-l); }
+.psd-quote[data-paper="torn"] { padding: 2em var(--pad-r) 1.25em var(--pad-l); }
+.psd-quote:is([data-paper="notebook"], [data-paper="torn"]) .psd-quote-by { margin-top: .75em; }
 .psd-quote-text { font-family: var(--psd-title-font); font-size: 1.4em; line-height: 1.3; }
 .psd-quote-text::before { content: "\201C"; } .psd-quote-text::after { content: "\201D"; }
 .psd-quote-by { margin-top: .9em; font-size: max(.68em, var(--psd-min)); letter-spacing: .06em; color: var(--psd-card-muted); }
@@ -159,7 +263,7 @@
 .psd-facts-many .psd-fact-val { font-size: 2.5em; }
 .psd-fact .psd-lab { margin-top: .7em; }
 .psd-track { position: relative; margin-top: 2.6em; }
-.psd-rail { position: absolute; left: -5.6em; right: -5.6em; top: 0; height: .1em; background: var(--psd-line); opacity: .8; }
+.psd-axis { position: absolute; left: -5.6em; right: -5.6em; top: 0; height: .1em; background: var(--psd-line); opacity: .8; }
 .psd-miles { list-style: none; display: grid; grid-template-columns: repeat(var(--n, 3), minmax(0, 1fr)); gap: 2em; }
 .psd-mile { position: relative; padding-top: 1.7em; display: flex; flex-direction: column; gap: .25em; max-width: 22em; }
 .psd-tick { position: absolute; left: 0; top: 0; width: .14em; height: 1.2em; background: var(--psd-accent-text); }
@@ -199,7 +303,7 @@
 .psd-member-name b { font-family: var(--psd-title-font); font-weight: 400; }
 .psd-role { color: var(--psd-accent-text); font-size: .8em; letter-spacing: .04em; }
 .psd-member-bio { margin-top: .25em; font-size: .95em; color: var(--psd-soft); max-width: 40em; }
-.psd-team-aside { margin-top: 1.4em; }
+.psd-team-aside { margin-top: .4em; display: flex; flex-direction: column; }
 .psd-team-aside .psd-card-body + .psd-card-body { margin-top: .3em; }
 
 /* model */
@@ -312,17 +416,17 @@
 .psd-next { margin-top: 1.6em; font-size: 1.15em; font-weight: 600; max-width: 40em; }
 .psd-contact { margin-top: .5em; font-family: var(--psd-title-font); font-size: 1.1em; color: var(--psd-accent-text); max-width: 44em; overflow-wrap: anywhere; }
 
-/* motion: parts rise and fade when their slide is first seen; cards settle; bars grow */
+/* motion: parts rise and fade when their slide is first seen; cards rise a little further; bars grow */
 .psd-rise { opacity: 0; transform: var(--psd-from, translateY(.7em)); transition: opacity var(--psd-dur, .55s) ease, transform var(--psd-dur, .55s) ease; transition-delay: calc(min(var(--i, 0), 10) * var(--psd-gap, 60ms)); }
 .psd-seen .psd-rise { opacity: 1; transform: none; }
-.psd-drop { opacity: 0; transform: var(--psd-from-card, translateY(-1.2em) rotate(-4deg)) rotate(var(--r, 0deg)); transition: opacity calc(var(--psd-dur, .55s) * .8) ease, transform calc(var(--psd-dur, .55s) * 1.27) cubic-bezier(.3, 1.45, .5, 1); transition-delay: calc(min(var(--i, 0), 10) * var(--psd-gap, 60ms)); }
+.psd-drop { opacity: 0; transform: var(--psd-from-card, translateY(1.1em)) rotate(var(--r, 0deg)); transition: opacity calc(var(--psd-dur, .55s) * .8) ease, transform calc(var(--psd-dur, .55s) * 1.2) cubic-bezier(.2, .7, .2, 1); transition-delay: calc(min(var(--i, 0), 10) * var(--psd-gap, 60ms)); }
 .psd-seen .psd-drop { opacity: 1; transform: rotate(var(--r, 0deg)); }
 /* Movement is a fixed vocabulary (motion.ts). The runtime writes a word from it as data-enter or a class, and a
    clamped number as a property; everything those can mean is written out here. Nothing a deck carries is read as a style. */
 .psd-brisk { --psd-dur: .32s; --psd-gap: 35ms; --psd-walk: 1.7s; }
 .psd[data-enter="fade"], .psd-slide[data-enter="fade"] { --psd-from: translateY(0); --psd-from-card: translateY(0); }
 .psd-slide[data-enter="rise"] { --psd-from: translateY(.7em); --psd-from-card: translateY(.7em); }
-.psd-slide[data-enter="drop"] { --psd-from: translateY(-1.2em); --psd-from-card: translateY(-1.2em) rotate(-4deg); }
+.psd-slide[data-enter="drop"] { --psd-from: translateY(-1.2em); --psd-from-card: translateY(-1.2em); }
 .psd-slide[data-enter="slide-left"] { --psd-from: translateX(3em); --psd-from-card: translateX(3em); }
 .psd-slide[data-enter="slide-right"] { --psd-from: translateX(-3em); --psd-from-card: translateX(-3em); }
 /* none: for the whole deck (a slide that names its own way in keeps it), or for one slide */
@@ -337,13 +441,10 @@
 .psd-counting { position: relative; }
 .psd-counting > .psd-num { opacity: 0; }
 .psd-count-live { position: absolute; left: 0; top: 0; white-space: nowrap; }
-/* a picture that travels along the line (cards) or the timeline, once, and stops just before the last card's pin or at the last milestone */
-.psd-hang { --psd-end: calc(100% - (100% - (var(--n, 3) - 1) * 2.2em) / var(--n, 3) / 2 - .6em); }
-.psd-hang[data-n="1"] { --psd-end: 11.4em; }
-.psd-hang[data-n="2"] { --psd-end: min(34.6em, 75% + .55em - .6em); }
+/* a picture that travels along the timeline, once, and stops at the last milestone */
 .psd-track { --psd-end: calc(100% - (100% - (var(--n, 3) - 1) * 2em) / var(--n, 3)); }
-/* It comes to rest with its right edge at the pin or the milestone's tick; where that would put any of it left of the
-   line's own start (one milestone, one card, a big picture), it rests with its left edge there instead. Its width is
+/* It comes to rest with its right edge at the milestone's tick; where that would put any of it left of the
+   timeline's own start (one milestone, a big picture), it rests with its left edge there instead. Its width is
    capped at twice its height, so the room it can take is known before the picture has loaded. */
 .psd-mark { position: absolute; z-index: 2; --psd-mark-h: calc(var(--psd-mark, 1) * 2.6em); left: max(var(--psd-end, 100%), var(--psd-mark-h) * 2); top: 0; height: var(--psd-mark-h); width: auto; max-width: calc(var(--psd-mark-h) * 2); object-fit: contain; object-position: 100% 100%; pointer-events: none; transform-origin: 50% 100%;
   transform: translate(-100%, -100%) translateX(-100cqw); transition: transform var(--psd-walk, 2.6s) cubic-bezier(.4, 0, .6, 1) .35s; }
@@ -351,12 +452,9 @@
 .psd-seen .psd-mark { transform: translate(-100%, -100%); }
 .psd-seen .psd-mark-settle { animation: psd-settle .9s ease-out calc(var(--psd-walk, 2.6s) + .3s) 1; }
 @keyframes psd-settle { 30% { rotate: 7deg; } 62% { rotate: -4deg; } 100% { rotate: 0deg; } }
-/* on a timeline the picture stands on the rail, under the facts: the rail moves down by the picture's height, so the
+/* the picture stands on the timeline, under the facts: the timeline moves down by the picture's height, so the
    picture never covers a fact or its label, whatever its size */
 .psd-track-mark { margin-top: calc(var(--psd-mark, 1) * 2.6em + 1.1em); }
-/* and above cards a big picture pushes the line down, so it never stands on the headline */
-.psd-hang-mark { margin-top: max(1.4em, calc(var(--psd-mark, 1) * 2.6em - 1.2em)); }
-.psd-stacked .psd-hang-mark { margin-top: 3.4em; }
 /* while a slide is put back to where it starts (Play), nothing eases on the way there */
 .psd-reset, .psd-reset * { transition: none !important; animation: none !important; }
 .psd-bar-fill { transition: width .9s cubic-bezier(.2, .7, .2, 1) .25s; }
@@ -380,7 +478,7 @@
   .psd-counting > .psd-num { opacity: 1 !important; }
 }
 
-/* static: for PDF. Final state at once, no blurred shadows, one slide per page. */
+/* static: for PDF. Final state at once, no blurred shadows (a hairline round each paper in their place), one slide per page. */
 .psd-static { container-type: inline-size; height: auto; overflow: visible; scroll-snap-type: none; }
 .psd-static .psd-stage { height: auto; display: block; page: psd-deck; break-after: page; break-inside: avoid; }
 .psd-static .psd-stage:last-child { break-after: auto; }
@@ -399,15 +497,24 @@
 :is(.psd-static, .psd-still) .psd-mark { transform: translate(-100%, -100%) !important; transition: none !important; animation: none !important; }
 :is(.psd-static, .psd-still, .psd-stacked) .psd-count-live { display: none !important; }
 :is(.psd-static, .psd-still, .psd-stacked) .psd-counting > .psd-num { opacity: 1 !important; }
-.psd-static .psd-card { box-shadow: none; outline: 1px solid color-mix(in srgb, var(--psd-card-ink) 35%, transparent); }
-.psd-static .psd-highlight { outline: .22em solid var(--psd-accent-text); }
-.psd-static .psd-pinned::before { box-shadow: none; }
+.psd-static .psd-pp { filter: none; }
+.psd-static .psd-pp-sheet { box-shadow: none; }
+.psd-static :is([data-paper="plain"], [data-paper="postcard"], [data-paper="notebook"]) .psd-pp-sheet { border: 1px solid var(--psd-pp-edge); }
+.psd-static :is([data-paper="letter"], [data-paper="torn"]) .psd-pp-edge { display: block; }
 .psd-static, .psd-static * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 @page psd-deck { size: 1600px 900px; margin: 0; }
 
 .psd-l-stats .psd-head { margin-bottom: 1.1em; }
 .psd-l-stats .psd-note { margin-top: .9em; }
 .psd-l-stats .psd-stat-lab { margin-top: .35em; }
+
+/* a sample (a paper shown in a chooser): the first slide's cards and nothing else, filling the host */
+.psd-swatch { overflow: hidden; scroll-snap-type: none; background: transparent; }
+.psd-swatch .psd-stage:not(:first-child), .psd-swatch .psd-foot, .psd-swatch .psd-head { display: none; }
+.psd-swatch .psd-slide { background: transparent; }
+.psd-swatch .psd-in { font-size: calc(var(--psd-fs, 1.4) * 4.2cqw); }
+.psd-swatch .psd-box { padding: 1.3em 1.5em; justify-content: center; }
+.psd-swatch .psd-cards { grid-template-columns: minmax(0, 1fr); margin: 0; }
 
 /* stacked: a small host (a phone, either way up). Slides become sections that grow with their content and scroll
    as one page; type has a floor of 15px; columns fold; nothing is inert and nothing waits to rise. */
@@ -421,7 +528,7 @@
 .psd-stacked .psd-foot { position: relative; left: auto; right: auto; bottom: auto; padding: 0 1.4em 1.2em; }
 .psd-stacked .psd-rise, .psd-stacked .psd-drop { opacity: 1; transform: none; transition: none; }
 .psd-stacked .psd-bar-fill { width: var(--w, 0%); transition: none; }
-/* the travelling picture stands at the end of the line, still */
+/* the travelling picture stands at the end of the timeline, still */
 .psd-stacked .psd-track-mark { margin-top: 4em; }
 .psd-stacked .psd-mark { left: auto; right: 0; height: min(var(--psd-mark-h), 3.2em); transform: translateY(-100%) !important; transition: none !important; animation: none !important; }
 .psd-stacked .psd-track .psd-mark { top: -.4em; }
@@ -430,8 +537,10 @@
 .psd-stacked :is(.psd-numbers, .psd-stats-top.psd-two, .psd-comps.psd-two, .psd-team-grid.psd-two) { grid-template-columns: repeat(auto-fit, minmax(19em, 1fr)); gap: 2em; }
 .psd-stacked .psd-team-cols { grid-template-columns: minmax(0, 1fr); }
 .psd-stacked .psd-team-cols .psd-member:nth-child(2) { border-top: 0; }
-.psd-stacked .psd-cards { gap: 2.6em 1.6em; }
-.psd-stacked .psd-rope, .psd-stacked .psd-rail { left: -1.4em; right: -1.4em; }
+.psd-stacked .psd-cards { gap: 1.6em; }
+.psd-stacked .psd-cards [data-paper="postcard"], .psd-stacked .psd-quote[data-paper="postcard"] { --side: 6.4em; padding-left: 1.4em; padding-right: calc(var(--side) + 1em); }
+.psd-stacked .psd-cover-card[data-paper="postcard"] { --side: 6.4em; min-width: 0; padding: 1.4em calc(var(--side) + 1em) 1.3em 1.4em; }
+.psd-stacked .psd-axis { left: -1.4em; right: -1.4em; }
 .psd-stacked .psd-head { margin-bottom: 1.2em; }
 .psd-stacked .psd-h, .psd-stacked .psd-photo .psd-h, .psd-stacked .psd-l-numbers .psd-h { font-size: 1.9em; max-width: none; }
 .psd-stacked .psd-h.psd-h-long { font-size: 1.6em; }
@@ -440,6 +549,9 @@
 .psd-stacked .psd-title { font-size: 2.6em; }
 .psd-stacked .psd-title-long { font-size: 2.1em; }
 .psd-stacked .psd-title-xlong { font-size: 1.7em; }
+.psd-stacked.psd-hand .psd-card .psd-title { font-size: 3.6em; }
+.psd-stacked.psd-hand .psd-card .psd-title-long { font-size: 2.8em; }
+.psd-stacked.psd-hand .psd-card .psd-title-xlong { font-size: 2.2em; }
 .psd-stacked :is(.psd-big, .psd-fact-val) { font-size: 2.4em; white-space: normal; }
 .psd-stacked .psd-p, .psd-stacked .psd-l-text .psd-p { font-size: 1.08em; }
 .psd-stacked .psd-lede { font-size: 1.2em; }
@@ -454,7 +566,7 @@
 .psd-stacked .psd-tagline { margin: 1.4em 0 0; padding: 0; font-size: 1.25em; }
 .psd-stacked .psd-closing-slide { padding: 3.5em 0; }
 .psd-stacked .psd-photo { padding-bottom: 0; }
-.psd-stacked .psd-rail, .psd-stacked .psd-tick { display: none; }
+.psd-stacked .psd-axis, .psd-stacked .psd-tick { display: none; }
 .psd-stacked .psd-track { margin-top: 1.6em; }
 .psd-stacked .psd-miles { grid-template-columns: minmax(0, 1fr); gap: 1em; }
 .psd-stacked .psd-mile { max-width: none; padding: 0 0 0 1em; border-left: .16em solid var(--psd-accent-text); }
@@ -492,9 +604,10 @@
   .psd:not(.psd-stacked) .psd-mark { transform: translate(-100%, -100%) !important; animation: none !important; }
   .psd-count-live { display: none !important; }
   .psd-counting > .psd-num { opacity: 1 !important; }
-  .psd-card { box-shadow: none; outline: 1px solid color-mix(in srgb, var(--psd-card-ink) 35%, transparent); }
-  .psd-highlight { outline: .22em solid var(--psd-accent-text); }
-  .psd-pinned::before { box-shadow: none; }
+  .psd-pp { filter: none; }
+  .psd-pp-sheet { box-shadow: none; }
+  :is([data-paper="plain"], [data-paper="postcard"], [data-paper="notebook"]) .psd-pp-sheet { border: 1px solid var(--psd-pp-edge); }
+  :is([data-paper="letter"], [data-paper="torn"]) .psd-pp-edge { display: block; }
   .psd-knob, .psd-screen { display: none; }
   .psd-paper { display: inline; }
   .psd-toggle[aria-pressed="true"] { border-color: var(--psd-accent-text); }

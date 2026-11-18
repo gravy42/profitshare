@@ -10,6 +10,8 @@ export const cleanFamily = (name: unknown): string =>
   (typeof name === 'string' ? name : '').replace(/[^A-Za-z0-9 -]/g, '').replace(/\s+/g, ' ').trim().slice(0, 60).trim();
 
 export const MAX_FONT_FACES = 4;
+/** The handwriting face a deck's papers can be written in (the app carries it, in one weight), and that weight. */
+export const HAND_FAMILY = 'Caveat', HAND_WEIGHT = 600;
 const hashes = new Map<string, string>();   // a file's address is long: its hash is worked out once
 /** A short fingerprint of a string (FNV-1a, base 36): the same text always gives the same six or seven characters. */
 export function shortHash(text: string): string {

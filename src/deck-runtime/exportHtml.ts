@@ -6,12 +6,12 @@
 // holds no recipients at all. Nothing an author typed can become markup: the data travels as JSON with every
 // character that could end a script element or open a comment written as a \u escape.
 import type { DeckData } from './data';
-import { cleanFamily, fontSrcOk } from './fonts';
+import { cleanFamily, fontSrcOk, HAND_FAMILY, HAND_WEIGHT } from './fonts';
 import { base64, sha256, utf8 } from './hash';
 
 export { base64, sha256, utf8 };
 
-/** A typeface the app itself ships (Work Sans, Special Elite), as a data URL, for an @font-face in the page. */
+/** A typeface the app itself ships (Work Sans, Special Elite, Caveat), as a data URL, for an @font-face in the page. */
 export interface PageFont { family: string; weight: number; style?: 'normal' | 'italic'; src: string; unicodeRange?: string }
 export interface DeckParts {
   runtimeJs: string;       // the runtime bundle: an IIFE that defines window.ProfitShareDeck
@@ -43,7 +43,7 @@ export const safeScript = (js: string): string => js.replace(/<\/(script)/gi, '<
 // ---------- the app's own typefaces: only what the theme uses ----------
 
 const GENERIC = /^(serif|sans-serif|monospace|cursive|fantasy|system-ui|ui-serif|ui-sans-serif|ui-monospace|ui-rounded|math|emoji|fangsong)$/i;
-export const BUNDLED_FAMILIES = ['Work Sans', 'Special Elite'] as const;
+export const BUNDLED_FAMILIES = ['Work Sans', 'Special Elite', HAND_FAMILY] as const;
 export type BundledFamily = typeof BUNDLED_FAMILIES[number];
 // what the runtime puts after every stack (runtime.ts: TITLE_FALLBACK, BODY_FALLBACK)
 const ROLE_FALLBACK: Record<'title' | 'body', BundledFamily> = { title: 'Special Elite', body: 'Work Sans' };
@@ -66,6 +66,7 @@ export interface FaceNeed { family: BundledFamily; weight: number; style: 'norma
 /** The faces of the app's own typefaces a deck draws with: the weights the stylesheet asks of each role (titles are
  *  set at 400; body text at 400 and 600, and in italics only for a recipient's note). A role that carries a font file
  *  of its own does without them, unless the deck's text has letters outside basic Latin, which that file may lack.
+ *  The handwriting face is among them only when the theme asks for handwriting and a slide has a card to write on.
  *  Sorted, with no face twice. */
 export function bundledFacesNeeded(data: DeckData): FaceNeed[] {
   const fonts = data?.theme?.fonts ?? { title: '', body: '' };
@@ -75,8 +76,8 @@ export function bundledFacesNeeded(data: DeckData): FaceNeed[] {
   const out = new Map<string, FaceNeed>();
   const add = (family: BundledFamily | null, weight: number, style: 'normal' | 'italic' = 'normal') => {
     if (!family) return;
-    const w = family === 'Special Elite' ? 400 : weight;   // one weight is all that face has
-    const st = family === 'Special Elite' ? 'normal' : style;
+    const w = family === 'Special Elite' ? 400 : family === HAND_FAMILY ? HAND_WEIGHT : weight;   // one weight is all those faces have (or all the app carries)
+    const st = family === 'Work Sans' ? style : 'normal';
     out.set(`${family}|${w}|${st}`, { family, weight: w, style: st });
   };
   if (!covered('title')) add(bundledFamilyOf(fonts.title, 'title'), 400);
@@ -85,7 +86,17 @@ export function bundledFacesNeeded(data: DeckData): FaceNeed[] {
     add(body, 400); add(body, 600);
     if (Array.isArray(data?.recipients) && data.recipients.some(r => r && typeof r.note === 'string' && r.note.trim())) add(body, 400, 'italic');
   }
+  if (data?.theme?.hand === true && hasCards(data)) add(HAND_FAMILY, HAND_WEIGHT);
   return [...out.values()].sort((a, b) => a.family.localeCompare(b.family) || a.weight - b.weight || a.style.localeCompare(b.style));
+}
+/** Whether any slide draws a card: a cover, a row of cards, a quote, the card beside the team. */
+export function hasCards(data: DeckData): boolean {
+  const text = (v: unknown) => typeof v === 'string' && v.trim() !== '';
+  return (Array.isArray(data?.slides) ? data.slides : []).some(s => !!s && typeof s === 'object' && (
+    s.layout === 'cover'
+    || ((s.layout === 'cards' || s.layout === 'ways') && Array.isArray(s.cards) && s.cards.some(c => !!c && (text(c.title) || text(c.body))))
+    || (s.layout === 'stats' && text(s.quote?.text))
+    || (s.layout === 'team' && !!s.aside && (text(s.aside.title) || (Array.isArray(s.aside.lines) && s.aside.lines.some(text))))));
 }
 
 /** The characters the "latin-ext" files of the app's typefaces cover: a deck with none of them does not carry those files. */

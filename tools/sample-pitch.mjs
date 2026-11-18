@@ -84,7 +84,7 @@ const SCENES = [
     ridges: [{ y: 590, amp: 80, fill: '#141d40' }, { y: 635, amp: 36, fill: '#0a0f24' }], ground: '#080b18',
     shapes: [{ kind: 'road', x: 900, far: 20, near: 520, fill: '#111630' }, { kind: 'rect', x: 884, y: 664, w: 12, h: 6, fill: '#f2b24a' }, { kind: 'rect', x: 904, y: 664, w: 12, h: 6, fill: '#f2b24a' }] },
 ];
-// the film's mark: a low sun on a line, on nothing (it sits on whatever is behind it)
+// the film's mark: a low sun on the horizon, on nothing (it sits on whatever is behind it)
 const MARK_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="480" height="300" viewBox="0 0 480 300"><path d="M150 214a90 90 0 0 1 180 0Z" fill="#f2b24a"/><rect x="40" y="214" width="400" height="14" rx="7" fill="#f4eddc"/><rect x="110" y="246" width="260" height="10" rx="5" fill="#f4eddc" opacity=".7"/><rect x="180" y="274" width="120" height="8" rx="4" fill="#f4eddc" opacity=".45"/></svg>';
 
 const dataUrl = svg => `data:image/svg+xml;base64,${Buffer.from(svg, 'utf8').toString('base64')}`;
@@ -98,7 +98,7 @@ export function buildSamplePitch(engine) {
   const drawn = SCENES.map(scene);
   const lookbook = [
     ...drawn.map(d => ({ id: d.id, dataUrl: dataUrl(d.svg), caption: d.caption, section: d.section })),
-    { id: 'look_mark', dataUrl: dataUrl(MARK_SVG), caption: 'The film\'s mark: a low sun on a line (drawn for the sample)', section: 'reference' },
+    { id: 'look_mark', dataUrl: dataUrl(MARK_SVG), caption: 'The film\'s mark: a low sun on the horizon (drawn for the sample)', section: 'reference' },
   ];
   const night = engine.proposeThemes(engine.quantize(drawn.flatMap(d => d.pixels), 8)).find(p => p.id === 'night');
   const failed = engine.checkTheme(night.colors).filter(c => !c.pass);
@@ -106,8 +106,8 @@ export function buildSamplePitch(engine) {
   const pair = engine.TYPE_PAIRINGS[0];
   const { card, ...colors } = night.colors;
   const design = {
-    name: 'Salt Flat', colors, card, fonts: { title: pair.title, body: pair.body },
-    notes: 'Worked out from the look book: a night ground, a sand card, one warm accent and the cool blue of the flats at noon. Typewriter titles, plain text.',
+    name: 'Salt Flat', colors, card, fonts: { title: pair.title, body: pair.body }, hand: true,
+    notes: 'Worked out from the look book: a night ground, a sand card, one warm accent and the cool blue of the flats at noon. Typewriter titles, plain text, handwriting on the papers.',
     deck: { layout: 'split', eyebrow: false, bleed: 0.55, lookSlides: 3, coverImageId: 'look_dawn', closingImageId: 'look_dusk', signoff: 'Thank you for reading' },
   };
 
@@ -134,15 +134,15 @@ export function buildSamplePitch(engine) {
   ];
 
   const slides = [
-    { id: 'cover', layout: 'cover', imageId: 'look_dawn', scrim: 0.55, byline: 'Written and directed by Wren Calloway', footnote: 'A sample deck. The film, the people, the studies and every figure in it are invented.' },
+    { id: 'cover', layout: 'cover', imageId: 'look_dawn', scrim: 0.55, paper: 'postcard', byline: 'Written and directed by Wren Calloway', footnote: 'A sample deck. The film, the people, the studies and every figure in it are invented.' },
     { id: 'why', layout: 'text', eyebrow: 'Why this film, why me', headline: 'I grew up one town over from nowhere.', punch: 'I know what that road does to a family.', body: why,
       columns: [{ label: 'Where', lines: ['One motel, one gas station, the flats'] }, { label: 'When', lines: ['Twelve shoot days in spring 2031'] }, { label: 'Who', lines: ['Two leads, six supporting parts'] }] },
-    { id: 'gap', layout: 'cards', eyebrow: 'The gap', headline: 'Audiences are asking for this film.', punch: 'Nobody is making it.',
+    { id: 'gap', layout: 'cards', paper: 'mixed', eyebrow: 'The gap', headline: 'Audiences are asking for this film.', punch: 'Nobody is making it.',
       cards: research.map((r, i) => ({ id: `gap${i + 1}`, kicker: 'Invented finding', title: r.title, body: r.body, footnote: r.url })),
       motion: { entrance: 'drop', order: 'one-by-one', stagger: 140 } },
     { id: 'opportunity', layout: 'comps', eyebrow: 'The opportunity', headline: 'Small road films have paid their way.', closing: 'Four invented films. None cost more than $1.4 million.',
       footnote: 'Every title here is invented for the sample. In your own deck, these are real films with sources.' },
-    { id: 'audience', layout: 'stats', eyebrow: 'The audience', headline: 'Women over thirty buy the tickets.', punch: 'This film is about them.',
+    { id: 'audience', layout: 'stats', paper: 'torn', eyebrow: 'The audience', headline: 'Women over thirty buy the tickets.', punch: 'This film is about them.',
       lead: { value: '7 in 10', text: 'art-house tickets in the survey were bought by women over thirty.', source: SURVEY },
       stats: [
         { id: 'stat_friend', value: '41%', label: 'went to a film because a friend sent them the trailer', source: SURVEY },
@@ -153,7 +153,7 @@ export function buildSamplePitch(engine) {
       closing: 'How we reach them: a festival first, then the podcasts and newsletters they already trust.',
       motion: { count: true } },
     { id: 'story', layout: 'photo', imageId: 'look_flats', scrim: 0.6, eyebrow: 'The story', headline: 'A letter, a dead car and a stone on the flats.', body: story },
-    { id: 'team', layout: 'team', eyebrow: 'The team', headline: 'People who make small films work.',
+    { id: 'team', layout: 'team', paper: 'letter', eyebrow: 'The team', headline: 'People who make small films work.',
       aside: { title: 'Also attached', lines: ['Casting: an invented casting office', 'Music: an invented composer, on a package'], footnote: 'Everyone on this slide is invented.' } },
     { id: 'plan', layout: 'timeline', eyebrow: 'The plan', headline: 'Twelve days, one unit, one stretch of desert.',
       milestones: [
@@ -164,11 +164,11 @@ export function buildSamplePitch(engine) {
       ],
       closing: 'Every set is within twenty minutes of the motel, so no day is lost to a company move.' },
     { id: 'model', layout: 'model', eyebrow: 'The model', headline: 'Everyone who makes the film shares in it.', body: 'Cast and crew work at scale and hold points in a shared pool. Investors are paid from the first dollar the film earns.', closing: 'The same terms for every investor.' },
-    { id: 'ways', layout: 'ways', eyebrow: 'Ways to take part', headline: 'Three ways in.',
+    { id: 'ways', layout: 'ways', paper: 'postcard', eyebrow: 'Ways to take part', headline: 'Three ways in.',
       cards: [
-        { id: 'invest', title: 'Invest', body: 'You take 60 cents of every dollar the film earns until you have 120% of your investment back, then half of everything after.', footnote: 'From $10,000.' },
-        { id: 'give', title: 'Give', body: 'A grant or a donation through the film\'s fiscal sponsor. It is never repaid, and every dollar of it lowers what investors put in.', footnote: 'The fiscal sponsor keeps 7% of each gift.' },
-        { id: 'lend', title: 'Lend', body: 'A location, a truck, a week of your time. Help in kind comes off the budget the same way cash does.', footnote: 'Credited on screen.' },
+        { id: 'invest', title: 'Invest', body: 'You take 60 cents of every dollar the film earns until you have 120% back, then half of everything after.', footnote: 'From $10,000.' },
+        { id: 'give', title: 'Give', body: 'A grant or a gift through the film\'s fiscal sponsor. It is never repaid, and it lowers what investors put in.', footnote: 'The fiscal sponsor keeps 7% of each gift.' },
+        { id: 'lend', title: 'Lend', body: 'A location, a truck, a week of your time. Help in kind comes off the budget as cash does.', footnote: 'Credited on screen.' },
       ],
       motion: { order: 'one-by-one', stagger: 160 } },
     { id: 'numbers', layout: 'numbers', eyebrow: 'The numbers', headline: 'What investors fund,', punch: 'and what comes back.', body: 'Three cases, from a quiet release to a good one. In the low case investors do not get their money back.' },

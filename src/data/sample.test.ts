@@ -17,7 +17,7 @@ import { checkTheme } from '../engine/palette';
 import { pathFor } from '../engine/pathMath';
 import { cleanMotion } from '../deck-runtime/motion';
 import { money } from '../deck-runtime/format';
-import { contrastRatio, deckColors, mountDeck, type DeckHandle } from '../deck-runtime/runtime';
+import { contrastRatio, deckColors, mountDeck, paperColors, type DeckHandle } from '../deck-runtime/runtime';
 
 const demo = applyDeal(sampleDemo());
 const pitch = demo.pitch!;
@@ -105,6 +105,49 @@ describe('the sample deck', () => {
     for (const s of pitch.slides!) expect(cleanMotion(s.motion, s.layout)).toEqual(s.motion);
     expect(pitch.deckMotion).toBeUndefined();
     expect(pitch.slides!.some(s => s.motion?.marker)).toBe(false);   // a travelling picture is the author's to add: none is shipped
+  });
+});
+
+describe('the sample\'s papers', () => {
+  it('uses them together: the title on a postcard, the gap a mix, the quote a torn note, the team\'s card a letter, the ways in as postcards, in handwriting', () => {
+    expect(Object.fromEntries(pitch.slides!.filter(s => s.paper).map(s => [s.id, s.paper]))).toEqual({ cover: 'postcard', gap: 'mixed', audience: 'torn', team: 'letter', ways: 'postcard' });
+    expect(pitch.design!.hand).toBe(true);
+    expect(pitch.design!.paper).toBeUndefined();   // any slide that says nothing is a plain card
+    expect(pitch.design!.tilt).toBeUndefined();
+    expect(deck.theme.hand).toBe(true);
+    expect('paper' in deck.theme).toBe(false);
+    expect(deckWarnings(demo)).toEqual([]);
+    expect(deckChecks(deck)).toEqual([]);
+  });
+  it('draws them: one postcard under the title, a notebook page, a torn page and a letter side by side, and nothing on a line', () => {
+    const host = document.createElement('div'); document.body.appendChild(host);
+    mounted.push(mountDeck(host, deck));
+    const root = host.shadowRoot!;
+    const papers = (id: string) => [...root.querySelectorAll<HTMLElement>(`section[data-slide-id="${id}"] .psd-card`)].map(c => c.dataset.paper);
+    expect(papers('cover')).toEqual(['postcard']);
+    expect(papers('gap')).toEqual(['notebook', 'torn', 'letter']);
+    expect(papers('audience')).toEqual(['torn']);
+    expect(papers('team')).toEqual(['letter']);
+    expect(papers('ways')).toEqual(['postcard', 'postcard', 'postcard']);
+    expect(root.querySelector('.psd')!.classList.contains('psd-hand')).toBe(true);
+    expect(root.querySelectorAll('.psd-hang, .psd-rope, .psd-pinned, .psd-rail')).toHaveLength(0);
+    for (const c of root.querySelectorAll<HTMLElement>('.psd-card')) expect(c.style.getPropertyValue('--r')).toBe('');   // every card straight
+  });
+  it('every paper it uses keeps its words readable in the sample\'s own colours', () => {
+    for (const style of ['postcard', 'notebook', 'torn', 'letter'] as const) {
+      const t = paperColors(deck.theme.colors, style);
+      for (const surface of [t['--psd-card'], t['--psd-pp-shade'], t['--psd-pp-rule']]) {
+        expect(contrastRatio(t['--psd-card-ink'], surface), style).toBeGreaterThanOrEqual(7);
+        expect(contrastRatio(t['--psd-card-muted'], surface), style).toBeGreaterThanOrEqual(4.5);
+        expect(contrastRatio(t['--psd-card-accent'], surface), style).toBeGreaterThanOrEqual(4.5);
+      }
+      expect(t['--psd-card']).toBe(pitch.design!.card);   // the card colour is the design's own: nothing had to move
+    }
+  });
+  it('names nothing real on its stamps and postmarks: they are shapes with no words at all', () => {
+    const host = document.createElement('div'); document.body.appendChild(host);
+    mounted.push(mountDeck(host, deck));
+    for (const layer of host.shadowRoot!.querySelectorAll('.psd-pp')) { expect(layer.textContent).toBe(''); expect(layer.querySelectorAll('img, svg')).toHaveLength(0); }
   });
 });
 

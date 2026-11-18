@@ -283,7 +283,7 @@ describe('type pairings', () => {
     for (const p of TYPE_PAIRINGS) {
       for (const stack of [p.title, p.body]) {
         expect(stack).not.toMatch(/url|http|@import|var\(/i);
-        expect(stack).toMatch(/(serif|monospace)$/);
+        expect(stack).toMatch(/(serif|monospace|cursive)$/);
         expect(stack).toMatch(/^[A-Za-z0-9 ,"-]+$/);
       }
     }

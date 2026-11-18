@@ -108,7 +108,8 @@
     "title": "\"Special Elite\", \"Courier New\", monospace",
     "body": "\"Work Sans\", system-ui, sans-serif"
    },
-   "notes": "Worked out from the look book: a night ground, a sand card, one warm accent and the cool blue of the flats at noon. Typewriter titles, plain text.",
+   "hand": true,
+   "notes": "Worked out from the look book: a night ground, a sand card, one warm accent and the cool blue of the flats at noon. Typewriter titles, plain text, handwriting on the papers.",
    "deck": {
     "layout": "split",
     "eyebrow": false,
@@ -153,7 +154,7 @@
    {
     "id": "look_mark",
     "dataUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0ODAiIGhlaWdodD0iMzAwIiB2aWV3Qm94PSIwIDAgNDgwIDMwMCI+PHBhdGggZD0iTTE1MCAyMTRhOTAgOTAgMCAwIDEgMTgwIDBaIiBmaWxsPSIjZjJiMjRhIi8+PHJlY3QgeD0iNDAiIHk9IjIxNCIgd2lkdGg9IjQwMCIgaGVpZ2h0PSIxNCIgcng9IjciIGZpbGw9IiNmNGVkZGMiLz48cmVjdCB4PSIxMTAiIHk9IjI0NiIgd2lkdGg9IjI2MCIgaGVpZ2h0PSIxMCIgcng9IjUiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii43Ii8+PHJlY3QgeD0iMTgwIiB5PSIyNzQiIHdpZHRoPSIxMjAiIGhlaWdodD0iOCIgcng9IjQiIGZpbGw9IiNmNGVkZGMiIG9wYWNpdHk9Ii40NSIvPjwvc3ZnPg==",
-    "caption": "The film's mark: a low sun on a line (drawn for the sample)",
+    "caption": "The film's mark: a low sun on the horizon (drawn for the sample)",
     "section": "reference"
    }
   ],
@@ -213,6 +214,7 @@
     "layout": "cover",
     "imageId": "look_dawn",
     "scrim": 0.55,
+    "paper": "postcard",
     "byline": "Written and directed by Wren Calloway",
     "footnote": "A sample deck. The film, the people, the studies and every figure in it are invented."
    },
@@ -247,6 +249,7 @@
    {
     "id": "gap",
     "layout": "cards",
+    "paper": "mixed",
     "eyebrow": "The gap",
     "headline": "Audiences are asking for this film.",
     "punch": "Nobody is making it.",
@@ -290,6 +293,7 @@
    {
     "id": "audience",
     "layout": "stats",
+    "paper": "torn",
     "eyebrow": "The audience",
     "headline": "Women over thirty buy the tickets.",
     "punch": "This film is about them.",
@@ -339,6 +343,7 @@
    {
     "id": "team",
     "layout": "team",
+    "paper": "letter",
     "eyebrow": "The team",
     "headline": "People who make small films work.",
     "aside": {
@@ -390,25 +395,26 @@
    {
     "id": "ways",
     "layout": "ways",
+    "paper": "postcard",
     "eyebrow": "Ways to take part",
     "headline": "Three ways in.",
     "cards": [
      {
       "id": "invest",
       "title": "Invest",
-      "body": "You take 60 cents of every dollar the film earns until you have 120% of your investment back, then half of everything after.",
+      "body": "You take 60 cents of every dollar the film earns until you have 120% back, then half of everything after.",
       "footnote": "From $10,000."
      },
      {
       "id": "give",
       "title": "Give",
-      "body": "A grant or a donation through the film's fiscal sponsor. It is never repaid, and every dollar of it lowers what investors put in.",
+      "body": "A grant or a gift through the film's fiscal sponsor. It is never repaid, and it lowers what investors put in.",
       "footnote": "The fiscal sponsor keeps 7% of each gift."
      },
      {
       "id": "lend",
       "title": "Lend",
-      "body": "A location, a truck, a week of your time. Help in kind comes off the budget the same way cash does.",
+      "body": "A location, a truck, a week of your time. Help in kind comes off the budget as cash does.",
       "footnote": "Credited on screen."
      }
     ],

@@ -8,7 +8,7 @@ import { pathFor } from '../engine/pathMath';
 import type { SlideMotion as EngineSlideMotion, DeckMotion as EngineDeckMotion } from '../engine/types';
 import type { DeckData, DeckMotion, DeckSlide, SlideMotion } from './data';
 import { money } from './format';
-import { cleanDeckMotion, cleanMotion, ENTRANCES, MARKER_SIZE_MAX, MARKER_SIZE_MIN, markerPathOf, STAGGER_MAX } from './motion';
+import { cleanDeckMotion, cleanMotion, ENTRANCES, MARKER_PATHS, MARKER_SIZE_MAX, MARKER_SIZE_MIN, markerPathOf, STAGGER_MAX } from './motion';
 import { mountDeck, cleanMotion as fromRuntime, type DeckHandle } from './runtime';
 
 // the engine keeps its own copy of the two shapes (its types file imports nothing): they must stay the same shape
@@ -60,7 +60,7 @@ describe('cleanMotion', () => {
   it('drops what means nothing: no movement at all is undefined, a headline that is not typed and a count that is off are left out', () => {
     expect(cleanMotion({})).toBeUndefined();
     expect(cleanMotion({ headline: 'none', count: false })).toBeUndefined();
-    expect(cleanMotion({ marker: { imageId: 'pic', path: 'line', end: 'stop', size: 1 } })).toEqual({ marker: { imageId: 'pic', path: 'line', end: 'stop' } });
+    expect(cleanMotion({ marker: { imageId: 'pic', path: 'timeline', end: 'stop', size: 1 } })).toEqual({ marker: { imageId: 'pic', path: 'timeline', end: 'stop' } });
   });
   it('clamps numbers: the gap to 0 to 400 ms, the picture to half to twice its size', () => {
     expect(cleanMotion({ stagger: 1e9 })!.stagger).toBe(STAGGER_MAX);
@@ -69,19 +69,29 @@ describe('cleanMotion', () => {
     expect(cleanMotion({ marker: { imageId: 'p', size: 1e6 } })!.marker!.size).toBe(MARKER_SIZE_MAX);
     expect(cleanMotion({ marker: { imageId: 'p', size: -3 } })!.marker!.size).toBe(MARKER_SIZE_MIN);
   });
-  it('gives a travelling picture a line and an end when the file names neither, or names nonsense', () => {
-    expect(cleanMotion({ marker: { imageId: 'p', path: 'spiral', end: 'explode' } })).toEqual({ marker: { imageId: 'p', path: 'line', end: 'stop' } });
+  it('gives a travelling picture the timeline and an end when the file names neither, or names nonsense', () => {
+    expect(cleanMotion({ marker: { imageId: 'p', path: 'spiral', end: 'explode' } })).toEqual({ marker: { imageId: 'p', path: 'timeline', end: 'stop' } });
+    expect(cleanMotion({ marker: { imageId: 'p' } })).toEqual({ marker: { imageId: 'p', path: 'timeline', end: 'stop' } });
+  });
+  it('drops, without a word, a picture on the path cards used to have: nothing travels along cards any more', () => {
+    expect(MARKER_PATHS).toEqual(['timeline']);
+    expect(cleanMotion({ marker: { imageId: 'p', path: 'line', end: 'stop' } })).toBeUndefined();
+    expect(cleanMotion({ entrance: 'drop', order: 'one-by-one', marker: { imageId: 'p', path: 'line', end: 'settle', size: 2 } })).toEqual({ entrance: 'drop', order: 'one-by-one' });
+    for (const layout of ['cards', 'ways']) for (const path of ['line', 'timeline', undefined]) {
+      expect(cleanMotion({ marker: { imageId: 'p', path, end: 'stop' } }, layout), `${layout} ${path}`).toBeUndefined();
+      expect(cleanMotion({ entrance: 'drop', order: 'one-by-one', stagger: 140, marker: { imageId: 'p', path } }, layout)).toEqual({ entrance: 'drop', order: 'one-by-one', stagger: 140 });   // the cards still arrive one at a time
+    }
   });
   it('drops everything that is not in the vocabulary: other keys, other words, the wrong kind of thing', () => {
     for (const raw of HOSTILE) expect(cleanMotion(raw), JSON.stringify(raw)).toBeUndefined();
     const out = cleanMotion({ entrance: 'fade', style: 'color:red', onclick: 'alert(1)', css: '}', transform: 'rotate(9deg)', duration: 99999, marker: { imageId: 'p', src: 'https://example.com/a.png', style: 'x' } });
-    expect(out).toEqual({ entrance: 'fade', marker: { imageId: 'p', path: 'line', end: 'stop' } });
+    expect(out).toEqual({ entrance: 'fade', marker: { imageId: 'p', path: 'timeline', end: 'stop' } });
     expect(JSON.stringify(out)).not.toMatch(/http|style|alert|rotate/);
   });
-  it('with a layout, keeps a travelling picture only where there is a line, and on that line', () => {
+  it('with a layout, keeps a travelling picture only on the plan, along its timeline', () => {
     const marker = { imageId: 'p', path: 'timeline', end: 'stop' };
-    expect(markerPathOf('cards')).toBe('line'); expect(markerPathOf('ways')).toBe('line'); expect(markerPathOf('timeline')).toBe('timeline'); expect(markerPathOf('text')).toBeNull();
-    expect(cleanMotion({ marker }, 'cards')!.marker!.path).toBe('line');
+    expect(markerPathOf('cards')).toBeNull(); expect(markerPathOf('ways')).toBeNull(); expect(markerPathOf('timeline')).toBe('timeline'); expect(markerPathOf('text')).toBeNull();
+    expect(cleanMotion({ marker }, 'timeline')!.marker!.path).toBe('timeline');
     expect(cleanMotion({ marker: { ...marker, path: 'line' } }, 'timeline')!.marker!.path).toBe('timeline');
     expect(cleanMotion({ marker }, 'stats')).toBeUndefined();
     expect(cleanMotion({ marker, count: true }, 'stats')).toEqual({ count: true });
@@ -125,7 +135,8 @@ describe('movement in the deck', () => {
       expect(d.dataset.enter).toBeUndefined();
       expect(host.shadowRoot!.innerHTML).not.toMatch(/example\.com|alert\(|javascript:/);
     }
-    const { host, slide } = mount(deck([cards({ entrance: '"><img src=x onerror=alert(1)>', stagger: 120, marker: { imageId: 'pic', end: 'settle"; background:url(https://example.com)', size: '2;position:fixed' } })]));
+    const plan = { id: 'plan', layout: 'timeline', facts: [{ value: '12', label: 'shoot days' }], milestones: [{ id: 'm1', when: 'Spring 2031', what: 'Shoot' }], motion: { entrance: '"><img src=x onerror=alert(1)>', stagger: 120, marker: { imageId: 'pic', end: 'settle"; background:url(https://example.com)', size: '2;position:fixed' } } };
+    const { host, slide } = mount(deck([plan]));
     expect(host.shadowRoot!.querySelectorAll('img[onerror]')).toHaveLength(0);
     expect(slide(0).dataset.enter).toBeUndefined();
     const mark = slide(0).querySelector<HTMLElement>('.psd-mark')!;
@@ -157,31 +168,31 @@ describe('movement in the deck', () => {
   });
 
   describe('a travelling picture', () => {
-    it('is drawn from the deck\'s own pictures, for the eye only, on the cards\' line and on the timeline', () => {
+    it('is drawn from the deck\'s own pictures, for the eye only, on the timeline, and never on a slide of cards', () => {
       const tl = { id: 'plan', layout: 'timeline', eyebrow: 'The plan', facts: [{ value: '12', label: 'shoot days' }], milestones: [{ id: 'm1', when: 'Spring 2031', what: 'Shoot' }, { id: 'm2', when: 'Autumn 2031', what: 'Premiere' }], motion: { marker: { imageId: 'pic', path: 'timeline', end: 'settle', size: 1.5 } } };
-      const { slide } = mount(deck([cards({ marker: { imageId: 'pic', path: 'line', end: 'stop' } }), tl]));
-      const a = slide(0).querySelector<HTMLImageElement>('.psd-hang > img.psd-mark')!, b = slide(1).querySelector<HTMLImageElement>('.psd-track > img.psd-mark')!;
-      for (const im of [a, b]) { expect(im.getAttribute('src')).toBe(PIC); expect(im.alt).toBe(''); expect(im.getAttribute('aria-hidden')).toBe('true'); }
-      expect(a.classList.contains('psd-mark-settle')).toBe(false);
+      const { slide } = mount(deck([cards({ order: 'one-by-one', marker: { imageId: 'pic', path: 'line', end: 'stop' } }), cards({ marker: { imageId: 'pic', path: 'timeline', end: 'stop' } }), tl]));
+      for (const i of [0, 1]) { expect(slide(i).querySelectorAll('img')).toHaveLength(0); expect(slide(i).querySelectorAll('.psd-card')).toHaveLength(3); }
+      expect(slide(0).style.getPropertyValue('--psd-gap')).toBe('140ms');   // the cards still arrive one at a time
+      const b = slide(2).querySelector<HTMLImageElement>('.psd-track > img.psd-mark')!;
+      expect(b.getAttribute('src')).toBe(PIC); expect(b.alt).toBe(''); expect(b.getAttribute('aria-hidden')).toBe('true');
       expect(b.classList.contains('psd-mark-settle')).toBe(true);
       expect(b.style.getPropertyValue('--psd-mark')).toBe('1.5');
-      expect(slide(0).querySelector<HTMLElement>('.psd-hang')!.style.getPropertyValue('--n')).toBe('3');
-      expect(slide(0).querySelector('.psd-hang')!.classList.contains('psd-hang-mark')).toBe(true);   // the line makes room for it under the headline
     });
-    it('comes to rest inside the slide: never left of the line\'s start, whatever the count of cards or milestones, and its width is known from its height', () => {
+    it('comes to rest inside the slide: never left of the timeline\'s start, whatever the count of milestones, and its width is known from its height', () => {
       const css = readFileSync(resolve(process.cwd(), 'src/deck-runtime/deck.css'), 'utf8');
-      // right edge at the pin or tick, but never less than its own (capped) width from the start of the line
+      // right edge at the tick, but never less than its own (capped) width from the start of the timeline
       expect(css).toMatch(/\.psd-mark \{[^}]*--psd-mark-h: calc\(var\(--psd-mark, 1\) \* 2\.6em\); left: max\(var\(--psd-end, 100%\), var\(--psd-mark-h\) \* 2\);[^}]*max-width: calc\(var\(--psd-mark-h\) \* 2\);/);
-      // the arithmetic of that rule, for every count and size: where the picture's box lies along a line 60em long
-      const endOf = (path: 'line' | 'timeline', n: number, w = 60) => (path === 'timeline' ? w - (w - (n - 1) * 2) / n : n === 1 ? 11.4 : n === 2 ? Math.min(34.6, w * 0.75 - 0.05) : w - (w - (n - 1) * 2.2) / n / 2 - 0.6);
-      for (const [path, counts] of [['line', [1, 2, 3, 4]], ['timeline', [1, 2, 3, 4, 5, 6]]] as const) for (const n of counts) for (const size of [0.5, 1, 2]) {
-        const width = size * 2.6 * 2, right = Math.max(endOf(path, n), width), left = right - width;
-        expect(left, `${path} ${n} at ${size}`).toBeGreaterThanOrEqual(0);
-        expect(right, `${path} ${n} at ${size}`).toBeLessThanOrEqual(60);
+      expect(css).not.toMatch(/psd-hang|psd-rope|psd-pinned|psd-rail/);
+      // the arithmetic of that rule, for every count and size: where the picture's box lies along a timeline 60em long
+      const endOf = (n: number, w = 60) => w - (w - (n - 1) * 2) / n;
+      for (const n of [1, 2, 3, 4, 5, 6]) for (const size of [0.5, 1, 2]) {
+        const width = size * 2.6 * 2, right = Math.max(endOf(n), width), left = right - width;
+        expect(left, `${n} at ${size}`).toBeGreaterThanOrEqual(0);
+        expect(right, `${n} at ${size}`).toBeLessThanOrEqual(60);
       }
-      expect(endOf('timeline', 1)).toBe(0);   // the case that put it off the slide before
+      expect(endOf(1)).toBe(0);   // the case that put it off the slide before
     });
-    it('on a timeline the rail makes room for it, by its size, so it never covers the facts above', () => {
+    it('the timeline makes room for it, by its size, so it never covers the facts above', () => {
       const tl = (motion: unknown) => ({ id: 'plan', layout: 'timeline', facts: [{ value: '12', label: 'shoot days' }], milestones: [{ id: 'm1', when: 'Spring 2031', what: 'Shoot' }], motion });
       const { slide } = mount(deck([tl({ marker: { imageId: 'pic', path: 'timeline', end: 'stop', size: 2 } }), tl({ marker: { imageId: 'pic', path: 'timeline', end: 'stop' } }), tl(undefined), tl({ marker: { imageId: 'gone', path: 'timeline', end: 'stop' } })]));
       const track = (i: number) => slide(i).querySelector<HTMLElement>('.psd-track')!;
@@ -194,10 +205,11 @@ describe('movement in the deck', () => {
       const css = readFileSync(resolve(process.cwd(), 'src/deck-runtime/deck.css'), 'utf8');
       expect(css).toMatch(/\.psd-track-mark \{ margin-top: calc\(var\(--psd-mark, 1\) \* 2\.6em \+ 1\.1em\); \}/);
     });
-    it('is left off when its picture is not in the deck, when the picture could reach the network, and on a slide with no line', () => {
-      const { root } = mount(deck([cards({ marker: { imageId: 'gone', path: 'line', end: 'stop' } }), stats({ marker: { imageId: 'pic', path: 'line', end: 'stop' } })]));
+    it('is left off when its picture is not in the deck, when the picture could reach the network, and on a slide with no timeline', () => {
+      const plan = (imageId: string) => ({ id: 'plan', layout: 'timeline', facts: [], milestones: [{ id: 'm1', when: 'Spring 2031', what: 'Shoot' }], motion: { marker: { imageId, path: 'timeline', end: 'stop' } } });
+      const { root } = mount(deck([plan('gone'), stats({ marker: { imageId: 'pic', path: 'timeline', end: 'stop' } }), cards({ marker: { imageId: 'pic', path: 'timeline', end: 'stop' } })]));
       expect(root.querySelectorAll('.psd-mark')).toHaveLength(0);
-      const remote = deck([cards({ marker: { imageId: 'pic', path: 'line', end: 'stop' } })], { images: [{ id: 'pic', src: 'https://example.com/a.png', alt: '' }] });
+      const remote = deck([plan('pic')], { images: [{ id: 'pic', src: 'https://example.com/a.png', alt: '' }] });
       expect(mount(remote).root.querySelectorAll('.psd-mark')).toHaveLength(0);
     });
   });

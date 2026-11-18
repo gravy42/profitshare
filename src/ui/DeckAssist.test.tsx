@@ -7,7 +7,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { sampleDemo } from '../data/seed';
 import { applyDeal } from '../engine/deal';
-import { MOTION_SENDS } from '../engine/aiMotion';
+import { MOTION_SENDS, motionSends } from '../engine/aiMotion';
 import { CRITIQUE_SENDS, personSends, PUNCH_SENDS } from '../engine/aiDeck';
 import type { Project } from '../engine/types';
 import PitchDeck from './PitchDeck';
@@ -67,10 +67,11 @@ describe('a slide\'s movement', () => {
     for (const label of ['How it arrives', 'One at a time or together']) expect(labelled(move, label)).toBeTruthy();
     expect(move.textContent).toContain('Type out the headline');
     expect(move.textContent).not.toContain('Count up the numbers');           // a slide of words has no numbers to count
-    expect(move.textContent).not.toContain('A picture that travels');         // and no line to travel along
+    expect(move.textContent).not.toContain('A picture that travels');         // and no timeline to travel along
     pick(el, 'gap');
     expect(el.querySelector('.pd-move')).not.toBeNull();
-    expect(el.querySelector('.pd-move')!.textContent).toContain('A picture that travels along the line');
+    expect(el.querySelector('.pd-move')!.textContent).not.toContain('A picture that travels');   // nothing travels along cards
+    expect(el.querySelector('.pd-move .pd-marker')).toBeNull();
     expect(labelled<HTMLInputElement>(el.querySelector('.pd-move')!, /^Gap between one part and the next: 140 ms$/).value).toBe('140');
   });
   it('each choice is one change to the slide, in the vocabulary, and nothing else on the slide moves', () => {
@@ -90,15 +91,19 @@ describe('a slide\'s movement', () => {
   it('a picture that travels is chosen from the look book, by id, with where it ends and its size', () => {
     const el = draw();
     pick(el, 'ways');
+    expect(el.querySelector('.pd-marker')).toBeNull();   // only the plan has a timeline for a picture to travel along
+    pick(el, 'plan'); click(button(el, 'Add movement'));
+    expect(el.querySelector('.pd-marker')!.textContent).toContain('A picture that travels along the timeline');
+    expect(el.querySelector('.pd-marker')!.textContent).not.toMatch(/the line\b|last card/);
     const thumbs = [...el.querySelectorAll<HTMLButtonElement>('.pd-marker .thumb')];
     expect(thumbs).toHaveLength(7);   // No picture, and the six in the look book
     expect(thumbs[0].getAttribute('aria-pressed')).toBe('true');
     click(thumbs[6]);
-    expect(slide('ways').motion).toEqual({ order: 'one-by-one', stagger: 160, marker: { imageId: 'look_mark', path: 'line', end: 'stop' } });
+    expect(slide('plan').motion).toEqual({ marker: { imageId: 'look_mark', path: 'timeline', end: 'stop' } });
     type(labelled<HTMLSelectElement>(el.querySelector('.pd-marker')!, 'Where it ends'), 'settle');
-    expect(slide('ways').motion!.marker).toEqual({ imageId: 'look_mark', path: 'line', end: 'settle' });
+    expect(slide('plan').motion!.marker).toEqual({ imageId: 'look_mark', path: 'timeline', end: 'settle' });
     click(el.querySelectorAll<HTMLButtonElement>('.pd-marker .thumb')[0]);
-    expect(slide('ways').motion).toEqual({ order: 'one-by-one', stagger: 160 });
+    expect('motion' in slide('plan')).toBe(false);
   });
   it('the whole deck: calm, brisk or none, and Play says what it did', async () => {
     const el = draw(); await tick(40);
@@ -130,7 +135,9 @@ describe('movement on request', () => {
     const el = draw();
     pick(el, 'ways');
     const req = el.querySelector('.pd-request')!;
-    expect(req.querySelector('.pd-sends')!.textContent).toBe(MOTION_SENDS);
+    expect(req.querySelector('.pd-sends')!.textContent).toBe(motionSends('ways'));
+    expect(motionSends('ways')).not.toContain('look book');   // cards have nothing a picture travels along, so no captions go
+    expect(MOTION_SENDS).toContain('the captions and ids of your look book pictures');
     const field = labelled<HTMLTextAreaElement>(req, 'Describe the movement you want');
     expect(field.getAttribute('aria-describedby')).toBe(req.querySelector('.pd-sends')!.id);
     expect(button(req, 'Suggest movement').disabled).toBe(true);
@@ -154,8 +161,9 @@ describe('movement on request', () => {
   it('sends only the request, the layout\'s name, the vocabulary and the pictures\' ids and captions', async () => {
     const sent = model({ entrance: 'fade' });
     const el = draw();
-    pick(el, 'gap');
-    type(labelled<HTMLTextAreaElement>(el.querySelector('.pd-request')!, 'Describe the movement you want'), 'walk my mark along the line');
+    pick(el, 'plan'); click(button(el, 'Add movement'));
+    expect(el.querySelector('.pd-request .pd-sends')!.textContent).toBe(MOTION_SENDS);
+    type(labelled<HTMLTextAreaElement>(el.querySelector('.pd-request')!, 'Describe the movement you want'), 'walk my mark along the timeline');
     click(button(el.querySelector('.pd-request')!, 'Suggest movement'));
     await tick();
     const { url, body, headers } = sent[0];
@@ -164,10 +172,10 @@ describe('movement on request', () => {
     expect(body.tool_choice).toEqual({ type: 'tool', name: 'set_movement' });
     expect(body.messages).toHaveLength(1);
     expect(typeof body.messages[0].content).toBe('string');
-    expect(body.messages[0].content.startsWith('REQUEST: walk my mark along the line\n\nSLIDE LAYOUT: cards on a line')).toBe(true);
-    expect(body.messages[0].content).toContain('look_mark: The film\'s mark: a low sun on a line (drawn for the sample)');
+    expect(body.messages[0].content.startsWith('REQUEST: walk my mark along the timeline\n\nSLIDE LAYOUT: plan (')).toBe(true);
+    expect(body.messages[0].content).toContain('look_mark: The film\'s mark: a low sun on the horizon (drawn for the sample)');
     const all = JSON.stringify(body);
-    for (const secret of ['data:image', 'base64', 'Audiences are asking', 'Sisters, not sidekicks', 'Ada Example', 'Placeholder', 'Wren', 'wren@example.com', '805', '811', '721', 'Dana Okafor', 'Script purchase', 'sk-ant']) expect(all, secret).not.toContain(secret);
+    for (const secret of ['data:image', 'base64', 'Audiences are asking', 'Twelve days, one unit', 'Financing closes', 'Sisters, not sidekicks', 'Ada Example', 'Placeholder', 'Wren', 'wren@example.com', '805', '811', '721', 'Dana Okafor', 'Script purchase', 'sk-ant']) expect(all, secret).not.toContain(secret);
   });
   it('Cancel leaves the slide as it was and puts focus back', async () => {
     model({ entrance: 'none', headline: 'type' });
@@ -322,7 +330,7 @@ describe('Read my deck', () => {
     expect(body).toContain('id=gap | layout=cards');
     for (const secret of ['Ada Example', 'Placeholder', 'data:image', 'look_dawn', 'Script purchase', '83,700', 'you asked what the raise is']) expect(body, secret).not.toContain(secret);
     const items = [...read.querySelectorAll('.pd-fixes li')].map(li => li.textContent);
-    expect(items).toEqual(['Slide 3, Cards on a line, Audiences are asking for this film.: Vague. The second card does not say which ten years.', 'Slide 12, The ask: Unclear ask. <i>What</i> does an investor get?']);
+    expect(items).toEqual(['Slide 3, Cards, Audiences are asking for this film.: Vague. The second card does not say which ten years.', 'Slide 12, The ask: Unclear ask. <i>What</i> does an investor get?']);
     expect(read.querySelectorAll('.pd-fixes i')).toHaveLength(0);
     expect(read.textContent).toContain('Nothing on your deck was changed.');
   });

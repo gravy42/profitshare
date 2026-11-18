@@ -3,8 +3,9 @@
 // sent, the tool the model must answer through (its schema IS the vocabulary), the check on what comes back, and the
 // settings in words for the person to read before they apply them. The call itself is in ai.ts.
 //
-// What goes out: the request as typed, the name of the slide's layout, the vocabulary, and the ids and captions of
-// the look book pictures. Not the pictures, not a word of the slide, nothing of the budget.
+// What goes out: the request as typed, the name of the slide's layout, the vocabulary and, for a plan slide only
+// (the one layout a picture can travel on), the ids and captions of the look book pictures. Not the pictures, not a
+// word of the slide, nothing of the budget.
 import type { SlideLayout, SlideMotion } from './types';
 import { cleanMotion, ENTRANCES, MARKER_ENDS, MARKER_SIZE_MAX, MARKER_SIZE_MIN, markerPathOf, ORDERS, STAGGER_MAX } from '../deck-runtime/motion';
 
@@ -15,15 +16,15 @@ export interface AiRequest { system: string; prompt: string; tool: AiTool }
 export const REQUEST_MAX = 400, NOTE_MAX = 200, PICTURES_MAX = 40, CAPTION_MAX = 80;
 
 const LAYOUT_WORDS: Record<SlideLayout, string> = {
-  cover: 'cover (the title on a card)', photo: 'picture and a line', text: 'words (a headline and paragraphs)', cards: 'cards on a line (three or four cards pinned to a line)',
+  cover: 'cover (the title on a card)', photo: 'picture and a line', text: 'words (a headline and paragraphs)', cards: 'cards (two to four cards in a row)',
   stats: 'proof (one big number, smaller numbers, a quote)', timeline: 'plan (facts in big numbers above a timeline of milestones)', comps: 'comparable films (bars and a table)',
-  team: 'team (a list of people)', model: 'how the money flows (three steps)', ways: 'ways to take part (cards pinned to a line)', numbers: 'the money (figures and tables)',
+  team: 'team (a list of people)', model: 'how the money flows (three steps)', ways: 'ways to take part (cards in a row)', numbers: 'the money (figures and tables)',
   ask: 'the ask', closing: 'closing (the title once more)',
 };
 
 export const MOTION_SYSTEM = `You set how one slide of a film's pitch deck moves when it comes into view. You can only use the settings of the set_movement tool; there is nothing else the deck can do. Your answer is the slide's whole movement: a setting you leave out is off, so include only what the request asks for.
 
-The settings: how the parts of the slide arrive (entrance), whether they arrive together, one by one or last first (order), the gap between one part and the next in milliseconds (stagger), whether the headline is typed out (headline), whether the slide's big numbers count up (count), and, only where the tool offers it, a picture from the person's look book that travels left to right along the slide's line once and stops at the last card or milestone (marker). A picture is chosen by its id from the list you are given; choose the one whose caption fits the request, and none if nothing fits.
+The settings: how the parts of the slide arrive (entrance), whether they arrive together, one by one or last first (order), the gap between one part and the next in milliseconds (stagger), whether the headline is typed out (headline), whether the slide's big numbers count up (count), and, only where the tool offers it, a picture from the person's look book that travels left to right along the plan's timeline once and stops at the last milestone (marker). A picture is chosen by its id from the list you are given; choose the one whose caption fits the request, and none if nothing fits.
 
 When the request asks for something the settings cannot do, choose the closest setting and say so in note, in one short plain sentence ("I can't make it bounce; the closest is drop."). When the request can be met, leave note out. Never put anything but the settings and that one sentence in your answer.`;
 
@@ -43,8 +44,8 @@ export function motionPictures(lookbook: unknown): MotionPicture[] {
   return out;
 }
 
-/** The tool for one slide: its schema is the vocabulary. A travelling picture is offered only where the slide has a
- *  line and the look book has pictures, and only by the ids of those pictures. */
+/** The tool for one slide: its schema is the vocabulary. A travelling picture is offered only on a plan slide (it
+ *  travels along the timeline) when the look book has pictures, and only by the ids of those pictures. */
 export function motionTool(layout: SlideLayout, pictures: MotionPicture[]): AiTool {
   const properties: Record<string, unknown> = {
     entrance: { type: 'string', enum: [...ENTRANCES], description: 'How the parts of the slide arrive. slide-left: in from the right; slide-right: in from the left; none: simply there.' },
@@ -57,7 +58,7 @@ export function motionTool(layout: SlideLayout, pictures: MotionPicture[]): AiTo
   if (markerPathOf(layout) && pictures.length) {
     properties.marker = {
       type: 'object', additionalProperties: false, required: ['imageId'],
-      description: `A look book picture that travels once, left to right, along the ${markerPathOf(layout) === 'timeline' ? 'timeline and stops at the last milestone' : 'line and stops at the last card'}.`,
+      description: 'A look book picture that travels once, left to right, along the timeline and stops at the last milestone.',
       properties: {
         imageId: { type: 'string', enum: pictures.map(p => p.id) },
         end: { type: 'string', enum: [...MARKER_ENDS], description: 'stop: it halts; settle: it rocks once and comes to rest.' },
@@ -77,17 +78,19 @@ export const sendsText = (sent: string[], notSent: readonly string[]): string =>
 
 /** Everything a movement request carries, part by part: how each is written into the prompt, and the words the page
  *  uses for it. The vocabulary travels as the tool's schema. */
-export const MOTION_SENT: { key: string; words: string; write?: (text: string, layout: SlideLayout, offered: MotionPicture[]) => string }[] = [
+export const MOTION_SENT: { key: string; words: string; only?: 'timeline'; write?: (text: string, layout: SlideLayout, offered: MotionPicture[]) => string }[] = [
   { key: 'request', words: 'what you type here', write: text => `REQUEST: ${cut(text, REQUEST_MAX)}` },
   { key: 'layout', words: 'the name of this slide\'s layout', write: (_t, layout) => `SLIDE LAYOUT: ${LAYOUT_WORDS[layout] ?? layout}` },
-  { key: 'pictures', words: 'the captions and ids of your look book pictures', write: (_t, _l, offered) => (offered.length ? `LOOK BOOK PICTURES (id: caption):\n${offered.map(p => `${p.id}: ${p.caption || '(no caption)'}`).join('\n')}` : 'LOOK BOOK PICTURES: none this slide can use.') },
+  { key: 'pictures', words: 'the captions and ids of your look book pictures', only: 'timeline', write: (_t, _l, offered) => (offered.length ? `LOOK BOOK PICTURES (id: caption):\n${offered.map(p => `${p.id}: ${p.caption || '(no caption)'}`).join('\n')}` : 'LOOK BOOK PICTURES: none this slide can use.') },
   { key: 'vocabulary', words: 'the list of movement settings the deck allows' },
 ];
 export const MOTION_NOT_SENT = ['the pictures themselves', 'the words on your slides', 'your budget'];
-/** Everything that is sent for one request, and nothing else: the parts of `MOTION_SENT`. */
+/** The parts a request for this layout carries: the look book's captions and ids go only with a plan slide. */
+export const motionSent = (layout: SlideLayout) => MOTION_SENT.filter(p => !p.only || markerPathOf(layout) === p.only);
+/** Everything that is sent for one request, and nothing else: the parts of `MOTION_SENT` its layout carries. */
 export function motionRequest(text: string, layout: SlideLayout, pictures: MotionPicture[]): AiRequest {
   const offered = markerPathOf(layout) ? pictures : [];
-  return { system: MOTION_SYSTEM, prompt: MOTION_SENT.filter(p => p.write).map(p => p.write!(text, layout, offered)).join('\n\n'), tool: motionTool(layout, offered) };
+  return { system: MOTION_SYSTEM, prompt: motionSent(layout).filter(p => p.write).map(p => p.write!(text, layout, offered)).join('\n\n'), tool: motionTool(layout, offered) };
 }
 
 export interface MotionProposal { motion: SlideMotion | undefined; note: string }
@@ -126,13 +129,14 @@ export function motionWords(motion: SlideMotion | undefined, layout: SlideLayout
   if (m.marker) {
     const caption = pictures.find(p => p.id === m.marker!.imageId)?.caption;
     const size = m.marker.size != null ? `, at ${m.marker.size} times the usual size` : '';
-    out.push(`${caption ? `The picture "${caption}"` : 'A look book picture'} travels along the ${m.marker.path === 'timeline' ? 'timeline' : 'line'} and ${m.marker.end === 'settle' ? 'settles' : 'stops'} at the last ${m.marker.path === 'timeline' ? 'milestone' : 'card'}${size}.`);
+    out.push(`${caption ? `The picture "${caption}"` : 'A look book picture'} travels along the timeline and ${m.marker.end === 'settle' ? 'settles' : 'stops'} at the last milestone${size}.`);
   }
   return out;
 }
 
-/** What is said before anything is sent, word for word. */
-export const MOTION_SENDS = sendsText(MOTION_SENT.map(p => p.words), MOTION_NOT_SENT);
+/** What is said before anything is sent, word for word: for a plan slide (`MOTION_SENDS`), and for any layout. */
+export const motionSends = (layout: SlideLayout): string => sendsText(motionSent(layout).map(p => p.words), MOTION_NOT_SENT);
+export const MOTION_SENDS = motionSends('timeline');
 export const NO_MOVEMENT = 'The request could not be met with the movements available.';
 export const TIMEOUT_MS = 60_000;
 

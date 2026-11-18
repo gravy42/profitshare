@@ -259,8 +259,11 @@ export interface SlideMotion {
   stagger?: number;          // milliseconds between one part and the next, 0 to 400
   headline?: 'none' | 'type';
   count?: boolean;
-  marker?: { imageId: string; path: 'line' | 'timeline'; end: 'stop' | 'settle'; size?: number };   // a look book picture that travels along the line
+  marker?: { imageId: string; path: 'timeline'; end: 'stop' | 'settle'; size?: number };   // a look book picture that travels along the plan's timeline
 }
+
+/** How a card is drawn: flat, or as one of four papers (src/deck-runtime/paper.ts holds the list). */
+export type PaperStyle = 'plain' | 'postcard' | 'letter' | 'notebook' | 'torn';
 
 export type SlideLayout = 'cover' | 'photo' | 'cards' | 'stats' | 'timeline' | 'text' | 'comps' | 'team' | 'model' | 'ways' | 'numbers' | 'ask' | 'closing';
 
@@ -283,6 +286,7 @@ export interface SlideSpec {
   contact?: string;        // ask: how to reach you
   hidden?: boolean;
   motion?: SlideMotion;    // how this slide moves: words from the fixed list in deck-runtime/motion.ts, never code
+  paper?: PaperStyle | 'mixed';   // the paper this slide's cards are drawn on ('mixed': a different one each, in a fixed order); left out, the deck's
 }
 export interface SlideCard { id: string; kicker?: string; title: string; body: string; footnote?: string }
 export interface SlideStat { id: string; value: string; label: string; source: string }
@@ -297,7 +301,10 @@ export interface PitchDesign {
   logoDataUrl?: string;       // a small image, embedded
   notes: string;              // rules of the system in a sentence or two, for whoever edits the deck
   line?: string;              // hairlines and dividers, when the system names one
-  card?: string;              // the index-card colour, when the system has one
+  card?: string;              // the colour of the cards' paper, when the system has one
+  paper?: PaperStyle;         // the paper the pitch deck's cards are drawn on; left out, a plain card
+  hand?: boolean;             // card titles and quotes in the handwriting face
+  tilt?: boolean;             // each card a fraction of a degree off straight
   deck?: DeckRules;           // how the slides are laid out
   fontFiles?: FontFile[];     // font files attached for the title and body faces, one a role
 }

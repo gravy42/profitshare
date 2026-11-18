@@ -995,7 +995,19 @@ table.locs input { min-width: 80px; }
 .ms-title { font-size: 17px; }
 .ms-punch { font-size: 15px; }
 .ms-row { margin-top: auto; display: flex; gap: 8px; align-items: flex-end; justify-content: space-between; }
-.ms-card { padding: 5px 9px; font-size: 9px; transform: rotate(-1.5deg); box-shadow: 0 1px 3px rgba(0, 0, 0, .4); }
+.ms-paper { flex: 0 0 46%; }
+/* the paper chooser: each paper as a small card drawn by the deck itself, on the deck's own background */
+.paperpick { margin: 10px 0 12px; }
+.paperpick fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+.paperpick legend { padding: 0; font-size: 12px; font-weight: 600; margin-bottom: 4px; }
+.paperpick-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 6px; padding: 8px; border-radius: 6px; border: 1px solid var(--pd-edge, var(--line)); }
+.paperopt { position: relative; display: flex; flex-direction: column; gap: 2px; padding: 4px 4px 6px; border: 2px solid transparent; border-radius: 6px; cursor: pointer; }
+.paperopt input { position: absolute; opacity: 0; width: 100%; height: 100%; inset: 0; margin: 0; cursor: pointer; }
+.paperopt:has(input:checked) { border-color: currentColor; }
+.paperopt:has(input:focus-visible) { outline: 2px solid var(--lead); outline-offset: 2px; }
+.paperopt-name { font-size: 12px; font-weight: 600; text-align: center; }
+.paperopt:has(input:checked) .paperopt-name::before { content: "✓ "; }
+.paperthumb { display: block; width: 100%; aspect-ratio: 16 / 9; pointer-events: none; }
 .ms-note { font-size: 8px; }
 .palette-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px 16px; }
 .colorfield input[type="color"] { width: 44px; height: 32px; padding: 2px; }

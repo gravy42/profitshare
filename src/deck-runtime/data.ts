@@ -8,6 +8,9 @@ import type { PathInputs } from '../engine/pathMath';
 
 export const DECK_DATA_VERSION = 1;
 
+/** How a card is drawn: a flat card, or one of four papers. Words from a fixed list only: see paper.ts. */
+export type PaperStyle = 'plain' | 'postcard' | 'letter' | 'notebook' | 'torn';
+
 export interface DeckTheme {
   name: string;
   colors: { bg: string; ink: string; accent: string; accent2: string; muted: string; card: string; cardInk: string; line: string };
@@ -16,6 +19,9 @@ export interface DeckTheme {
   /** Font files the deck carries, at most four. `src` is a base64 data URL of the file; `role` says which of the two
    *  stacks above the face goes in front of. Optional: a deck without it uses the stacks alone. */
   fontFaces?: DeckFontFace[];
+  paper?: PaperStyle;                       // the paper every card is drawn on, unless a slide names its own; left out, plain
+  hand?: boolean;                           // true: card titles, their small labels and the quote are set in the handwriting face
+  tilt?: boolean;                           // true: each card sits a fraction of a degree off straight; left out, straight
 }
 export interface DeckFontFace { family: string; src: string; role: 'title' | 'body' }
 
@@ -29,8 +35,8 @@ export interface DeckQuote { text: string; by: string }
 
 /** Movement for the whole deck. Words from a fixed list only: see motion.ts. Left out, the deck is calm and its parts rise. */
 export interface DeckMotion { pace: 'calm' | 'brisk'; entrance: 'rise' | 'fade' | 'none' }
-/** A picture (a DeckImage, by id) that travels once along the cards' line or the timeline and stops at the last card or milestone. */
-export interface SlideMarker { imageId: string; path: 'line' | 'timeline'; end: 'stop' | 'settle'; size?: number }   // size: 0.5 to 2 times the usual height
+/** A picture (a DeckImage, by id) that travels once along the plan's timeline and stops at the last milestone. */
+export interface SlideMarker { imageId: string; path: 'timeline'; end: 'stop' | 'settle'; size?: number }   // size: 0.5 to 2 times the usual height
 /** One slide's movement; every part optional. `stagger` is milliseconds between one part and the next (0 to 400). */
 export interface SlideMotion {
   entrance?: 'rise' | 'fade' | 'drop' | 'slide-left' | 'slide-right' | 'none';
@@ -51,13 +57,14 @@ interface SlideBase {
   scrim?: number;        // 0 to 1: how dark the picture is behind the text (default 0.7)
   footnote?: string;     // small print at the foot of the slide
   motion?: SlideMotion;  // how the slide moves when it comes into view; left out, the deck's own
+  paper?: PaperStyle | 'mixed';   // the paper this slide's cards are drawn on; 'mixed' deals the papers across them in a fixed order; left out, the theme's
 }
 
 export type DeckSlide = SlideBase & (
   | { layout: 'cover'; title: string; tagline: string; byline: string }            // the cover line itself comes from the recipient
   | { layout: 'photo'; body: string }                                              // a picture, a headline, a short paragraph
   | { layout: 'text'; body: string; aside?: { label: string; lines: string[] }[]; closing?: string }   // paragraphs; `aside` is small labelled columns under them
-  | { layout: 'cards'; cards: DeckCard[] }                                         // three or four cards pinned on a line
+  | { layout: 'cards'; cards: DeckCard[] }                                         // two to four cards in a row
   | { layout: 'stats'; lead?: { value: string; text: string; source: string }; body?: string; stats: DeckStat[]; quote?: DeckQuote; note?: string }
   | { layout: 'timeline'; facts: { value: string; label: string }[]; milestones: DeckMilestone[]; note?: string }
   | { layout: 'comps'; bars: { label: string; value: number; note?: string }[]; barsLabel: string; groups: { group: string; rows: { title: string; year: string; multiple: number | null }[] }[]; callout?: string }

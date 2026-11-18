@@ -245,11 +245,12 @@ export function checkTheme(c: ThemeColors): ThemeCheck[] {
   ];
 }
 
-/** Type pairings that need nothing from the network: the two faces the app carries, and stacks every machine has. */
+/** Type pairings that need nothing from the network: the three faces the app carries, and stacks every machine has. */
 export const TYPE_PAIRINGS: { id: string; label: string; title: string; body: string }[] = [
   { id: 'typewriter', label: 'Typewriter titles, plain text', title: '"Special Elite", "Courier New", monospace', body: '"Work Sans", system-ui, sans-serif' },
   { id: 'plain', label: 'Plain throughout', title: '"Work Sans", system-ui, sans-serif', body: '"Work Sans", system-ui, sans-serif' },
   { id: 'serif-titles', label: 'Serif titles, plain text', title: 'Georgia, "Times New Roman", serif', body: '"Work Sans", system-ui, sans-serif' },
   { id: 'serif', label: 'Serif throughout', title: 'Georgia, "Times New Roman", serif', body: 'Georgia, "Times New Roman", serif' },
   { id: 'mono-titles', label: 'Monospace titles, plain text', title: 'ui-monospace, Menlo, Consolas, "Courier New", monospace', body: '"Work Sans", system-ui, sans-serif' },
+  { id: 'hand-titles', label: 'Handwritten titles, plain text', title: '"Caveat", "Segoe Print", cursive', body: '"Work Sans", system-ui, sans-serif' },
 ];

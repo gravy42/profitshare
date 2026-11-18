@@ -1,10 +1,15 @@
-// Additions to the Design system box on the Pitch tab: font files for the title and body faces, the card colour, and a
-// deck style built from the film's own pictures. No network, no AI: the pictures are sampled on a canvas in this
+// Additions to the Design system box on the Pitch tab: font files for the title and body faces, the card colour, the
+// paper the deck's cards are drawn on, and a deck style built from the film's own pictures. No network, no AI: the pictures are sampled on a canvas in this
 // browser and the palette rules are plain arithmetic (src/engine/palette.ts).
 import { useEffect, useId, useRef, useState } from 'react';
 import type { FontFile, LookImage, PitchDesign, Project } from '../engine/types';
 import { defaultDesign, withPitch } from '../engine/pitch';
 import { DEFAULT_CARD, cardInkFor } from '../engine/deckData';
+import { PAPERS } from '../engine/deckEdit';
+import type { DeckData } from '../deck-runtime/data';
+import { cleanPaper } from '../deck-runtime/paper';
+import { mountDeck } from '../deck-runtime/runtime';
+import deckCss from '../deck-runtime/deck.css?inline';
 import { FONT_WARN_BYTES, dataUrlBytes, fileSize, readFontFiles, setFontFile } from '../engine/deckEdit';
 import { TYPE_PAIRINGS, checkTheme, proposeThemes, quantize, rgbOf, type Proposal, type RGB, type ThemeCheck, type ThemeColors } from '../engine/palette';
 import { cleanFamily } from '../deck-runtime/fonts';
@@ -16,7 +21,7 @@ type Pitch = NonNullable<Project['pitch']>;
 type SetPitch = (f: (x: Pitch) => Pitch) => void;
 type SetDesign = (f: (x: PitchDesign) => PitchDesign) => void;
 
-/** The colour of the pitch deck's index cards, beside the design system's other colours. */
+/** The colour of the pitch deck's cards, beside the design system's other colours. */
 export function CardColor({ design: d, set }: { design: PitchDesign; set: SetDesign }) {
   const id = useId(), hint = useId();
   const card = typeof d.card === 'string' ? d.card : '';
@@ -26,7 +31,67 @@ export function CardColor({ design: d, set }: { design: PitchDesign; set: SetDes
         <input id={id} type="color" aria-describedby={hint} value={/^#[0-9a-f]{6}$/i.test(card) ? card : DEFAULT_CARD} onChange={e => set(x => ({ ...x, card: e.target.value }))} />
         <input aria-label="Card, as a hex colour" value={card} placeholder={DEFAULT_CARD} style={{ width: 84 }} onChange={e => set(x => { const { card: _c, ...rest } = x; return e.target.value.trim() ? { ...rest, card: e.target.value.trim() } : rest; })} />
       </span>
-      <div className="hint" id={hint}>the index cards on the pitch deck</div>
+      <div className="hint" id={hint}>the paper of the cards on the pitch deck</div>
+    </div>
+  );
+}
+
+// ---------- the paper the cards are drawn on ----------
+
+type PaperName = NonNullable<PitchDesign['paper']>;
+interface PaperLook { colors: { bg: string; ink: string; accent: string; accent2: string; muted: string }; card: string; title: string; body: string; hand: boolean; tilt: boolean }
+/** One card on one paper, drawn by the deck's own runtime (the same code that draws the deck), so what is shown here
+ *  is what a slide will show. A picture only: the name beside it says which paper it is. */
+export function PaperThumb({ paper, look, title = 'A card', text = 'A line or two of text.' }: { paper: PaperName; look: PaperLook; title?: string; text?: string }) {
+  const host = useRef<HTMLSpanElement>(null);
+  const key = JSON.stringify([paper, look, title, text]);
+  useEffect(() => {
+    const el = host.current; if (!el) return;
+    const card = plainColor(look.card, DEFAULT_CARD);
+    const data: DeckData = {
+      version: 1, film: '', coverLine: '', images: [], recipients: [], currency: 'USD', legal: ' ',
+      theme: { name: '', colors: { ...look.colors, card, cardInk: cardInkFor(card), line: look.colors.muted }, fonts: { title: look.title, body: look.body }, signoff: '', paper, ...(look.hand ? { hand: true } : {}), ...(look.tilt ? { tilt: true } : {}) },
+      slides: [{ id: 'sample', layout: 'cards', cards: [{ id: 'sample', title, body: text }] }],
+      paths: { cashBudget: 0, deferred: 0, sources: [], waterfall: { model: 'off-the-gross', recoupPct: 0, poolPct: 0, grossSharePct: 0 }, cases: [], feePct: 0 },
+    };
+    try { const h = mountDeck(el, data, { css: deckCss, stacked: false, motion: false, swatch: true }); return () => h.destroy(); }
+    catch { return undefined; }   // a sample that cannot be drawn is an empty box, never a broken page
+  }, [key]);   // eslint-disable-line react-hooks/exhaustive-deps
+  return <span className="paperthumb" ref={host} aria-hidden="true" />;
+}
+
+const lookOf = (d: PitchDesign): PaperLook => {
+  const base = defaultDesign(); const text = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
+  const col = (k: keyof PaperLook['colors']) => plainColor(text(d.colors?.[k]), base.colors[k]);
+  return { colors: { bg: col('bg'), ink: col('ink'), accent: col('accent'), accent2: col('accent2'), muted: col('muted') }, card: text(d.card) || DEFAULT_CARD, title: text(d.fonts?.title), body: text(d.fonts?.body), hand: d.hand === true, tilt: d.tilt === true };
+};
+
+/** The paper every card on the pitch deck is drawn on (a slide can still choose its own), whether titles on the
+ *  papers are handwritten, and whether the cards sit a little off straight. */
+export function PaperChooser({ design: d, set }: { design: PitchDesign; set: SetDesign }) {
+  const name = useId(), hint = useId();
+  const chosen = cleanPaper(d.paper), look = lookOf(d);
+  const flag = (k: 'hand' | 'tilt', on: boolean) => set(x => { const { [k]: _old, ...rest } = x; return (on ? { ...rest, [k]: true } : rest) as PitchDesign; });
+  return (
+    <div className="paperpick">
+      <fieldset aria-describedby={hint}>
+        <legend className="ctl-label">Paper for cards</legend>
+        <div className="paperpick-row" style={{ backgroundColor: look.colors.bg }}>
+          {PAPERS.map(p => (
+            <label key={p.id} className="paperopt" title={p.about} style={{ color: look.colors.ink }}>
+              <input type="radio" name={name} value={p.id} checked={chosen === p.id} onChange={() => set(x => { const { paper: _p, ...rest } = x; return (p.id === 'plain' ? rest : { ...rest, paper: p.id }) as PitchDesign; })} />
+              <PaperThumb paper={p.id} look={look} />
+              <span className="paperopt-name">{p.name}</span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+      <p className="hint" id={hint}>What the cards on the pitch deck are drawn on: the cover's title, rows of cards, a quote, the card beside the team. Any slide can choose a paper of its own, or a mix.</p>
+      <div className="pd-checks">
+        <label><input type="checkbox" checked={d.hand === true} onChange={e => flag('hand', e.target.checked)} /> Handwriting on the papers</label>
+        <label><input type="checkbox" checked={d.tilt === true} onChange={e => flag('tilt', e.target.checked)} /> Tilt the cards a little</label>
+      </div>
+      <p className="hint">Handwriting sets card titles, their small labels and quotes in a handwriting font (Caveat, which the deck carries). Longer text, numbers and small print stay as they are.</p>
     </div>
   );
 }
@@ -107,15 +172,15 @@ function checkWords(row: ThemeCheck): string {
   return `Too faint against the background: make it ${row.fix || 'lighter'} (${figures}).`;
 }
 
-/** A small picture of a slide in a palette: a headline, a line in each accent, a card. Decoration; the swatches under it carry the names. */
-function MiniSlide({ c, title, body, film }: { c: ThemeColors; title: string; body: string; film: string }) {
+/** A small picture of a slide in a palette: a headline, a line in each accent, a card on the deck's paper. Decoration; the swatches under it carry the names. */
+function MiniSlide({ c, title, body, film, paper, hand }: { c: ThemeColors; title: string; body: string; film: string; paper: PaperName; hand: boolean }) {
   return (
     <div className="minislide" aria-hidden="true" style={{ backgroundColor: plainColor(c.bg, '#000000'), color: plainColor(c.ink, '#ffffff'), fontFamily: body }}>
       <div className="ms-eyebrow" style={{ color: plainColor(c.accent2, 'inherit') }}>The opportunity</div>
       <div className="ms-title" style={{ fontFamily: title }}>{film || 'The film'}</div>
       <div className="ms-punch" style={{ fontFamily: title, color: plainColor(c.accent, 'inherit') }}>and why now.</div>
       <div className="ms-row">
-        <div className="ms-card" style={{ backgroundColor: plainColor(c.card, '#f1e9d6'), color: cardInkFor(plainColor(c.card, '#f1e9d6')) }}>A card</div>
+        <div className="ms-paper"><PaperThumb paper={paper} title="A card" text="On your paper." look={{ colors: { bg: plainColor(c.bg, '#000000'), ink: plainColor(c.ink, '#ffffff'), accent: plainColor(c.accent, '#ffffff'), accent2: plainColor(c.accent2, '#ffffff'), muted: plainColor(c.muted, '#ffffff') }, card: plainColor(c.card, DEFAULT_CARD), title, body, hand, tilt: false }} /></div>
         <div className="ms-note" style={{ color: plainColor(c.muted, 'inherit') }}>A source, in small print</div>
       </div>
     </div>
@@ -240,7 +305,7 @@ export function PaletteBuilder({ project, setPitch, onClose }: { project: Projec
             return (
               <button type="button" key={p.id} className="proposalcard" aria-pressed={choice === p.id} onClick={() => choose(p)}>
                 <span className="proposal-name">{p.label}{inUse === p.id ? <span className="proposal-inuse">In use</span> : choice === p.id ? ' ✓' : ''}</span>
-                <MiniSlide c={shown} title={pair.title} body={pair.body} film={project.name} />
+                <MiniSlide c={shown} title={pair.title} body={pair.body} film={project.name} paper={cleanPaper(pitch.design?.paper)} hand={pitch.design?.hand === true} />
                 <span className="chips">{COLOR_FIELDS.map(f => <span className="chip-col" key={f.k}><i style={{ backgroundColor: plainColor(shown[f.k]) }} /><span>{f.word}</span></span>)}</span>
                 <span className="pd-vh">{COLOR_FIELDS.map(f => `${f.label} ${shown[f.k]}`).join(', ')}</span>
               </button>

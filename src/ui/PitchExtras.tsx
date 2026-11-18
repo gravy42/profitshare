@@ -11,10 +11,11 @@ import { AiKeyFields } from './AiKey';
 import { Boundary } from './Boundary';
 import { plainColor } from './color';
 
-// font files, the card colour and the palette-from-pictures flow load with the Pitch tab, not with the app
+// font files, the card colour, the papers and the palette-from-pictures flow load with the Pitch tab, not with the app
 const FontFiles = lazy(() => import('./DesignBuilder').then(m => ({ default: m.FontFiles })));
 const PaletteBuilder = lazy(() => import('./DesignBuilder').then(m => ({ default: m.PaletteBuilder })));
 const CardColor = lazy(() => import('./DesignBuilder').then(m => ({ default: m.CardColor })));
+const PaperChooser = lazy(() => import('./DesignBuilder').then(m => ({ default: m.PaperChooser })));
 
 type SetProject = (f: (p: Project) => Project) => void;
 type Pitch = NonNullable<Project['pitch']>;
@@ -259,6 +260,7 @@ export function DesignPanel({ project, setPitch }: { project: Project; setPitch:
             <div className="ctl" style={{ flex: 1 }}><label htmlFor="ds-title-font">Title font</label><input id="ds-title-font" value={d.fonts.title} placeholder='"Special Elite", monospace' onChange={e => set(x => ({ ...x, fonts: { ...x.fonts, title: e.target.value } }))} /></div>
             <div className="ctl" style={{ flex: 1 }}><label htmlFor="ds-body-font">Body font</label><input id="ds-body-font" value={d.fonts.body} placeholder='"Work Sans", sans-serif' onChange={e => set(x => ({ ...x, fonts: { ...x.fonts, body: e.target.value } }))} /></div>
           </div>
+          <Boundary what="The paper chooser"><Suspense fallback={null}><PaperChooser design={d} set={set} /></Suspense></Boundary>
           <Boundary what="Font files"><Suspense fallback={null}><FontFiles design={d} set={set} /></Suspense></Boundary>
           <div className="row">
             <div className="ctl"><span className="ctl-label" id="ds-logo-label">Logo</span><span className="row" style={{ gap: 6 }}><button className="btn small" aria-describedby="ds-logo-label" onClick={() => logoRef.current?.click()}>{d.logoDataUrl ? 'Replace the logo' : 'Add a logo'}</button>{d.logoDataUrl && <button className="btn small ghost" onClick={() => set(x => { const { logoDataUrl: _l, ...rest } = x; return rest; })}>Remove the logo</button>}</span>

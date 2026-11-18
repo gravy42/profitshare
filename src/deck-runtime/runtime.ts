@@ -8,12 +8,13 @@
 // `cleanPaths()` and `cleanRecipients()` before anything reads them.
 import { allSwitches, pathFor } from '../engine/pathMath';
 import type { PathInputs, PathResult } from '../engine/pathMath';
-import type { DeckData, DeckRecipient } from './data';
+import type { DeckData, DeckRecipient, PaperStyle } from './data';
 import { money, moneyParts, multiple, shares100 } from './format';
-import { cleanFamily, faceName, fontSrcOk, MAX_FONT_FACES } from './fonts';
+import { cleanFamily, faceName, fontSrcOk, HAND_FAMILY, MAX_FONT_FACES } from './fonts';
 import { cleanDeckMotion, cleanMotion } from './motion';
+import { cleanPaper, dealPapers, tornEdge, unevenEdge } from './paper';
 
-export { cleanDeckMotion, cleanMotion };
+export { cleanDeckMotion, cleanMotion, cleanPaper, dealPapers, HAND_FAMILY };
 
 export type Lead = 'with-grants' | 'without-grants';
 
@@ -30,6 +31,7 @@ export interface MountOptions {
   startAt?: number;        // the slide to open on (an index into the slides drawn); the deck is there at once, with no scroll to watch
   motion?: boolean;        // false: nothing rises or drops in, every slide is in its final state, and the deck still pages and switches (an editor's preview)
   onSlide?: (index: number) => void;   // told when another slide becomes the current one, by paging or by scrolling
+  swatch?: boolean;        // a sample, not a deck: the first slide's cards fill the host with nothing around them (a paper shown in a chooser)
 }
 /** Why `play` did nothing: the reader asked their computer for less motion, or the deck is one that never moves. */
 export type PlayResult = 'played' | 'reduced' | 'still';
@@ -59,6 +61,7 @@ export const MAX_SOURCES = 8;
 const MAX_CASES = 12;
 const TITLE_FALLBACK = '"Special Elite", "Courier New", monospace';
 const BODY_FALLBACK = '"Work Sans", system-ui, sans-serif';
+const SHORT_BODY = 48;                  // a card's text this short is a note, and can be handwritten; longer text stays in the body face
 const DEFAULT_SCRIM = 0.7;
 const MIN_SCRIM = 0.85;                 // under the text of a picture slide, at least this much of the background colour
 const FIT_STEPS = [1.4, 1.25, 1.1];     // a slide's base type size, in hundredths of its width; stepped down while it overflows
@@ -186,7 +189,7 @@ export function overflows(box: { width: number; height: number }, content: { wid
   return content.height > box.height + tolerance || content.width > box.width + tolerance;
 }
 
-/** Whether a slide's content is short enough to sit in the middle of the slide and not hang from the top: it fills
+/** Whether a slide's content is short enough to sit in the middle of the slide and not at the top of it: it fills
  *  less than `share` of the room it has. Sizes are injected, so this is tested without a browser. */
 export const CENTRE_UNDER = 0.7;
 export function shouldCentre(room: number, content: number, share = CENTRE_UNDER): boolean {
@@ -293,6 +296,41 @@ export function deckColors(colors: unknown, picture = 0): Record<string, string>
   };
 }
 
+// ---------- papers: every tone a paper is drawn in, and proof that its words can be read on all of them ----------
+
+export const PAPER_INK_MIN = 7, PAPER_SMALL_MIN = 4.5;
+/** The colours one paper is drawn in, as custom properties for its card, worked out from the theme's card colours.
+ *  `--psd-pp-shade` is the darkest (on a dark card, the lightest) tone anything drawn under the words may reach: an
+ *  aged corner, a crease, a ruled line. The ink reaches 7:1 on the paper, on that shade and on the ruled line; the
+ *  small print and the accent reach 4.5:1 on all three. When no ink could reach 7:1 on the card colour itself (a
+ *  mid grey), the paper moves away from the ink until one does. The stamp's colours are fills, never under words. */
+export function paperColors(colors: unknown, style: PaperStyle): Record<string, string> {
+  const c = obj(colors);
+  const bg = safeColor(c.bg, WHITE), rawInk = safeColor(c.ink, '#111111');
+  const hex = (v: unknown, fallback: string): string => { const x = parseColor(safeColor(v, fallback)); return x ? hexOf(x) : fallback; };   // a colour this arithmetic can read, or the fallback
+  const accent = hex(c.accent, hex(rawInk, '#111111')), accent2 = hex(c.accent2, accent);
+  let paper = hex(c.card, hex(bg, WHITE));
+  const end = contrastRatio(paper, BLACK) >= contrastRatio(paper, WHITE) ? BLACK : WHITE;   // the end of the scale the ink is nearer
+  const far = end === BLACK ? WHITE : BLACK;
+  // room for the shade as well as the ink: the paper itself must stand well clear of 7:1
+  for (let t = 0.05; contrastRatio(mixColors(paper, end, 0.12), end) < PAPER_INK_MIN + 0.5 && t <= 1.0001; t += 0.05) paper = mixColors(paper, far, 0.05);
+  const within = (tone: string, ink: string, min: number) => { let x = tone; for (let i = 0; i < 20 && contrastRatio(x, ink) < min; i++) x = mixColors(x, paper, 0.25); return contrastRatio(x, ink) < min ? paper : x; };
+  const asked = textSafe(safeColor(c.cardInk, rawInk), [paper], end, PAPER_INK_MIN);
+  // how much the paper may darken under the words: more on a letter (it is aged), a little on the others
+  const shade = within(mixColors(paper, end, style === 'letter' ? 0.1 : 0.05), end, PAPER_INK_MIN + 0.3);
+  const rule = style === 'notebook' || style === 'torn' ? within(mixColors(mixColors(paper, accent2, 0.4), end, 0.08), end, PAPER_INK_MIN + 0.3) : shade;
+  const under = [paper, shade, rule];
+  const ink = textSafe(asked, under, end, PAPER_INK_MIN);
+  return {
+    '--psd-card': paper, '--psd-card-ink': ink,
+    '--psd-card-accent': textSafe(accent, under, ink, PAPER_SMALL_MIN), '--psd-card-muted': textSafe(mixColors(ink, paper, 0.3), under, ink, PAPER_SMALL_MIN),
+    '--psd-pp-shade': shade, '--psd-pp-rule': rule, '--psd-pp-edge': mixColors(paper, ink, 0.35), '--psd-pp-light': mixColors(paper, far, 0.55),
+    '--psd-pp-margin': mixColors(paper, accent, 0.6),
+    '--psd-pp-stamp': mixColors(paper, ink, 0.14), '--psd-pp-sky': mixColors(accent2, paper, 0.4), '--psd-pp-sun': accent,
+    '--psd-pp-dune': mixColors(accent, ink, 0.4), '--psd-pp-dune2': mixColors(accent2, ink, 0.55), '--psd-pp-post': mixColors(paper, ink, 0.6),
+  };
+}
+
 // ---------- the mount ----------
 
 type Kid = Node | string | null | undefined | false;
@@ -396,7 +434,7 @@ function mountWith(host: HTMLElement, data: DeckData, opts: MountOptions, taken:
   const moneyKids = (n: number): Kid[] => moneyParts(n, cur).map(p => (p.symbol ? symbol(p.text) : p.text));
   const symKids = (text: string): Kid[] => text.split(/(\p{Sc}+)/u).map((p, i) => (i % 2 ? symbol(p) : p));
   const putMoney = (e: Element, n: number) => { if (e.textContent !== money(n, cur)) e.replaceChildren(...(moneyKids(n).filter(Boolean) as (Node | string)[])); };
-  // what the slide being built asked for (set before its layout runs): numbers that count up, a headline typed out, a travelling picture
+  // what the slide being built asked for (set before its layout runs): numbers that count up, a headline typed out, a picture that travels along the timeline
   let counting: HTMLElement[] | null = null;
   let typed = false;
   let marker: HTMLElement | null = null;
@@ -420,7 +458,7 @@ function mountWith(host: HTMLElement, data: DeckData, opts: MountOptions, taken:
   const shadow: ShadowRoot | HTMLElement = typeof host.attachShadow === 'function' ? (host.shadowRoot ?? host.attachShadow({ mode: 'open' })) : host;
   while (shadow.firstChild) shadow.removeChild(shadow.firstChild);
   if (typeof opts.css === 'string') { const st = doc.createElement('style'); st.textContent = opts.css; shadow.appendChild(st); }
-  const root = el('div', `psd${isStatic ? ' psd-static' : ''}${opts.stacked === false ? ' psd-scaled' : ''}${opts.motion === false ? ' psd-still' : ''}`);
+  const root = el('div', `psd${isStatic ? ' psd-static' : ''}${opts.stacked === false ? ' psd-scaled' : ''}${opts.motion === false ? ' psd-still' : ''}${opts.swatch ? ' psd-swatch' : ''}`);
   const deckMotion = cleanDeckMotion(d.motion);
   const brisk = deckMotion?.pace === 'brisk';
   if (brisk) root.classList.add('psd-brisk');
@@ -432,8 +470,43 @@ function mountWith(host: HTMLElement, data: DeckData, opts: MountOptions, taken:
   const fonts = obj(theme.fonts);
   // a font file goes in front of its role's stack, under the name it was registered with
   const withFaces = (role: 'title' | 'body', stack: string) => [...faces.filter(f => f.role === role).map(f => `"${f.name}"`), stack].join(', ');
-  const vars: Record<string, string> = { ...deckColors(theme.colors), '--psd-title-font': withFaces('title', fontStack(fonts.title, TITLE_FALLBACK)), '--psd-body-font': withFaces('body', fontStack(fonts.body, BODY_FALLBACK)) };
+  const titleFont = withFaces('title', fontStack(fonts.title, TITLE_FALLBACK));
+  const vars: Record<string, string> = { ...deckColors(theme.colors), '--psd-title-font': titleFont, '--psd-body-font': withFaces('body', fontStack(fonts.body, BODY_FALLBACK)) };
+  const hand = theme.hand === true, tilt = theme.tilt === true;
+  if (hand) { root.classList.add('psd-hand'); vars['--psd-hand-font'] = `"${HAND_FAMILY}", ${titleFont}`; }
   for (const k of Object.keys(vars)) root.style.setProperty(k, vars[k]);
+
+  // --- papers: a card is dressed as the paper its slide (or the deck) names. Everything drawn is an empty element
+  //     the stylesheet shapes; the only values set here are colours worked out from the theme and edges worked out
+  //     from the card's place in the deck. ---
+  const tones = new Map<PaperStyle, Record<string, string>>();
+  const TILTS = [-0.6, 0.5, -0.4, 0.7];
+  let slideAt = 0;                                  // the slide being built: with a card's place on it, the seed its edge is cut from
+  let slidePapers: (n: number) => PaperStyle[] = () => [];
+  const bit = (cls: string, ...kids: Kid[]): HTMLElement => el('i', cls, ...kids);
+  const dress = <T extends HTMLElement>(card: T, style: PaperStyle, at = 0): T => {
+    const seed = slideAt * 8 + at;
+    let tone = tones.get(style);
+    if (!tone) { tone = paperColors(theme.colors, style); tones.set(style, tone); }
+    for (const k of Object.keys(tone)) card.style.setProperty(k, tone[k]);
+    card.dataset.paper = style;
+    const layer = el('span', 'psd-pp', bit('psd-pp-edge'), style === 'torn' ? bit('psd-pp-rip') : null, bit('psd-pp-sheet'));
+    layer.setAttribute('aria-hidden', 'true');
+    if (style === 'torn') layer.style.setProperty('--psd-pp-cut', tornEdge(seed));
+    if (style === 'letter') { layer.style.setProperty('--psd-pp-cut', unevenEdge(seed)); layer.append(bit('psd-pp-fold psd-pp-fold-a'), bit('psd-pp-fold psd-pp-fold-b'), bit('psd-pp-fold psd-pp-fold-v')); }
+    if (style === 'notebook') layer.append(bit('psd-pp-margin'));
+    if (style === 'postcard') layer.append(bit('psd-pp-divider'), bit('psd-pp-address'), bit('psd-pp-stamp', bit('psd-pp-stamp-art')), bit('psd-pp-postmark'));
+    card.insertBefore(layer, card.firstChild);
+    if (tilt) card.style.setProperty('--r', `${TILTS[seed % TILTS.length]}deg`);
+    return card;
+  };
+  /** A card's text: its last paragraph runs to the foot of the card (on a ruled paper the lines go on under it), and a
+   *  line short enough to be a note is marked as one. */
+  const cardBodies = (bodies: (HTMLElement | null)[]): (HTMLElement | null)[] => {
+    const have = bodies.filter((b): b is HTMLElement => !!b);
+    have.forEach((b, i) => { if (i === have.length - 1) b.classList.add('psd-card-fill'); if ((b.textContent ?? '').length <= SHORT_BODY) b.classList.add('psd-short'); });
+    return bodies;
+  };
 
   // --- shared pieces ---
   const head = (s: Obj, headline: unknown = s.headline, lone = true): HTMLElement | null => {
@@ -464,25 +537,22 @@ function mountWith(host: HTMLElement, data: DeckData, opts: MountOptions, taken:
     return h;
   };
   const paras = (text: unknown, cls: string): HTMLElement[] => paragraphs(text).map(p => rise(el('p', cls, p)));
-  const cardEl = (cd: Obj, i: number, n: number): HTMLElement => {
-    const e = cell(el('article', 'psd-card psd-pinned',
-      txt('p', 'psd-kicker', cd.kicker), txt('h3', 'psd-card-title', cd.title), txt('p', 'psd-card-body', cd.body), txt('p', 'psd-card-foot', cd.footnote)));
-    e.style.setProperty('--r', `${(i % 2 === 0 ? -1 : 1) * (n > 3 ? 1.1 : 1.5)}deg`);
+  const cardEl = (cd: Obj, i: number, style: PaperStyle): HTMLElement => {
+    const e = cell(el('article', 'psd-card',
+      txt('p', 'psd-kicker', cd.kicker), txt('h3', 'psd-card-title', cd.title), ...cardBodies([txt('p', 'psd-card-body', cd.body)]), txt('p', 'psd-card-foot', cd.footnote)));
     e.dataset.cardId = str(cd.id);
-    return rise(e, 'psd-drop');
+    return rise(dress(e, style, i), 'psd-drop');
   };
+  /** A slide's cards, side by side in one row: two to four across, each as tall as the tallest. */
   const cardRow = (cards: unknown): HTMLElement | null => {
     const shown = list(cards).filter(cd => has(cd.title) || has(cd.body)).slice(0, 4);
     if (!shown.length) return null;
     const row = el('div', 'psd-cards');
     row.style.setProperty('--n', String(shown.length));
     row.dataset.n = String(shown.length);
-    shown.forEach((cd, i) => row.appendChild(cardEl(cd, i, shown.length)));
-    const hang = el('div', 'psd-hang', el('div', 'psd-rope'), marker, row);
-    hang.style.setProperty('--n', String(shown.length));
-    hang.dataset.n = String(shown.length);
-    if (marker) { hang.classList.add('psd-hang-mark'); const size = marker.style.getPropertyValue('--psd-mark'); if (size) hang.style.setProperty('--psd-mark', size); }   // room for the picture under the headline
-    return hang;
+    const papers = slidePapers(shown.length);
+    shown.forEach((cd, i) => row.appendChild(cardEl(cd, i, papers[i])));
+    return row;
   };
 
   // --- the layouts: each returns the slide's content, and may set `part.update` for what changes after mounting ---
@@ -494,7 +564,7 @@ function mountWith(host: HTMLElement, data: DeckData, opts: MountOptions, taken:
       const title = (has(s.title) ? str(s.title) : film).trim();
       return [el('div', 'psd-cover',
         el('div', 'psd-cover-main',
-          rise(cell(el('div', 'psd-card psd-cover-card', line, txt('h1', `psd-title${title.length > 40 ? ' psd-title-xlong' : title.length > 20 ? ' psd-title-long' : ''}`, title))), 'psd-drop'),
+          rise(dress(cell(el('div', 'psd-card psd-cover-card', line, txt('h1', `psd-title${title.length > 40 ? ' psd-title-xlong' : title.length > 20 ? ' psd-title-long' : ''}`, title), bit('psd-card-rules'))), slidePapers(1)[0]), 'psd-drop'),
           rise(txt('p', 'psd-byline', s.byline))),
         rise(txt('p', 'psd-tagline', s.tagline)))];
     },
@@ -527,9 +597,8 @@ function mountWith(host: HTMLElement, data: DeckData, opts: MountOptions, taken:
       const body = paras(s.body, 'psd-p');
       const q = obj(s.quote);
       const quote = has(q.text)
-        ? rise(el('figure', 'psd-card psd-quote', el('blockquote', 'psd-quote-text', str(q.text).trim()), txt('figcaption', 'psd-quote-by', q.by)), 'psd-drop')
+        ? rise(dress(el('figure', 'psd-card psd-quote', el('blockquote', 'psd-quote-text', str(q.text).trim()), txt('figcaption', 'psd-quote-by', q.by)), slidePapers(1)[0]), 'psd-drop')
         : null;
-      if (quote) quote.style.setProperty('--r', '1.6deg');
       const stats = list(s.stats).filter(x => has(x.value) || has(x.label));
       const row = stats.length ? el('div', 'psd-stats', ...stats.map(x => rise(cell(el('div', 'psd-stat', val('p', 'psd-stat-val', x.value), txt('p', 'psd-stat-lab', x.label), txt('p', 'psd-src', x.source)))))) : null;
       if (row) row.style.setProperty('--n', String(stats.length));
@@ -542,7 +611,7 @@ function mountWith(host: HTMLElement, data: DeckData, opts: MountOptions, taken:
       const factRow = facts.length ? el('div', 'psd-facts', ...facts.map(f => rise(cell(el('div', 'psd-fact', val('p', 'psd-fact-val', f.value), txt('p', 'psd-lab', f.label)))))) : null;
       if (factRow) { factRow.style.setProperty('--n', String(facts.length)); factRow.dataset.n = String(facts.length); factRow.classList.toggle('psd-facts-many', facts.length > 4); }
       const miles = list(s.milestones).filter(m => has(m.when) || has(m.what));
-      const track = miles.length ? el('div', 'psd-track', el('div', 'psd-rail'), marker,
+      const track = miles.length ? el('div', 'psd-track', el('div', 'psd-axis'), marker,
         el('ol', 'psd-miles', ...miles.map(m => rise(el('li', 'psd-mile', el('span', 'psd-tick'), txt('span', 'psd-when', m.when), txt('span', 'psd-what', m.what)))))) : null;
       if (track) track.style.setProperty('--n', String(miles.length));
       if (track && marker) { track.classList.add('psd-track-mark'); const size = marker.style.getPropertyValue('--psd-mark'); if (size) track.style.setProperty('--psd-mark', size); }   // room for the picture between the facts and the rail
@@ -570,9 +639,8 @@ function mountWith(host: HTMLElement, data: DeckData, opts: MountOptions, taken:
         el('p', 'psd-member-name', el('b', '', str(m.name).trim()), has(m.role) ? el('span', 'psd-role', ` · ${str(m.role).trim()}`) : null), txt('p', 'psd-member-bio', m.bio))))) : null;
       const a = obj(s.aside);
       const aside = has(a.title) || texts(a.lines).length
-        ? rise(cell(el('aside', 'psd-card psd-pinned psd-team-aside', txt('h3', 'psd-card-title', a.title), ...texts(a.lines).map(l => el('p', 'psd-card-body', l)), txt('p', 'psd-card-foot', a.footnote))), 'psd-drop')
+        ? rise(dress(cell(el('aside', 'psd-card psd-team-aside', txt('h3', 'psd-card-title', a.title), ...cardBodies(texts(a.lines).map(l => el('p', 'psd-card-body', l))), txt('p', 'psd-card-foot', a.footnote))), slidePapers(1)[0]), 'psd-drop')
         : null;
-      if (aside) aside.style.setProperty('--r', '1.4deg');
       const grid = people || aside ? el('div', `psd-team-grid${people && aside ? ' psd-two' : ''}`, people, aside) : null;
       return [head(s), grid];
     },
@@ -789,6 +857,8 @@ function mountWith(host: HTMLElement, data: DeckData, opts: MountOptions, taken:
       if (mo.marker.size != null) im.style.setProperty('--psd-mark', String(mo.marker.size));
       marker = im;
     }
+    slideAt = index;
+    slidePapers = n => dealPapers(theme.paper, s.paper, n);
     for (const k of layouts[layout](s, part)) if (k) box.appendChild(typeof k === 'string' ? doc.createTextNode(k) : k);
     counting = null; typed = false; marker = null;
     // parts arrive in the order they are read (top to bottom), or last first
@@ -825,7 +895,7 @@ function mountWith(host: HTMLElement, data: DeckData, opts: MountOptions, taken:
   };
   function fitPart(p: Part): boolean {
     p.section.style.removeProperty('--psd-fs');
-    p.section.classList.remove('psd-centre');   // measured hanging from the top, as it is laid out
+    p.section.classList.remove('psd-centre');   // measured from the top, as it is laid out
     if (stacked || !(p.box.clientHeight > 0)) {   // the stacked layout grows with its content; a slide not laid out says nothing
       if (stacked) p.section.dataset.overflow = 'false';
       return false;

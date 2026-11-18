@@ -561,8 +561,9 @@ describe('what the runtime may import', () => {
     expect('const d = await import(`../ui/${x}`);').toMatch(/\bimport\s*\(/);
   });
   const allowed: Record<string, string[]> = {
-    'runtime.ts': ['../engine/pathMath', './data', './format', './fonts', './motion'],
+    'runtime.ts': ['../engine/pathMath', './data', './format', './fonts', './motion', './paper'],
     'motion.ts': ['./data'],   // the movement vocabulary: types only come in
+    'paper.ts': ['./data'],    // the papers' vocabulary and the arithmetic of their edges: types only come in
     'format.ts': [],
     'fonts.ts': [],
     'data.ts': ['../engine/pathMath'],
@@ -576,7 +577,7 @@ describe('what the runtime may import', () => {
       for (const spec of found) expect(allowed[file].includes(spec), `${file} imports ${spec}`).toBe(true);
       expect(src, `${file} has a dynamic import or a require`).not.toMatch(/\bimport\s*\(|\brequire\s*\(/);
       if (file === 'runtime.ts') expect(found).toContain('../engine/pathMath');
-      if (file === 'data.ts' || file === 'motion.ts') expect(src).not.toMatch(/^import (?!type\b)/m);   // types only
+      if (file === 'data.ts' || file === 'motion.ts' || file === 'paper.ts') expect(src).not.toMatch(/^import (?!type\b)/m);   // types only
     });
     it(`${file} builds no markup from strings and runs no strings as code`, () => {
       const src = readFileSync(resolve(here, file), 'utf8');
