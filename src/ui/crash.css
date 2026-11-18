@@ -1,0 +1,16 @@
+/* The screen that stands in when the page cannot be drawn (ui/CrashScreen.tsx). The app's own tokens and keys. */
+.crash main { max-width: 760px; }
+.crash .panel { margin-top: 24px; }
+.crash .panel h2:focus { outline: none; }
+.crash .panel h2:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+.crash .panel p { margin: 0 0 10px; max-width: 640px; }
+.crash-actions { margin: 14px 0 6px; gap: 14px; }
+.crash-said { min-height: 1.4em; font-size: 13px; color: var(--ink); }
+.crash-list { border-collapse: collapse; margin: 6px 0 14px; width: 100%; max-width: 560px; }
+.crash-list caption { text-align: left; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding-bottom: 4px; }
+.crash-list td { padding: 6px 8px 6px 0; border-top: 1px solid var(--line); font-size: 13px; }
+.crash-list td:last-child { text-align: right; width: 1%; white-space: nowrap; }
+.crash-details { margin-top: 8px; }
+.crash-details summary { display: inline-block; padding: 2px 4px; }
+.crash-details summary:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.crash-details pre { margin: 6px 0 0; padding: 10px 12px; background: var(--soft); border: 1px solid var(--line); font-size: 12px; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 220px; overflow: auto; user-select: all; }

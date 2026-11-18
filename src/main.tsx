@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
+import { AppBoundary } from './ui/CrashScreen';
 // the house type: Work Sans for everything that is read, Special Elite (open-licensed) as the typewriter face, and
 // Caveat (open-licensed, SIL OFL 1.1; one weight, Latin only) as the handwriting on the pitch deck's papers
 import '@fontsource/work-sans/400.css';
@@ -16,6 +17,7 @@ applyTheme(readTheme());
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <App />
+    {/* if drawing the page fails, a plain screen with ways on stands in for a white page */}
+    <AppBoundary><App /></AppBoundary>
   </React.StrictMode>,
 );
