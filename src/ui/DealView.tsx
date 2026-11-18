@@ -92,7 +92,7 @@ export function DealView({ raw, eff, setProject, fresh }: { raw: Project; eff: P
             <span className="small">or bring total production cost down by {money(-r.headroom)}: the cheapest way is usually the <a href="#atl">above-scale ATL money</a>, then days on the Stripboard. The table below prices every tier.</span>
           </div>
         )}
-        <p className="help small">Each number is a link to the terms that move it. Budget to raise is what investors fund{incentiveProceeds(eff) > 0 ? '' : ' (grants and incentives come off it on the Financing and Incentives tabs)'}; the cap is SAG-AFTRA's total production cost test for the tier you are aiming at; the back end is the value traded for points.</p>
+        <p className="help small">Each number is a link to the terms that move it. Budget to raise is what investors fund{incentiveProceeds(eff) > 0 ? '' : ' (grants and incentives come off it under Financing below and on the Incentives tab)'}; the cap is SAG-AFTRA's total production cost test for the tier you are aiming at; the back end is the value traded for points.</p>
       </div>
 
       <TierMatrix raw={raw} setProject={setProject} />

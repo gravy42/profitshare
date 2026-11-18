@@ -217,9 +217,8 @@ Not built yet:
 
 ## Contributing
 
-[CHANGELOG.md](CHANGELOG.md) is kept by day, newest first, so you can see what changed and why before you start. Issues and pull requests are welcome. Engine changes need a test; the sample budget must still total {{SAMPLE_TOTAL}} and round-trip through the importers.
+[CHANGELOG.md](CHANGELOG.md) is kept by day, newest first, so you can see what changed and why before you start. Issues and pull requests are welcome. Engine changes need a test; the sample budget must still total $805,312.06 and round-trip through the importers.
 
-An older narrated walkthrough is in [`demo/profitshare-demo.mp4`](demo/profitshare-demo.mp4) (2:41). It was recorded before the pitch deck builder existed, so it shows an earlier app.
 
 ## License
 

@@ -33,7 +33,7 @@ ProfitShare models the back end, not just the raise. Every budget line carries a
 - One project is one `.json` file, terms included; it autosaves to the browser and is handed to a collaborator by sending the file. No accounts, no server, no telemetry, no network calls from the app except the opt-in AI assist, which goes only when the person presses it, with her own key.
 - Inputs are the documents a production already has: a Shamel Studio or Movie Magic Budgeting export (`.xlsx`, `.csv`), a Movie Magic Scheduling board (`.sex`), a screenplay (`.fdx` with Final Draft's tags, Fountain, plain text, or a PDF with real text). Movie Magic's native `.mbd` is closed and is not read.
 - Outputs leave the app on paper: the browser's print dialog saves every report as a PDF (shooting schedule, top sheet, full budget, breakdowns, sides, investor summary) and the calendar exports `.ics`.
-- The work happens across tabs that share one project: Start, Deal, Top sheet & budget, Stripboard, Calendar, Breakdowns, Points & waterfall, SAG tier, Incentives, Pitch, About.
+- The work happens across tabs that share one project: Start, Deal, Top sheet & budget, Stripboard, Calendar, Call sheets, Breakdowns, Points & waterfall, SAG tier, Incentives, Pitch, About.
 - Rules the product encodes change on a schedule the product does not control: SAG-AFTRA tier day rates and caps, the California Film & TV Tax Credit program and its application windows, federal bills. Figures carry their source and check date in the code and on the tab.
 - It is being built alongside a real feature in prep. That production's data is never in the repository; the sample project, SALT FLAT, is invented, and the engine tests pin its totals.
 
@@ -51,7 +51,7 @@ ProfitShare models the back end, not just the raise. Every budget line carries a
 - Pitch: logline, audience, argument sections, comparable films, three-case projections through the waterfall, printable investor summary. Research is pasted in; the app does no lookups.
 - Constraints: AI is opt-in and bring-your-own-key, off until a key is pasted, the key kept in the browser and never in the project file: Draft on the Pitch tab sends a brief of the film, AI breakdown on the Stripboard sends the scene text and cast list, and every result is a proposal the person accepts or discards; Safari is a first-class browser (native month inputs and similar controls are avoided where Safari renders them as text); everything prints.
 - Terminology the product uses on purpose: "up front" (what you raise; `cash` in the file), "deferred" (a fixed IOU from first proceeds), "points" (contingent participation), "budget to raise", "wages", "day break", "DOOD", "sides", "tier", "scale".
-- Undecided: call sheet and one-liner exports, participation-agreement exhibit, CSV/XLSX export, SAG weekly deal modelling, whether voice-over and off-screen voices count as on-set cast (today they do when the writer tagged them).
+- Undecided: a one-liner export, participation-agreement exhibit, CSV/XLSX export, SAG weekly deal modelling, whether voice-over and off-screen voices count as on-set cast (today they do when the writer tagged them).
 
 ## Brand Commitments
 
