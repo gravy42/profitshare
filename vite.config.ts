@@ -2,6 +2,7 @@ import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import { viteSingleFile } from 'vite-plugin-singlefile';
 import { bundleDeckRuntime } from './tools/build-deck-runtime.mjs';
+import { cspPlugin } from './tools/csp.mjs';
 
 // `virtual:deck-runtime`: the pitch deck's runtime as text (`runtimeJs`, one IIFE; `runtimeCss`, its stylesheet),
 // for the export that inlines it into the .html a filmmaker sends. It is bundled from src/deck-runtime when the
@@ -34,6 +35,7 @@ export function deckRuntime(): Plugin {
 // Normal builds are plain static files served from GitHub Pages at /profitshare/.
 export default defineConfig({
   base: process.env.SINGLEFILE ? './' : '/profitshare/',
-  plugins: process.env.SINGLEFILE ? [react(), deckRuntime(), viteSingleFile()] : [react(), deckRuntime()],
+  // cspPlugin: the built page's Content-Security-Policy (tools/csp.mjs); last, so it sees the page as it will be served
+  plugins: process.env.SINGLEFILE ? [react(), deckRuntime(), viteSingleFile(), cspPlugin({ oneFile: true })] : [react(), deckRuntime(), cspPlugin()],
   test: { environment: 'jsdom', exclude: ['node_modules/**', 'scratch/**'] },
 } as any);

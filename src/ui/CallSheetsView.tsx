@@ -4,6 +4,8 @@ import { shootDays } from '../engine/board';
 import { shootDates, shortDate, withCalendar } from '../engine/calendar';
 import { DEFAULT_BANNER, INSTRUCTION_DEPTS, buildSheet, fmtTime, locationsFromBoard, newExtra, newLocation, withCallSheets, type Sheet } from '../engine/callsheet';
 import { PrintPortal } from './print';
+import { isEmbeddedImage } from './address';
+import { isPlainColor } from './color';
 
 type SetProject = (f: (p: Project) => Project) => void;
 type CS = NonNullable<Project['callSheets']>;
@@ -216,7 +218,10 @@ export function CallSheetPage({ s, print, design }: { s: Sheet; print?: boolean;
   // a placeholder crew list has the role for a name; the role is shown once
   const named = (x: { name: string; role: string }) => x.name.trim() && x.name.trim().toLowerCase() !== x.role.trim().toLowerCase() ? x.name : '';
   const t = (v: string) => (v ? fmtTime(v) : '');
-  const style = design ? ({ '--cs-bg': design.colors.bg, '--cs-ink': design.colors.ink, '--cs-accent': design.colors.accent, '--cs-on-accent': design.colors.bg, '--cs-title': design.fonts.title || 'inherit' } as CSSProperties) : undefined;
+  // the brand's colours go into the sheet's stylesheet as variables, where one lands in `background:`: only a plain colour
+  // gets through (a `url(…)` there would be fetched); anything else leaves the sheet's own colour in place
+  const tone = (v: unknown) => (isPlainColor(v) ? v.trim() : undefined);
+  const style = design ? ({ '--cs-bg': tone(design.colors?.bg), '--cs-ink': tone(design.colors?.ink), '--cs-accent': tone(design.colors?.accent), '--cs-on-accent': tone(design.colors?.bg), '--cs-title': (typeof design.fonts?.title === 'string' && design.fonts.title) || 'inherit' } as CSSProperties) : undefined;
   const stunts = s.extras.filter(e => e.kind === 'stunt'), standins = s.extras.filter(e => e.kind === 'standin'), background = s.extras.filter(e => e.kind === 'background');
   // three columns balanced by head count: each department goes to the column that is shortest so far
   const deptCols: Sheet['depts'][] = [[], [], []]; const height = [0, 0, 0];
@@ -227,7 +232,7 @@ export function CallSheetPage({ s, print, design }: { s: Sheet; print?: boolean;
       <div className={`${cls} front`} style={style}>
         <header className="cshead">
           <div className="who">
-            {design?.logoDataUrl && <img className="logo" src={design.logoDataUrl} alt="" />}
+            {isEmbeddedImage(design?.logoDataUrl) && <img className="logo" src={design.logoDataUrl} alt="" />}
             <div className="co">{tbd(s.company, 'production company')}</div>
             <div className="title">{s.title}</div>
             <div className="small">{s.version}</div>
