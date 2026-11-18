@@ -1,0 +1,39 @@
+name: Browsers
+# The app and the deck it sends, walked in Safari's engine (WebKit), Firefox and Chromium. Runs on pull requests and
+# by hand; the report for each browser is in the run's summary, and the screenshots are attached to the run.
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  walk:
+    name: ${{ matrix.browser }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: macos-latest, browser: webkit }
+          - { os: ubuntu-latest, browser: webkit }
+          - { os: ubuntu-latest, browser: firefox }
+          - { os: ubuntu-latest, browser: chromium }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - run: npm run build
+      - run: node tools/browsers.mjs
+        env:
+          BROWSER: ${{ matrix.browser }}
+          BROWSER_SHEET: ${{ matrix.os == 'macos-latest' && '1' || '' }}
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browsers-${{ matrix.browser }}-${{ matrix.os }}
+          path: browsers-out
+          retention-days: 14
