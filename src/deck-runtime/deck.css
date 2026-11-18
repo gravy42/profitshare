@@ -44,16 +44,19 @@
 .psd-scrim { position: absolute; inset: 0; --s: color-mix(in srgb, var(--psd-bg) var(--psd-scrim, 85%), transparent); --f: color-mix(in srgb, var(--psd-bg) var(--psd-scrim-soft, 32%), transparent); background: var(--s); }
 .psd-l-photo .psd-scrim, .psd-l-closing .psd-scrim { background: linear-gradient(to top, var(--s) 0%, var(--s) var(--psd-stop, 62%), var(--f) 100%); }
 .psd-l-cover .psd-scrim { background: linear-gradient(to top, var(--s) 0%, var(--s) 22%, transparent 60%), linear-gradient(to right, var(--s) 0%, var(--s) 60%, var(--f) 100%); }
-/* once the runtime has measured where a picture slide's words are (data-veil), the strong scrim is only behind them:
-   a box for each block of text (.psd-veil: solid to its edge, then fading to nothing over --v; where a browser cannot
-   cut the corners of the fade it is only larger), all of them together at the scrim's full strength, and over the rest of the picture a light wash (--psd-scrim-light, 10% to 30%). */
-.psd-veils { position: absolute; inset: 0; display: none; opacity: var(--psd-scrim, 85%); }
+/* once the runtime has measured where a picture slide's words are (data-veil), the shade is only behind them: one
+   soft shape round each group of words (.psd-veil: solid to its edge, then fading to nothing over --v; where a browser
+   cannot cut the corners of the fade it is only larger) and a band along the bottom for the footer (.psd-veil-foot).
+   Each is as strong as the picture behind it needs (--k, set by the runtime from the picture; without it, the scrim's
+   full strength). Over the rest of the picture there is only a light wash (--psd-scrim-light, 10% to 30%). */
+.psd-veils { position: absolute; inset: 0; display: none; }
 .psd-slide[data-veil] .psd-veils { display: block; }
 .psd-slide[data-veil] .psd-scrim { background: color-mix(in srgb, var(--psd-bg) var(--psd-scrim-light, 25%), transparent); }
-.psd-veil { position: absolute; display: block; box-sizing: content-box; --v: 2em; margin: calc(var(--v) * -1) 0 0 calc(var(--v) * -1); padding: var(--v); background: var(--psd-bg);
+.psd-veil { position: absolute; display: block; box-sizing: content-box; --v: 3.6em; margin: calc(var(--v) * -1) 0 0 calc(var(--v) * -1); padding: var(--v); background: var(--psd-bg); opacity: var(--k, var(--psd-scrim, 85%));
   --across: linear-gradient(to right, transparent, rgba(0, 0, 0, .12) calc(var(--v) * .25), rgba(0, 0, 0, .5) calc(var(--v) * .5), rgba(0, 0, 0, .88) calc(var(--v) * .75), #000 var(--v), #000 calc(100% - var(--v)), rgba(0, 0, 0, .88) calc(100% - var(--v) * .75), rgba(0, 0, 0, .5) calc(100% - var(--v) * .5), rgba(0, 0, 0, .12) calc(100% - var(--v) * .25), transparent);
   --down: linear-gradient(to bottom, transparent, rgba(0, 0, 0, .12) calc(var(--v) * .25), rgba(0, 0, 0, .5) calc(var(--v) * .5), rgba(0, 0, 0, .88) calc(var(--v) * .75), #000 var(--v), #000 calc(100% - var(--v)), rgba(0, 0, 0, .88) calc(100% - var(--v) * .75), rgba(0, 0, 0, .5) calc(100% - var(--v) * .5), rgba(0, 0, 0, .12) calc(100% - var(--v) * .25), transparent);
   -webkit-mask-image: var(--across), var(--down); -webkit-mask-composite: source-in; mask-image: var(--across), var(--down); mask-composite: intersect; }
+.psd-veil-foot { position: absolute; display: block; left: 0; right: 0; bottom: 0; background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--psd-bg) 35%, transparent) 1.2em, var(--psd-bg) 2.6em); opacity: var(--k, var(--psd-scrim, 85%)); }
 .psd-box { position: absolute; inset: 0; padding: 4.1em 5.6em 4.3em; display: flex; flex-direction: column; overflow: hidden; }
 .psd-foot { position: absolute; left: 5.6em; right: 5.6em; bottom: 1.1em; display: flex; justify-content: space-between; align-items: baseline; gap: 2em; text-transform: uppercase; color: var(--psd-muted-text); }
 .psd-foot span { font-size: max(.64em, var(--psd-min)); letter-spacing: .18em; }

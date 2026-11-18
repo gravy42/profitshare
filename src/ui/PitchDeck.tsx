@@ -705,9 +705,9 @@ function SlideEditor({ slide: s, number, pictures, film, go, patch, onAddCard, o
           </ul>
           {s.imageId && !lostPicture && (
             <div className="ctl pd-scrim">
-              <label htmlFor={scrimId}>How much the picture is faded behind the text: {Math.round(scrim * 100)}%</label>
+              <label htmlFor={scrimId}>How much the whole picture is faded: {Math.round(scrim * 100)}%</label>
               <input id={scrimId} type="range" min={0} max={100} step={5} value={Math.round(scrim * 100)} onChange={e => patch({ scrim: +e.target.value / 100 })} />
-              <div className="hint">Higher fades it more. Where the text sits, the deck always fades it enough to keep the words readable.</div>
+              <div className="hint">Higher fades the whole picture a little more. Behind the words the deck adds a soft shade by itself, only as dark as this picture needs for them to be readable: next to none on a dark picture, more on a pale one.</div>
             </div>
           )}
         </Optional>

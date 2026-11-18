@@ -399,7 +399,7 @@ export interface Box { x: number; y: number; w: number; h: number }
 /** The layouts whose picture shows around the words: on these the strong scrim is drawn behind each block of text only. */
 export const VEILED: ReadonlySet<string> = new Set(['cover', 'photo', 'closing']);
 export const VEIL_PAD = 0.5;    // em: how far past the measured text the full-strength scrim reaches before it starts to fade
-export const VEIL_SNAP = 10;    // percent: a box that ends this near an edge of the slide runs off that edge
+export const VEIL_SNAP = 3;     // percent: a box that ends this near an edge of the slide runs off that edge
 /** How much of the background colour lies over the parts of a picture that have no words on them, in percent: the
  *  author's "how much the picture is faded" (0 to 1), never under 10% and never over 30%. */
 export function scrimLight(asked: unknown): number {
@@ -407,14 +407,15 @@ export function scrimLight(asked: unknown): number {
   return Math.round(Math.max(10, Math.min(30, a * 40)));
 }
 export const VEIL_LABEL = 2.2;  // em: a block no taller than this is a label (a small heading, a sign-off, a footnote)
-export const VEIL_NEAR = 1.6;   // em: a label this close above or below another block shares that block's box
-/** Where the full-strength scrim goes: a box for each block of text, as percentages of the slide (`frame`); `em` is
- *  the slide's type size in pixels. Each measured box is widened by `VEIL_PAD` on every side, rounded outward to a
- *  hundredth of a percent and cut at the slide's edges, so no pixel of the text is outside its box; from there a box
- *  only ever grows. A label close above or below another block is joined to it (one box round both). A box that
- *  ends within `VEIL_SNAP` percent of an edge runs off that edge (so the footer's two ends sit in the slide's bottom
- *  corners). A block with no size, or wholly off the slide, gets none; a frame with no size gets
- *  none at all (and the slide keeps its scrim everywhere). */
+export const VEIL_NEAR = 1.6;   // em: blocks this close above or below one another share one box
+/** Where the shade goes: one box for each group of text, as percentages of the slide (`frame`); `em` is the slide's
+ *  type size in pixels. Each measured block is widened by `VEIL_PAD` on every side, rounded outward to a hundredth of
+ *  a percent and cut at the slide's edges, so no pixel of the text is outside its box; from there a box only ever
+ *  grows. Blocks that sit over or under one another, within `VEIL_NEAR`, are joined (one box round a heading and its
+ *  paragraphs, so the shade has one plain shape and not a step for every line). A box that ends within `VEIL_SNAP`
+ *  percent of an edge runs off that edge. A block with no size, or wholly off the slide, gets none; a frame with no
+ *  size gets none at all (and the slide keeps its scrim everywhere). The footer is not given to this function: it has
+ *  its own band along the bottom (`footBand`). */
 export function veilBoxes(texts: Box[], frame: Box, em: number): { left: number; top: number; width: number; height: number }[] {
   if (!(frame.w > 0) || !(frame.h > 0)) return [];
   const unit = Number.isFinite(em) && em > 0 ? em : 0, p = unit * VEIL_PAD;
@@ -427,12 +428,11 @@ export function veilBoxes(texts: Box[], frame: Box, em: number): { left: number;
     const a = Math.max(0, down(((t.y - p - frame.y) / frame.h) * 100)), b = Math.min(100, up(((t.y + t.h + p - frame.y) / frame.h) * 100));
     if (r > l && b > a) boxes.push({ l, r, a, b, label: t.h <= unit * VEIL_LABEL });
   }
-  // a label joins the nearest block it sits over or under, when that block is close
+  // a block joins the nearest block it sits over or under, when that block is close
   const near = ((unit * VEIL_NEAR) / frame.h) * 100;
   for (let again = true; again;) {
     again = false;
     for (const x of boxes) {
-      if (!x.label) continue;
       let best: Edge | null = null, bestGap = Infinity;
       for (const y of boxes) {
         if (y === x || Math.min(x.r, y.r) <= Math.max(x.l, y.l)) continue;
@@ -455,6 +455,63 @@ export function veilBoxes(texts: Box[], frame: Box, em: number): { left: number;
     if (!seen.has(key)) { seen.add(key); out.push(box); }
   }
   return out.sort((x, y) => x.top - y.top || x.left - y.left);
+}
+export const FOOT_RISE = 2.6;   // em: how far above the footer's words its band takes to reach full strength
+/** Where the footer's band starts, as a percentage down the slide: `FOOT_RISE` above the highest of the footer's
+ *  words (the band runs the whole width, from there to the bottom edge). Null when there is nothing to measure. */
+export function footBand(texts: Box[], frame: Box, em: number): { top: number } | null {
+  if (!(frame.w > 0) || !(frame.h > 0)) return null;
+  const unit = Number.isFinite(em) && em > 0 ? em : 0;
+  let top = Infinity;
+  for (const t of texts) {
+    if (![t.x, t.y, t.w, t.h].every(Number.isFinite) || !(t.w > 0) || !(t.h > 0)) continue;
+    if (t.y >= frame.y + frame.h || t.y + t.h <= frame.y) continue;
+    top = Math.min(top, t.y);
+  }
+  if (top === Infinity) return null;
+  const pct = ((top - unit * (FOOT_RISE + VEIL_PAD) - frame.y) / frame.h) * 100;
+  return { top: Math.max(0, Math.min(100, Math.floor(pct * 100) / 100)) };
+}
+
+// ---------- how strong the shade has to be: read from the picture itself ----------
+
+export const SHADE_STEP = 0.05;
+export const SHADE_SPARE = 0.05;      // added to what was measured: the picture may move a little, and was read small
+export const SHADE_PASS = 0.95;       // this share of the picture under the words has to pass
+export const LARGE_TEXT = 1.2;        // times the slide's type size: words this large need 3 to 1, smaller ones 4.5 to 1
+/** A colour as the browser reports it from a computed style: `rgb()`, `rgba()`, hex, or `color(srgb r g b)`. */
+export function readColor(color: string): RGB | null {
+  const plain = parseColor(color);
+  if (plain) return plain;
+  const m = /^color\(\s*srgb\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/.exec(str(color).trim().toLowerCase());
+  return m ? ([1, 2, 3].map(i => Math.max(0, Math.min(255, +m[i] * 255))) as RGB) : null;
+}
+/** How much of the background colour (0 to `ceiling`, in steps of `SHADE_STEP`) has to lie over these pixels of the
+ *  picture for words of this colour to be readable on them. `pixels` is RGBA, as a canvas gives it; `wash` (0 to 1)
+ *  is the light wash already over the whole picture. The shade is enough when `SHADE_PASS` of the pixels give the
+ *  words their contrast (4.5 to 1, or 3 to 1 for large words); `SHADE_SPARE` is added on top. Anything that cannot
+ *  be read (no pixels, a colour that is not a colour) answers the ceiling, which is the shade a slide had before. */
+export function shadeNeeded(pixels: ArrayLike<number>, bg: string, text: string, large: boolean, wash: number, ceiling = MIN_SCRIM): number {
+  const b = readColor(bg), t = readColor(text), n = Math.floor((pixels?.length ?? 0) / 4);
+  if (!b || !t || n < 1 || !Number.isFinite(wash)) return ceiling;
+  const w = Math.max(0, Math.min(1, wash)), want = large ? 3 : 4.5, lt = luminance(t);
+  const washed: RGB[] = [];
+  for (let i = 0; i < n; i++) {
+    const px = [pixels[i * 4], pixels[i * 4 + 1], pixels[i * 4 + 2]];
+    if (!px.every(Number.isFinite)) return ceiling;
+    washed.push(px.map((v, c) => v + (b[c] - v) * w) as RGB);
+  }
+  const steps = Math.round(ceiling / SHADE_STEP);
+  for (let s = 0; s <= steps; s++) {
+    const k = Math.min(ceiling, s * SHADE_STEP);
+    let ok = 0;
+    for (const px of washed) {
+      const l = luminance(px.map((v, c) => v + (b[c] - v) * k) as RGB);
+      if ((Math.max(l, lt) + 0.05) / (Math.min(l, lt) + 0.05) >= want) ok++;
+    }
+    if (ok / n >= SHADE_PASS) return Math.min(ceiling, Math.round((k + SHADE_SPARE) * 100) / 100);
+  }
+  return ceiling;
 }
 
 // ---------- the mount ----------
@@ -950,6 +1007,7 @@ function mountWith(host: HTMLElement, data: DeckData, opts: MountOptions, taken:
   const images = new Map(list(d.images).filter(i => typeof i.src === 'string' && imageOk(i.src)).map(i => [str(i.id), i] as const));
   const drawable = list(d.slides).filter(s => typeof s.layout === 'string' && Object.prototype.hasOwnProperty.call(layouts, s.layout));
   const parts: Part[] = [];
+  let pictureIn: () => void = () => { /* set once the deck can be measured again */ };
   drawable.forEach((s, index) => {
     riseCount = 0;
     const layout = s.layout as string;
@@ -964,7 +1022,9 @@ function mountWith(host: HTMLElement, data: DeckData, opts: MountOptions, taken:
     const img = has(s.imageId) ? images.get(str(s.imageId)) : undefined;
     if (img) {
       const pic = doc.createElement('img');
-      pic.className = 'psd-bg'; pic.alt = str(img.alt); pic.decoding = 'async'; pic.src = img.src as string;
+      pic.className = 'psd-bg'; pic.alt = str(img.alt); pic.decoding = 'async';
+      pic.addEventListener('load', () => pictureIn());   // the shade behind the words is set from the picture: measure again once it is there
+      pic.src = img.src as string;
       const asked = typeof s.scrim === 'number' && Number.isFinite(s.scrim) ? Math.max(0, Math.min(1, s.scrim)) : DEFAULT_SCRIM;
       const k = Math.max(MIN_SCRIM, asked);   // under the text; the author's value still sets the side with no text
       const scrim = el('div', 'psd-scrim');
@@ -1059,12 +1119,38 @@ function mountWith(host: HTMLElement, data: DeckData, opts: MountOptions, taken:
     veil(p, true);
     return bad;
   }
-  /** The scrim of a picture slide, drawn where its words are: every block of text outside a card is measured where it
-   *  will sit, and gets full-strength scrim behind it and a little way round it; the rest of the picture keeps only
-   *  the light wash. Until a slide has been measured (and whenever it cannot be) the scrim is as it always was. */
+  /** The picture of a slide, read small (64 across), as the slide crops it: what is behind any part of the slide.
+   *  Null when it cannot be read (not loaded yet, no canvas, a picture the page may not read). */
+  function pictureGrid(p: Part, frame: { width: number; height: number }): { w: number; h: number; data: ArrayLike<number> } | null {
+    try {
+      const img = p.section.querySelector<HTMLImageElement>('img.psd-bg');
+      if (!img || !img.complete || !(img.naturalWidth > 0) || !(img.naturalHeight > 0) || !(frame.width > 0) || !(frame.height > 0)) return null;
+      const w = 64, h = Math.max(1, Math.round((w * frame.height) / frame.width));
+      const canvas = doc.createElement('canvas'); canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true } as CanvasRenderingContext2DSettings);
+      if (!ctx) return null;
+      const scale = Math.max(w / img.naturalWidth, h / img.naturalHeight), sw = w / scale, sh = h / scale;   // object-fit: cover, centred
+      ctx.drawImage(img, (img.naturalWidth - sw) / 2, (img.naturalHeight - sh) / 2, sw, sh, 0, 0, w, h);
+      return { w, h, data: ctx.getImageData(0, 0, w, h).data };
+    } catch { return null; }
+  }
+  /** The pixels of that small picture under a rectangle of the slide (in the slide's own pixels). */
+  function under(grid: { w: number; h: number; data: ArrayLike<number> }, r: Box, frame: { left: number; top: number; width: number; height: number }): number[] {
+    const x0 = Math.max(0, Math.floor(((r.x - frame.left) / frame.width) * grid.w)), x1 = Math.min(grid.w, Math.ceil(((r.x + r.w - frame.left) / frame.width) * grid.w));
+    const y0 = Math.max(0, Math.floor(((r.y - frame.top) / frame.height) * grid.h)), y1 = Math.min(grid.h, Math.ceil(((r.y + r.h - frame.top) / frame.height) * grid.h));
+    const out: number[] = [];
+    for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) { const i = (y * grid.w + x) * 4; out.push(grid.data[i], grid.data[i + 1], grid.data[i + 2], grid.data[i + 3]); }
+    return out;
+  }
+  /** The shade of a picture slide, drawn where its words are: every block of text outside a card is measured where it
+   *  will sit. The words of the slide get one soft shade round each group of them, and the footer a band along the
+   *  bottom; each is only as strong as the picture behind it needs for those words to be readable (never stronger than
+   *  the scrim a slide had before). The rest of the picture keeps only the light wash. Until a slide has been measured
+   *  (and whenever it cannot be) the scrim is as it always was. */
   function veil(p: Part, on: boolean) {
     const host = p.veils; if (!host) return;
     const boxes: ReturnType<typeof veilBoxes> = [];
+    let band: ReturnType<typeof footBand> = null, strong: number | null = null, footStrong: number | null = null;
     if (on && typeof doc.createRange === 'function') {
       const frame = p.section.getBoundingClientRect(), em = parseFloat((win?.getComputedStyle(host).fontSize) ?? '') || 0;
       const blocks = new Set<Element>();
@@ -1073,13 +1159,38 @@ function mountWith(host: HTMLElement, data: DeckData, opts: MountOptions, taken:
         if (![...e.childNodes].some(n => n.nodeType === 3 && (n.textContent ?? '').trim() !== '')) continue;
         blocks.add(e.closest('p, h1, h2, h3, li, figcaption, blockquote') ?? e);
       }
-      const rects: Box[] = [];
-      for (const b of blocks) { const range = doc.createRange(); range.selectNodeContents(b); const r = typeof range.getBoundingClientRect === 'function' ? range.getBoundingClientRect() : b.getBoundingClientRect(); rects.push({ x: r.left, y: r.top, w: r.width, h: r.height }); }
-      if (em > 0 && blocks.size) boxes.push(...veilBoxes(rects, { x: frame.left, y: frame.top, w: frame.width, h: frame.height }, em));
+      const words: { rect: Box; el: Element; foot: boolean }[] = [];
+      for (const b of blocks) { const range = doc.createRange(); range.selectNodeContents(b); const r = typeof range.getBoundingClientRect === 'function' ? range.getBoundingClientRect() : b.getBoundingClientRect(); words.push({ rect: { x: r.left, y: r.top, w: r.width, h: r.height }, el: b, foot: !!b.closest('.psd-foot') }); }
+      if (em > 0 && blocks.size) {
+        const f = { x: frame.left, y: frame.top, w: frame.width, h: frame.height };
+        boxes.push(...veilBoxes(words.filter(x => !x.foot).map(x => x.rect), f, em));
+        band = footBand(words.filter(x => x.foot).map(x => x.rect), f, em);
+        // how strong: read from the picture behind each block of words
+        const grid = pictureGrid(p, frame), look = win?.getComputedStyle(host);
+        const bg = look?.getPropertyValue('--psd-bg').trim() ?? '', wash = (parseFloat(look?.getPropertyValue('--psd-scrim-light') ?? '') || 0) / 100;
+        if (grid && readColor(bg)) {
+          strong = 0; footStrong = 0;
+          for (const x of words) {
+            if (!(x.rect.w > 0) || !(x.rect.h > 0)) continue;
+            const cs = win?.getComputedStyle(x.el), size = parseFloat(cs?.fontSize ?? '') || 0;
+            const need = shadeNeeded(under(grid, x.rect, frame), bg, cs?.color ?? '', size >= em * LARGE_TEXT, wash);
+            if (x.foot) footStrong = Math.max(footStrong, need); else strong = Math.max(strong, need);
+          }
+        }
+      }
     }
     while (host.firstChild) host.removeChild(host.firstChild);
-    for (const b of boxes) { const v = el('i', 'psd-veil'); v.style.left = `${b.left}%`; v.style.top = `${b.top}%`; v.style.width = `${b.width}%`; v.style.height = `${b.height}%`; host.appendChild(v); }
-    if (boxes.length) p.section.dataset.veil = ''; else delete p.section.dataset.veil;
+    for (const b of boxes) {
+      const v = el('i', 'psd-veil'); v.style.left = `${b.left}%`; v.style.top = `${b.top}%`; v.style.width = `${b.width}%`; v.style.height = `${b.height}%`;
+      if (strong != null) v.style.setProperty('--k', String(strong));
+      host.appendChild(v);
+    }
+    if (band) {
+      const v = el('i', 'psd-veil-foot'); v.style.top = `${band.top}%`;
+      if (footStrong != null) v.style.setProperty('--k', String(footStrong));
+      host.appendChild(v);
+    }
+    if (boxes.length || band) p.section.dataset.veil = ''; else delete p.section.dataset.veil;
   }
   function fitAll(): number[] {
     if (destroyed) return [];
@@ -1091,6 +1202,7 @@ function mountWith(host: HTMLElement, data: DeckData, opts: MountOptions, taken:
   let stillT: Timer | null = null;   // set while a still deck is playing one slide
   let refitT: Timer | null = null;
   const refit = () => { if (refitT == null) refitT = later(() => { refitT = null; fitAll(); }, 0); };
+  pictureIn = refit;
 
   // --- numbers that count up. Only what is drawn over the figure moves: the figure itself is in the document, whole,
   //     from the start (for a screen reader, for the fit, for print) and is what shows again when the count ends. ---
