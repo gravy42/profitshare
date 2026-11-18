@@ -1,4 +1,4 @@
-import { Suspense, lazy, useRef, useState } from 'react';
+import { Suspense, lazy, useState } from 'react';
 import type { Comp, Project, RevenueLine } from '../engine/types';
 import { CASES, DEFAULT_GROUP, adoptProjectionsAsScenarios, compGroups, compMultiple, compStats, newComp, newRevenueLine, newSection, projections, withPitch } from '../engine/pitch';
 import { recoupableBudget, sponsorNet } from '../engine/waterfall';
@@ -7,10 +7,7 @@ import { incentiveProceeds } from '../engine/incentives';
 import { money } from './format';
 import { BreakdownReport, PrintPortal } from './print';
 import { AiPanel, Draft, LookBookPanel, DesignPanel, ResearchPanel, TeamPanel } from './PitchExtras';
-import { Deck } from './Deck';
-import { deckToPdf, downloadBlob } from './deckPdf';
 import { aiReady } from '../ai';
-import { deckSlides } from '../engine/deck';
 import { Boundary } from './Boundary';
 import { PANEL, goToPanel, type PanelKey } from './jump';
 
@@ -18,7 +15,7 @@ import { PANEL, goToPanel, type PanelKey } from './jump';
 const PitchDeck = lazy(() => import('./PitchDeck'));
 
 type SetProject = (f: (p: Project) => Project) => void;
-const JUMPS: [PanelKey, string][] = [['write', 'Write the pitch'], ['lookbook', 'Look book'], ['design', 'Design'], ['deck', 'Pitch deck'], ['report', 'Report deck']];
+const JUMPS: [PanelKey, string][] = [['write', 'Write the pitch'], ['lookbook', 'Look book'], ['design', 'Design'], ['deck', 'Pitch deck']];
 const CASE_LABEL = { low: 'Low', mid: 'Mid', high: 'High' } as const;
 const num = (v: string): number | null => { const n = +v.replace(/[^\d.-]/g, ''); return v.trim() === '' || isNaN(n) ? null : n; };
 
@@ -31,22 +28,7 @@ export function PitchView({ project, setProject, onTab, onUndo, undoDepth }: { p
   const moveSec = (id: string, dir: -1 | 1) => set(x => { const i = x.sections.findIndex(c => c.id === id); const j = i + dir; if (i < 0 || j < 0 || j >= x.sections.length) return x; const a = x.sections.slice(); [a[i], a[j]] = [a[j], a[i]]; return { ...x, sections: a }; });
   const setRev = (id: string, patch: Partial<RevenueLine>) => set(x => ({ ...x, revenue: x.revenue.map(r => r.id === id ? { ...r, ...patch } : r) }));
   const [printing, setPrinting] = useState(false);
-  const [deck, setDeck] = useState<'off' | 'preview' | 'print' | 'render'>('off');
-  const [progress, setProgress] = useState('');
-  const renderRef = useRef<HTMLDivElement>(null);
-  const makePdf = async () => {
-    setDeck('render'); setProgress('Rendering…');
-    await new Promise(r => setTimeout(r, 300));   // let the full-size slides mount
-    try {
-      const root = renderRef.current; if (!root) throw new Error('nothing to render');
-      const blob = await deckToPdf(root, (d, t) => setProgress(`Slide ${d} of ${t}…`));
-      downloadBlob(blob, `${p.name.replace(/[^\w-]+/g, '_')}_investor_deck.pdf`);
-      setProgress('');
-    } catch (e) { setProgress(`Could not build the PDF: ${(e as Error).message}`); }
-    finally { setDeck(d => (d === 'render' ? 'off' : d)); }
-  };
   const [ai, setAi] = useState(aiReady());
-  const [byline, setByline] = useState('');
   const ts = topSheet(p); const budget = recoupableBudget(p); const pr = projections(p); const stats = compStats(pitch.comps);
   const incentives = incentiveProceeds(p);
 
@@ -161,19 +143,6 @@ export function PitchView({ project, setProject, onTab, onUndo, undoDepth }: { p
           <PitchDeck project={p} setPitch={set} onTab={onTab} onUndo={onUndo} undoDepth={undoDepth} ai={ai} />
         </Suspense>
       </Boundary>
-
-      <div className="panel deckpanel" id={PANEL.report}><h2>Report deck</h2>
-        <p className="help"><b>Report deck: an automatic printout of everything, for your own files.</b> You do not lay it out yourself. Every slide is drawn from this tab and the rest of the project: the logline and the case, the look book by section, the audience, the comps, the plan (days, dates, sets, cast, crew, the SAG tier), the numbers from the top sheet, the deal and the three cases, the team, the research, the ask. Styled by the design system above. {deckSlides(p).length} slides as it stands; 16:9 pages, Print saves a PDF.</p>
-        <div className="row">
-          <div className="ctl"><label>Byline on the title slide</label><input value={byline} placeholder={`a film by …`} onChange={e => setByline(e.target.value)} style={{ width: 260 }} /></div>
-          <button className="btn small" onClick={() => setDeck(d => d === 'preview' ? 'off' : 'preview')}>{deck === 'preview' ? 'Hide the preview' : 'Preview the deck'}</button>
-          <button className="btn small" disabled={deck === 'render'} onClick={makePdf}>{deck === 'render' ? progress || 'Rendering…' : 'Download the PDF'}</button>
-          <button className="btn small ghost" onClick={() => setDeck('print')} title="The browser's print dialog instead (set the paper to 13.33 × 7.5 in landscape and turn on backgrounds; Safari ignores the page size the deck asks for)">Print instead</button>
-          {progress && deck !== 'render' && <span className="small warn">{progress}</span>}
-        </div>
-        {deck === 'render' && <div className="deckrender" ref={renderRef} aria-hidden="true"><Deck p={p} byline={byline} /></div>}
-        {deck === 'preview' && <Deck p={p} byline={byline} preview />}
-      </div>
     </div>
   );
 
@@ -192,7 +161,6 @@ export function PitchView({ project, setProject, onTab, onUndo, undoDepth }: { p
       </div>
       {body}
       {printing && <PrintPortal title={`${p.name} · Pitch`} onDone={() => setPrinting(false)}><BreakdownReport p={p} what="Investor summary"><PitchReport p={p} /></BreakdownReport></PrintPortal>}
-      {deck === 'print' && <PrintPortal title={`${p.name} · Investor deck`} page="deck" onDone={() => setDeck('off')}><Deck p={p} byline={byline} /></PrintPortal>}
     </div>
   );
 }

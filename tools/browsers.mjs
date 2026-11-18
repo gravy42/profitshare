@@ -108,13 +108,6 @@ try {
     need(n === 13, `the PDF has ${n} pages, not 13`); need(kb > 300, `the PDF is only ${kb.toFixed(0)} kB, so its pages are probably blank`);
     return `${d.name}, ${n} pages, ${kb.toFixed(0)} kB`;
   });
-  await step('download: report deck PDF', async () => {
-    const button = page.getByRole('button', { name: 'Download the PDF', exact: true });
-    await button.scrollIntoViewIfNeeded();
-    const d = await download(() => button.click(), 'report.pdf');
-    const n = await pdfPages(d.path); need(n >= 4, `the report PDF has ${n} pages`);
-    return `${n} pages, ${(readFileSync(d.path).length / 1000).toFixed(0)} kB`;
-  });
   await step('download: everything as a zip', async () => {
     await page.locator('#pitch-send').scrollIntoViewIfNeeded();
     const d = await download(async () => {

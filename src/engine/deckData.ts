@@ -9,7 +9,6 @@ import { cleanFamily, cleanStyle, cleanWeight, fontSrcOk, MAX_FONT_FACES } from 
 import { cleanDeckMotion, cleanMotion } from '../deck-runtime/motion';
 import { cleanPaper, cleanPaperShade, cleanSlidePaper, cleanSlidePaperShade, PAPER_LAYOUTS } from '../deck-runtime/paper';
 import { withPitch, defaultDesign, defaultDeckRules, compGroups, compMultiple } from './pitch';
-import { unlabel } from './deck';
 import { topSheet } from './budget';
 import { shootDays, parkedScenes } from './board';
 import { shootDates, withCalendar } from './calendar';
@@ -17,6 +16,9 @@ import { letterFor } from './incentives';
 import { sponsorNet } from './waterfall';
 import { pathInputs } from './paths';
 import { pathFor } from './pathMath';
+
+/** "Primary: women who…" in the Primary box says the label twice; the slide keeps the label and drops the prefix. */
+export const unlabel = (text: string, label: string) => text.replace(new RegExp(`^\\s*${label}\\s*[:.\\u2014-]\\s*`, 'i'), '');
 
 export interface DeckDataOptions {
   today?: string;                  // ISO date; only for the month and year in the default cover line

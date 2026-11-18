@@ -2,7 +2,7 @@
 // keyboard there.
 export const PANEL = {
   write: 'pitch-write', comps: 'pitch-comps', revenue: 'pitch-revenue', lookbook: 'pitch-lookbook', design: 'pitch-design', team: 'pitch-team',
-  deck: 'pitch-deck', people: 'pitch-people', send: 'pitch-send', report: 'pitch-report', ai: 'pitch-ai',
+  deck: 'pitch-deck', people: 'pitch-people', send: 'pitch-send', ai: 'pitch-ai',
 } as const;
 export type PanelKey = keyof typeof PANEL;
 

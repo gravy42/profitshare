@@ -326,6 +326,7 @@ export interface FontFile {
 }
 /** Layout rules a brand system sets for its slides. */
 export interface DeckRules {
+  // layout, eyebrow, bleed and lookSlides belonged to the report deck, which is gone; they stay so files saved with them still open
   layout: 'split' | 'plain';  // split: a photo bleeds the left of a text slide, the text column sits right; plain: text on the ground
   eyebrow: boolean;           // the slide's first word as a small caps label ending in a colon, instead of a big heading
   bleed: number;              // how much of the slide the photo takes in the split layout, 0.4 to 0.6

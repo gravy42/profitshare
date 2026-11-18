@@ -188,7 +188,7 @@ export default function DeckSend({ project: given, today, people, sendable, fixe
   return (
     <div className="pd-send" id={PANEL.send} ref={box}>
       <h3>Send it</h3>
-      <p className="help"><b>Files you can send.</b> The web deck is one file that opens in any browser, with the switches working and no internet needed. The PDF is the same slides, still, one to a page{twoAsks ? ', with the grants counted or without them' : ''}. Each person gets files of their own: nobody else's name, note or cover line is in them. Making the files sends nothing anywhere and fetches nothing from outside this app: it is done in this browser, and the only thing read is the app's own font files, from where the app itself is. The PDF button under Report deck is the automatic report, not this deck.</p>
+      <p className="help"><b>Files you can send.</b> The web deck is one file that opens in any browser, with the switches working and no internet needed. The PDF is the same slides, still, one to a page{twoAsks ? ', with the grants counted or without them' : ''}. Each person gets files of their own: nobody else's name, note or cover line is in them. Making the files sends nothing anywhere and fetches nothing from outside this app: it is done in this browser, and the only thing read is the app's own font files, from where the app itself is.</p>
 
       <div className="pd-sendwrap">
         <table className="pd-sendtable">

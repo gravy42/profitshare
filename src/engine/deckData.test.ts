@@ -1,12 +1,11 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { sampleProject } from '../data/seed';
 import { applyDeal } from './deal';
-import { deckSlides } from './deck';
 import { defaultIncentives } from './incentives';
 import { defaultDeckRules, defaultDesign, withPitch } from './pitch';
 import { pathInputs } from './paths';
 import { pathFor } from './pathMath';
-import { DARK_INK, DECK_LEGAL, DEFAULT_CARD, LIGHT_INK, cardInkFor, compactMoney, dateSpan, deckData, deckWarnings, defaultSlides, fontFacesOf, reservedSlug, firstSentence, slidesOf, slugify } from './deckData';
+import { DARK_INK, DECK_LEGAL, DEFAULT_CARD, LIGHT_INK, cardInkFor, compactMoney, dateSpan, deckData, deckWarnings, defaultSlides, fontFacesOf, reservedSlug, firstSentence, slidesOf, slugify, unlabel } from './deckData';
 import type { DeckSlide } from '../deck-runtime/data';
 import type { FontFile, LookImage, Pitch, Project, Recipient, SlideSpec } from './types';
 
@@ -369,16 +368,11 @@ describe('deckData', () => {
   });
 });
 
-describe('the report deck is left as it was', () => {
-  it('draws the same slides whether or not the pitch carries an authored deck', () => {
-    const old = full();   // no `slides`, no `recipients`: a file saved before the pitch deck
-    expect(old.pitch!.slides).toBeUndefined();
-    expect(old.pitch!.recipients).toBeUndefined();
-    const before = deckSlides(old, 'a film by Ada Example');
-    expect(before.map(s => s.kind)).toEqual(['title', 'text', 'text', 'text', 'audience', 'comps', 'plan', 'numbers', 'deal', 'team', 'research', 'ask', 'closing']);
-    const authored = pitched(old, { slides: [{ id: 'only', layout: 'text', body: 'Mine.' }], recipients: [{ id: 'r', slug: 'ada', name: 'Ada Example', coverLine: '', lead: 'with-grants' }] });
-    expect(deckSlides(authored, 'a film by Ada Example')).toEqual(before);
-    expect(deckSlides(seed).map(s => s.kind)).toEqual(['title', 'plan', 'numbers', 'deal', 'ask']);
+describe('a label a box repeats', () => {
+  it('is dropped from the start of the text, and only from there', () => {
+    expect(unlabel('Primary: women in their 40s', 'primary')).toBe('women in their 40s');
+    expect(unlabel('How we reach them: the podcast', 'how we reach them')).toBe('the podcast');
+    expect(unlabel('Women first', 'primary')).toBe('Women first');
   });
 });
 

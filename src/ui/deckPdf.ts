@@ -2,11 +2,11 @@
 // own 13.333 × 7.5 in page. The print dialog was the first export, but Safari ignores a page size set in CSS and
 // prints without backgrounds unless told, which turned a midnight deck into gold type on white letter paper.
 //
-// The photographs do not go through the slide capture. Safari drops images from a captured page (the look slides
+// The photographs do not go through the slide capture. Safari drops images from a captured page (the picture slides
 // came out as bare headings over midnight), so each slide is captured with its pictures hidden, and the pictures
 // are then cropped the way the layout crops them (object-fit: cover) and placed on the page by the PDF library at
 // the exact spot the layout gave them. The JPEGs go in as JPEGs, so the file is smaller and the pictures sharper.
-// A slide with words over its picture (a cover, a look slide's caption band, the closing sign-off) is captured as a
+// A slide with words over its picture (a cover, a picture slide, the closing sign-off) is captured as a
 // PNG on a transparent ground instead, so the ground, then the picture, then the words go down in that order.
 import { toJpeg, toPng } from 'html-to-image';
 import { PDFDocument, rgb, type PDFImage } from 'pdf-lib';
@@ -34,7 +34,7 @@ async function cropped(img: HTMLImageElement, wPx: number, hPx: number): Promise
   return { data: canvas.toDataURL(png ? 'image/png' : 'image/jpeg', 0.88), png };
 }
 
-/** How a set of slides becomes a PDF. Left out, every option is the report deck's own way. */
+/** How a set of slides becomes a PDF. Every option can be left out. */
 export interface SlidesPdfOptions {
   /** Words sit over this slide's picture: it is captured on a transparent ground, and the ground, the picture and the words go down in that order. */
   overlay?: (slide: HTMLElement) => boolean;
@@ -107,11 +107,6 @@ export async function slidesToPdf(slides: HTMLElement[], options: SlidesPdfOptio
   if (options.signal?.aborted) throw aborted();
   const bytes = await pdf.save();
   return new Blob([bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer], { type: 'application/pdf' });
-}
-
-/** The report deck (the automatic one on the Pitch tab) as a PDF. */
-export function deckToPdf(root: HTMLElement, onProgress?: (done: number, total: number) => void): Promise<Blob> {
-  return slidesToPdf([...root.querySelectorAll<HTMLElement>('.slide')], { onProgress });
 }
 
 export function downloadBlob(blob: Blob, name: string) {
