@@ -24,7 +24,7 @@ describe('budget engine', () => {
     expect(seed.lines.length).toBe(154);
     expect(ts.subtotal.cash + ts.subtotal.cashFringes).toBeCloseTo(t.subtotal, 2);
     expect(ts.contingency).toBeCloseTo(t.contingency, 2);
-    expect(ts.cashBudget).toBeCloseTo(811_758.05, 2);
+    expect(ts.cashBudget).toBeCloseTo(805_312.06, 2);
     expect(ts.deferredTotal).toBe(0);
   });
   it('caps FUI and SUI at the first $7,000 of wages per line', () => {
@@ -41,7 +41,7 @@ describe('budget engine', () => {
     for (const l of p.lines) if (PROFIT_SHARE_PRESET_MATCH(l)) p = setPayType(p, l.id, 'points');
     const ts = topSheet(p);
     expect(ts.pointsValue).toBe(105_000);                  // two producer fees, the script, the star allowance
-    expect(ts.cashBudget).toBeCloseTo(696_258.05, 2);
+    expect(ts.cashBudget).toBeCloseTo(689_812.06, 2);
     expect(sagReport(seed).qualifying.id).toBe('LBA');
     expect(sagReport(p).qualifying.id).toBe('MLB');
   });
@@ -62,16 +62,16 @@ describe('SAG tiers', () => {
     expect(qualifyingTier(2_500_000, false).id).toBe('BASIC');
     expect(qualifyingTier(2_500_000, true).id).toBe('LBA');
   });
-  it('counts 42 performer days in the sample and reprices them', () => {
+  it('counts 33 performer days in the sample and reprices them', () => {
     const r = sagReport(seed);
-    expect(r.performerDays).toBe(42);
-    expect(r.castScaleCostAtTier.MLB).toBe(42 * 449);
+    expect(r.performerDays).toBe(33);                    // the days the stripboard gives the cast: 11 + 10 + 3 + 3 + 2 + 2 + 2
+    expect(r.castScaleCostAtTier.MLB).toBe(33 * 449);
     const p = rerateCast(seed, 'LBA');
-    expect(sagReport(p).castScaleCostAtTier.LBA).toBe(42 * 834);
-    const lena = p.lines.find(l => l.accountId === '1401' && l.unit === 'DAY' && l.amount === 12)!;
+    expect(sagReport(p).castScaleCostAtTier.LBA).toBe(33 * 834);
+    const lena = p.lines.find(l => l.accountId === '1401' && l.unit === 'DAY' && l.amount === 11)!;
     expect(lena.rate).toBe(834);
     const agent = p.lines.find(l => l.accountId === '1401' && /agent fee/i.test(l.description))!;
-    expect(agent.rate).toBe(12 * 834);
+    expect(agent.rate).toBe(11 * 834);
   });
 });
 
@@ -93,11 +93,11 @@ describe('waterfall', () => {
     expect(sum).toBeCloseTo(1, 6);
     const lena = r.rows.find(x => x.participant.castId === 1)!;
     expect(lena.participant.name).toBe('LENA');
-    expect(lena.participant.days).toBe(12);
-    expect(lena.cashPay).toBeCloseTo(12 * 449 + 15_000, 2); // scale + star allowance
+    expect(lena.participant.days).toBe(11);
+    expect(lena.cashPay).toBeCloseTo(11 * 449 + 15_000, 2); // scale + star allowance
     expect(seed.participants.find(x => x.id === 'p_2601_1')!.name).toBe('Ines Calderón (Director of photography)');
     const synced = syncDaysFromBudget(seed);
-    expect(synced.participants.find(x => x.castId === 1)!.days).toBe(12);
+    expect(synced.participants.find(x => x.castId === 1)!.days).toBe(11);
   });
 });
 
@@ -181,7 +181,7 @@ describe('importers', () => {
     expect(imp.lines.length).toBe(154);
     expect(imp.accounts.length).toBe(seed.accounts.length);
     expect(imp.shootDays).toBe(12);
-    expect(imp.reported.grandTotal).toBeCloseTo(811_758.05, 2);
+    expect(imp.reported.grandTotal).toBeCloseTo(805_312.06, 2);
     const p = { ...seed, categories: imp.categories, accounts: imp.accounts, fringes: imp.fringes, lines: imp.lines };
     expect(topSheet(p).cashBudget).toBeCloseTo(imp.reported.grandTotal!, 2);
   });
@@ -302,8 +302,8 @@ describe('everyone at scale (the Sing Sing model)', () => {
     }
     const dp = p.lines.find(l => l.accountId === '2601' && l.description === 'Shoot')!;
     expect(lineSubtotal(dp) / dp.amount).toBeCloseTo(785.82, 1);       // a 12-hour crew day
-    const lena = p.lines.find(l => l.accountId === '1401' && l.unit === 'DAY' && l.amount === 12)!;
-    expect(lena.multiplier).toBe(15); expect(lineSubtotal(lena) / 12).toBeCloseTo(841.95, 1);   // a 12-hour SAG day
+    const lena = p.lines.find(l => l.accountId === '1401' && l.unit === 'DAY' && l.amount === 11)!;
+    expect(lena.multiplier).toBe(15); expect(lineSubtotal(lena) / 11).toBeCloseTo(841.95, 1);   // a 12-hour SAG day
     const agent = p.lines.find(l => l.accountId === '1401' && /agent fee/i.test(l.description))!;
     expect(agent.rate).toBeCloseTo(lineSubtotal(lena), 2);
     const prod = p.lines.filter(l => l.accountId === '1201' && isPayrollLine(l));
@@ -328,7 +328,7 @@ describe('10- and 12-hour days', () => {
     const dp = ten.lines.find(l => l.accountId === '2601' && l.description === 'Shoot')!;
     expect(dp.multiplier).toBe(PAID_HOURS[10].day);
     expect(lineSubtotal(dp) / dp.amount).toBeCloseTo(617.43, 1);      // 449 + 2 hours at 1.5x
-    const lena = ten.lines.find(l => l.accountId === '1401' && l.unit === 'DAY' && l.amount === 12)!;
+    const lena = ten.lines.find(l => l.accountId === '1401' && l.unit === 'DAY' && l.amount === 11)!;
     expect(lena.multiplier).toBe(11);
     expect(topSheet(ten).cashBudget).toBeLessThan(topSheet(scale).cashBudget);
     // a raw hourly budget gets cheaper with fewer hours and comes back exactly
@@ -344,7 +344,7 @@ describe('crew on a different scale than cast', () => {
     const p = everyoneAtScale(seed, 'LBA', { premiums: 'points', crewDayRate: 449 });
     const dp = p.lines.find(l => l.accountId === '2601' && l.description === 'Shoot')!;
     expect(dp.rate).toBe(56.13);
-    const lena = p.lines.find(l => l.accountId === '1401' && l.unit === 'DAY' && l.amount === 12)!;
+    const lena = p.lines.find(l => l.accountId === '1401' && l.unit === 'DAY' && l.amount === 11)!;
     expect(lena.rate).toBe(104.25);   // 834 / 8
     const prod = p.lines.find(l => l.accountId === '1201' && isPayrollLine(l))!;
     expect(prod.rate).toBe(56.13);

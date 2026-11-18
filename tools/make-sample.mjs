@@ -73,7 +73,18 @@ const crew = (acct, name, hourly, prepDays, shoot = SHOOT_DAYS, wrapDays = 0) =>
   L(acct, 'Shoot', shoot, 'DAY', hourly, HRS, PAYROLL, ['W BTL']);
   if (wrapDays) L(acct, 'Wrap', wrapDays, 'DAY', hourly, HRS, PAYROLL, ['W BTL']);
 };
-const castDays = { LENA: 12, JUNE: 12, DEL: 0, WALT: 6, 'THE MECHANIC': 3, 'RANGER PRICE': 5, KID: 2, WAITRESS: 2 };
+// Cast days are read off the board, never typed in: the app lets the stripboard own every cast member's shoot days
+// (syncCastDaysFromBoard runs on each load), so a budget written with other numbers would change its total the
+// moment it opened. The day breaks are placed exactly as src/data/seed.ts places them, with the app's own engine.
+const engine = async file => {
+  const out = await build({ entryPoints: [new URL(`../src/engine/${file}`, import.meta.url).pathname], bundle: true, format: 'esm', platform: 'neutral', target: 'es2020', write: false, logLevel: 'silent' });
+  return import(`data:text/javascript;base64,${Buffer.from(out.outputFiles[0].text).toString('base64')}`);
+};
+const { fitDayBreaks, dood } = await engine('board.ts');
+const TARGET_EIGHTHS = 48;   // the same day target seed.ts gives the board
+const dayOutOfDays = dood(fitDayBreaks({ ...board, targetEighthsPerDay: TARGET_EIGHTHS }, SHOOT_DAYS));
+const castDays = Object.fromEntries(castList.map(c => [c.name, dayOutOfDays.find(r => r.castId === c.id)?.total ?? 0]));
+console.log(`cast days off the board: ${Object.entries(castDays).map(([k, v]) => `${k} ${v}`).join(', ')}`);
 
 // ATL
 L('1102', 'Script purchase', 1, 'ALLOW', 25000);
@@ -243,8 +254,7 @@ writeFileSync(new URL('../tools/fixtures/SaltFlat_Board.sex', import.meta.url), 
 
 // ---------- the pitch: look book, design system, deck, people (tools/sample-pitch.mjs) ----------
 // The colours come from the app's own palette engine, read here the way tools/build-deck-runtime.mjs reads the page assembler.
-const bundled = await build({ entryPoints: [new URL('../src/engine/palette.ts', import.meta.url).pathname], bundle: true, format: 'esm', platform: 'neutral', target: 'es2020', write: false, logLevel: 'silent' });
-const palette = await import(`data:text/javascript;base64,${Buffer.from(bundled.outputFiles[0].text).toString('base64')}`);
+const palette = await engine('palette.ts');
 const samplePitch = buildSamplePitch(palette);
 const pitchText = JSON.stringify(samplePitch, null, 1);
 writeFileSync(new URL('../src/data/sample-pitch.json', import.meta.url), pitchText);
