@@ -5,6 +5,7 @@ import { withDeal, applyDeal } from './engine/deal';
 import { adoptBoardDays, syncCastDaysFromBoard } from './engine/board';
 import { topSheet } from './engine/budget';
 import { idbAvailable, idbGet, idbSet, idbDel, STORES } from './idb';
+import { checkBoard, checkProject, repairNote } from './engine/openProject';
 
 /** Every project that comes in: deal defaults, then the board takes ownership of cast and follower days. */
 const normalize = (p: Project): Project => syncCastDaysFromBoard(adoptBoardDays(withDeal(p)));
@@ -29,8 +30,21 @@ const ss = (): KV | null => { try { return typeof sessionStorage !== 'undefined'
 
 export const newProjectId = () => `p_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
 
+/** The list of projects as the browser holds it. A row that is not a row (the list was edited by hand, or cut off) is
+ *  left out, and a row with a field missing is shown with a blank there, so the Projects table can always be drawn. */
 export function readIndex(kv: KV | null = ls()): ProjectMeta[] {
-  try { const raw = kv?.getItem(INDEX_KEY); const v = raw ? JSON.parse(raw) : []; return Array.isArray(v) ? v : []; } catch { return []; }
+  try {
+    const raw = kv?.getItem(INDEX_KEY); const v: unknown = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(v)) return [];
+    const text = (x: unknown, or = '') => (typeof x === 'string' ? x : or), n = (x: unknown) => (typeof x === 'number' && Number.isFinite(x) ? x : 0);
+    const seen = new Set<string>(); const out: ProjectMeta[] = [];
+    for (const m of v as Partial<ProjectMeta>[]) {
+      if (!m || typeof m !== 'object' || typeof m.id !== 'string' || !m.id || seen.has(m.id)) continue;
+      seen.add(m.id);
+      out.push({ id: m.id, name: text(m.name, 'Untitled'), version: text(m.version), savedAt: text(m.savedAt), shootDays: n(m.shootDays), lines: n(m.lines), scenes: n(m.scenes), cashBudget: n(m.cashBudget) });
+    }
+    return out;
+  } catch { return []; }
 }
 function writeIndex(list: ProjectMeta[], kv: KV | null = ls()) { try { kv?.setItem(INDEX_KEY, JSON.stringify(list)); } catch { /* ignore */ } }
 
@@ -153,13 +167,26 @@ export function saveSlot(id: string, p: Project, kv: KV | null = ls()): boolean 
   writeIndex([metaOf(p, id), ...rest], kv);
   return true;
 }
-/** The slot's project, pictures still blanked: follow with hydrateImages(). */
+export type SlotRead =
+  | { ok: true; project: Project; repaired: string[] }
+  | { ok: false; reason: string; missing: boolean };   // missing: there is nothing saved under this id at all
+/** What is saved for one project, read through the same check a file goes through. A slot that cannot be read is
+ *  reported with the reason and left exactly as it is in the browser: nothing here writes or deletes. */
+export function readSlot(id: string, kv: KV | null = ls()): SlotRead {
+  let raw: string | null | undefined;
+  try { raw = kv?.getItem(slotKey(id)); } catch { raw = null; }
+  if (!raw) return { ok: false, reason: 'Nothing is saved for this project in this browser.', missing: true };
+  let parsed: unknown;
+  try { parsed = JSON.parse(raw); } catch { return { ok: false, reason: 'What this browser saved for it is incomplete.', missing: false }; }
+  const r = checkProject(parsed);
+  if (!r.ok) return { ok: false, reason: r.reason.replace(/^This (project )?file/, 'The saved copy'), missing: false };
+  try { return { ok: true, project: normalize(r.project), repaired: r.repaired }; }
+  catch (e) { console.error('A saved project could not be prepared', e); return { ok: false, reason: 'The saved copy could not be read.', missing: false }; }
+}
+/** The slot's project, pictures still blanked: follow with hydrateImages(). Null when there is none or it cannot be read. */
 export function loadSlot(id: string, kv: KV | null = ls()): Project | null {
-  try {
-    const raw = kv?.getItem(slotKey(id));
-    if (raw) { const p = JSON.parse(raw); if (p && p.schemaVersion === 1) return normalize(p); }
-  } catch { /* corrupt or blocked */ }
-  return null;
+  const r = readSlot(id, kv);
+  return r.ok ? r.project : null;
 }
 export function deleteSlot(id: string, kv: KV | null = ls()): void {
   const keys = slotKeys(id, kv);
@@ -175,8 +202,9 @@ export function adoptLegacy(kv: KV | null = ls()): string | null {
   try {
     const raw = kv?.getItem(LEGACY_KEY);
     if (!raw) return null;
-    const p = JSON.parse(raw);
-    if (!p || p.schemaVersion !== 1) return null;
+    const r = checkProject(JSON.parse(raw));
+    if (!r.ok) return null;   // not a project this version can read: it stays where it is, untouched
+    const p = r.project;
     const id = newProjectId();
     saveSlot(id, p, kv);
     kv!.setItem(ACTIVE_KEY, id);
@@ -185,15 +213,60 @@ export function adoptLegacy(kv: KV | null = ls()): string | null {
   } catch { return null; }
 }
 
-/** Which project this tab should open: the one it had, else the browser's last active one. */
-function startingId(): string | null {
-  const kv = ls();
+// ---- a project that took the page down is not opened again by itself ----
+// When drawing fails with a project open, the crash screen (ui/CrashScreen.tsx) calls noteCrash(). Two things are
+// remembered: in the browser, that this project crashed, so no tab opens it on its own again (the user still can, from
+// Projects; once it draws, the mark comes off); and in this tab, that the next start is the start screen with a line
+// saying why. So a reload after a crash always lands on a page that works, and the project is still there.
+const CRASHED_KEY = 'profitshare.crashed';      // ids that crashed while open (localStorage)
+const AFTER_CRASH_KEY = 'profitshare.afterCrash';   // this tab's next start is the start screen (sessionStorage)
+let openNow: string | null = null;      // the project being drawn, as of the latest render
+let afterCrash: { id: string | null; name: string } | null = null;   // the same note, for a restart without a reload
+const get = (kv: KV | null, k: string): string | null => { try { return kv?.getItem(k) ?? null; } catch { return null; } };
+export function crashedIds(kv: KV | null = ls()): string[] {
+  try { const v: unknown = JSON.parse(get(kv, CRASHED_KEY) ?? '[]'); return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []; } catch { return []; }
+}
+function setCrashed(ids: string[], kv: KV | null) { try { if (ids.length) kv?.setItem(CRASHED_KEY, JSON.stringify(ids.slice(-50))); else kv?.removeItem(CRASHED_KEY); } catch { /* ignore */ } }
+/** The page could not be drawn. Remembers which project was open so it is not opened again without being asked, and
+ *  that this tab starts on the start screen next. Nothing saved is changed. Returns what was open, for the screen to say. */
+export function noteCrash(kv: KV | null = ls(), tabKv: KV | null = ss()): { id: string | null; name: string } {
+  const id = openNow;
+  const name = id ? readIndex(kv).find(m => m.id === id)?.name ?? '' : '';
+  afterCrash = { id, name };
+  if (id) setCrashed([...crashedIds(kv).filter(x => x !== id), id], kv);
+  try { tabKv?.setItem(AFTER_CRASH_KEY, JSON.stringify(afterCrash)); tabKv?.removeItem(TAB_KEY); } catch { /* ignore */ }
+  return afterCrash;
+}
+/** Set when this start follows a crash: the project that was open then (its name may be empty), or null. */
+export function crashBefore(tabKv: KV | null = ss()): { id: string | null; name: string } | null {
+  if (afterCrash) return afterCrash;
+  try {
+    const v = JSON.parse(get(tabKv, AFTER_CRASH_KEY) ?? 'null') as { id?: unknown; name?: unknown } | null;
+    return v && typeof v === 'object' ? { id: typeof v.id === 'string' ? v.id : null, name: typeof v.name === 'string' ? v.name : '' } : null;
+  } catch { return null; }
+}
+/** The page has drawn: the start-screen-next note is used up, and a project that is open and drawing is no longer marked. */
+export function noteDrawn(id: string | null, kv: KV | null = ls(), tabKv: KV | null = ss()): void {
+  afterCrash = null;
+  try { if (get(tabKv, AFTER_CRASH_KEY) !== null) tabKv?.removeItem(AFTER_CRASH_KEY); } catch { /* ignore */ }
+  if (id) { const ids = crashedIds(kv); if (ids.includes(id)) setCrashed(ids.filter(x => x !== id), kv); }
+}
+
+/** For tests: forget what this page knows about a crash (a real reload does the same). */
+export function resetCrashState(): void { openNow = null; afterCrash = null; }
+
+/** Which project this tab should open: the one it had, else the browser's last active one, else the newest. Never one
+ *  that took the page down the last time it was open, and none at all on the start that follows a crash. */
+export function startingId(kv: KV | null = ls(), tabKv: KV | null = ss()): string | null {
+  if (crashBefore(tabKv)) return null;
   if (readIndex(kv).length === 0) { const adopted = adoptLegacy(kv); if (adopted) return adopted; }
-  const tab = ss()?.getItem(TAB_KEY);
-  if (tab && kv?.getItem(slotKey(tab))) return tab;
-  const active = kv?.getItem(ACTIVE_KEY);
-  if (active && kv?.getItem(slotKey(active))) return active;
-  return readIndex(kv)[0]?.id ?? null;
+  const crashed = new Set(crashedIds(kv));
+  const usable = (id: string | null | undefined): id is string => !!id && !crashed.has(id) && !!get(kv, slotKey(id));
+  const tab = get(tabKv, TAB_KEY);
+  if (usable(tab)) return tab;
+  const active = get(kv, ACTIVE_KEY);
+  if (usable(active)) return active;
+  return readIndex(kv).find(m => usable(m.id))?.id ?? null;
 }
 function rememberActive(id: string | null) {
   try { if (id) { ls()?.setItem(ACTIVE_KEY, id); ss()?.setItem(TAB_KEY, id); } else { ss()?.removeItem(TAB_KEY); } } catch { /* ignore */ }
@@ -209,15 +282,27 @@ export function keepBoard(board: Board, reason: string): void {
   if (!board.scenes.length) return;
   try { localStorage.setItem(BOARD_KEY, JSON.stringify({ when: new Date().toISOString(), reason, board } satisfies BoardBackup)); } catch { /* ignore */ }
 }
-export function previousBoard(): BoardBackup | null {
-  try { const raw = localStorage.getItem(BOARD_KEY); return raw ? JSON.parse(raw) as BoardBackup : null; } catch { return null; }
+/** The kept board, when what the browser holds can be read as one; anything else is passed over and left where it is. */
+export function previousBoard(kv: KV | null = ls()): BoardBackup | null {
+  try {
+    const raw = kv?.getItem(BOARD_KEY); if (!raw) return null;
+    const v = JSON.parse(raw) as Partial<BoardBackup> | null;
+    if (!v || typeof v !== 'object') return null;
+    const board = checkBoard(v.board);
+    return board ? { when: typeof v.when === 'string' ? v.when : '', reason: typeof v.reason === 'string' ? v.reason : '', board } : null;
+  } catch { return null; }
 }
 export function forgetPreviousBoard(): void { try { localStorage.removeItem(BOARD_KEY); } catch { /* ignore */ } }
 
 /** The open project in memory, autosaved to its own slot in the browser, with undo; plus the list of every project the browser holds. */
 export function useProject() {
-  const [activeId, setActiveId] = useState<string | null>(startingId);
-  const [project, setProjectState] = useState<Project>(() => (activeId && loadSlot(activeId)) || normalize(blankProject({ chartOfAccounts: 'empty' })));
+  // what this tab opens on, worked out once: the project it had, or the start screen with a line saying why not
+  const [start] = useState(startUp);
+  const [activeId, setActiveId] = useState<string | null>(start.id);
+  const [project, setProjectState] = useState<Project>(start.project);
+  const [startNote, setStartNote] = useState(start.note);
+  openNow = activeId;   // for the crash screen: which project was being drawn when drawing failed
+  useEffect(() => { noteDrawn(activeId); }, [activeId]);   // this render reached the page
   const [projects, setProjects] = useState<ProjectMeta[]>(readIndex);
   const past = useRef<Project[]>([]);
   const [dirty, setDirty] = useState(false);
@@ -278,10 +363,14 @@ export function useProject() {
   /** Close the open project (it stays saved) and show the start screen. */
   const newProject = useCallback(() => { past.current = []; setActiveId(null); setProjectState(normalize(blankProject({ chartOfAccounts: 'empty' }))); setDirty(false); }, []);
 
-  /** Switch to another project the browser holds. */
-  const openProject = useCallback((id: string): boolean => {
-    const p = loadSlot(id); if (!p) return false;
-    past.current = []; setActiveId(id); setProjectState(p); setDirty(false); hydrate(p); return true;
+  /** Switch to another project the browser holds. When what is saved for it cannot be read, nothing changes (the
+   *  project that is open stays open, the saved copy stays as it is) and `note` says why. */
+  const openProject = useCallback((id: string): { ok: boolean; note: string } => {
+    const r = readSlot(id);
+    if (!r.ok) return { ok: false, note: r.reason };
+    const p = r.project;
+    past.current = []; setActiveId(id); setProjectState(p); setDirty(false); setStartNote(''); hydrate(p);
+    return { ok: true, note: repairNote(r.repaired) };
   }, [hydrate]);
 
   const deleteProject = useCallback((id: string) => {
@@ -289,7 +378,58 @@ export function useProject() {
     if (idRef.current === id) newProject();
   }, [newProject]);
 
-  return { project, setProject, undo, replace, dirty, setDirty, canUndo: past.current.length > 0, undoDepth: past.current.length, storageNote, projects, activeId, newProject, openProject, deleteProject };
+  return { project, setProject, undo, replace, dirty, setDirty, canUndo: past.current.length > 0, undoDepth: past.current.length, storageNote, startNote, dismissStartNote: () => setStartNote(''), projects, activeId, newProject, openProject, deleteProject };
+}
+
+/** What a tab starts on. The project it would open is read through the check; if it cannot be read, or the last start
+ *  ended in a crash, the tab starts on the start screen with no project open (so autosave has nothing to write over)
+ *  and a note for the user. The saved copy is left as it is either way. */
+export function startUp(kv: KV | null = ls(), tabKv: KV | null = ss()): { id: string | null; project: Project; note: string } {
+  const blank = () => normalize(blankProject({ chartOfAccounts: 'empty' }));
+  const crash = crashBefore(tabKv);
+  if (crash) {
+    const listed = !!crash.id && readIndex(kv).some(m => m.id === crash.id);
+    return { id: null, project: blank(), note: listed
+      ? `ProfitShare ran into a problem while ${crash.name ? `“${crash.name}”` : 'a project'} was open, so it has not been opened again. It is still saved here, under Projects, unchanged.`
+      : 'ProfitShare ran into a problem and has started again. The projects saved in this browser are unchanged.' };
+  }
+  const id = startingId(kv, tabKv);
+  if (!id) return { id: null, project: blank(), note: '' };
+  const r = readSlot(id, kv);
+  if (r.ok) return { id, project: r.project, note: repairNote(r.repaired) && `Some of this project could not be read and was left out or set back to its default: ${r.repaired.join(', ')}. Everything else is as it was saved.` };
+  const name = readIndex(kv).find(m => m.id === id)?.name;
+  return { id: null, project: blank(), note: `${name ? `“${name}”` : 'The project that was open last'} could not be opened. ${r.reason} It has been left as it is in this browser, under Projects.` };
+}
+
+/** Every project this browser holds, as the text of a file each, for the crash screen's download buttons. Nothing here
+ *  needs a project to be readable: one that is not is handed over exactly as it is saved. Pictures and font files are
+ *  put back from the browser's big store where that works. */
+export function savedProjectList(kv: KV | null = ls()): { id: string; name: string; fileName: string }[] {
+  const used = new Set<string>();
+  return readIndex(kv).filter(m => get(kv, slotKey(m.id)) !== null).map(m => {
+    const stem = `${m.name.replace(/[^\w-]+/g, '_').slice(0, 60) || 'project'}${m.version ? `_${m.version.replace(/[^\w-]+/g, '_').slice(0, 30)}` : ''}`;
+    let fileName = `${stem}.profitshare.json`;
+    for (let n = 2; used.has(fileName); n++) fileName = `${stem}_${n}.profitshare.json`;
+    used.add(fileName);
+    return { id: m.id, name: m.name, fileName };
+  });
+}
+export async function savedProjectText(id: string, kv: KV | null = ls()): Promise<string | null> {
+  const raw = get(kv, slotKey(id));
+  if (raw === null) return null;
+  try {
+    const p = JSON.parse(raw) as Project;
+    if (!p || typeof p !== 'object' || Array.isArray(p)) return raw;
+    return JSON.stringify(await hydrateImages(p), null, 1);
+  } catch { return raw; }   // not something this version can take apart: the file is what the browser holds, as it is
+}
+export function downloadText(text: string, fileName: string) {
+  const blob = new Blob([text], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = fileName;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
 export function downloadJson(p: Project) {

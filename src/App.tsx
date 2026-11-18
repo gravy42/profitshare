@@ -23,7 +23,8 @@ import { PitchView } from './ui/PitchView';
 import { CallSheetsView } from './ui/CallSheetsView';
 import { BoardView } from './ui/BoardView';
 import { DealView } from './ui/DealView';
-import { applyDeal, dealControlledIds, withDeal } from './engine/deal';
+import { applyDeal, dealControlledIds } from './engine/deal';
+import { readProjectText, repairNote } from './engine/openProject';
 import { StartView, type StarterSettings } from './ui/StartView';
 import { starterProject, applyStarter } from './engine/starter';
 import { money } from './ui/format';
@@ -31,9 +32,9 @@ import { money } from './ui/format';
 type Tab = 'start' | 'deal' | 'topsheet' | 'board' | 'calendar' | 'callsheets' | 'breakdowns' | 'points' | 'sag' | 'incentives' | 'pitch' | 'about';
 
 export default function App() {
-  const { project, setProject, undo, replace, canUndo, undoDepth, storageNote, projects, activeId, newProject, openProject, deleteProject } = useProject();
+  const { project, setProject, undo, replace, canUndo, undoDepth, storageNote, startNote, dismissStartNote, projects, activeId, newProject, openProject, deleteProject } = useProject();
   const [hadSaved] = useState(hadSavedProject);
-  const [tab, setTab] = useState<Tab>(hadSaved ? 'topsheet' : 'start');
+  const [tab, setTab] = useState<Tab>(activeId ? 'topsheet' : 'start');   // no project open (none saved, or the last one could not be opened): the start screen
   // a message to the user: short confirmations fade after a few seconds, anything worth re-reading (an import report, a repricing) stays until dismissed
   const [msg, setMsg] = useState<{ text: string; sticky: boolean } | null>(null);
   const msgTimer = useRef<number | null>(null);
@@ -75,11 +76,15 @@ export default function App() {
   };
 
   const loadProjectFile = async (f: File) => {
-    const p = withDeal(JSON.parse(await f.text()));
-    if (p?.schemaVersion !== 1) throw new Error(`${f.name} is not a ProfitShare project`);
+    // every project file comes in through one check: a project the app can draw, or a reason in plain words
+    const r = readProjectText(await f.text());
+    if (!r.ok) throw new Error(r.reason);
     const was = fresh ? '' : `; ${project.name || 'the project you had open'} stays under Projects on the Start tab`;
-    replace(p); setTab(fresh ? 'deal' : 'topsheet');
-    return `Opened ${f.name} as its own project${was}`;
+    try { replace(r.project); }
+    catch (e) { console.error(`${f.name} could not be opened`, e); throw new Error('This project file could not be opened. It may be damaged.'); }
+    setTab(fresh ? 'deal' : 'topsheet');
+    const note = repairNote(r.repaired);
+    return `Opened ${f.name} as its own project${was}${note ? `. ${note}` : ''}`;
   };
   const loadBudgetFile = async (f: File) => {
     const imp = parseBudgetFile(await f.arrayBuffer(), f.name, standardChartOfAccounts());
@@ -237,7 +242,11 @@ export default function App() {
   const startImport = () => { replace(blankProject({ chartOfAccounts: 'empty' })); void importBudget(); };
   const startOpen = () => void openJson();
   const startNew = () => { newProject(); setTab('start'); flash(`${project.name || 'The project'} is saved in this browser; find it under Projects on the Start tab.`); };
-  const switchTo = (id: string) => { if (openProject(id)) { setTab('topsheet'); const m = projects.find(x => x.id === id); flash(`Opened ${m?.name ?? 'the project'}${m?.version ? ` (${m.version})` : ''}.`); } };
+  const switchTo = (id: string) => {
+    const m = projects.find(x => x.id === id), r = openProject(id);
+    if (r.ok) { setTab('topsheet'); flash(`Opened ${m?.name ?? 'the project'}${m?.version ? ` (${m.version})` : ''}.${r.note ? ` ${r.note}` : ''}`); }
+    else flash(`${m?.name ? `“${m.name}”` : 'That project'} could not be opened. ${r.note} It has been left as it is in this browser.`, true);
+  };
   const copyJson = async () => {
     const text = JSON.stringify(project);
     try { await navigator.clipboard.writeText(text); flash('Project JSON copied to the clipboard'); }
@@ -285,6 +294,7 @@ export default function App() {
       <main>
         <div role="status" aria-live="polite">{msg && <div className="notice row msg"><span>{msg.text}</span><button className="x" title="dismiss" aria-label="Dismiss this message" onClick={() => setMsg(null)}>×</button></div>}</div>
         {storageNote && <div className="notice" role="status">{storageNote}</div>}
+        {startNote && <div className="notice row msg" role="status"><span>{startNote}</span><button className="x" title="dismiss" aria-label="Dismiss this message" onClick={dismissStartNote}>×</button></div>}
         {pendingScript && (
           <div className="notice row">
             <span><b>{pendingScript.name}</b> has {pendingScript.board.scenes.length} scenes and this project already has a board with {project.board.scenes.length}. <b>Merge</b> matches scenes by number and adds the script text, cast and a first pass of tags to the strips you have, keeping your day breaks, strip order, cast numbers, locations and every tag. <b>Replace</b> starts the board over from the script.</span>
