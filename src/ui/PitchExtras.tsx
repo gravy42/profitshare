@@ -10,6 +10,7 @@ import { newSection } from '../engine/pitch';
 import { AiKeyFields } from './AiKey';
 import { Boundary } from './Boundary';
 import { plainColor } from './color';
+import { isEmbeddedImage } from './address';
 
 // font files, the card colour, the papers and the palette-from-pictures flow load with the Pitch tab, not with the app
 const FontFiles = lazy(() => import('./DesignBuilder').then(m => ({ default: m.FontFiles })));
@@ -277,7 +278,7 @@ export function DesignPanel({ project, setPitch }: { project: Project; setPitch:
           </div>
         </div>
         <div className="swatch" style={{ backgroundColor: plainColor(d.colors.bg, base.colors.bg), color: plainColor(d.colors.ink, base.colors.ink), fontFamily: d.fonts.body || undefined }}>
-          {typeof d.logoDataUrl === 'string' && d.logoDataUrl.startsWith('data:image/') && <img src={d.logoDataUrl} alt="" />}
+          {isEmbeddedImage(d.logoDataUrl) && <img src={d.logoDataUrl} alt="" />}
           <div className="t" style={{ fontFamily: d.fonts.title || 'var(--font-title)', color: plainColor(d.colors.accent, base.colors.accent) }}>{project.name || 'The film'}</div>
           <div style={{ color: plainColor(d.colors.accent2, base.colors.accent2) }}>Why this film, why now</div>
           <div style={{ color: plainColor(d.colors.muted, base.colors.muted) }} className="small">{d.name || 'your design system'}</div>

@@ -10,6 +10,7 @@ import { AiPanel, Draft, LookBookPanel, DesignPanel, ResearchPanel, TeamPanel } 
 import { aiReady } from '../ai';
 import { Boundary } from './Boundary';
 import { PANEL, goToPanel, type PanelKey } from './jump';
+import { webLink } from './address';
 
 // the pitch deck builder brings the deck's runtime and stylesheet with it, so it loads when the Pitch tab is first opened
 const PitchDeck = lazy(() => import('./PitchDeck'));
@@ -88,7 +89,7 @@ export function PitchView({ project, setProject, onTab, onUndo, undoDepth }: { p
                 <td>{compMultiple(c) ? `${compMultiple(c)!.toFixed(1)}×` : ''}</td>
                 <td className="l"><input className="l" value={c.note} onChange={e => setComp(c.id, { note: e.target.value })} /></td>
                 <td className="l"><input className="l" value={c.group ?? ''} list="compgroups" style={{ width: 120 }} placeholder={DEFAULT_GROUP} onChange={e => setComp(c.id, { group: e.target.value })} /></td>
-                <td className="l">{c.source ? <a href={c.source} target="_blank" rel="noreferrer">link</a> : null}<input className="l" value={c.source} style={{ width: 90 }} placeholder="url" onChange={e => setComp(c.id, { source: e.target.value })} /></td>
+                <td className="l">{webLink(c.source) ? <a href={webLink(c.source)!} target="_blank" rel="noopener noreferrer">link</a> : null}<input className="l" value={c.source} style={{ width: 90 }} placeholder="url" onChange={e => setComp(c.id, { source: e.target.value })} /></td>
                 <td><button className="x" onClick={() => set(x => ({ ...x, comps: x.comps.filter(y => y.id !== c.id) }))}>×</button></td>
               </tr>
               ))}

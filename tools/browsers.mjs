@@ -24,6 +24,23 @@ const step = async (label, fn) => {
 };
 const need = (cond, message) => { if (!cond) throw new Error(message); };
 
+// The built page carries a Content-Security-Policy (tools/csp.mjs). Whatever it stops is heard two ways: the page's own
+// `securitypolicyviolation` event (heard from the first script on, in every document of the context), and the
+// browser's console, which is also where a worker's refusals are said. Returns the list, filled as the page runs.
+const POLICY_WORDS = /content[ -]security[ -]policy/i;
+async function watchPolicy(context, page) {
+  const refused = [];
+  await context.exposeBinding('__policyRefused', (_source, what) => { refused.push(String(what)); });
+  await context.addInitScript(() => {
+    addEventListener('securitypolicyviolation', e => {
+      const from = e.sourceFile ? ` (from ${e.sourceFile.split('/').pop()}${e.lineNumber ? `:${e.lineNumber}` : ''})` : '';
+      window.__policyRefused?.(`${e.effectiveDirective || e.violatedDirective} refused ${e.blockedURI || 'inline'}${from}`);
+    });
+  });
+  page.on('console', m => { if (POLICY_WORDS.test(m.text())) refused.push(`console: ${m.text().slice(0, 240)}`); });
+  return refused;
+}
+
 const server = spawn('npx', ['vite', 'preview', '--port', String(port), '--strictPort', '--host', '127.0.0.1'], { stdio: 'ignore' });
 const up = async () => { for (let i = 0; i < 60; i++) { try { if ((await fetch(origin)).ok) return; } catch { /* not yet */ } await new Promise(r => setTimeout(r, 500)); } throw new Error('the preview server did not start'); };
 
@@ -42,6 +59,7 @@ try {
   page.on('console', m => { if (m.type() === 'error' && !/favicon/.test(m.text())) errors.push(`console: ${m.text()}`); });
   const outside = [];
   page.on('request', r => { if (!r.url().startsWith(origin) && !/^(data|blob|about):/.test(r.url())) outside.push(r.url()); });
+  const refused = await watchPolicy(context, page);   // everything the page's Content-Security-Policy stopped
   const shot = (file, target = page) => target.screenshot({ path: `${out}/${file}.png` }).catch(() => undefined);
   const deckSlides = () => page.evaluate(() => document.querySelector('#pitch-deck .pd-host')?.shadowRoot?.querySelectorAll('section.psd-slide').length ?? 0);
   const download = async (click, file) => {
@@ -50,8 +68,16 @@ try {
   };
 
   await step('the app opens', async () => { await page.goto(origin); await page.getByRole('button', { name: 'Load the sample' }).waitFor({ timeout: 20000 }); });
+  await step('the page carries its policy', async () => {
+    const policy = await page.locator('meta[http-equiv="Content-Security-Policy"]').getAttribute('content', { timeout: 5000 });
+    const scripts = /(?:^|;)\s*script-src ([^;]*)/.exec(policy)?.[1] ?? '';
+    need(/^default-src 'none'/.test(policy), `the policy does not start from nothing: ${policy.slice(0, 80)}`);
+    need(scripts && !scripts.split(/\s+/).some(src => src === "'unsafe-inline'" || src === "'unsafe-eval'"), `script-src is "${scripts}"`);
+    need(await page.locator('head script:not([src])').count() > 0 && refused.length === 0, `the page's own inline script was refused: ${refused[0]}`);
+    return policy;
+  });
   await step('the sample loads', async () => { await page.getByRole('button', { name: 'Load the sample' }).click(); await page.waitForTimeout(600); await shot('01-sample'); });
-  for (const label of ['Top sheet & budget', 'Deal', 'Stripboard', 'Points & waterfall', 'SAG tier', 'Pitch']) {
+  for (const label of ['Top sheet & budget', 'Deal', 'Stripboard', 'Calendar', 'Call sheets', 'Breakdowns', 'Points & waterfall', 'SAG tier', 'Incentives', 'About', 'Start', 'Pitch']) {
     await step(`tab: ${label}`, async () => { await page.getByRole('button', { name: label, exact: true }).click(); await page.waitForTimeout(500); await shot(`02-tab-${label.toLowerCase().replace(/[^a-z]+/g, '-')}`); });
   }
   await step('the pitch deck preview draws 14 slides', async () => {
@@ -67,6 +93,10 @@ try {
     for (let i = 0; i < 4; i++) { await page.getByRole('button', { name: 'Next slide' }).click(); await page.waitForTimeout(700); }
     const at = (await page.locator('#pitch-deck .pd-count').innerText()).replace(/\s+/g, ' ').trim();
     need(/5 \/ 14$/.test(at), `the counter says "${at}"`); await shot('04-pitch-slide-5');
+  });
+  await step('a slide opens in the editor', async () => {
+    await page.locator('#pitch-deck .pd-row .pd-pick').nth(1).click();
+    await page.locator('#pitch-deck .pd-editor').waitFor({ timeout: 10000 }); await page.waitForTimeout(600); await shot('04-slide-editor');
   });
   await step('Play replays a slide', async () => { await page.getByRole('button', { name: /^Play/ }).first().click(); await page.waitForTimeout(1500); await shot('05-play'); });
   await step('the design builder proposes looks from pictures', async () => {
@@ -117,9 +147,101 @@ try {
     }, 'all.zip');
     const bytes = readFileSync(d.path); need(bytes[0] === 0x50 && bytes[1] === 0x4b, 'not a zip'); return `${(bytes.length / 1e6).toFixed(1)} MB`;
   });
+  // Files brought in from outside, each read by its own importer (a PDF by pdf.js, in a worker made from a blob:).
+  const bring = async (button, file, said) => {
+    const [chooser] = await Promise.all([page.waitForEvent('filechooser', { timeout: 10000 }), page.getByRole('button', { name: button, exact: true }).click()]);
+    await chooser.setFiles(`tools/fixtures/${file}`);
+    const status = page.locator('main [role="status"]').first();
+    await page.waitForFunction(re => new RegExp(re, 'i').test(document.querySelector('main [role="status"]')?.textContent ?? ''), said, { timeout: 30000 }).catch(() => undefined);
+    const text = (await status.innerText()).replace(/\s+/g, ' ').trim();
+    need(new RegExp(said, 'i').test(text), `after ${file} the page says "${text.slice(0, 160)}"`);
+    const dismiss = page.getByRole('button', { name: 'Dismiss this message' }); if (await dismiss.count()) await dismiss.first().click();
+    return text.slice(0, 120);
+  };
+  await step('look book: the pages of a PDF, drawn as pictures', async () => {
+    await page.getByRole('button', { name: 'Pitch', exact: true }).click();
+    const book = page.locator('#pitch-lookbook'); await book.scrollIntoViewIfNeeded();
+    const had = await book.locator('figure').count();
+    const [chooser] = await Promise.all([page.waitForEvent('filechooser', { timeout: 10000 }), book.getByRole('button', { name: 'Add the pages of a PDF' }).click()]);
+    await chooser.setFiles('tools/fixtures/SaltFlat_Script.pdf');
+    await page.waitForFunction(n => document.querySelectorAll('#pitch-lookbook figure img').length > n, had, { timeout: 60000 });
+    return `${await book.locator('figure').count() - had} pages added`;
+  });
+  // A PDF whose picture is a JPEG 2000: pdf.js decodes those in WebAssembly, which the policy has to allow by name.
+  await step('look book: a PDF with a JPEG 2000 picture in it', async () => {
+    const book = page.locator('#pitch-lookbook'); await book.scrollIntoViewIfNeeded();
+    const had = await book.locator('figure').count(), said = refused.length;
+    const [chooser] = await Promise.all([page.waitForEvent('filechooser', { timeout: 10000 }), book.getByRole('button', { name: 'Add the pages of a PDF' }).click()]);
+    await chooser.setFiles('tools/fixtures/jpx-picture.pdf');
+    await page.waitForFunction(n => document.querySelectorAll('#pitch-lookbook figure img').length > n, had, { timeout: 60000 });
+    need(refused.length === said, `the picture was not decoded: ${refused[said]}`);
+    // the page is the picture, edge to edge: a page left white means the decoder did not run
+    const dark = await page.evaluate(async () => {
+      const img = [...document.querySelectorAll('#pitch-lookbook figure img')].pop(); await img.decode();
+      const c = document.createElement('canvas'); c.width = c.height = 8; const g = c.getContext('2d'); g.drawImage(img, 0, 0, 8, 8);
+      const d = g.getImageData(0, 0, 8, 8).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (d[i] + d[i + 1] + d[i + 2] < 720) n++; return n;
+    });
+    need(dark > 32, `only ${dark} of 64 sampled points of the page are not white`);
+  });
+  const BUDGET = 'Import budget (.xlsx / .csv)', BOARD = 'Import board or script (.sex / .fdx / .pdf)';
+  await step('import: a budget (.xlsx)', () => bring(BUDGET, 'Budget_SaltFlat_Draft3.xlsx', 'Budget_SaltFlat_Draft3'));
+  await step('import: a budget (.csv)', () => bring(BUDGET, 'mmb-export.csv', 'mmb-export'));
+  await step('import: a board (.sex)', () => bring(BOARD, 'SaltFlat_Board.sex', 'SaltFlat_Board'));
+  await step('import: a script (.fdx)', () => bring(BOARD, 'sample.fdx', 'sample\\.fdx'));
+  await step('import: a script (.fountain)', () => bring(BOARD, 'SaltFlat_Script.fountain', 'SaltFlat_Script'));
+  await step('import: a script (.pdf)', () => bring(BOARD, 'SaltFlat_Script.pdf', 'SaltFlat_Script'));
+  await step('the policy refused nothing the app does', async () => { need(refused.length === 0, `${refused.length} refused: ${[...new Set(refused)].slice(0, 4).join(' | ')}`); });
   await step('the app logged no errors', async () => { need(errors.length === 0, errors.slice(0, 4).join(' | ')); });
   await step('the app asked for nothing outside itself', async () => { need(outside.length === 0, outside.slice(0, 3).join(' | ')); });
   await context.close();
+
+  // ---- the policy, tried: what it must let through, and what it must stop ------------------------------------------
+  {
+    const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    // Google is not asked for anything here (CI must not depend on it): the two hosts are cut off at the wire. A request
+    // the policy lets through is seen leaving and then fails; one the policy stops is never seen at all.
+    // (`asked` is filled at the wire and not from the page's 'request' event, which Chromium also raises for a request its policy then stops.)
+    const asked = [];
+    await ctx.route(u => !String(u).startsWith(origin) && !/^(data|blob|about):/.test(String(u)), r => { asked.push(r.request().url()); return r.abort(); });
+    const p = await ctx.newPage();
+    const stopped = await watchPolicy(ctx, p);
+    await step('policy: the font picker may ask Google Fonts', async () => {
+      await p.goto(origin); await p.getByRole('button', { name: 'Load the sample' }).click({ timeout: 20000 }); await p.waitForTimeout(500);
+      await p.getByRole('button', { name: 'Pitch', exact: true }).click();
+      const open = p.getByRole('button', { name: 'Pick the title font from Google Fonts' });
+      await open.scrollIntoViewIfNeeded(); await open.click();
+      await p.getByRole('dialog').getByRole('button', { name: 'Show the fonts' }).click();
+      for (let i = 0; i < 40 && !asked.some(u => u.startsWith('https://fonts.googleapis.com/')); i++) await p.waitForTimeout(250);
+      need(asked.some(u => u.startsWith('https://fonts.googleapis.com/')), 'no request for fonts.googleapis.com left the page');
+      need(stopped.length === 0, `the policy refused: ${stopped[0]}`);
+      await p.keyboard.press('Escape');
+      return `${asked.length} request${asked.length === 1 ? '' : 's'} left for Google Fonts (cut off at the wire here); none refused by the policy`;
+    });
+    const tried = async (label, directive, attempt) => step(label, async () => {
+      const before = stopped.length, left = asked.length;
+      const result = await p.evaluate(attempt); await p.waitForTimeout(400);
+      const mine = stopped.slice(before);
+      need(result === 'stopped', `it was not stopped: ${result}`);
+      need(mine.length > 0, 'it did not happen, but the policy reported no refusal');
+      need(asked.length === left, `a request left the page: ${asked[left]}`);
+      return mine.find(v => v.startsWith(directive)) ?? mine[0];
+    });
+    await tried('policy: fetch() to another site is stopped', 'connect-src', () => fetch('https://example.com/').then(() => 'answered', () => 'stopped'));
+    await tried('policy: a picture from another site is stopped', 'img-src', () => new Promise(done => {
+      const img = new Image(); img.onload = () => done('loaded'); img.onerror = () => done('stopped'); img.src = 'https://example.com/x.png'; document.body.appendChild(img);
+    }));
+    await tried('policy: an injected inline script does not run', 'script-src', () => {
+      const s = document.createElement('script'); s.textContent = 'window.__injected = true'; document.head.appendChild(s);
+      return window.__injected ? 'it ran' : 'stopped';
+    });
+    await tried('policy: a script from another site is stopped', 'script-src', () => new Promise(done => {
+      const s = document.createElement('script'); s.onload = () => done('loaded'); s.onerror = () => done('stopped'); s.src = 'https://example.com/x.js'; document.head.appendChild(s);
+    }));
+    await tried('policy: a frame is stopped', 'frame-src', () => new Promise(done => {
+      const f = document.createElement('iframe'); f.src = 'https://example.com/'; document.body.appendChild(f); setTimeout(() => done('stopped'), 300);
+    }));
+    await ctx.close();
+  }
 
   // ---- the file a reader opens, with no network -------------------------------------------------------------------
   if (saved['deck.html']) {
