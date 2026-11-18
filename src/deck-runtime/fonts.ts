@@ -9,7 +9,23 @@ export const fontSrcOk = (src: unknown): src is string => typeof src === 'string
 export const cleanFamily = (name: unknown): string =>
   (typeof name === 'string' ? name : '').replace(/[^A-Za-z0-9 -]/g, '').replace(/\s+/g, ' ').trim().slice(0, 60).trim();
 
-export const MAX_FONT_FACES = 4;
+export const MAX_FONT_FACES = 8;   // a regular, a bold and an italic for each of the two roles, and room to spare
+export type FaceWeight = number | [number, number];
+/** A face's weight as a stylesheet can take it: a whole number from 1 to 1000, or two of them (the lightest and the
+ *  heaviest a variable file holds). Anything else is no weight at all. */
+export function cleanWeight(raw: unknown): FaceWeight | undefined {
+  const one = (v: unknown): number | undefined => (typeof v === 'number' && Number.isFinite(v) ? Math.min(1000, Math.max(1, Math.round(v))) : undefined);
+  if (Array.isArray(raw)) {
+    if (raw.length !== 2) return undefined;
+    const a = one(raw[0]), b = one(raw[1]);
+    if (a === undefined || b === undefined) return undefined;
+    return a === b ? a : [Math.min(a, b), Math.max(a, b)];
+  }
+  return one(raw);
+}
+/** The weight as a descriptor: "400", or "100 900" for a variable file. */
+export const weightText = (w: FaceWeight): string => (typeof w === 'number' ? String(w) : `${w[0]} ${w[1]}`);
+export const cleanStyle = (raw: unknown): 'normal' | 'italic' | undefined => (raw === 'italic' || raw === 'normal' ? raw : undefined);
 /** The handwriting face a deck's papers can be written in (the app carries it, in one weight), and that weight. */
 export const HAND_FAMILY = 'Caveat', HAND_WEIGHT = 600;
 const hashes = new Map<string, string>();   // a file's address is long: its hash is worked out once
@@ -28,3 +44,6 @@ export function shortHash(text: string): string {
  *  (never one a page already has) and is different for each role and each file: a title and a body file that share a
  *  family name, or two decks with different files under one name, never get each other's letters. */
 export const faceName = (role: 'title' | 'body', family: string, src: string): string => `psd-${role} ${family} ${shortHash(src)}`;
+/** The one name the weights of a family are registered under for a role (a regular, a bold, an italic: the browser
+ *  chooses among them by weight and style, so they must share a name). It carries a fingerprint of every file. */
+export const familyFaceName = (role: 'title' | 'body', family: string, srcs: string[]): string => `psd-${role} ${family} ${shortHash(srcs.map(shortHash).join('.'))}`;

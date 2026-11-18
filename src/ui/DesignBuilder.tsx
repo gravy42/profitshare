@@ -16,6 +16,8 @@ import { cleanFamily } from '../deck-runtime/fonts';
 import { pixelsOf, readFontFile } from './deckFiles';
 import { plainColor } from './color';
 import { goToPanel } from './jump';
+import { roleFont, type RoleFont } from '../engine/googleFonts';
+import { GoogleFontDetail, withoutRoleFont } from './GoogleFonts';
 
 type Pitch = NonNullable<Project['pitch']>;
 type SetPitch = (f: (x: Pitch) => Pitch) => void;
@@ -119,7 +121,7 @@ export function FontFiles({ design, set }: { design: PitchDesign; set: SetDesign
   const files = readFontFiles(design.fontFiles);
   const [problem, setProblem] = useState('');
   const patch = (id: string, f: Partial<FontFile>) => set(x => ({ ...x, fontFiles: readFontFiles(x.fontFiles).map(y => (y.id === id ? { ...y, ...f } : y)) }));
-  const remove = (id: string) => set(x => { const rest = readFontFiles(x.fontFiles).filter(y => y.id !== id); const { fontFiles: _f, ...other } = x; return rest.length ? { ...other, fontFiles: rest } : other; });
+  const remove = (role: FontFile['role']) => set(x => withoutRoleFont(x, role));   // a role's font is one attached file, or every file of a family picked from Google Fonts
   const attach = async (role: FontFile['role'], file: File) => {
     setProblem('');
     try { const read = await readFontFile(file, role); set(x => ({ ...x, fontFiles: setFontFile(x.fontFiles, read) })); }
@@ -128,14 +130,14 @@ export function FontFiles({ design, set }: { design: PitchDesign; set: SetDesign
   return (
     <div className="fontfiles">
       <h3>Font files</h3>
-      <p className="help">If your title or body font is not on every computer, attach the file and the pitch deck carries it. It takes .woff2, .woff, .ttf and .otf, one file for each. The font is saved with your project file.</p>
-      {ROLES.map(({ role, label }) => <FontRow key={role} role={role} label={label} file={files.find(f => f.role === role)} onAttach={attach} onPatch={patch} onRemove={remove} />)}
+      <p className="help">If your title or body font is not on every computer, attach the file and the pitch deck carries it. It takes .woff2, .woff, .ttf and .otf, one file for each. A font picked from Google Fonts (the buttons under the font names above) is listed here too. The font is saved with your project file.</p>
+      {ROLES.map(({ role, label }) => { const font = roleFont(files, role); return <FontRow key={role} role={role} label={label} file={files.find(f => f.role === role)} google={font?.google ? font : undefined} onAttach={attach} onPatch={patch} onRemove={remove} />; })}
       <div role="status" aria-live="polite">{problem && <p className="pd-bad small">✕ {problem}</p>}</div>
     </div>
   );
 }
 
-function FontRow({ role, label, file, onAttach, onPatch, onRemove }: { role: FontFile['role']; label: string; file?: FontFile; onAttach: (role: FontFile['role'], f: File) => void; onPatch: (id: string, f: Partial<FontFile>) => void; onRemove: (id: string) => void }) {
+function FontRow({ role, label, file, google, onAttach, onPatch, onRemove }: { role: FontFile['role']; label: string; file?: FontFile; google?: RoleFont; onAttach: (role: FontFile['role'], f: File) => void; onPatch: (id: string, f: Partial<FontFile>) => void; onRemove: (role: FontFile['role']) => void }) {
   const input = useRef<HTMLInputElement>(null);
   const nameId = useId(), tickId = useId(), nameNote = useId();
   const bytes = file ? dataUrlBytes(file.dataUrl) : 0;
@@ -144,13 +146,14 @@ function FontRow({ role, label, file, onAttach, onPatch, onRemove }: { role: Fon
   return (
     <div className="fontrow" data-role={role}>
       <div className="row">
-        <b className="fontrow-label">{label}</b>
-        <button type="button" className="btn small" onClick={() => input.current?.click()}>{file ? 'Replace the file' : 'Attach a font file'}</button>
+        <b className="fontrow-label">{google ? label.replace(/ file$/, '') : label}</b>
+        <button type="button" className="btn small" onClick={() => input.current?.click()}>{google ? 'Use a file of my own instead' : file ? 'Replace the file' : 'Attach a font file'}</button>
         <input ref={input} type="file" accept=".woff2,.woff,.ttf,.otf,font/woff2,font/woff,font/ttf,font/otf" hidden aria-label={label} onChange={e => { const f = e.target.files?.[0]; if (f) onAttach(role, f); e.target.value = ''; }} />
-        {file && <button type="button" className="btn small" onClick={() => onRemove(file.id)}>Remove</button>}
+        {file && <button type="button" className="btn small" aria-label={google ? `Remove ${google.family}` : undefined} onClick={() => onRemove(role)}>Remove</button>}
         {!file && <span className="hint">None attached: the deck uses the font typed above.</span>}
       </div>
-      {file && (
+      {google && <GoogleFontDetail font={google} />}
+      {file && !google && (
         <div className="fontrow-detail">
           <div className="row" style={{ alignItems: 'flex-end' }}>
             <div className="ctl fontrow-name"><label htmlFor={nameId}>Name of the font</label>

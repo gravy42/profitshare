@@ -13,6 +13,7 @@ import { plainColor } from './color';
 
 // font files, the card colour, the papers and the palette-from-pictures flow load with the Pitch tab, not with the app
 const FontFiles = lazy(() => import('./DesignBuilder').then(m => ({ default: m.FontFiles })));
+const GoogleFontPick = lazy(() => import('./GoogleFonts').then(m => ({ default: m.GoogleFontPick })));   // the button only: the picker and its list load when it is pressed
 const PaletteBuilder = lazy(() => import('./DesignBuilder').then(m => ({ default: m.PaletteBuilder })));
 const CardColor = lazy(() => import('./DesignBuilder').then(m => ({ default: m.CardColor })));
 const PaperChooser = lazy(() => import('./DesignBuilder').then(m => ({ default: m.PaperChooser })));
@@ -235,7 +236,7 @@ export function DesignPanel({ project, setPitch }: { project: Project; setPitch:
   return (
     <div className="panel design" id="pitch-design">
       <h2>Design system</h2>
-      <p className="help">The look of the deck: your colours, your type, your mark, and how the slides are built. Start from a brand book if you have one, or from your pictures. For fonts, type the font's name as your computer lists it; a font that is not on every computer can be attached under Font files. The preview on the right is a slide corner.</p>
+      <p className="help">The look of the deck: your colours, your type, your mark, and how the slides are built. Start from a brand book if you have one, or from your pictures. For fonts, type the font's name as your computer lists it; a font that is not on every computer can be picked from Google Fonts, or attached under Font files. The preview on the right is a slide corner.</p>
       <div className="design-start">
         <button type="button" className="btn small" onClick={() => pdfRef.current?.click()}>I have a brand book (PDF)</button>
         <button type="button" className="btn small" aria-expanded={building} aria-controls="palette-builder" onClick={() => setBuilding(b => !b)}>Build one from my pictures</button>
@@ -256,9 +257,11 @@ export function DesignPanel({ project, setPitch }: { project: Project; setPitch:
             {colors.map(c => <div className="ctl" key={c.k}><label htmlFor={`ds-${c.k}`}>{c.label}</label><span className="row" style={{ gap: 4 }}><input id={`ds-${c.k}`} type="color" value={hex6(d.colors[c.k], base.colors[c.k])} onChange={e => set(x => ({ ...x, colors: { ...x.colors, [c.k]: e.target.value } }))} /><input aria-label={`${c.label}, as a hex colour`} value={d.colors[c.k]} style={{ width: 84 }} onChange={e => set(x => ({ ...x, colors: { ...x.colors, [c.k]: e.target.value } }))} /></span></div>)}
             <Boundary what="The card colour"><Suspense fallback={null}><CardColor design={d} set={set} /></Suspense></Boundary>
           </div>
-          <div className="row">
-            <div className="ctl" style={{ flex: 1 }}><label htmlFor="ds-title-font">Title font</label><input id="ds-title-font" value={d.fonts.title} placeholder='"Special Elite", monospace' onChange={e => set(x => ({ ...x, fonts: { ...x.fonts, title: e.target.value } }))} /></div>
-            <div className="ctl" style={{ flex: 1 }}><label htmlFor="ds-body-font">Body font</label><input id="ds-body-font" value={d.fonts.body} placeholder='"Work Sans", sans-serif' onChange={e => set(x => ({ ...x, fonts: { ...x.fonts, body: e.target.value } }))} /></div>
+          <div className="row" style={{ alignItems: 'flex-start' }}>
+            <div className="ctl" style={{ flex: 1 }}><label htmlFor="ds-title-font">Title font</label><input id="ds-title-font" value={d.fonts.title} placeholder='"Special Elite", monospace' onChange={e => set(x => ({ ...x, fonts: { ...x.fonts, title: e.target.value } }))} />
+              <Boundary what="The font picker"><Suspense fallback={null}><GoogleFontPick role="title" design={d} set={set} film={project.name} /></Suspense></Boundary></div>
+            <div className="ctl" style={{ flex: 1 }}><label htmlFor="ds-body-font">Body font</label><input id="ds-body-font" value={d.fonts.body} placeholder='"Work Sans", sans-serif' onChange={e => set(x => ({ ...x, fonts: { ...x.fonts, body: e.target.value } }))} />
+              <Boundary what="The font picker"><Suspense fallback={null}><GoogleFontPick role="body" design={d} set={set} film={project.name} /></Suspense></Boundary></div>
           </div>
           <Boundary what="The paper chooser"><Suspense fallback={null}><PaperChooser design={d} set={set} /></Suspense></Boundary>
           <Boundary what="Font files"><Suspense fallback={null}><FontFiles design={d} set={set} /></Suspense></Boundary>

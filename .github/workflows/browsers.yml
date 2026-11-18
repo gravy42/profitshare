@@ -37,3 +37,41 @@ jobs:
           name: browsers-${{ matrix.browser }}-${{ matrix.os }}
           path: browsers-out
           retention-days: 14
+
+  # The Google Fonts picker against the real Google Fonts: the one job that needs the internet beyond installing.
+  # It may fail without blocking anything (Google can be down, or change what it sends): read its log when it does.
+  google-fonts-live:
+    name: Google Fonts, live, ${{ matrix.browser }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, browser: chromium }
+          - { os: macos-latest, browser: webkit }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - run: npm run build
+      # Google's answers read by the app's own reader, from Node. Skipped everywhere else: `npm test` never sets LIVE_GOOGLE.
+      - if: matrix.os == 'ubuntu-latest'
+        run: npx vitest run src/engine/googleFonts.live.test.ts
+        env:
+          LIVE_GOOGLE: '1'
+      - if: always()
+        run: node tools/google-fonts-live.mjs
+        env:
+          BROWSER: ${{ matrix.browser }}
+          BROWSER_SHEET: '1'
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: google-fonts-live-${{ matrix.browser }}-${{ matrix.os }}
+          path: browsers-out
+          retention-days: 14

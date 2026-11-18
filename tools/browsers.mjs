@@ -13,7 +13,7 @@ const engine = engines[name];
 if (!engine) { console.error(`BROWSER must be one of ${Object.keys(engines).join(', ')}`); process.exit(2); }
 const out = `browsers-out/${name}`;
 mkdirSync(out, { recursive: true });
-const port = 4300 + Object.keys(engines).indexOf(name);
+const port = Number(process.env.PORT) || 4300 + Object.keys(engines).indexOf(name);   // PORT: another port, when something else on this machine has the usual one
 const origin = `http://127.0.0.1:${port}`;
 
 const rows = [];
@@ -72,6 +72,26 @@ try {
   await step('the design builder proposes looks from pictures', async () => {
     const open = page.getByRole('button', { name: 'Build one from my pictures' });
     await open.scrollIntoViewIfNeeded(); await open.click(); await page.waitForTimeout(800); await shot('06-design-builder');
+  });
+  // The font picker, as far as its question: CI must not depend on Google, so the answer given here is "Not now".
+  await step('the font picker asks before it asks Google for anything', async () => {
+    const open = page.getByRole('button', { name: 'Pick the title font from Google Fonts' });
+    await open.scrollIntoViewIfNeeded(); await open.click();
+    const dialog = page.getByRole('dialog', { name: 'Pick a title font from Google Fonts' });
+    await dialog.getByText('Browsing fonts loads previews from Google Fonts (fonts.googleapis.com and fonts.gstatic.com).', { exact: false }).waitFor({ timeout: 15000 });
+    await dialog.getByText('Nothing about your project is sent.', { exact: false }).waitFor();
+    await dialog.getByRole('button', { name: 'Show the fonts' }).waitFor();
+    await page.waitForTimeout(400); await shot('07-font-picker');
+    need(outside.length === 0, `asked for ${outside[0]} before any answer`);
+    await dialog.getByRole('button', { name: 'Not now' }).click();
+    await dialog.locator('[role="listbox"] [role="option"]').first().waitFor({ timeout: 15000 });
+    const rows = await dialog.locator('[role="listbox"] [role="option"]').count(); const count = (await dialog.locator('.gf-count').innerText()).trim();
+    need(/^[\d,]+ fonts$/.test(count) && rows > 3, `the list says "${count}" and shows ${rows} rows`);
+    await page.waitForTimeout(600); await shot('07-font-picker-names');
+    need(outside.length === 0, `asked for ${outside[0]} after "Not now"`);
+    need(await page.locator('link[href*="google"], link[href*="gstatic"]').count() === 0, 'a link to Google is in the page');
+    await page.keyboard.press('Escape'); await dialog.waitFor({ state: 'detached', timeout: 5000 });
+    return `${count}, listed by name; nothing asked of Google`;
   });
   await step('download: web deck', async () => {
     await page.locator('#pitch-send').scrollIntoViewIfNeeded();

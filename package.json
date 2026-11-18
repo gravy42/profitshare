@@ -18,6 +18,7 @@
     "browsers": "node tools/browsers.mjs",
     "build:deck-runtime": "node tools/build-deck-runtime.mjs",
     "deck:scratch": "node tools/deck-scratch.mjs",
+    "fonts:catalogue": "node tools/make-font-catalogue.mjs",
     "demo:vo": "node tools/vo-mux.mjs analyze demo/vo.mp3 && DEMO_CAPTIONS=off node tools/demo.mjs && node tools/vo-mux.mjs mux demo/vo.mp3"
   },
   "dependencies": {
