@@ -12,6 +12,7 @@ import PitchDeck from './PitchDeck';
 import { LoadFailed, forgetWork, loadWork } from './DeckSend';
 import { CardColor, FontFiles, PaletteBuilder, PaperChooser } from './DesignBuilder';
 import { Boundary } from './Boundary';
+import { paperColors } from '../deck-runtime/runtime';
 
 beforeAll(() => { (globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true; });
 let root: Root | null = null; let box: HTMLElement | null = null;
@@ -92,7 +93,7 @@ describe('papers', () => {
     expect(radios.map(r => r.closest('label')!.textContent)).toEqual(['Plain', 'Postcard', 'Letter', 'Notebook', 'Torn page']);
     expect(new Set(radios.map(r => r.name)).size).toBe(1);   // one group: the arrow keys move through it
     expect(radios.map(r => r.checked)).toEqual([true, false, false, false, false]);   // nothing set: plain
-    const thumbs = [...el.querySelectorAll<HTMLElement>('.paperthumb')];
+    const thumbs = [...group.querySelectorAll<HTMLElement>('.paperthumb')];
     expect(thumbs.map(t => t.shadowRoot!.querySelector<HTMLElement>('.psd-card')!.dataset.paper)).toEqual(['plain', 'postcard', 'letter', 'notebook', 'torn']);
     for (const t of thumbs) { expect(t.getAttribute('aria-hidden')).toBe('true'); expect(t.shadowRoot!.querySelector('.psd')!.classList.contains('psd-swatch')).toBe(true); }
     act(() => radios[4].click());
@@ -112,10 +113,38 @@ describe('papers', () => {
     expect('hand' in d).toBe(false);
     expect(el.textContent).not.toMatch(/on a line|pinned|hung|\bclip|\bpeg/i);
   });
+  it('beside the papers there is a Shade: six named radio buttons, each a card drawn by the deck in that shade, and the papers follow the one chosen', () => {
+    let d: PitchDesign = { ...defaultDesign(), paper: 'letter' };
+    const set = (f: (x: typeof d) => typeof d) => { d = f(d); act(() => root!.render(<PaperChooser design={d} set={set} />)); };
+    const el = draw(<PaperChooser design={d} set={set} />);
+    const [papers, shades] = [...el.querySelectorAll('fieldset')];
+    expect(shades.querySelector('legend')!.textContent).toBe('Shade');
+    const radios = () => [...shades.querySelectorAll<HTMLInputElement>('input[type="radio"]')];
+    expect(radios().map(r => r.closest('label')!.textContent)).toEqual(['From my design', 'White', 'Cream', 'Aged', 'Kraft', 'Newsprint']);   // every one named: never colour alone
+    expect(new Set(radios().map(r => r.name)).size).toBe(1);   // one group of its own: the arrow keys move through it
+    expect(radios()[0].name).not.toBe(papers.querySelector<HTMLInputElement>('input[type="radio"]')!.name);
+    expect(radios().map(r => r.checked)).toEqual([true, false, false, false, false, false]);   // nothing set: the design's own card colour
+    expect(shades.getAttribute('aria-describedby')).toBeTruthy();
+    expect(document.getElementById(shades.getAttribute('aria-describedby')!)!.textContent).toMatch(/Card colour/);
+    const cardsOf = (set: Element) => [...set.querySelectorAll<HTMLElement>('.paperthumb')].map(t => t.shadowRoot!.querySelector<HTMLElement>('.psd-card')!);
+    expect(cardsOf(shades).map(c => c.dataset.shade ?? 'theme')).toEqual(['theme', 'white', 'cream', 'aged', 'kraft', 'newsprint']);
+    expect(cardsOf(shades).map(c => c.dataset.paper)).toEqual(Array(6).fill('letter'));   // the swatches are the chosen paper
+    for (const c of cardsOf(papers)) expect('shade' in c.dataset).toBe(false);
+    act(() => radios()[3].click());
+    expect(d.paperShade).toBe('aged');
+    expect(radios().map(r => r.checked)).toEqual([false, false, false, true, false, false]);
+    expect(cardsOf(papers).map(c => c.dataset.shade)).toEqual(Array(5).fill('aged'));   // the paper samples show the shade
+    expect(cardsOf(papers)[0].style.getPropertyValue('--psd-card')).toBe(paperColors(null, 'plain', 'aged')['--psd-card']);
+    act(() => radios()[0].click());
+    expect('paperShade' in d).toBe(false);   // the design's own is nothing in the file
+    const odd = { ...defaultDesign(), paperShade: 'url(x)' } as never;
+    act(() => root!.render(<PaperChooser design={odd} set={() => undefined} />));
+    expect(radios().map(r => r.checked)).toEqual([true, false, false, false, false, false]);
+  });
   it('the chooser takes nonsense for a paper and for every colour', () => {
     const d = { ...defaultDesign(), paper: 'url(x)', hand: 'yes', tilt: 3, colors: 'red', card: 7, fonts: null } as never;
     expect(() => draw(<PaperChooser design={d} set={() => undefined} />)).not.toThrow();
-    expect([...box!.querySelectorAll<HTMLInputElement>('input[type="radio"]')].map(r => r.checked)).toEqual([true, false, false, false, false]);
+    expect([...box!.querySelectorAll<HTMLInputElement>('input[type="radio"]')].map(r => r.checked)).toEqual([true, false, false, false, false, true, false, false, false, false, false]);   // plain, and the design's own shade
     for (const node of box!.querySelectorAll<HTMLElement>('*')) expect(node.getAttribute('style') ?? '').not.toMatch(/url\(/);
   });
   it('a slide with cards has a Paper choice; a slide with none has not; choosing writes one word to the slide', async () => {
@@ -137,6 +166,20 @@ describe('papers', () => {
     choose('');
     expect('paper' in p.pitch!.slides!.find(s => s.id === 'gap')!).toBe(false);
     for (const id of ['cover', 'audience', 'team', 'ways']) { pick(id); expect(paper(), id).not.toBeNull(); }
+    // and beside it a Shade
+    const shade = () => el.querySelector<HTMLSelectElement>('.pd-editor select[data-field="paperShade"]');
+    pick('why'); expect(shade()).toBeNull();
+    pick('gap');
+    expect(el.querySelector(`label[for="${shade()!.id}"]`)!.textContent).toBe('Shade');
+    expect([...shade()!.options].map(o => o.textContent)).toEqual(['Deck default', 'From my design', 'White', 'Cream', 'Aged', 'Kraft', 'Newsprint']);
+    expect(shade()!.value).toBe('');
+    const shadeTo = (v: string) => act(() => { const s = shade()!; Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!.call(s, v); s.dispatchEvent(new Event('change', { bubbles: true })); });
+    shadeTo('kraft');
+    expect(p.pitch!.slides!.find(s => s.id === 'gap')!.paperShade).toBe('kraft');
+    shadeTo('theme');
+    expect(p.pitch!.slides!.find(s => s.id === 'gap')!.paperShade).toBe('theme');   // the design's own card colour, on this slide only
+    shadeTo('');
+    expect('paperShade' in p.pitch!.slides!.find(s => s.id === 'gap')!).toBe(false);
     expect(el.querySelector('.pd-editor')!.textContent).not.toMatch(/on a line|pinned|hung\b/i);
   });
 });

@@ -7,7 +7,7 @@ import type { DeckCard, DeckData, DeckImage, DeckMilestone, DeckRecipient, DeckS
 import { DECK_DATA_VERSION } from '../deck-runtime/data';
 import { cleanFamily, fontSrcOk, MAX_FONT_FACES } from '../deck-runtime/fonts';
 import { cleanDeckMotion, cleanMotion } from '../deck-runtime/motion';
-import { cleanPaper, cleanSlidePaper, PAPER_LAYOUTS } from '../deck-runtime/paper';
+import { cleanPaper, cleanPaperShade, cleanSlidePaper, cleanSlidePaperShade, PAPER_LAYOUTS } from '../deck-runtime/paper';
 import { withPitch, defaultDesign, defaultDeckRules, compGroups, compMultiple } from './pitch';
 import { unlabel } from './deck';
 import { topSheet } from './budget';
@@ -151,6 +151,7 @@ function themeOf(p: Project, opts: DeckDataOptions = {}): DeckTheme {
     signoff: raw(d?.deck?.signoff),
     ...(faces.length ? { fontFaces: faces } : {}),
     ...(cleanPaper(d?.paper) !== 'plain' ? { paper: cleanPaper(d?.paper) } : {}),   // a plain card is what a deck with no word for it draws
+    ...(cleanPaperShade(d?.paperShade) !== 'theme' ? { paperShade: cleanPaperShade(d?.paperShade) } : {}),   // the card colour is what a deck with no word for it uses
     ...(d?.hand === true ? { hand: true } : {}),
     ...(d?.tilt === true ? { tilt: true } : {}),
   };
@@ -287,6 +288,8 @@ function cleanSpec(raw: unknown): SlideSpec | null {
   if (motion) s.motion = motion;
   const paper = cleanSlidePaper(raw.paper);   // a word from the list of papers, or the slide follows the deck
   if (paper) s.paper = paper;
+  const shade = cleanSlidePaperShade(raw.paperShade);   // a word from the list of shades, or the slide follows the deck
+  if (shade) s.paperShade = shade;
   const cards = list(raw.cards).map((c, i) => ({ id: text(c.id) || `card${i + 1}`, kicker: text(c.kicker), title: text(c.title), body: text(c.body), footnote: text(c.footnote) }));
   if (cards.length) s.cards = cards;
   const stats = list(raw.stats).map((x, i) => ({ id: text(x.id) || `stat${i + 1}`, value: text(x.value), label: text(x.label), source: text(x.source) }));
@@ -311,8 +314,9 @@ const sourced = (x: { source?: unknown } | undefined): boolean => !!x && !!text(
 
 function slideOf(p: Project, s: SlideSpec, pictures: Map<string, LookImage>): DeckSlide {
   const pitch = p.pitch!;
-  const base: { id: string; eyebrow?: string; headline?: string; punch?: string; imageId?: string; scrim?: number; footnote?: string; motion?: SlideSpec['motion']; paper?: SlideSpec['paper'] } = { id: s.id };
+  const base: { id: string; eyebrow?: string; headline?: string; punch?: string; imageId?: string; scrim?: number; footnote?: string; motion?: SlideSpec['motion']; paper?: SlideSpec['paper']; paperShade?: SlideSpec['paperShade'] } = { id: s.id };
   if (s.paper && PAPER_LAYOUTS.includes(s.layout)) base.paper = s.paper;   // only a slide that draws a card carries a paper
+  if (s.paperShade && PAPER_LAYOUTS.includes(s.layout)) base.paperShade = s.paperShade;
   if (text(s.eyebrow)) base.eyebrow = s.eyebrow!.trim();
   if (text(s.headline)) base.headline = s.headline!.trim();
   if (text(s.punch)) base.punch = s.punch!.trim();

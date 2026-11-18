@@ -10,6 +10,8 @@ export const DECK_DATA_VERSION = 1;
 
 /** How a card is drawn: a flat card, or one of four papers. Words from a fixed list only: see paper.ts. */
 export type PaperStyle = 'plain' | 'postcard' | 'letter' | 'notebook' | 'torn';
+/** The tone a paper is drawn in: the theme's own card colour, or a paper of a fixed tone. Words from a fixed list only: see paper.ts. */
+export type PaperShade = 'theme' | 'white' | 'cream' | 'aged' | 'kraft' | 'newsprint';
 
 export interface DeckTheme {
   name: string;
@@ -20,6 +22,7 @@ export interface DeckTheme {
    *  stacks above the face goes in front of. Optional: a deck without it uses the stacks alone. */
   fontFaces?: DeckFontFace[];
   paper?: PaperStyle;                       // the paper every card is drawn on, unless a slide names its own; left out, plain
+  paperShade?: PaperShade;                  // the tone of every paper, unless a slide names its own; left out, the theme's card colour
   hand?: boolean;                           // true: card titles, their small labels and the quote are set in the handwriting face
   tilt?: boolean;                           // true: each card sits a fraction of a degree off straight; left out, straight
 }
@@ -58,6 +61,7 @@ interface SlideBase {
   footnote?: string;     // small print at the foot of the slide
   motion?: SlideMotion;  // how the slide moves when it comes into view; left out, the deck's own
   paper?: PaperStyle | 'mixed';   // the paper this slide's cards are drawn on; 'mixed' deals the papers across them in a fixed order; left out, the theme's
+  paperShade?: PaperShade;        // the tone of this slide's papers; left out, the theme's
 }
 
 export type DeckSlide = SlideBase & (

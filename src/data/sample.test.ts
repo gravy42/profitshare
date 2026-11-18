@@ -17,7 +17,7 @@ import { checkTheme } from '../engine/palette';
 import { pathFor } from '../engine/pathMath';
 import { cleanMotion } from '../deck-runtime/motion';
 import { money } from '../deck-runtime/format';
-import { contrastRatio, deckColors, mountDeck, paperColors, type DeckHandle } from '../deck-runtime/runtime';
+import { contrastRatio, deckColors, mountDeck, paperColors, paperUnder, type DeckHandle } from '../deck-runtime/runtime';
 
 const demo = applyDeal(sampleDemo());
 const pitch = demo.pitch!;
@@ -45,7 +45,7 @@ describe('the sample with no pitch content (the fixture other tests pin their fi
   it('is made new each time: changing one copy does not change the next', () => {
     const a = sampleDemo(); a.pitch!.slides![0].id = 'changed'; a.pitch!.lookbook!.length = 0;
     expect(sampleDemo().pitch!.slides![0].id).toBe('cover');
-    expect(sampleDemo().pitch!.lookbook).toHaveLength(6);
+    expect(sampleDemo().pitch!.lookbook).toHaveLength(11);
   });
 });
 
@@ -109,9 +109,12 @@ describe('the sample deck', () => {
 });
 
 describe('the sample\'s papers', () => {
-  it('uses them together: the title on a postcard, the gap a mix, the quote a torn note, the team\'s card a letter, the ways in as postcards, in handwriting', () => {
+  it('uses them together: the title on a postcard, the gap a mix, the quote a torn note, the team\'s card a letter, the ways in as postcards, in handwriting, all of it on aged paper', () => {
     expect(Object.fromEntries(pitch.slides!.filter(s => s.paper).map(s => [s.id, s.paper]))).toEqual({ cover: 'postcard', gap: 'mixed', audience: 'torn', team: 'letter', ways: 'postcard' });
     expect(pitch.design!.hand).toBe(true);
+    expect(pitch.design!.paperShade).toBe('aged');
+    expect(deck.theme.paperShade).toBe('aged');
+    expect(pitch.slides!.some(s => 'paperShade' in s)).toBe(false);   // one shade throughout: no slide names its own
     expect(pitch.design!.paper).toBeUndefined();   // any slide that says nothing is a plain card
     expect(pitch.design!.tilt).toBeUndefined();
     expect(deck.theme.hand).toBe(true);
@@ -129,19 +132,24 @@ describe('the sample\'s papers', () => {
     expect(papers('audience')).toEqual(['torn']);
     expect(papers('team')).toEqual(['letter']);
     expect(papers('ways')).toEqual(['postcard', 'postcard', 'postcard']);
+    const drawn = [...root.querySelectorAll<HTMLElement>('.psd-card')];
+    expect(drawn).toHaveLength(9);
+    for (const c of drawn) { expect(c.dataset.shade).toBe('aged'); expect(c.querySelector<HTMLElement>(':scope > .psd-pp')!.style.getPropertyValue('--psd-pp-marks')).toMatch(/^radial-gradient\(/); }
+    expect(new Set(drawn.map(c => c.querySelector<HTMLElement>(':scope > .psd-pp')!.style.getPropertyValue('--psd-pp-marks'))).size).toBe(9);   // no two sheets aged alike
     expect(root.querySelector('.psd')!.classList.contains('psd-hand')).toBe(true);
     expect(root.querySelectorAll('.psd-hang, .psd-rope, .psd-pinned, .psd-rail')).toHaveLength(0);
     for (const c of root.querySelectorAll<HTMLElement>('.psd-card')) expect(c.style.getPropertyValue('--r')).toBe('');   // every card straight
   });
-  it('every paper it uses keeps its words readable in the sample\'s own colours', () => {
+  it('every paper it uses keeps its words readable on aged paper: on the sheet, on every mark of age and on the darkest they come to together', () => {
     for (const style of ['postcard', 'notebook', 'torn', 'letter'] as const) {
-      const t = paperColors(deck.theme.colors, style);
-      for (const surface of [t['--psd-card'], t['--psd-pp-shade'], t['--psd-pp-rule']]) {
+      const t = paperColors(deck.theme.colors, style, 'aged');
+      for (const surface of paperUnder(t)) {
         expect(contrastRatio(t['--psd-card-ink'], surface), style).toBeGreaterThanOrEqual(7);
         expect(contrastRatio(t['--psd-card-muted'], surface), style).toBeGreaterThanOrEqual(4.5);
         expect(contrastRatio(t['--psd-card-accent'], surface), style).toBeGreaterThanOrEqual(4.5);
       }
-      expect(t['--psd-card']).toBe(pitch.design!.card);   // the card colour is the design's own: nothing had to move
+      expect(t['--psd-card']).not.toBe(pitch.design!.card);   // the paper is the shade's own colour, not the design's card
+      expect(t['--psd-card']).toBe(paperColors(null, style, 'aged')['--psd-card']);
     }
   });
   it('names nothing real on its stamps and postmarks: they are shapes with no words at all', () => {
@@ -152,21 +160,41 @@ describe('the sample\'s papers', () => {
 });
 
 describe('the sample\'s look', () => {
-  it('has six small pictures drawn by the generator, each captioned, under 250 kB together', () => {
-    expect(pitch.lookbook).toHaveLength(6);
+  const DRAWN = ['look_sign', 'look_motel', 'look_door', 'look_flats', 'look_moon', 'look_dunes', 'look_road', 'look_pool', 'look_sun', 'look_wagon'];
+  const svgOf = (id: string) => atob(pitch.lookbook!.find(i => i.id === id)!.dataUrl.split(',')[1]);
+  it('has ten pictures drawn by the generator and the film\'s mark, each captioned, under 120 kB of drawing together', () => {
+    expect(pitch.lookbook!.map(i => i.id)).toEqual([...DRAWN, 'look_mark']);
     let bytes = 0;
     for (const i of pitch.lookbook!) {
       expect(i.dataUrl).toMatch(/^data:image\/svg\+xml;base64,[A-Za-z0-9+/]+=*$/);
       expect(i.caption).toMatch(/\(drawn for the sample\)$/);
+      expect(['tone', 'world', 'reference']).toContain(i.section);
       const svg = atob(i.dataUrl.split(',')[1]).replace(' xmlns="http://www.w3.org/2000/svg"', '');
       bytes += svg.length;
-      expect(svg).not.toMatch(/<script|<image|<foreignObject|href|https?:|url\((?!#)/i);   // shapes only: nothing that runs, nothing that loads
+      expect(svg).not.toMatch(/<script|<image|<foreignObject|<text|<filter|<style|href|https?:|url\((?!#)/i);   // shapes only: nothing that runs, nothing that loads, no font to miss
+      expect(svg).toMatch(/^<svg width="\d+" height="\d+" viewBox="0 0 \d+ \d+">/);
     }
-    expect(bytes).toBeLessThan(250_000);
+    expect(bytes).toBeLessThan(120_000);
+    expect(new Set(pitch.lookbook!.map(i => i.caption)).size).toBe(11);
+    expect(new Set(pitch.lookbook!.map(i => i.dataUrl)).size).toBe(11);
     expect(readFileSync(resolve(process.cwd(), 'src/data/sample-pitch.json')).length).toBeLessThan(250_000);
   });
-  it('uses three of them: behind the cover, the story and the closing slide', () => {
-    expect(deck.images.map(i => i.id).sort()).toEqual(['look_dawn', 'look_dusk', 'look_flats']);
+  it('the ten are one set: the same size, the same grain, drawn in layers, and each a picture of its own', () => {
+    for (const id of DRAWN) {
+      const svg = svgOf(id);
+      expect(svg, id).toMatch(/width="1600" height="900" viewBox="0 0 1600 900"/);
+      expect(svg.match(/<pattern /g), id).toHaveLength(2);                          // the grain: two tiles of specks
+      expect(svg.match(/<linearGradient /g)!.length, id).toBeGreaterThanOrEqual(1);   // a sky
+      expect((svg.match(/<(polygon|rect|circle|ellipse|path) /g) ?? []).length, id).toBeGreaterThan(12);
+      expect(svg.length, id).toBeGreaterThan(2_500); expect(svg.length, id).toBeLessThan(20_000);
+      for (const [, ref] of svg.matchAll(/url\(#([^)]+)\)/g)) { expect(ref.startsWith(`${id}-g`), `${id} ${ref}`).toBe(true); expect(svg).toContain(`id="${ref}"`); }   // every gradient is the picture's own
+      expect(svg, id).not.toMatch(/NaN|undefined|Infinity/);
+    }
+  });
+  it('uses three of them: the motel sign behind the cover, the flats behind the story, the wagon behind the closing slide', () => {
+    expect(deck.images.map(i => i.id).sort()).toEqual(['look_flats', 'look_sign', 'look_wagon']);
+    expect(Object.fromEntries(deck.slides.filter(s => s.imageId).map(s => [s.id, s.imageId]))).toEqual({ cover: 'look_sign', story: 'look_flats', closing: 'look_wagon' });
+    expect(pitch.design!.deck).toMatchObject({ coverImageId: 'look_sign', closingImageId: 'look_wagon' });
   });
   it('has a design system named for the film whose every colour passes the palette\'s own checks, and the deck\'s', () => {
     const d = pitch.design!;

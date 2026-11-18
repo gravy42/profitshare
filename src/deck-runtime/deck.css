@@ -44,6 +44,16 @@
 .psd-scrim { position: absolute; inset: 0; --s: color-mix(in srgb, var(--psd-bg) var(--psd-scrim, 85%), transparent); --f: color-mix(in srgb, var(--psd-bg) var(--psd-scrim-soft, 32%), transparent); background: var(--s); }
 .psd-l-photo .psd-scrim, .psd-l-closing .psd-scrim { background: linear-gradient(to top, var(--s) 0%, var(--s) var(--psd-stop, 62%), var(--f) 100%); }
 .psd-l-cover .psd-scrim { background: linear-gradient(to top, var(--s) 0%, var(--s) 22%, transparent 60%), linear-gradient(to right, var(--s) 0%, var(--s) 60%, var(--f) 100%); }
+/* once the runtime has measured where a picture slide's words are (data-veil), the strong scrim is only behind them:
+   a box for each block of text (.psd-veil: solid to its edge, then fading to nothing over --v; where a browser cannot
+   cut the corners of the fade it is only larger), all of them together at the scrim's full strength, and over the rest of the picture a light wash (--psd-scrim-light, 10% to 30%). */
+.psd-veils { position: absolute; inset: 0; display: none; opacity: var(--psd-scrim, 85%); }
+.psd-slide[data-veil] .psd-veils { display: block; }
+.psd-slide[data-veil] .psd-scrim { background: color-mix(in srgb, var(--psd-bg) var(--psd-scrim-light, 25%), transparent); }
+.psd-veil { position: absolute; display: block; box-sizing: content-box; --v: 2em; margin: calc(var(--v) * -1) 0 0 calc(var(--v) * -1); padding: var(--v); background: var(--psd-bg);
+  --across: linear-gradient(to right, transparent, rgba(0, 0, 0, .12) calc(var(--v) * .25), rgba(0, 0, 0, .5) calc(var(--v) * .5), rgba(0, 0, 0, .88) calc(var(--v) * .75), #000 var(--v), #000 calc(100% - var(--v)), rgba(0, 0, 0, .88) calc(100% - var(--v) * .75), rgba(0, 0, 0, .5) calc(100% - var(--v) * .5), rgba(0, 0, 0, .12) calc(100% - var(--v) * .25), transparent);
+  --down: linear-gradient(to bottom, transparent, rgba(0, 0, 0, .12) calc(var(--v) * .25), rgba(0, 0, 0, .5) calc(var(--v) * .5), rgba(0, 0, 0, .88) calc(var(--v) * .75), #000 var(--v), #000 calc(100% - var(--v)), rgba(0, 0, 0, .88) calc(100% - var(--v) * .75), rgba(0, 0, 0, .5) calc(100% - var(--v) * .5), rgba(0, 0, 0, .12) calc(100% - var(--v) * .25), transparent);
+  -webkit-mask-image: var(--across), var(--down); -webkit-mask-composite: source-in; mask-image: var(--across), var(--down); mask-composite: intersect; }
 .psd-box { position: absolute; inset: 0; padding: 4.1em 5.6em 4.3em; display: flex; flex-direction: column; overflow: hidden; }
 .psd-foot { position: absolute; left: 5.6em; right: 5.6em; bottom: 1.1em; display: flex; justify-content: space-between; align-items: baseline; gap: 2em; text-transform: uppercase; color: var(--psd-muted-text); }
 .psd-foot span { font-size: max(.64em, var(--psd-min)); letter-spacing: .18em; }
@@ -187,6 +197,46 @@
 [data-paper="torn"] :is(.psd-pp-sheet, .psd-pp-edge, .psd-pp-rip) { clip-path: var(--psd-pp-cut); box-shadow: none; }
 [data-paper="torn"] .psd-pp-rip { inset: 0; background: var(--psd-pp-light); }
 [data-paper="torn"] .psd-pp-sheet { top: .2em; }
+
+/* Shades: a paper of a fixed tone (data-shade), whatever the deck's colours. The sheet is the shade's own colour
+   under layers of gradients, back to front: the grain of the paper, its tone going darker toward the edges, a
+   browned rim and corners, and the marks the runtime placed for this one card (--psd-pp-marks: patches, stains,
+   foxing). Everything that reaches under the words is drawn in --psd-pp-shade, --psd-pp-stain or --psd-pp-fox, tones
+   the ink is proven on; the rim (--psd-pp-burn) is darker, and stops short of the words: it is gone .8em in from an
+   edge (1.15em from a corner), and no card's padding is smaller than that. */
+[data-shade] { --w-rim: 0%; --w-rim2: 0%; --w-corner: 0%; --w-tone: 0%; --w-grain: 0%; --w-rib: 0%; }
+[data-shade="cream"] { --w-rim: 22%; --w-rim2: 9%; --w-corner: 20%; --w-tone: 55%; --w-grain: 10%; }
+[data-shade="aged"] { --w-rim: 62%; --w-rim2: 26%; --w-corner: 70%; --w-tone: 90%; --w-grain: 18%; }
+[data-shade="kraft"] { --w-rim: 34%; --w-rim2: 14%; --w-corner: 40%; --w-tone: 60%; --w-grain: 30%; --w-rib: 55%; }
+[data-shade="newsprint"] { --w-rim: 40%; --w-rim2: 16%; --w-corner: 45%; --w-tone: 70%; --w-grain: 34%; }
+[data-shade] .psd-pp-sheet { --rim: color-mix(in srgb, var(--psd-pp-burn) var(--w-rim), transparent); --rim2: color-mix(in srgb, var(--psd-pp-burn) var(--w-rim2), transparent); --corner: color-mix(in srgb, var(--psd-pp-burn) var(--w-corner), transparent);
+  --tone: color-mix(in srgb, var(--psd-pp-shade) var(--w-tone), transparent); --grain: color-mix(in srgb, var(--psd-pp-shade) var(--w-grain), transparent); --rib: color-mix(in srgb, var(--psd-pp-shade) var(--w-rib), transparent);
+  background-image: var(--psd-pp-marks, none),
+    radial-gradient(circle 1.15em at 0 0, var(--corner), transparent), radial-gradient(circle 1.15em at 100% 0, var(--corner), transparent),
+    radial-gradient(circle 1.15em at 0 100%, var(--corner), transparent), radial-gradient(circle 1.15em at 100% 100%, var(--corner), transparent),
+    linear-gradient(to right, var(--rim), var(--rim2) .22em, transparent .8em), linear-gradient(to left, var(--rim), var(--rim2) .22em, transparent .8em),
+    linear-gradient(to bottom, var(--rim), var(--rim2) .22em, transparent var(--psd-pp-top, .8em)), linear-gradient(to top, var(--rim), var(--rim2) .22em, transparent .8em),
+    radial-gradient(ellipse 4.5em 3.5em at 0 0, var(--tone), transparent), radial-gradient(ellipse 4em 4.5em at 100% 0, var(--tone), transparent),
+    radial-gradient(ellipse 5em 3.6em at 0 100%, var(--tone), transparent), radial-gradient(ellipse 4.2em 4em at 100% 100%, var(--tone), transparent),
+    radial-gradient(farthest-corner at 48% 46%, transparent 38%, var(--tone) 100%),
+    repeating-linear-gradient(90deg, transparent 0, transparent .09em, var(--rib) .09em, var(--rib) .12em, transparent .12em, transparent .23em),
+    repeating-linear-gradient(88.6deg, transparent 0, transparent .31em, var(--grain) .31em, var(--grain) .35em, transparent .35em, transparent .83em),
+    repeating-linear-gradient(1.2deg, transparent 0, transparent .47em, var(--grain) .47em, var(--grain) .5em, transparent .5em, transparent 1.13em),
+    repeating-linear-gradient(-63deg, transparent 0, transparent 1.9em, var(--grain) 1.9em, transparent 2.6em, transparent 3.7em); }
+/* a torn page is brown where it was torn: the rim along its top is deeper, and the fibre showing above it darker */
+[data-paper="torn"][data-shade] .psd-pp-sheet { --psd-pp-top: 1.5em; }
+[data-paper="torn"]:is([data-shade="aged"], [data-shade="kraft"], [data-shade="newsprint"]) .psd-pp-rip { background: color-mix(in srgb, var(--psd-pp-light) 55%, var(--psd-pp-burn)); }
+/* an old letter's creases are worn: wider, darker, and the paper has yellowed along them */
+[data-paper="letter"]:is([data-shade="aged"], [data-shade="kraft"], [data-shade="newsprint"]) .psd-pp-fold { height: 1.9em; margin-top: -.95em; opacity: 1;
+  background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--psd-pp-shade) 55%, transparent) 38%, var(--psd-pp-shade) 48%, var(--psd-pp-shade) 50.5%, color-mix(in srgb, var(--psd-pp-light) 60%, transparent) 51.5%, color-mix(in srgb, var(--psd-pp-light) 35%, transparent) 56%, transparent 84%); }
+[data-paper="letter"]:is([data-shade="aged"], [data-shade="kraft"], [data-shade="newsprint"]) .psd-pp-fold-v { height: auto; width: 1.9em; margin: 0 0 0 -.95em; opacity: .8;
+  background: linear-gradient(to right, transparent, color-mix(in srgb, var(--psd-pp-shade) 55%, transparent) 38%, var(--psd-pp-shade) 48%, var(--psd-pp-shade) 50.5%, color-mix(in srgb, var(--psd-pp-light) 60%, transparent) 51.5%, color-mix(in srgb, var(--psd-pp-light) 35%, transparent) 56%, transparent 84%); }
+/* an old postcard: the divider and the address lines have faded, and the postmark has smudged to one side */
+[data-paper="postcard"]:is([data-shade="aged"], [data-shade="kraft"], [data-shade="newsprint"]) :is(.psd-pp-divider, .psd-pp-address) { opacity: .6; }
+[data-paper="postcard"]:is([data-shade="aged"], [data-shade="kraft"], [data-shade="newsprint"]) .psd-pp-postmark { opacity: .62;
+  background: radial-gradient(ellipse 60% 44% at 68% 62%, color-mix(in srgb, var(--psd-pp-post) 34%, transparent), transparent), radial-gradient(ellipse 34% 50% at 24% 30%, color-mix(in srgb, var(--psd-pp-post) 22%, transparent), transparent);
+  box-shadow: .09em .05em 0 -.02em color-mix(in srgb, var(--psd-pp-post) 30%, transparent); }
+[data-paper="postcard"][data-shade] .psd-pp-sheet { border-radius: .16em; }
 
 /* handwriting: titles, the small label above them, the quote and a line short enough to be a note, in the
    handwriting face. Small print, numbers and longer text never are. Nothing handwritten is under 1.15em. */
@@ -604,6 +654,9 @@
   .psd:not(.psd-stacked) .psd-mark { transform: translate(-100%, -100%) !important; animation: none !important; }
   .psd-count-live { display: none !important; }
   .psd-counting > .psd-num { opacity: 1 !important; }
+  /* a printed page is laid out again, at a size nothing here measured: the scrim goes back to covering the picture */
+  .psd-slide[data-veil] .psd-veils { display: none; }
+  .psd-slide[data-veil] .psd-scrim { background: var(--s); }
   .psd-pp { filter: none; }
   .psd-pp-sheet { box-shadow: none; }
   :is([data-paper="plain"], [data-paper="postcard"], [data-paper="notebook"]) .psd-pp-sheet { border: 1px solid var(--psd-pp-edge); }

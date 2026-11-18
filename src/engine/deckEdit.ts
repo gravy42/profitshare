@@ -4,7 +4,7 @@
 import type { FontFile, PitchDesign, Recipient, SlideCard, SlideLayout, SlideSpec } from './types';
 import { cleanFamily } from '../deck-runtime/fonts';
 import { cleanMotion } from '../deck-runtime/motion';
-import { cleanSlidePaper, PAPER_LAYOUTS } from '../deck-runtime/paper';
+import { cleanSlidePaper, cleanSlidePaperShade, PAPER_LAYOUTS } from '../deck-runtime/paper';
 import { MAX_CARDS, reservedSlug, slugify } from './deckData';
 
 /** The thirteen layouts, in the order a deck usually runs, each with a name and a line on what it is for. */
@@ -36,6 +36,17 @@ export const PAPERS: { id: NonNullable<PitchDesign['paper']>; name: string; abou
   { id: 'notebook', name: 'Notebook', about: 'A ruled page from a small pad, with punched holes and a margin.' },
   { id: 'torn', name: 'Torn page', about: 'A ruled page torn off along the top.' },
 ];
+/** The shades a deck's papers come in, each with a line on what it looks like. 'theme' is the design system's own card colour. */
+export const SHADES: { id: NonNullable<PitchDesign['paperShade']>; name: string; about: string }[] = [
+  { id: 'theme', name: 'From my design', about: 'The card colour of your design system.' },
+  { id: 'white', name: 'White', about: 'Clean, bright stationery.' },
+  { id: 'cream', name: 'Cream', about: 'Warm new paper, the colour of cream.' },
+  { id: 'aged', name: 'Aged', about: 'Yellowed old paper: browner toward the edges, with spots, stains and worn creases.' },
+  { id: 'kraft', name: 'Kraft', about: 'Brown parcel paper.' },
+  { id: 'newsprint', name: 'Newsprint', about: 'Cool grey paper, a little yellow at the edges.' },
+];
+/** The shades a slide's papers can be drawn in, as the slide editor lists them: the deck's own first. */
+export const SHADE_CHOICES: { id: '' | NonNullable<SlideSpec['paperShade']>; name: string }[] = [{ id: '', name: 'Deck default' }, ...SHADES.map(s => ({ id: s.id, name: s.name }))];
 /** Whether a slide of this layout draws a card, so has a paper to choose. */
 export const hasPaper = (layout: string): boolean => PAPER_LAYOUTS.includes(layout);
 
@@ -87,6 +98,8 @@ export function readSlides(raw: unknown): SlideSpec[] {
     if (motion) s.motion = motion;
     const paper = cleanSlidePaper(r.paper);
     if (paper) s.paper = paper;
+    const shade = cleanSlidePaperShade(r.paperShade);
+    if (shade) s.paperShade = shade;
     const ided = <T extends { id: string }>(items: T[], stem: string): T[] => { const used: string[] = []; return items.map(x => { const own = x.id && !used.includes(x.id) ? x.id : uniqueId(stem, used); used.push(own); return { ...x, id: own }; }); };
     const cards = ided(objs(r.cards).map(c => ({ id: str(c.id), kicker: str(c.kicker), title: str(c.title), body: str(c.body), footnote: str(c.footnote) })), 'card');
     if (cards.length) s.cards = cards;

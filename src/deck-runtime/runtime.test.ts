@@ -16,6 +16,7 @@ import { money, moneyParts, multiple, percent, shares100 } from './format';
 import { cleanFamily, faceName, fontSrcOk, shortHash } from './fonts';
 import { CENTRE_UNDER, shouldCentre, cleanFontFaces, cleanPaths, cleanRecipients, contrastRatio, DEFAULT_LEGAL, deckColors, fillAsk, fontStack, initialSwitches, MAX_SOURCES, mixColors, mountDeck, overflows, parseColor, parseHash, readableOn, reservedSlug, safeColor, str, textSafe } from './runtime';
 import type { DeckHandle } from './runtime';
+import { scrimLight, veilBoxes, VEILED, VEIL_LABEL, VEIL_NEAR, VEIL_PAD, VEIL_SNAP } from './runtime';
 
 // Only the invented sample film, dressed with invented content so that every layout appears.
 const pic = (id: string): LookImage => ({ id, dataUrl: `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" id="${id}"/>`, caption: `Picture ${id}`, section: 'tone' });
@@ -1771,5 +1772,120 @@ describe('a slide with little on it', () => {
     const narrow = mount(fixture(), { stacked: true });
     narrow.handle.checkOverflow();
     expect(narrow.root.querySelectorAll('.psd-centre')).toHaveLength(0);
+  });
+});
+
+// ---------- the scrim over a picture: strong behind the words only ----------
+
+describe('the scrim behind the words of a picture slide', () => {
+  const sheet = readFileSync(resolve(process.cwd(), 'src/deck-runtime/deck.css'), 'utf8');
+  const frame = { x: 0, y: 0, w: 1600, h: 900 }, EM = 20;
+  const inside = (t: { x: number; y: number; w: number; h: number }, boxes: ReturnType<typeof veilBoxes>, f = frame) => boxes.some(b => {
+    const l = f.x + (b.left / 100) * f.w, a = f.y + (b.top / 100) * f.h, r = l + (b.width / 100) * f.w, bt = a + (b.height / 100) * f.h;
+    return l <= t.x + 1e-6 && a <= t.y + 1e-6 && r >= t.x + t.w - 1e-6 && bt >= t.y + t.h - 1e-6;
+  });
+  it('the light part follows the author\'s own setting, never under 10% and never over 30%', () => {
+    expect(scrimLight(0)).toBe(10); expect(scrimLight(0.1)).toBe(10); expect(scrimLight(0.25)).toBe(10);
+    expect(scrimLight(0.45)).toBe(18); expect(scrimLight(0.5)).toBe(20); expect(scrimLight(0.7)).toBe(28);
+    expect(scrimLight(0.75)).toBe(30); expect(scrimLight(1)).toBe(30); expect(scrimLight(7)).toBe(30); expect(scrimLight(-3)).toBe(10);
+    for (const raw of [undefined, null, NaN, Infinity, '0.2', {}, []]) expect(scrimLight(raw), String(raw)).toBe(28);   // nothing usable: the default, 0.7
+    for (let a = 0; a <= 1; a += 0.05) { expect(scrimLight(a)).toBeGreaterThanOrEqual(10); expect(scrimLight(a)).toBeLessThanOrEqual(30); expect(scrimLight(a + 0.05)).toBeGreaterThanOrEqual(scrimLight(a)); }
+  });
+  it('a block of text gets a box that holds all of it and half an em more on every side, in percentages of the slide', () => {
+    const t = { x: 400, y: 300, w: 480, h: 180 };
+    const [b] = veilBoxes([t], frame, EM);
+    expect(b).toEqual({ left: 24.37, top: 32.22, width: 31.26, height: 22.23 });   // 390 to 890 across, 290 to 490 down, rounded outward
+    expect(VEIL_PAD).toBe(0.5);
+    expect((b.left / 100) * 1600).toBeLessThanOrEqual(400 - 10); expect(((b.left + b.width) / 100) * 1600).toBeGreaterThanOrEqual(880 + 10);
+    expect((b.top / 100) * 900).toBeLessThanOrEqual(300 - 10); expect(((b.top + b.height) / 100) * 900).toBeGreaterThanOrEqual(480 + 10);
+    // wherever the slide sits on the page, and at any size
+    expect(veilBoxes([{ x: 400 + 37, y: 300 + 512, w: 480, h: 180 }], { x: 37, y: 512, w: 1600, h: 900 }, EM)).toEqual([b]);
+    expect(veilBoxes([{ x: 200, y: 150, w: 240, h: 90 }], { x: 0, y: 0, w: 800, h: 450 }, EM / 2)).toEqual([b]);
+  });
+  it('no pixel of any text is ever outside a box: many slides of made-up text, with labels joined and edges snapped', () => {
+    let seed = 7; const rand = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
+    for (let n = 0; n < 300; n++) {
+      const f = { x: rand() * 200, y: rand() * 4000, w: 300 + rand() * 1700, h: 0 }; f.h = f.w * 0.5625;
+      const em = f.w * 0.014, texts = Array.from({ length: 1 + Math.floor(rand() * 9) }, () => { const w = em * (2 + rand() * 60), h = em * (0.6 + rand() * (rand() < 0.5 ? 1.4 : 9)); return { x: f.x + rand() * Math.max(1, f.w - w), y: f.y + rand() * Math.max(1, f.h - h), w: Math.min(w, f.w), h: Math.min(h, f.h) }; });
+      const boxes = veilBoxes(texts, f, em);
+      for (const t of texts) expect(inside(t, boxes, f), `slide ${n}`).toBe(true);
+      for (const b of boxes) { expect(b.left).toBeGreaterThanOrEqual(0); expect(b.top).toBeGreaterThanOrEqual(0); expect(b.left + b.width).toBeLessThanOrEqual(100.001); expect(b.top + b.height).toBeLessThanOrEqual(100.001); expect(b.width).toBeGreaterThan(0); expect(b.height).toBeGreaterThan(0); }
+      expect(boxes.length).toBeLessThanOrEqual(texts.length);
+      expect(veilBoxes(texts, f, em)).toEqual(boxes);   // the same answer every time
+    }
+  });
+  it('a label close over or under a block shares its box; a label far from everything keeps its own; two paragraphs stay two', () => {
+    const eyebrow = { x: 126, y: 388, w: 230, h: 22 }, headline = { x: 126, y: 428, w: 1326, h: 62 }, para = { x: 126, y: 520, w: 970, h: 130 }, para2 = { x: 126, y: 676, w: 960, h: 86 };
+    const boxes = veilBoxes([eyebrow, headline, para, para2], frame, 22.4);
+    expect(boxes).toHaveLength(3);
+    expect(boxes[0]).toMatchObject({ left: 0, width: 100 });                    // the label and the headline together, off both edges (each within a tenth of one)
+    expect((boxes[0].top / 100) * 900).toBeLessThanOrEqual(388 - 11);
+    expect(boxes[1].left).toBe(0); expect(boxes[1].left + boxes[1].width).toBeLessThan(70);   // a paragraph stops where its text does: the picture shows beside it
+    expect(VEIL_LABEL).toBe(2.2); expect(VEIL_NEAR).toBe(1.6);
+    const title = { x: 500, y: 380, w: 600, h: 110 }, signoff = { x: 640, y: 512, w: 320, h: 20 }, far = { x: 640, y: 700, w: 320, h: 20 };
+    expect(veilBoxes([title, signoff], frame, 22.4)).toHaveLength(1);
+    expect(veilBoxes([title, far], frame, 22.4)).toHaveLength(2);
+    expect(veilBoxes([title, { ...signoff, x: 1200 }], frame, 22.4)).toHaveLength(2);   // beside it, not under it: not joined
+    for (const t of [eyebrow, headline, para, para2]) expect(inside(t, boxes)).toBe(true);
+  });
+  it('a box that ends near an edge of the slide runs off it: the footer\'s two ends sit in the bottom corners', () => {
+    expect(VEIL_SNAP).toBe(10);
+    const film = { x: 126, y: 856, w: 80, h: 14 }, page = { x: 1418, y: 856, w: 56, h: 14 };
+    const [a, b] = veilBoxes([film, page], frame, 22.4);
+    expect(a.left).toBe(0); expect(a.top + a.height).toBe(100); expect(a.width).toBeLessThan(15);
+    expect(b.left + b.width).toBe(100); expect(b.top + b.height).toBe(100); expect(b.left).toBeGreaterThan(85);
+    const mid = veilBoxes([{ x: 600, y: 400, w: 400, h: 100 }], frame, 22.4)[0];
+    expect(mid.left).toBeGreaterThan(30); expect(mid.top).toBeGreaterThan(40); expect(mid.left + mid.width).toBeLessThan(70); expect(mid.top + mid.height).toBeLessThan(60);
+    expect(veilBoxes([{ x: 600, y: 60, w: 400, h: 60 }], frame, 22.4)[0].top).toBe(0);
+  });
+  it('takes nonsense without throwing: a block with no size gets no box, a slide with no size gets none at all', () => {
+    expect(veilBoxes([], frame, EM)).toEqual([]);
+    expect(veilBoxes([{ x: 10, y: 10, w: 0, h: 20 }, { x: 10, y: 10, w: 20, h: 0 }, { x: NaN, y: 0, w: 5, h: 5 }, { x: 0, y: 0, w: Infinity, h: 5 }], frame, EM)).toEqual([]);
+    expect(veilBoxes([{ x: 5000, y: 5000, w: 50, h: 50 }, { x: -900, y: -900, w: 50, h: 50 }], frame, EM)).toEqual([]);   // wholly off the slide
+    for (const f of [{ x: 0, y: 0, w: 0, h: 900 }, { x: 0, y: 0, w: 1600, h: 0 }, { x: 0, y: 0, w: NaN, h: NaN }]) expect(veilBoxes([{ x: 1, y: 1, w: 9, h: 9 }], f, EM)).toEqual([]);
+    for (const em of [0, -4, NaN, Infinity]) { const [b] = veilBoxes([{ x: 400, y: 300, w: 480, h: 180 }], frame, em); expect(b.left).toBe(25); expect(b.top).toBe(33.33); expect(b.width).toBeGreaterThanOrEqual(30); expect(b.width).toBeLessThanOrEqual(30.02); expect(b.height).toBeGreaterThanOrEqual(20); expect(b.height).toBeLessThanOrEqual(20.02); }   // no padding to add: the text's own box
+    expect(veilBoxes([{ x: 400, y: 300, w: 480, h: 180 }, { x: 400, y: 300, w: 480, h: 180 }], frame, EM)).toHaveLength(1);
+  });
+  it('a slide that has not been measured keeps its scrim over the whole picture: the boxes are an empty layer, on the three layouts whose picture shows', () => {
+    expect([...VEILED].sort()).toEqual(['closing', 'cover', 'photo']);
+    const data = fixture();
+    const text = data.slides.find(s => s.layout === 'text')!; text.imageId = data.images[0].id;
+    for (const opts of [{}, { static: true }, { stacked: true }, { motion: false }]) {
+      const { slide, root } = mount(data, opts);
+      for (const layout of ['cover', 'photo', 'closing']) {
+        const s = slide(layout); if (!s.querySelector('.psd-bg')) continue;
+        const veils = s.querySelector<HTMLElement>('.psd-scrim > .psd-veils')!;
+        expect(veils, layout).not.toBeNull();
+        expect(veils.getAttribute('aria-hidden')).toBe('true');
+        expect(veils.children).toHaveLength(0);          // jsdom lays nothing out: nothing was measured
+        expect('veil' in s.dataset, layout).toBe(false);   // so the picture is under the scrim as it always was
+        const scrim = s.querySelector<HTMLElement>('.psd-scrim')!;
+        expect(parseFloat(scrim.style.getPropertyValue('--psd-scrim'))).toBeGreaterThanOrEqual(85);
+        const light = parseFloat(scrim.style.getPropertyValue('--psd-scrim-light'));
+        expect(light).toBeGreaterThanOrEqual(10); expect(light).toBeLessThanOrEqual(30);
+      }
+      expect(slide('cover').querySelector('.psd-veils')).not.toBeNull();
+      expect(slide('text').querySelector('.psd-bg')).not.toBeNull();
+      expect(slide('text').querySelector('.psd-veils')).toBeNull();   // a slide of text over a picture keeps the scrim everywhere
+      expect((root as unknown as Element).querySelectorAll('.psd-veil')).toHaveLength(0);
+    }
+  });
+  it('the stylesheet lightens the scrim only where the runtime has marked a slide as measured, and never on a printed page', () => {
+    expect(sheet).toContain('.psd-veils { position: absolute; inset: 0; display: none; opacity: var(--psd-scrim, 85%); }');
+    expect(sheet).toContain('.psd-slide[data-veil] .psd-veils { display: block; }');
+    expect(sheet).toContain('.psd-slide[data-veil] .psd-scrim { background: color-mix(in srgb, var(--psd-bg) var(--psd-scrim-light, 25%), transparent); }');
+    // the light wash is named in that one rule and nowhere else: without data-veil the old scrim stands
+    expect(sheet.replace(/\/\*[\s\S]*?\*\//g, '').match(/--psd-scrim-light/g)).toHaveLength(1);
+    expect(sheet).toContain('.psd-l-photo .psd-scrim, .psd-l-closing .psd-scrim { background: linear-gradient(to top, var(--s) 0%, var(--s) var(--psd-stop, 62%), var(--f) 100%); }');
+    const veil = /\.psd-veil \{([^}]*)\}/.exec(sheet)![1];
+    expect(veil).toContain('background: var(--psd-bg)');                    // solid behind the words: the layer's opacity is the scrim's own strength
+    expect(veil).toContain('mask-composite: intersect'); expect(veil).toContain('-webkit-mask-composite: source-in');
+    expect(veil).toMatch(/#000 var\(--v\), #000 calc\(100% - var\(--v\)\)/);   // nothing fades inside the box itself: the fade is all in the padding round it
+    expect(veil).toMatch(/margin: calc\(var\(--v\) \* -1\) 0 0 calc\(var\(--v\) \* -1\); padding: var\(--v\)/);
+    expect(veil).not.toMatch(/blur\(|url\(/);
+    const print = sheet.slice(sheet.indexOf('@media print'));
+    expect(print).toContain('.psd-slide[data-veil] .psd-veils { display: none; }');
+    expect(print).toContain('.psd-slide[data-veil] .psd-scrim { background: var(--s); }');
+    expect(sheet).toContain('.psd-stacked :is(.psd-l-cover, .psd-l-photo) .psd-scrim { display: none; }');   // a phone: the picture is a band above the text, as before
   });
 });

@@ -5,9 +5,9 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import type { DeckData, PaperStyle } from './data';
-import { cleanPaper, cleanSlidePaper, dealPapers, MIX_ORDER, PAPER_LAYOUTS, PAPER_STYLES, SLIDE_PAPERS, tornEdge, unevenEdge } from './paper';
-import { cleanPaper as fromRuntime, contrastRatio, HAND_FAMILY, mountDeck, PAPER_INK_MIN, PAPER_SMALL_MIN, paperColors } from './runtime';
+import type { DeckData, PaperShade, PaperStyle } from './data';
+import { cleanPaper, cleanPaperShade, cleanSlidePaper, cleanSlidePaperShade, dealPapers, dealShade, MIX_ORDER, PAPER_LAYOUTS, PAPER_SHADES, PAPER_STYLES, paperMarks, SLIDE_PAPERS, tornEdge, unevenEdge } from './paper';
+import { cleanPaper as fromRuntime, cleanPaperShade as shadeFromRuntime, contrastRatio, HAND_FAMILY, mixColors, mountDeck, PAPER_INK_MIN, PAPER_SMALL_MIN, paperColors, paperUnder } from './runtime';
 import type { DeckHandle } from './runtime';
 
 const css = readFileSync(resolve(process.cwd(), 'src/deck-runtime/deck.css'), 'utf8');
@@ -305,5 +305,198 @@ describe('what the runtime builds', () => {
     expect(root.querySelector('.psd-card')!.getAttribute('data-paper')).toBe('postcard');
     expect(css).toContain('.psd-swatch .psd-stage:not(:first-child), .psd-swatch .psd-foot, .psd-swatch .psd-head { display: none; }');
     expect(mount(deck([cards(1)])).root.classList.contains('psd-swatch')).toBe(false);
+  });
+});
+
+// ---------- shades: papers of a fixed tone ----------
+
+const FIXED = PAPER_SHADES.filter(s => s !== 'theme') as Exclude<PaperShade, 'theme'>[];
+
+describe('the word for a shade', () => {
+  it('is one of six, and anything else is the theme\'s own card colour', () => {
+    expect([...PAPER_SHADES]).toEqual(['theme', 'white', 'cream', 'aged', 'kraft', 'newsprint']);
+    for (const s of PAPER_SHADES) expect(cleanPaperShade(s)).toBe(s);
+    for (const raw of [...HOSTILE, 'Aged', 'aged ', 'sepia']) expect(cleanPaperShade(raw), String(raw)).toBe('theme');
+    expect(shadeFromRuntime).toBe(cleanPaperShade);   // one door, in the runtime and in the vocabulary file
+  });
+  it('a slide names one of them or follows the deck; its own word wins, the card colour included', () => {
+    for (const s of PAPER_SHADES) expect(cleanSlidePaperShade(s)).toBe(s);
+    for (const raw of [...HOSTILE, 'sepia']) expect(cleanSlidePaperShade(raw), String(raw)).toBeUndefined();
+    expect(dealShade(undefined, undefined)).toBe('theme');
+    expect(dealShade('aged', undefined)).toBe('aged');
+    expect(dealShade('aged', 'kraft')).toBe('kraft');
+    expect(dealShade('aged', 'theme')).toBe('theme');   // one slide back on the card colour in an aged deck
+    expect(dealShade('nonsense', 'nonsense')).toBe('theme');
+    expect(dealShade('aged', 'nonsense')).toBe('aged');
+  });
+});
+
+describe('the colours a shade is drawn in', () => {
+  const all = [...STRESS_THEMES, ...HARD_THEMES];
+  it('the theme\'s own shade is what a paper always was: the same answer with the word, without it, and with nonsense for it', () => {
+    for (const theme of all) for (const style of PAPER_STYLES) {
+      expect(paperColors(theme, style, 'theme')).toEqual(paperColors(theme, style));
+      expect(paperColors(theme, style, 'sepia' as never)).toEqual(paperColors(theme, style));
+      expect(Object.keys(paperColors(theme, style)).some(k => /burn|fox|stain/.test(k))).toBe(false);   // nothing new on an old deck's cards
+    }
+  });
+  for (const [name, themes] of [['the four stress themes', STRESS_THEMES], ['the sample and cards no ink reads on', HARD_THEMES]] as const) {
+    it(`ink reads at 7:1 and small print at 4.5:1 on every tone under the words, the darkest overlap of the marks of age included, for every paper in every shade: ${name}`, () => {
+      let checked = 0;
+      for (const theme of themes) for (const style of PAPER_STYLES) for (const shade of FIXED) {
+        const t = paperColors(theme, style, shade), at = `${style} in ${shade} on ${JSON.stringify(theme.bg)}`;
+        const under = paperUnder(t);
+        expect(under.length, at).toBeGreaterThanOrEqual(2);
+        for (const k of ['--psd-card', '--psd-pp-shade', '--psd-pp-stain', '--psd-pp-fox', '--psd-pp-rule']) expect(under, `${at} ${k}`).toContain(t[k]);
+        for (const surface of under) {
+          expect(contrastRatio(t['--psd-card-ink'], surface), `ink, ${at}, on ${surface}`).toBeGreaterThanOrEqual(PAPER_INK_MIN);
+          expect(contrastRatio(t['--psd-card-muted'], surface), `small print, ${at}, on ${surface}`).toBeGreaterThanOrEqual(PAPER_SMALL_MIN);
+          expect(contrastRatio(t['--psd-card-accent'], surface), `label, ${at}, on ${surface}`).toBeGreaterThanOrEqual(PAPER_SMALL_MIN);
+          checked++;
+        }
+        // the rim is drawn outside the words, and the ink would still read on it
+        expect(contrastRatio(t['--psd-card-ink'], t['--psd-pp-burn']), `ink on the rim, ${at}`).toBeGreaterThanOrEqual(PAPER_SMALL_MIN);
+        for (const v of Object.values(t)) expect(v).toMatch(/^#[0-9a-f]{6}$/);   // colours and nothing else
+      }
+      expect(checked).toBeGreaterThan(themes.length * 5 * 5 * 2);
+    });
+  }
+  it('no mix of the tones under the words is darker than the floor the ink is proven on', () => {
+    const lum = (hex: string) => contrastRatio(hex, '#000000');   // rises with lightness
+    for (const shade of FIXED) for (const style of PAPER_STYLES) {
+      const t = paperColors(STRESS_THEMES[0], style, shade);
+      const sheet = [t['--psd-card'], t['--psd-pp-shade'], t['--psd-pp-stain'], t['--psd-pp-fox']];
+      const floor = Math.min(...paperUnder(t).map(lum));
+      for (const a of sheet) for (const b of sheet) for (const c of sheet) for (const k of [0.25, 0.5, 0.75]) expect(lum(mixColors(mixColors(a, b, k), c, k)) + 1e-9, `${shade} ${a} ${b} ${c}`).toBeGreaterThanOrEqual(floor);
+    }
+  });
+  it('a shade is its own colour whatever the theme, each one different, with dark ink; only the label follows the theme', () => {
+    const papers = FIXED.map(s => paperColors(STRESS_THEMES[0], 'plain', s)['--psd-card']);
+    expect(new Set(papers).size).toBe(FIXED.length);
+    for (const shade of FIXED) for (const style of PAPER_STYLES) {
+      const light = paperColors(STRESS_THEMES[0], style, shade), dark = paperColors(STRESS_THEMES[2], style, shade);
+      for (const k of ['--psd-card', '--psd-card-ink', '--psd-pp-shade', '--psd-pp-burn', '--psd-pp-rule', '--psd-pp-margin', '--psd-pp-fox', '--psd-pp-stain']) expect(dark[k], `${shade} ${k}`).toBe(light[k]);
+      expect(contrastRatio(light['--psd-card'], '#000000')).toBeGreaterThan(contrastRatio(light['--psd-card'], '#ffffff'));   // a light paper
+      expect(contrastRatio(light['--psd-card-ink'], '#ffffff')).toBeGreaterThan(12);                                         // a dark ink
+    }
+    const lightness = (s: PaperShade) => contrastRatio(paperColors(null, 'plain', s)['--psd-card'], '#000000');
+    expect(lightness('white')).toBeGreaterThan(lightness('cream'));
+    expect(lightness('cream')).toBeGreaterThan(lightness('aged'));
+    expect(lightness('aged')).toBeGreaterThan(lightness('kraft'));
+  });
+  it('an aged sheet is browner at its rim than under its words, its rules can be told from the paper, and its marks from the sheet', () => {
+    for (const style of PAPER_STYLES) {
+      const t = paperColors(STRESS_THEMES[0], style, 'aged');
+      expect(contrastRatio(t['--psd-pp-burn'], t['--psd-card'])).toBeGreaterThan(contrastRatio(t['--psd-pp-shade'], t['--psd-card']));
+      expect(contrastRatio(t['--psd-pp-shade'], t['--psd-card'])).toBeGreaterThan(1.15);   // uneven tone that can be seen
+      expect(contrastRatio(t['--psd-pp-fox'], t['--psd-card'])).toBeGreaterThan(1.2);
+    }
+    for (const shade of FIXED) for (const style of ['notebook', 'torn'] as const) {
+      const t = paperColors(STRESS_THEMES[0], style, shade);
+      expect(contrastRatio(t['--psd-pp-rule'], t['--psd-card']), shade).toBeGreaterThan(1.08);
+      expect(contrastRatio(t['--psd-pp-margin'], t['--psd-card']), shade).toBeGreaterThan(1.5);
+    }
+    for (const shade of FIXED) for (const style of ['plain', 'postcard', 'letter'] as const) expect(paperColors(null, style, shade)['--psd-pp-rule']).toBe(paperColors(null, style, shade)['--psd-pp-shade']);
+  });
+  it('is the same answer every time, and takes nonsense without throwing', () => {
+    for (const shade of FIXED) expect(paperColors(STRESS_THEMES[2], 'letter', shade)).toEqual(paperColors(STRESS_THEMES[2], 'letter', shade));
+    for (const raw of [null, undefined, 7, 'x', [], {}]) for (const shade of FIXED) expect(() => paperColors(raw, 'torn', shade)).not.toThrow();
+    expect(paperUnder({})).toEqual([]);
+  });
+});
+
+describe('the marks of age', () => {
+  const ONE = String.raw`radial-gradient\((circle|ellipse \d+(\.\d+)?% \d+(\.\d+)?%) at -?\d+(\.\d+)?% -?\d+(\.\d+)?%(, (color-mix\(in srgb, var\(--psd-pp-(shade|stain|fox)\) \d+%, transparent\)|transparent)( \d+(\.\d+)?(%|em)?)?)+\)`;
+  it('are a list of gradients in numbers and three of the card\'s own colours: nothing that loads, nothing that is a picture', () => {
+    for (const shade of ['cream', 'aged', 'kraft', 'newsprint'] as const) for (const seed of [0, 1, 9, 17, 255]) {
+      const marks = paperMarks(seed, shade);
+      expect(marks, `${shade} ${seed}`).toMatch(new RegExp(`^${ONE}(, ${ONE})*$`));
+      expect(marks).not.toMatch(/url|image|data:|http|;|\{|\}|<|expression|@/i);
+      for (const [, pct] of marks.matchAll(/\) (\d+)%, transparent\)/g)) { expect(+pct).toBeGreaterThanOrEqual(1); expect(+pct).toBeLessThanOrEqual(100); }
+    }
+  });
+  it('the theme\'s own shade and white have none; aged has the most: patches, two stains and foxing', () => {
+    for (const seed of [0, 5]) { expect(paperMarks(seed, 'theme')).toBe(''); expect(paperMarks(seed, 'white')).toBe(''); expect(paperMarks(seed, 'sepia' as never)).toBe(''); }
+    const count = (s: PaperShade) => paperMarks(3, s).split('radial-gradient(').length - 1;
+    expect(count('aged')).toBeGreaterThan(count('kraft'));
+    expect(count('aged')).toBeGreaterThan(count('newsprint'));
+    expect(count('kraft')).toBeGreaterThan(count('cream'));
+    expect(paperMarks(3, 'aged')).toContain('--psd-pp-fox'); expect(paperMarks(3, 'aged')).toContain('--psd-pp-stain'); expect(paperMarks(3, 'aged')).toContain('--psd-pp-shade');
+    expect(paperMarks(3, 'cream')).not.toMatch(/fox|stain/);
+  });
+  it('are the same for the same card every time, and different from card to card', () => {
+    expect(paperMarks(5, 'aged')).toBe(paperMarks(5, 'aged'));
+    expect(new Set([0, 1, 2, 3, 8, 9, 10, 16].map(s => paperMarks(s, 'aged'))).size).toBe(8);
+    expect(paperMarks(NaN, 'aged')).toBe(paperMarks(0, 'aged'));
+  });
+});
+
+describe('what the runtime builds for a shade', () => {
+  const layerOf = (card: Element) => card.querySelector<HTMLElement>(':scope > .psd-pp')!;
+  it('a deck that names no shade is drawn exactly as it was: no word on the card, no marks, the theme\'s own colours', () => {
+    for (const paper of PAPER_STYLES) {
+      const plain = mount(deck([cover(), cards(3), stats(), team()], { paper })).root.innerHTML;
+      expect(plain).not.toMatch(/data-shade|--psd-pp-marks|--psd-pp-burn|--psd-pp-fox|--psd-pp-stain/);
+      expect(mount(deck([cover(), cards(3), stats(), team()], { paper, paperShade: 'theme' })).root.innerHTML).toBe(plain);
+      expect(mount(deck([cover(), cards(3), stats(), team()], { paper, paperShade: 'sepia' })).root.innerHTML).toBe(plain);
+    }
+  });
+  it('every paper in every shade: the word on the card, that shade\'s colours, the same empty elements as ever and its marks worked out from its place', () => {
+    for (const shade of FIXED) for (const paper of PAPER_STYLES) {
+      const { root } = mount(deck([cover(), cards(2), stats(), team()], { paper, paperShade: shade }));
+      const all = [...root.querySelectorAll<HTMLElement>('.psd-card')];
+      expect(all).toHaveLength(5);
+      const plainBits = [...mount(deck([cover(), cards(2), stats(), team()], { paper })).root.querySelectorAll('.psd-pp i')].map(i => i.className);
+      expect([...root.querySelectorAll('.psd-pp i')].map(i => i.className)).toEqual(plainBits);   // a shade adds no element
+      for (const card of all) {
+        expect(card.dataset.shade, `${paper} ${shade}`).toBe(shade);
+        expect(card.dataset.paper).toBe(paper);
+        const tone = paperColors(STRESS_THEMES[0], paper, shade);
+        for (const k of Object.keys(tone)) expect(card.style.getPropertyValue(k), `${paper} ${shade} ${k}`).toBe(tone[k]);
+        expect(layerOf(card).textContent).toBe('');
+        expect(layerOf(card).querySelectorAll('img, svg, canvas, a')).toHaveLength(0);
+        const marks = layerOf(card).style.getPropertyValue('--psd-pp-marks');
+        if (shade === 'white') expect(marks).toBe(''); else expect(marks).toMatch(/^radial-gradient\(/);
+        expect(marks).not.toMatch(/url\(/);
+      }
+      if (shade === 'aged') expect(new Set(all.map(c => layerOf(c).style.getPropertyValue('--psd-pp-marks'))).size).toBe(5);   // five cards, five different sheets
+    }
+  });
+  it('a slide\'s own shade wins over the deck\'s, the card colour included, and a mixed slide is one shade across its papers', () => {
+    const { slide } = mount(deck([cards(2), cards(2, { paperShade: 'kraft' }), cards(2, { paperShade: 'theme' }), cards(4, { paper: 'mixed' }), cards(2, { paperShade: 'nonsense' }), cover({ paperShade: 'white' })], { paper: 'letter', paperShade: 'aged' }));
+    const shades = (i: number) => [...slide(i).querySelectorAll<HTMLElement>('.psd-card')].map(c => c.dataset.shade ?? 'theme');
+    expect(shades(0)).toEqual(['aged', 'aged']);
+    expect(shades(1)).toEqual(['kraft', 'kraft']);
+    expect(shades(2)).toEqual(['theme', 'theme']);
+    expect(shades(3)).toEqual(['aged', 'aged', 'aged', 'aged']);
+    expect(shades(4)).toEqual(['aged', 'aged']);
+    expect(shades(5)).toEqual(['white']);
+    expect(slide(2).querySelector<HTMLElement>('.psd-card')!.style.getPropertyValue('--psd-card')).toBe(STRESS_THEMES[0].card);
+  });
+  it('draws the same deck the same way twice, marks and all, in a PDF too', () => {
+    const d = () => deck([cover(), cards(4, { paper: 'mixed' }), cards(3, { paper: 'torn', paperShade: 'kraft' })], { paper: 'letter', paperShade: 'aged', tilt: true });
+    expect(mount(d()).root.innerHTML).toBe(mount(d()).root.innerHTML);
+    expect(mount(d(), { static: true }).root.innerHTML).toBe(mount(d(), { static: true }).root.innerHTML);
+  });
+  it('hostile words for a shade draw the theme\'s own cards and leave nothing of themselves behind', () => {
+    for (const raw of HOSTILE) {
+      const { host, root } = mount(deck([cards(2, { paperShade: raw }), cover({ paperShade: raw })], { paperShade: raw }));
+      expect(root.querySelectorAll('[data-shade]')).toHaveLength(0);
+      expect(host.shadowRoot!.innerHTML).not.toMatch(/onerror|<img|url\(x\)/);
+    }
+  });
+  it('the stylesheet draws every shade itself, keeps the browned rim out from under the words, and blurs nothing', () => {
+    for (const shade of ['cream', 'aged', 'kraft', 'newsprint']) expect(css).toContain(`[data-shade="${shade}"]`);
+    const sheet = /\[data-shade\] \.psd-pp-sheet \{([^}]*)\}/.exec(css)![1];
+    expect(sheet).toContain('var(--psd-pp-marks, none)');
+    // the rim colour is used through three names only, and each is gone within 1.5em of an edge: no card's padding is smaller where words begin
+    const rim = [...css.matchAll(/([^{}]+)\{([^}]*var\(--psd-pp-burn\)[^}]*)\}/g)].map(m => m[1].trim());
+    expect(rim.every(sel => /psd-pp-sheet|psd-pp-rip/.test(sel)), rim.join(' | ')).toBe(true);
+    for (const [, len] of sheet.matchAll(/var\(--rim2?\)[^,]*, transparent (?:var\(--psd-pp-top, )?([\d.]+)em/g)) expect(+len).toBeLessThanOrEqual(0.8);
+    for (const [, r] of sheet.matchAll(/radial-gradient\(circle ([\d.]+)em at [\d% ]+, var\(--corner\)/g)) expect(+r).toBeLessThanOrEqual(1.2);
+    expect(sheet.match(/var\(--corner\)/g)).toHaveLength(4);
+    expect(/\[data-paper="torn"\]\[data-shade\] \.psd-pp-sheet \{ --psd-pp-top: ([\d.]+)em; \}/.exec(css)![1]).toBe('1.5');   // a torn page's top padding is 2em
+    for (const [, sel, body] of css.matchAll(/([^{}]+)\{([^}]*)\}/g)) if (sel.includes('data-shade')) expect(body, sel).not.toMatch(/blur\(|drop-shadow\(|url\(/);
+    expect(css).not.toMatch(/url\(|@import|https?:|data:/i);
   });
 });

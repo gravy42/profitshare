@@ -561,8 +561,33 @@ describe('papers in the deck\'s data', () => {
     expect(d.theme.paper).toBe('letter');
     expect(deckWarnings(designed({ paper: 'letter' }, slides)).filter(w => /paper/i.test(w.message))).toEqual([]);
   });
+  it('an old project says nothing about a shade, and neither does its deck: its papers are the card colour', () => {
+    expect(JSON.stringify(deckData(full()))).not.toMatch(/paperShade/);
+    expect(JSON.stringify(deckData(designed({ paper: 'letter' }, [cardsSlide({ paper: 'mixed' })])))).not.toMatch(/paperShade/);
+    expect('paperShade' in deckData(designed({ paperShade: 'theme' })).theme).toBe(false);   // the card colour is what a deck with no word for it uses
+  });
+  it('carries the design system\'s shade into the theme and a slide\'s own onto the slides that draw a card', () => {
+    for (const paperShade of ['white', 'cream', 'aged', 'kraft', 'newsprint'] as const) expect(deckData(designed({ paperShade })).theme.paperShade).toBe(paperShade);
+    const slides = [{ id: 'cover', layout: 'cover', paperShade: 'kraft' }, cardsSlide({ paperShade: 'theme', paper: 'torn' }), { ...cardsSlide({ paperShade: 'white' }), id: 'ways', layout: 'ways' },
+      { id: 'proof', layout: 'stats', paperShade: 'cream', quote: { text: 'An invented line.', by: 'Somebody invented' } }, { id: 'team', layout: 'team', paperShade: 'newsprint' },
+      { id: 'words', layout: 'text', body: 'x', paperShade: 'aged' }, { id: 'plan', layout: 'timeline', paperShade: 'aged' }, { id: 'none', layout: 'cards', cards: [{ id: 'p1', title: 'P', body: '' }] }];
+    const d = deckData(designed({ paperShade: 'aged' }, slides));
+    expect(d.theme.paperShade).toBe('aged');
+    // 'theme' on a slide is kept: it sends that one slide back to the card colour in a deck of another shade
+    expect(Object.fromEntries(d.slides.map(s => [s.id, s.paperShade]))).toEqual({ cover: 'kraft', gap: 'theme', ways: 'white', proof: 'cream', team: 'newsprint', words: undefined, plan: undefined, none: undefined });
+    expect(d.slides.find(s => s.id === 'gap')!.paper).toBe('torn');
+    expect(deckWarnings(designed({ paperShade: 'aged' }, slides))).toEqual(deckWarnings(designed({}, slides.map(({ paperShade: _s, ...rest }: Record<string, unknown>) => rest))));   // a shade is never something to fix
+  });
+  it('takes only shades from the list: anything else in a hand-edited file is the card colour, and never reaches the deck', () => {
+    for (const raw of ['Aged', 'aged ', 'sepia', 'url(x)', '<img src=x>', 7, null, ['aged'], { a: 1 }, true]) {
+      const d = deckData(designed({ paperShade: raw }, [cardsSlide({ paperShade: raw })]));
+      expect('paperShade' in d.theme, String(raw)).toBe(false);
+      expect('paperShade' in d.slides[0], String(raw)).toBe(false);
+      expect(JSON.stringify(d)).not.toMatch(/url\(x\)|<img|sepia/);
+    }
+  });
   it('gives the same deck for the same project, papers and all', () => {
-    const p = designed({ paper: 'torn', hand: true }, [cardsSlide({ paper: 'mixed' })]);
+    const p = designed({ paper: 'torn', paperShade: 'aged', hand: true }, [cardsSlide({ paper: 'mixed', paperShade: 'kraft' })]);
     expect(deckData(p)).toEqual(deckData(p));
   });
 });

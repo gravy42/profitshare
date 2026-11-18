@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { FROM_BUDGET, readFontFiles, readRecipients, readSlides, suggestEnding, validRecipients, FONT_MAX_BYTES, FONT_WARN_BYTES, dataUrlBytes, familyFromFileName, fileSize, fontMime, setFontFile, LAYOUTS, addCard, addSlide, deleteSlide, duplicateSlide, highlightChoices, layoutName, linkEndingProblem, linkProblemText, moveItem, moveSlide, moveSlideTo, neighbourId, newRecipient, newSlide, nextItemId, patchSlide, renameRecipient, setSlideHidden, slideLabel, uniqueId } from './deckEdit';
-import { PAPER_CHOICES, PAPERS, hasPaper } from './deckEdit';
-import { MIX_ORDER, PAPER_STYLES } from '../deck-runtime/paper';
+import { PAPER_CHOICES, PAPERS, SHADES, SHADE_CHOICES, hasPaper } from './deckEdit';
+import { MIX_ORDER, PAPER_SHADES, PAPER_STYLES } from '../deck-runtime/paper';
 import { deckData } from './deckData';
 import { applyDeal } from './deal';
 import { sampleProject } from '../data/seed';
@@ -58,6 +58,26 @@ describe('papers, as the editor offers them', () => {
     expect(copied.slides.find(s => s.id === copied.id)!.paper).toBe('mixed');
     expect(patchSlide(readSlides(raw), 'a', { paper: 'torn' })[0].paper).toBe('torn');
     expect('paper' in patchSlide(readSlides(raw), 'a', { paper: undefined })[0]).toBe(false);   // back to the deck's default: the key is gone
+  });
+});
+
+describe('shades, as the editor offers them', () => {
+  it('a deck chooses its design\'s own card colour or one of five papers of a fixed tone; a slide can also follow the deck', () => {
+    expect(SHADES.map(s => s.id)).toEqual([...PAPER_SHADES]);
+    expect(SHADES.map(s => s.name)).toEqual(['From my design', 'White', 'Cream', 'Aged', 'Kraft', 'Newsprint']);
+    for (const s of SHADES) expect(s.about.length).toBeGreaterThan(15);
+    expect(SHADE_CHOICES.map(c => c.id)).toEqual(['', ...PAPER_SHADES]);
+    expect(SHADE_CHOICES[0].name).toBe('Deck default');
+    expect(new Set(SHADE_CHOICES.map(c => c.name)).size).toBe(SHADE_CHOICES.length);
+  });
+  it('a slide keeps its shade through reading, copying and patching, and loses a word that is not on the list', () => {
+    const raw = [{ id: 'a', layout: 'cards', paperShade: 'aged', cards: [{ id: 'c', title: 'T', body: '' }] }, { id: 'b', layout: 'cover', paperShade: 'theme' }, { id: 'c', layout: 'cards', paperShade: 'sepia' }, { id: 'd', layout: 'team', paperShade: 7 }];
+    expect(readSlides(raw).map(s => s.paperShade)).toEqual(['aged', 'theme', undefined, undefined]);
+    expect('paperShade' in readSlides(raw)[2]).toBe(false);
+    const copied = duplicateSlide(readSlides(raw), 'a');
+    expect(copied.slides.find(s => s.id === copied.id)!.paperShade).toBe('aged');
+    expect(patchSlide(readSlides(raw), 'a', { paperShade: 'kraft' })[0].paperShade).toBe('kraft');
+    expect('paperShade' in patchSlide(readSlides(raw), 'a', { paperShade: undefined })[0]).toBe(false);   // back to the deck's: the key is gone
   });
 });
 

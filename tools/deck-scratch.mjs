@@ -31,7 +31,7 @@ const { deckHtml, dataFor, bundledFacesNeeded, needsLatinExt, LATIN_RANGE, LATIN
 const mine = dataFor(data, slug ?? undefined);
 const fonts = [];
 for (const need of bundledFacesNeeded(mine)) {
-  const dir = need.family === 'Work Sans' ? 'work-sans' : 'special-elite';
+  const dir = need.family === 'Work Sans' ? 'work-sans' : need.family === 'Caveat' ? 'caveat' : 'special-elite';
   for (const [subset, unicodeRange] of [['latin', LATIN_RANGE], ...(needsLatinExt(mine) ? [['latin-ext', LATIN_EXT_RANGE]] : [])]) {
     const file = resolve(root, 'node_modules/@fontsource', dir, 'files', `${dir}-${subset}-${need.weight}-${need.style}.woff2`);
     if (existsSync(file)) fonts.push({ ...need, unicodeRange, src: `data:font/woff2;base64,${readFileSync(file).toString('base64')}` });

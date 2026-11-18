@@ -264,6 +264,8 @@ export interface SlideMotion {
 
 /** How a card is drawn: flat, or as one of four papers (src/deck-runtime/paper.ts holds the list). */
 export type PaperStyle = 'plain' | 'postcard' | 'letter' | 'notebook' | 'torn';
+/** The tone a paper is drawn in: the design system's card colour ('theme'), or a paper of a fixed tone. */
+export type PaperShade = 'theme' | 'white' | 'cream' | 'aged' | 'kraft' | 'newsprint';
 
 export type SlideLayout = 'cover' | 'photo' | 'cards' | 'stats' | 'timeline' | 'text' | 'comps' | 'team' | 'model' | 'ways' | 'numbers' | 'ask' | 'closing';
 
@@ -287,6 +289,7 @@ export interface SlideSpec {
   hidden?: boolean;
   motion?: SlideMotion;    // how this slide moves: words from the fixed list in deck-runtime/motion.ts, never code
   paper?: PaperStyle | 'mixed';   // the paper this slide's cards are drawn on ('mixed': a different one each, in a fixed order); left out, the deck's
+  paperShade?: PaperShade; // the tone of this slide's papers ('theme': the design system's card colour); left out, the deck's
 }
 export interface SlideCard { id: string; kicker?: string; title: string; body: string; footnote?: string }
 export interface SlideStat { id: string; value: string; label: string; source: string }
@@ -303,6 +306,7 @@ export interface PitchDesign {
   line?: string;              // hairlines and dividers, when the system names one
   card?: string;              // the colour of the cards' paper, when the system has one
   paper?: PaperStyle;         // the paper the pitch deck's cards are drawn on; left out, a plain card
+  paperShade?: PaperShade;    // the tone of the papers: left out, the card colour above; else a paper of a fixed tone (white, cream, aged, kraft, newsprint)
   hand?: boolean;             // card titles and quotes in the handwriting face
   tilt?: boolean;             // each card a fraction of a degree off straight
   deck?: DeckRules;           // how the slides are laid out

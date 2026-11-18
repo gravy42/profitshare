@@ -1008,6 +1008,8 @@ table.locs input { min-width: 80px; }
 .paperopt-name { font-size: 12px; font-weight: 600; text-align: center; }
 .paperopt:has(input:checked) .paperopt-name::before { content: "✓ "; }
 .paperthumb { display: block; width: 100%; aspect-ratio: 16 / 9; pointer-events: none; }
+.paperpick fieldset + .hint + fieldset { margin-top: 10px; }
+.shadepick-row { grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); }
 .ms-note { font-size: 8px; }
 .palette-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px 16px; }
 .colorfield input[type="color"] { width: 44px; height: 32px; padding: 2px; }

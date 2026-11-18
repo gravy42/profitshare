@@ -5,9 +5,9 @@ import { useEffect, useId, useRef, useState } from 'react';
 import type { FontFile, LookImage, PitchDesign, Project } from '../engine/types';
 import { defaultDesign, withPitch } from '../engine/pitch';
 import { DEFAULT_CARD, cardInkFor } from '../engine/deckData';
-import { PAPERS } from '../engine/deckEdit';
+import { PAPERS, SHADES } from '../engine/deckEdit';
 import type { DeckData } from '../deck-runtime/data';
-import { cleanPaper } from '../deck-runtime/paper';
+import { cleanPaper, cleanPaperShade } from '../deck-runtime/paper';
 import { mountDeck } from '../deck-runtime/runtime';
 import deckCss from '../deck-runtime/deck.css?inline';
 import { FONT_WARN_BYTES, dataUrlBytes, fileSize, readFontFiles, setFontFile } from '../engine/deckEdit';
@@ -39,18 +39,19 @@ export function CardColor({ design: d, set }: { design: PitchDesign; set: SetDes
 // ---------- the paper the cards are drawn on ----------
 
 type PaperName = NonNullable<PitchDesign['paper']>;
+type ShadeName = NonNullable<PitchDesign['paperShade']>;
 interface PaperLook { colors: { bg: string; ink: string; accent: string; accent2: string; muted: string }; card: string; title: string; body: string; hand: boolean; tilt: boolean }
 /** One card on one paper, drawn by the deck's own runtime (the same code that draws the deck), so what is shown here
  *  is what a slide will show. A picture only: the name beside it says which paper it is. */
-export function PaperThumb({ paper, look, title = 'A card', text = 'A line or two of text.' }: { paper: PaperName; look: PaperLook; title?: string; text?: string }) {
+export function PaperThumb({ paper, look, shade = 'theme', title = 'A card', text = 'A line or two of text.' }: { paper: PaperName; look: PaperLook; shade?: ShadeName; title?: string; text?: string }) {
   const host = useRef<HTMLSpanElement>(null);
-  const key = JSON.stringify([paper, look, title, text]);
+  const key = JSON.stringify([paper, shade, look, title, text]);
   useEffect(() => {
     const el = host.current; if (!el) return;
     const card = plainColor(look.card, DEFAULT_CARD);
     const data: DeckData = {
       version: 1, film: '', coverLine: '', images: [], recipients: [], currency: 'USD', legal: ' ',
-      theme: { name: '', colors: { ...look.colors, card, cardInk: cardInkFor(card), line: look.colors.muted }, fonts: { title: look.title, body: look.body }, signoff: '', paper, ...(look.hand ? { hand: true } : {}), ...(look.tilt ? { tilt: true } : {}) },
+      theme: { name: '', colors: { ...look.colors, card, cardInk: cardInkFor(card), line: look.colors.muted }, fonts: { title: look.title, body: look.body }, signoff: '', paper, ...(shade !== 'theme' ? { paperShade: shade } : {}), ...(look.hand ? { hand: true } : {}), ...(look.tilt ? { tilt: true } : {}) },
       slides: [{ id: 'sample', layout: 'cards', cards: [{ id: 'sample', title, body: text }] }],
       paths: { cashBudget: 0, deferred: 0, sources: [], waterfall: { model: 'off-the-gross', recoupPct: 0, poolPct: 0, grossSharePct: 0 }, cases: [], feePct: 0 },
     };
@@ -69,8 +70,8 @@ const lookOf = (d: PitchDesign): PaperLook => {
 /** The paper every card on the pitch deck is drawn on (a slide can still choose its own), whether titles on the
  *  papers are handwritten, and whether the cards sit a little off straight. */
 export function PaperChooser({ design: d, set }: { design: PitchDesign; set: SetDesign }) {
-  const name = useId(), hint = useId();
-  const chosen = cleanPaper(d.paper), look = lookOf(d);
+  const name = useId(), hint = useId(), shadeName = useId(), shadeHint = useId();
+  const chosen = cleanPaper(d.paper), shade = cleanPaperShade(d.paperShade), look = lookOf(d);
   const flag = (k: 'hand' | 'tilt', on: boolean) => set(x => { const { [k]: _old, ...rest } = x; return (on ? { ...rest, [k]: true } : rest) as PitchDesign; });
   return (
     <div className="paperpick">
@@ -80,13 +81,26 @@ export function PaperChooser({ design: d, set }: { design: PitchDesign; set: Set
           {PAPERS.map(p => (
             <label key={p.id} className="paperopt" title={p.about} style={{ color: look.colors.ink }}>
               <input type="radio" name={name} value={p.id} checked={chosen === p.id} onChange={() => set(x => { const { paper: _p, ...rest } = x; return (p.id === 'plain' ? rest : { ...rest, paper: p.id }) as PitchDesign; })} />
-              <PaperThumb paper={p.id} look={look} />
+              <PaperThumb paper={p.id} look={look} shade={shade} />
               <span className="paperopt-name">{p.name}</span>
             </label>
           ))}
         </div>
       </fieldset>
       <p className="hint" id={hint}>What the cards on the pitch deck are drawn on: the cover's title, rows of cards, a quote, the card beside the team. Any slide can choose a paper of its own, or a mix.</p>
+      <fieldset aria-describedby={shadeHint}>
+        <legend className="ctl-label">Shade</legend>
+        <div className="paperpick-row shadepick-row" style={{ backgroundColor: look.colors.bg }}>
+          {SHADES.map(s => (
+            <label key={s.id} className="paperopt shadeopt" title={s.about} style={{ color: look.colors.ink }}>
+              <input type="radio" name={shadeName} value={s.id} checked={shade === s.id} onChange={() => set(x => { const { paperShade: _s, ...rest } = x; return (s.id === 'theme' ? rest : { ...rest, paperShade: s.id }) as PitchDesign; })} />
+              <PaperThumb paper={chosen} look={look} shade={s.id} title="Aa" text="" />
+              <span className="paperopt-name">{s.name}</span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+      <p className="hint" id={shadeHint}>The tone of the paper. From my design uses the Card colour above; the others are papers of their own colour, whatever the deck's colours are, with dark ink that stays readable on them. Any slide can choose a shade of its own.</p>
       <div className="pd-checks">
         <label><input type="checkbox" checked={d.hand === true} onChange={e => flag('hand', e.target.checked)} /> Handwriting on the papers</label>
         <label><input type="checkbox" checked={d.tilt === true} onChange={e => flag('tilt', e.target.checked)} /> Tilt the cards a little</label>

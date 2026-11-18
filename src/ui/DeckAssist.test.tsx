@@ -96,9 +96,9 @@ describe('a slide\'s movement', () => {
     expect(el.querySelector('.pd-marker')!.textContent).toContain('A picture that travels along the timeline');
     expect(el.querySelector('.pd-marker')!.textContent).not.toMatch(/the line\b|last card/);
     const thumbs = [...el.querySelectorAll<HTMLButtonElement>('.pd-marker .thumb')];
-    expect(thumbs).toHaveLength(7);   // No picture, and the six in the look book
+    expect(thumbs).toHaveLength(12);   // No picture, and the eleven in the look book
     expect(thumbs[0].getAttribute('aria-pressed')).toBe('true');
-    click(thumbs[6]);
+    click(thumbs[11]);
     expect(slide('plan').motion).toEqual({ marker: { imageId: 'look_mark', path: 'timeline', end: 'stop' } });
     type(labelled<HTMLSelectElement>(el.querySelector('.pd-marker')!, 'Where it ends'), 'settle');
     expect(slide('plan').motion!.marker).toEqual({ imageId: 'look_mark', path: 'timeline', end: 'settle' });

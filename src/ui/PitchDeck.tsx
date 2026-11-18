@@ -10,7 +10,7 @@ import { PROMISE_TEXT, promiseOfReturns } from '../engine/promise';
 import { pathFor } from '../engine/pathMath';
 import { sponsorNet } from '../engine/waterfall';
 import {
-  FROM_BUDGET, LAYOUTS, PAPER_CHOICES, addCard, hasPaper, addSlide, deleteSlide, duplicateSlide, highlightChoices, layoutName, linkEndingProblem, linkProblemText, moveItem, moveSlide, moveSlideTo,
+  FROM_BUDGET, LAYOUTS, PAPER_CHOICES, SHADE_CHOICES, addCard, hasPaper, addSlide, deleteSlide, duplicateSlide, highlightChoices, layoutName, linkEndingProblem, linkProblemText, moveItem, moveSlide, moveSlideTo,
   neighbourId, newRecipient, nextItemId, patchSlide, readRecipients, readSlides, renameRecipient, setSlideHidden, slideLabel, validRecipients,
 } from '../engine/deckEdit';
 import type { DeckData } from '../deck-runtime/data';
@@ -532,7 +532,7 @@ function SlideEditor({ slide: s, number, pictures, film, go, patch, onAddCard, o
   const linesOf = (v: string) => v.split('\n');
   const shown = pictures.filter(i => !!i && typeof i === 'object' && typeof i.id === 'string' && typeof i.dataUrl === 'string' && i.dataUrl.startsWith('data:'));
   const scrim = typeof s.scrim === 'number' ? s.scrim : 0.7;
-  const scrimId = useId(), paperId = useId();
+  const scrimId = useId(), paperId = useId(), shadeId = useId();
   const lostPicture = !!s.imageId && !pictures.some(i => !!i && i.id === s.imageId);
   const askBox = useRef<HTMLDivElement>(null);
   const insert = (token: string) => {
@@ -715,9 +715,11 @@ function SlideEditor({ slide: s, number, pictures, film, go, patch, onAddCard, o
 
       {hasPaper(s.layout) && (
         <div className="pd-fields pd-optional">
-          <div className="ctl full"><label htmlFor={paperId}>Paper</label>
-            <select id={paperId} data-field="paper" style={{ maxWidth: 220 }} value={s.paper ?? ''} onChange={e => patch({ paper: (e.target.value || undefined) as SlideSpec['paper'] })}>{PAPER_CHOICES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
-            <div className="hint">{s.layout === 'cards' || s.layout === 'ways' ? 'What this slide\'s cards are drawn on. A mix gives each card a different paper.' : s.layout === 'cover' ? 'What the title\'s card is drawn on.' : s.layout === 'stats' ? 'What the quote is drawn on.' : 'What the card beside the team is drawn on.'} Deck default is the paper chosen under Design system.</div></div>
+          <div className="ctl"><label htmlFor={paperId}>Paper</label>
+            <select id={paperId} data-field="paper" style={{ maxWidth: 220 }} value={s.paper ?? ''} onChange={e => patch({ paper: (e.target.value || undefined) as SlideSpec['paper'] })}>{PAPER_CHOICES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
+          <div className="ctl"><label htmlFor={shadeId}>Shade</label>
+            <select id={shadeId} data-field="paperShade" style={{ maxWidth: 220 }} value={s.paperShade ?? ''} onChange={e => patch({ paperShade: (e.target.value || undefined) as SlideSpec['paperShade'] })}>{SHADE_CHOICES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
+          <div className="ctl full"><div className="hint">{s.layout === 'cards' || s.layout === 'ways' ? 'What this slide\'s cards are drawn on. A mix gives each card a different paper.' : s.layout === 'cover' ? 'What the title\'s card is drawn on.' : s.layout === 'stats' ? 'What the quote is drawn on.' : 'What the card beside the team is drawn on.'} Deck default is the paper and the shade chosen under Design system. From my design is your own card colour.</div></div>
         </div>
       )}
 

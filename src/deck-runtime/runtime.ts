@@ -8,13 +8,13 @@
 // `cleanPaths()` and `cleanRecipients()` before anything reads them.
 import { allSwitches, pathFor } from '../engine/pathMath';
 import type { PathInputs, PathResult } from '../engine/pathMath';
-import type { DeckData, DeckRecipient, PaperStyle } from './data';
+import type { DeckData, DeckRecipient, PaperShade, PaperStyle } from './data';
 import { money, moneyParts, multiple, shares100 } from './format';
 import { cleanFamily, faceName, fontSrcOk, HAND_FAMILY, MAX_FONT_FACES } from './fonts';
 import { cleanDeckMotion, cleanMotion } from './motion';
-import { cleanPaper, dealPapers, tornEdge, unevenEdge } from './paper';
+import { cleanPaper, cleanPaperShade, dealPapers, dealShade, paperMarks, tornEdge, unevenEdge } from './paper';
 
-export { cleanDeckMotion, cleanMotion, cleanPaper, dealPapers, HAND_FAMILY };
+export { cleanDeckMotion, cleanMotion, cleanPaper, cleanPaperShade, dealPapers, HAND_FAMILY };
 
 export type Lead = 'with-grants' | 'without-grants';
 
@@ -304,7 +304,8 @@ export const PAPER_INK_MIN = 7, PAPER_SMALL_MIN = 4.5;
  *  aged corner, a crease, a ruled line. The ink reaches 7:1 on the paper, on that shade and on the ruled line; the
  *  small print and the accent reach 4.5:1 on all three. When no ink could reach 7:1 on the card colour itself (a
  *  mid grey), the paper moves away from the ink until one does. The stamp's colours are fills, never under words. */
-export function paperColors(colors: unknown, style: PaperStyle): Record<string, string> {
+export function paperColors(colors: unknown, style: PaperStyle, tone: PaperShade = 'theme'): Record<string, string> {
+  if (cleanPaperShade(tone) !== 'theme') return shadeColors(colors, style, cleanPaperShade(tone) as FixedShade);
   const c = obj(colors);
   const bg = safeColor(c.bg, WHITE), rawInk = safeColor(c.ink, '#111111');
   const hex = (v: unknown, fallback: string): string => { const x = parseColor(safeColor(v, fallback)); return x ? hexOf(x) : fallback; };   // a colour this arithmetic can read, or the fallback
@@ -331,10 +332,121 @@ export function paperColors(colors: unknown, style: PaperStyle): Record<string, 
   };
 }
 
+type FixedShade = Exclude<PaperShade, 'theme'>;
+/** The papers of a fixed tone. `paper` is the sheet; `deep` the darkest its uneven tone, its creases and its worn
+ *  patches reach; `stain` and `fox` an old stain and a foxing spot; `burn` the browned rim, which is drawn only in
+ *  the margin of a card, outside its words; `rule` and `margin` the lines of a ruled page; `fade` how far the
+ *  stamp's colours have gone toward the paper. */
+const SHADES: Record<FixedShade, { paper: string; deep: string; stain: string; fox: string; burn: string; rule: string; margin: string; ink: string; fade: number }> = {
+  white: { paper: '#fbfaf5', deep: '#f0eee6', stain: '#f0eee6', fox: '#f0eee6', burn: '#d9d6cb', rule: '#aebfd8', margin: '#dc8c86', ink: '#1b1a18', fade: 0 },
+  cream: { paper: '#f5ebd4', deep: '#eadcbc', stain: '#eadcbc', fox: '#eadcbc', burn: '#cdb88c', rule: '#b3bcc6', margin: '#cf8272', ink: '#201a12', fade: 0.1 },
+  aged: { paper: '#e9d6aa', deep: '#d2b885', stain: '#cfb37c', fox: '#c79f69', burn: '#8f6a3b', rule: '#9aa7ad', margin: '#b0563f', ink: '#1e160c', fade: 0.35 },
+  kraft: { paper: '#cfab7c', deep: '#bf9967', stain: '#bd9562', fox: '#b58c58', burn: '#8a6537', rule: '#a48c6c', margin: '#9c4a34', ink: '#140d05', fade: 0.3 },
+  newsprint: { paper: '#dedbd0', deep: '#cbc7b9', stain: '#c9c3b0', fox: '#c4bca6', burn: '#a59a7c', rule: '#a3acb4', margin: '#a9645a', ink: '#17171a', fade: 0.3 },
+};
+/** The tones of a paper that can lie under its words: the sheet, every mark of age on it, the darkest any of them
+ *  can come to where they overlap (`floor`: no mix of colours is darker in any channel than the darkest of each),
+ *  and the ruled line. The browned rim is not among them: it is drawn in the card's margin only. */
+export function paperUnder(t: Record<string, string>): string[] {
+  const sheet = ['--psd-card', '--psd-pp-shade', '--psd-pp-stain', '--psd-pp-fox'].map(k => t[k]).filter((v): v is string => !!v);
+  const parsed = sheet.map(parseColor).filter((x): x is RGB => !!x);
+  const floor = parsed.length ? hexOf([0, 1, 2].map(i => Math.min(...parsed.map(x => x[i]))) as RGB) : t['--psd-card'];
+  return [...new Set([...sheet, floor, t['--psd-pp-rule']].filter(Boolean))];
+}
+/** The colours of a paper of a fixed tone. The tone is the shade's own, whatever the theme; the ink is the shade's
+ *  dark ink, at 7:1 on every tone under the words (`paperUnder`); the small print and the label (the theme's accent,
+ *  moved toward the ink as far as it takes) reach 4.5:1 on all of them. Marks of age that would cost the words
+ *  their contrast are pulled back toward the paper until they do not. The ink also reads at 4.5:1 on the rim. */
+function shadeColors(colors: unknown, style: PaperStyle, shade: FixedShade): Record<string, string> {
+  const c = obj(colors), s = SHADES[shade], paper = s.paper;
+  const hex = (v: unknown, fallback: string): string => { const x = parseColor(safeColor(v, fallback)); return x ? hexOf(x) : fallback; };
+  const accent = hex(c.accent, s.ink), accent2 = hex(c.accent2, accent);
+  const ruled = style === 'notebook' || style === 'torn';
+  let deep = s.deep, stain = s.stain, fox = s.fox, rule = ruled ? s.rule : s.deep, burn = s.burn;
+  const tones = (): Record<string, string> => ({ '--psd-card': paper, '--psd-pp-shade': deep, '--psd-pp-stain': stain, '--psd-pp-fox': fox, '--psd-pp-rule': rule });
+  for (let i = 0; i < 40 && worst(s.ink, paperUnder(tones())) < PAPER_INK_MIN + 0.3; i++) { deep = mixColors(deep, paper, 0.15); stain = mixColors(stain, paper, 0.15); fox = mixColors(fox, paper, 0.15); rule = mixColors(rule, paper, 0.15); }
+  for (let i = 0; i < 40 && contrastRatio(s.ink, burn) < PAPER_SMALL_MIN + 0.2; i++) burn = mixColors(burn, paper, 0.05);
+  const under = paperUnder(tones());
+  const ink = textSafe(s.ink, under, BLACK, PAPER_INK_MIN);
+  const faded = (color: string) => mixColors(color, paper, s.fade);
+  return {
+    ...tones(), '--psd-card-ink': ink,
+    '--psd-card-accent': textSafe(accent, under, ink, PAPER_SMALL_MIN), '--psd-card-muted': textSafe(mixColors(ink, paper, 0.3), under, ink, PAPER_SMALL_MIN),
+    '--psd-pp-burn': burn, '--psd-pp-edge': mixColors(paper, ink, 0.35), '--psd-pp-light': mixColors(paper, WHITE, 0.55),
+    '--psd-pp-margin': s.margin,
+    '--psd-pp-stamp': mixColors(paper, ink, 0.14), '--psd-pp-sky': faded(mixColors(accent2, paper, 0.4)), '--psd-pp-sun': faded(accent),
+    '--psd-pp-dune': faded(mixColors(accent, ink, 0.4)), '--psd-pp-dune2': faded(mixColors(accent2, ink, 0.55)), '--psd-pp-post': mixColors(paper, ink, 0.6 - s.fade * 0.5),
+  };
+}
+
+// ---------- the scrim over a picture: strong behind the words, light everywhere else ----------
+
+export interface Box { x: number; y: number; w: number; h: number }
+/** The layouts whose picture shows around the words: on these the strong scrim is drawn behind each block of text only. */
+export const VEILED: ReadonlySet<string> = new Set(['cover', 'photo', 'closing']);
+export const VEIL_PAD = 0.5;    // em: how far past the measured text the full-strength scrim reaches before it starts to fade
+export const VEIL_SNAP = 10;    // percent: a box that ends this near an edge of the slide runs off that edge
+/** How much of the background colour lies over the parts of a picture that have no words on them, in percent: the
+ *  author's "how much the picture is faded" (0 to 1), never under 10% and never over 30%. */
+export function scrimLight(asked: unknown): number {
+  const a = typeof asked === 'number' && Number.isFinite(asked) ? Math.max(0, Math.min(1, asked)) : DEFAULT_SCRIM;
+  return Math.round(Math.max(10, Math.min(30, a * 40)));
+}
+export const VEIL_LABEL = 2.2;  // em: a block no taller than this is a label (a small heading, a sign-off, a footnote)
+export const VEIL_NEAR = 1.6;   // em: a label this close above or below another block shares that block's box
+/** Where the full-strength scrim goes: a box for each block of text, as percentages of the slide (`frame`); `em` is
+ *  the slide's type size in pixels. Each measured box is widened by `VEIL_PAD` on every side, rounded outward to a
+ *  hundredth of a percent and cut at the slide's edges, so no pixel of the text is outside its box; from there a box
+ *  only ever grows. A label close above or below another block is joined to it (one box round both). A box that
+ *  ends within `VEIL_SNAP` percent of an edge runs off that edge (so the footer's two ends sit in the slide's bottom
+ *  corners). A block with no size, or wholly off the slide, gets none; a frame with no size gets
+ *  none at all (and the slide keeps its scrim everywhere). */
+export function veilBoxes(texts: Box[], frame: Box, em: number): { left: number; top: number; width: number; height: number }[] {
+  if (!(frame.w > 0) || !(frame.h > 0)) return [];
+  const unit = Number.isFinite(em) && em > 0 ? em : 0, p = unit * VEIL_PAD;
+  const down = (v: number) => Math.floor(v * 100) / 100, up = (v: number) => Math.ceil(v * 100) / 100;
+  interface Edge { l: number; r: number; a: number; b: number; label: boolean }
+  let boxes: Edge[] = [];
+  for (const t of texts) {
+    if (![t.x, t.y, t.w, t.h].every(Number.isFinite) || !(t.w > 0) || !(t.h > 0)) continue;
+    const l = Math.max(0, down(((t.x - p - frame.x) / frame.w) * 100)), r = Math.min(100, up(((t.x + t.w + p - frame.x) / frame.w) * 100));
+    const a = Math.max(0, down(((t.y - p - frame.y) / frame.h) * 100)), b = Math.min(100, up(((t.y + t.h + p - frame.y) / frame.h) * 100));
+    if (r > l && b > a) boxes.push({ l, r, a, b, label: t.h <= unit * VEIL_LABEL });
+  }
+  // a label joins the nearest block it sits over or under, when that block is close
+  const near = ((unit * VEIL_NEAR) / frame.h) * 100;
+  for (let again = true; again;) {
+    again = false;
+    for (const x of boxes) {
+      if (!x.label) continue;
+      let best: Edge | null = null, bestGap = Infinity;
+      for (const y of boxes) {
+        if (y === x || Math.min(x.r, y.r) <= Math.max(x.l, y.l)) continue;
+        const gap = Math.max(0, y.a - x.b, x.a - y.b);
+        if (gap <= near && gap < bestGap) { best = y; bestGap = gap; }
+      }
+      if (!best) continue;
+      const joined: Edge = { l: Math.min(x.l, best.l), r: Math.max(x.r, best.r), a: Math.min(x.a, best.a), b: Math.max(x.b, best.b), label: x.label && best.label };
+      boxes = boxes.filter(q => q !== x && q !== best); boxes.push(joined); again = true; break;
+    }
+  }
+  const out: { left: number; top: number; width: number; height: number }[] = [], seen = new Set<string>();
+  for (const q of boxes) {
+    let { l, r, a, b } = q;
+    if (l <= VEIL_SNAP) l = 0;
+    if (r >= 100 - VEIL_SNAP) r = 100;
+    if (a <= VEIL_SNAP) a = 0;
+    if (b >= 100 - VEIL_SNAP) b = 100;
+    const box = { left: l, top: a, width: Math.round((r - l) * 100) / 100, height: Math.round((b - a) * 100) / 100 }, key = `${box.left} ${box.top} ${box.width} ${box.height}`;
+    if (!seen.has(key)) { seen.add(key); out.push(box); }
+  }
+  return out.sort((x, y) => x.top - y.top || x.left - y.left);
+}
+
 // ---------- the mount ----------
 
 type Kid = Node | string | null | undefined | false;
-interface Part { index: number; layout: string; section: HTMLElement; box: HTMLElement; cells: HTMLElement[]; counts: HTMLElement[]; update?: () => void }
+interface Part { index: number; layout: string; section: HTMLElement; box: HTMLElement; cells: HTMLElement[]; counts: HTMLElement[]; veils?: HTMLElement; update?: () => void }
 interface Count { e: HTMLElement; live: HTMLElement; pre: string; post: string; to: number; dec: number; group: boolean }
 type Timer = ReturnType<typeof setTimeout>;
 
@@ -479,23 +591,28 @@ function mountWith(host: HTMLElement, data: DeckData, opts: MountOptions, taken:
   // --- papers: a card is dressed as the paper its slide (or the deck) names. Everything drawn is an empty element
   //     the stylesheet shapes; the only values set here are colours worked out from the theme and edges worked out
   //     from the card's place in the deck. ---
-  const tones = new Map<PaperStyle, Record<string, string>>();
+  const tones = new Map<string, Record<string, string>>();
   const TILTS = [-0.6, 0.5, -0.4, 0.7];
   let slideAt = 0;                                  // the slide being built: with a card's place on it, the seed its edge is cut from
   let slidePapers: (n: number) => PaperStyle[] = () => [];
+  let slideShade: PaperShade = 'theme';                // the tone of the papers on the slide being built
   const bit = (cls: string, ...kids: Kid[]): HTMLElement => el('i', cls, ...kids);
   const dress = <T extends HTMLElement>(card: T, style: PaperStyle, at = 0): T => {
     const seed = slideAt * 8 + at;
-    let tone = tones.get(style);
-    if (!tone) { tone = paperColors(theme.colors, style); tones.set(style, tone); }
+    const shade = slideShade, toneKey = `${style} ${shade}`;
+    let tone = tones.get(toneKey);
+    if (!tone) { tone = paperColors(theme.colors, style, shade); tones.set(toneKey, tone); }
     for (const k of Object.keys(tone)) card.style.setProperty(k, tone[k]);
     card.dataset.paper = style;
+    if (shade !== 'theme') card.dataset.shade = shade;   // a paper of a fixed tone; a card that says nothing is the theme's own
     const layer = el('span', 'psd-pp', bit('psd-pp-edge'), style === 'torn' ? bit('psd-pp-rip') : null, bit('psd-pp-sheet'));
     layer.setAttribute('aria-hidden', 'true');
     if (style === 'torn') layer.style.setProperty('--psd-pp-cut', tornEdge(seed));
     if (style === 'letter') { layer.style.setProperty('--psd-pp-cut', unevenEdge(seed)); layer.append(bit('psd-pp-fold psd-pp-fold-a'), bit('psd-pp-fold psd-pp-fold-b'), bit('psd-pp-fold psd-pp-fold-v')); }
     if (style === 'notebook') layer.append(bit('psd-pp-margin'));
     if (style === 'postcard') layer.append(bit('psd-pp-divider'), bit('psd-pp-address'), bit('psd-pp-stamp', bit('psd-pp-stamp-art')), bit('psd-pp-postmark'));
+    const marks = paperMarks(seed, shade);
+    if (marks) layer.style.setProperty('--psd-pp-marks', marks);
     card.insertBefore(layer, card.firstChild);
     if (tilt) card.style.setProperty('--r', `${TILTS[seed % TILTS.length]}deg`);
     return card;
@@ -825,6 +942,7 @@ function mountWith(host: HTMLElement, data: DeckData, opts: MountOptions, taken:
     section.dataset.slideId = str(s.id);
     section.dataset.layout = layout;
     const inner = el('div', 'psd-in');
+    let veilHost: HTMLElement | undefined;
     const img = has(s.imageId) ? images.get(str(s.imageId)) : undefined;
     if (img) {
       const pic = doc.createElement('img');
@@ -834,13 +952,15 @@ function mountWith(host: HTMLElement, data: DeckData, opts: MountOptions, taken:
       const scrim = el('div', 'psd-scrim');
       scrim.style.setProperty('--psd-scrim', `${Math.round(k * 100)}%`);
       scrim.style.setProperty('--psd-scrim-soft', `${Math.round(asked * 45)}%`);
+      scrim.style.setProperty('--psd-scrim-light', `${scrimLight(asked)}%`);
+      if (VEILED.has(layout)) { veilHost = el('span', 'psd-veils'); veilHost.setAttribute('aria-hidden', 'true'); scrim.appendChild(veilHost); }
       inner.append(pic, scrim);
       section.classList.add('psd-has-picture');
       const safe = deckColors(theme.colors, 1 - k);   // text colours that hold with a picture showing through
       for (const key of Object.keys(safe)) section.style.setProperty(key, safe[key]);
     }
     const box = el('div', 'psd-box');
-    const part: Part = { index, layout, section, box, cells: [], counts: [] };
+    const part: Part = { index, layout, section, box, cells: [], counts: [], veils: veilHost };
     // movement: words from the fixed list become an attribute or a class, numbers are clamped and set as properties
     const mo = cleanMotion(s.motion, layout) ?? {};
     if (mo.entrance) section.dataset.enter = mo.entrance;
@@ -859,6 +979,7 @@ function mountWith(host: HTMLElement, data: DeckData, opts: MountOptions, taken:
     }
     slideAt = index;
     slidePapers = n => dealPapers(theme.paper, s.paper, n);
+    slideShade = dealShade(theme.paperShade, s.paperShade);
     for (const k of layouts[layout](s, part)) if (k) box.appendChild(typeof k === 'string' ? doc.createTextNode(k) : k);
     counting = null; typed = false; marker = null;
     // parts arrive in the order they are read (top to bottom), or last first
@@ -898,6 +1019,7 @@ function mountWith(host: HTMLElement, data: DeckData, opts: MountOptions, taken:
     p.section.classList.remove('psd-centre');   // measured from the top, as it is laid out
     if (stacked || !(p.box.clientHeight > 0)) {   // the stacked layout grows with its content; a slide not laid out says nothing
       if (stacked) p.section.dataset.overflow = 'false';
+      veil(p, false);
       return false;
     }
     let bad = false;
@@ -916,7 +1038,30 @@ function mountWith(host: HTMLElement, data: DeckData, opts: MountOptions, taken:
       const top = p.box.querySelector('.psd-photo > *, .psd-closing-slide > *')?.getBoundingClientRect().top, r = p.section.getBoundingClientRect();
       if (top != null && r.height > 0) p.section.style.setProperty('--psd-stop', `${Math.round(Math.max(30, Math.min(100, ((r.bottom - top) / r.height) * 100 + 8)))}%`);
     }
+    veil(p, true);
     return bad;
+  }
+  /** The scrim of a picture slide, drawn where its words are: every block of text outside a card is measured where it
+   *  will sit, and gets full-strength scrim behind it and a little way round it; the rest of the picture keeps only
+   *  the light wash. Until a slide has been measured (and whenever it cannot be) the scrim is as it always was. */
+  function veil(p: Part, on: boolean) {
+    const host = p.veils; if (!host) return;
+    const boxes: ReturnType<typeof veilBoxes> = [];
+    if (on && typeof doc.createRange === 'function') {
+      const frame = p.section.getBoundingClientRect(), em = parseFloat((win?.getComputedStyle(host).fontSize) ?? '') || 0;
+      const blocks = new Set<Element>();
+      for (const e of p.section.querySelectorAll('.psd-box *, .psd-foot *, .psd-foot')) {
+        if (e.closest('.psd-card')) continue;   // a card is its own surface
+        if (![...e.childNodes].some(n => n.nodeType === 3 && (n.textContent ?? '').trim() !== '')) continue;
+        blocks.add(e.closest('p, h1, h2, h3, li, figcaption, blockquote') ?? e);
+      }
+      const rects: Box[] = [];
+      for (const b of blocks) { const range = doc.createRange(); range.selectNodeContents(b); const r = typeof range.getBoundingClientRect === 'function' ? range.getBoundingClientRect() : b.getBoundingClientRect(); rects.push({ x: r.left, y: r.top, w: r.width, h: r.height }); }
+      if (em > 0 && blocks.size) boxes.push(...veilBoxes(rects, { x: frame.left, y: frame.top, w: frame.width, h: frame.height }, em));
+    }
+    while (host.firstChild) host.removeChild(host.firstChild);
+    for (const b of boxes) { const v = el('i', 'psd-veil'); v.style.left = `${b.left}%`; v.style.top = `${b.top}%`; v.style.width = `${b.width}%`; v.style.height = `${b.height}%`; host.appendChild(v); }
+    if (boxes.length) p.section.dataset.veil = ''; else delete p.section.dataset.veil;
   }
   function fitAll(): number[] {
     if (destroyed) return [];
@@ -1113,14 +1258,21 @@ function mountWith(host: HTMLElement, data: DeckData, opts: MountOptions, taken:
   };
   const RO = win && (win as unknown as { ResizeObserver?: typeof ResizeObserver }).ResizeObserver;
   if (RO) {
-    const ro = new RO(resized);
+    // one observer: the host changing size is a resize; a block of words on a picture slide changing size only means
+    // its scrim has to be measured again
+    const ro = new RO((entries?: { target: Element }[]) => { if (!entries || !entries.length || entries.some(e => e.target === host)) resized(); else refit(); });
     ro.observe(host);
+    for (const p of parts) if (p.veils) { for (const e of p.section.querySelectorAll('.psd-box > *, .psd-box > * > *, .psd-foot')) ro.observe(e); }
     cleanups.push(() => ro.disconnect());
   }
   if (!isStatic) listen(doc, 'fullscreenchange', resized);
   // the typefaces arrive after the first layout, and change what fits
   (doc as Document & { fonts?: { ready?: Promise<unknown> } }).fonts?.ready?.then(() => { fitAll(); }, () => { /* nothing to refit */ });
   if (faceLoads.length) void Promise.all(faceLoads).then(() => { fitAll(); });
+  // the words of a picture slide have their scrim where they were measured: when a face that loaded late may have
+  // moved them they are measured again (a block that changed size is seen by the observer above)
+  const fontSet = (doc as Document & { fonts?: EventTarget }).fonts;
+  if (fontSet && typeof fontSet.addEventListener === 'function') { fontSet.addEventListener('loadingdone', refit); cleanups.push(() => fontSet.removeEventListener('loadingdone', refit)); }
 
   // --- printing: @page does not apply from inside a shadow tree, so the (named, harmless elsewhere) page rule goes
   //     in the document, once, and stays until the last deck that needs it has gone ---
