@@ -25,6 +25,8 @@ Two independent reviews of the combined work found more, fixed the same day:
 - **Privacy wording matches what the app does.** The Pitch tab now says that PDFs you add go to Anthropic with a Draft, and About mentions the Google Fonts picker. The crash screen says the last few seconds of changes may not have been saved.
 - A project file may hold up to 50 revenue scenarios.
 
+- **Build and test tools brought up to date.** Vite 5 to 8, Vitest 2 to 5, esbuild 0.21 to 0.28, which clears every advisory in the tools used to build and test the app. Working on the code now needs Node 22.12 or newer. One slow spot turned up on the way: cutting a very long file name down for a ZIP did its sums again for every letter; it now counts once.
+
 Also: help text on the Deal tab and the look book no longer mentions a "Financing" tab or the report deck's layouts. Tests: 997 pass.
 
 ## 2026-11-17

@@ -62,7 +62,7 @@ describe('the crash screen', () => {
     expect(details.open).toBe(false);
     expect(details.querySelector('summary')!.textContent).toBe('Details');
     expect(details.querySelector('pre')!.textContent).toContain('Error: Cannot draw scene 12');
-    expect(logged.mock.calls.some(c => c[0] === 'ProfitShare could not draw the page' && (c[1] as Error).message === 'Cannot draw scene 12')).toBe(true);
+    expect(logged.mock.calls.some((c: unknown[]) => c[0] === 'ProfitShare could not draw the page' && (c[1] as Error).message === 'Cannot draw scene 12')).toBe(true);
     expect([...el.querySelectorAll('.crash-list td:first-child')].map(td => td.textContent)).toEqual(['Nine Miles (was open)', 'SALT FLAT']);
     expect(el.innerHTML).not.toMatch(/ on[a-z]+="/);                   // no inline handlers
   });

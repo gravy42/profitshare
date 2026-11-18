@@ -1667,7 +1667,7 @@ describe('the preview options', () => {
     expect([...root.querySelectorAll('section')].findIndex(s => s.hasAttribute('data-current'))).toBe(2);
   });
   it('with motion off every slide is in its final state, and the deck still pages and switches', () => {
-    const Observer = vi.fn(() => ({ observe: vi.fn(), disconnect: vi.fn() }));
+    const Observer = vi.fn(function () { return { observe: vi.fn(), disconnect: vi.fn() }; });   // a plain function, so it can be called with `new`
     vi.stubGlobal('IntersectionObserver', Observer);
     (window as unknown as { IntersectionObserver: unknown }).IntersectionObserver = Observer;
     const { root, handle, slide } = mount(fixture(), { motion: false });

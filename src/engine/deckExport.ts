@@ -141,9 +141,12 @@ export function zipName(name: string, suffix = ''): string {
   const dot = clean.lastIndexOf('.');
   const ext = dot > 0 && clean.length - dot <= 16 ? clean.slice(dot) : '';
   const tail = suffix + ext;   // what a cut never touches: the number that tells two files apart, and the extension
-  let stem = [...(ext ? clean.slice(0, dot) : clean)];   // whole characters, so a cut never splits one
-  while (stem.length > 1 && encoder.encode(stem.join('') + tail).length > ZIP_NAME_MAX_BYTES) stem = stem.slice(0, -1);
-  return stem.join('') + tail;
+  const stem = [...(ext ? clean.slice(0, dot) : clean)];   // whole characters, so a cut never splits one
+  // Keep as many whole characters as fit beside the tail (always at least one), counting bytes once as we go.
+  const room = ZIP_NAME_MAX_BYTES - encoder.encode(tail).length;
+  let keep = 0, used = 0;
+  for (; keep < stem.length; keep++) { const n = encoder.encode(stem[keep]).length; if (keep > 0 && used + n > room) break; used += n; }
+  return stem.slice(0, keep).join('') + tail;
 }
 
 /** A .zip of the files, stored as they are. Names are made safe and, when two are the same, numbered. Sizes are
