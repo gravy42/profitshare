@@ -478,6 +478,8 @@ export function footBand(texts: Box[], frame: Box, em: number): { top: number } 
 export const SHADE_STEP = 0.05;
 export const SHADE_SPARE = 0.05;      // added to what was measured: the picture may move a little, and was read small
 export const SHADE_PASS = 0.95;       // this share of the picture under the words has to pass
+export const TURN_FROM = 0.3;        // a slide whose words need at least this much shade is tried the other way round
+export const TURN_GAIN = 0.2;        // and stays that way only when it then needs this much less
 export const LARGE_TEXT = 1.2;        // times the slide's type size: words this large need 3 to 1, smaller ones 4.5 to 1
 /** A colour as the browser reports it from a computed style: `rgb()`, `rgba()`, hex, or `color(srgb r g b)`. */
 export function readColor(color: string): RGB | null {
@@ -517,7 +519,7 @@ export function shadeNeeded(pixels: ArrayLike<number>, bg: string, text: string,
 // ---------- the mount ----------
 
 type Kid = Node | string | null | undefined | false;
-interface Part { index: number; layout: string; section: HTMLElement; box: HTMLElement; cells: HTMLElement[]; counts: HTMLElement[]; veils?: HTMLElement; update?: () => void }
+interface Part { index: number; layout: string; section: HTMLElement; box: HTMLElement; cells: HTMLElement[]; counts: HTMLElement[]; veils?: HTMLElement; inks?: { plain: Record<string, string>; turned: Record<string, string>; turnedBg: string }; update?: () => void }
 interface Count { e: HTMLElement; live: HTMLElement; pre: string; post: string; to: number; dec: number; group: boolean }
 type Timer = ReturnType<typeof setTimeout>;
 
@@ -1019,6 +1021,7 @@ function mountWith(host: HTMLElement, data: DeckData, opts: MountOptions, taken:
     section.dataset.layout = layout;
     const inner = el('div', 'psd-in');
     let veilHost: HTMLElement | undefined;
+    let inks: Part['inks'];
     const img = has(s.imageId) ? images.get(str(s.imageId)) : undefined;
     if (img) {
       const pic = doc.createElement('img');
@@ -1036,9 +1039,16 @@ function mountWith(host: HTMLElement, data: DeckData, opts: MountOptions, taken:
       section.classList.add('psd-has-picture');
       const safe = deckColors(theme.colors, 1 - k);   // text colours that hold with a picture showing through
       for (const key of Object.keys(safe)) section.style.setProperty(key, safe[key]);
+      if (veilHost) {
+        // the same words the other way round, for a picture that suits them better: the theme's ink as the shade, its
+        // background as the ink (dark words on a pale picture, on a dark deck)
+        const c = obj(theme.colors), turnedBg = safeColor(c.ink, '#111111');
+        inks = { plain: safe, turned: deckColors({ ...c, bg: c.ink, ink: c.bg }, 1 - k), turnedBg };
+        section.style.setProperty('--psd-turned-bg', turnedBg);
+      }
     }
     const box = el('div', 'psd-box');
-    const part: Part = { index, layout, section, box, cells: [], counts: [], veils: veilHost };
+    const part: Part = { index, layout, section, box, cells: [], counts: [], veils: veilHost, inks };
     // movement: words from the fixed list become an attribute or a class, numbers are clamped and set as properties
     const mo = cleanMotion(s.motion, layout) ?? {};
     if (mo.entrance) section.dataset.enter = mo.entrance;
@@ -1119,6 +1129,14 @@ function mountWith(host: HTMLElement, data: DeckData, opts: MountOptions, taken:
     veil(p, true);
     return bad;
   }
+  /** Turns the words of a picture slide the other way round (dark words and a pale shade on a dark deck, and the
+   *  reverse on a light one), or back. */
+  function turn(p: Part, on: boolean) {
+    if (!p.inks) return;
+    const set = on ? p.inks.turned : p.inks.plain;
+    for (const key of Object.keys(set)) p.section.style.setProperty(key, set[key]);
+    p.section.classList.toggle('psd-turned', on);
+  }
   /** The picture of a slide, read small (64 across), as the slide crops it: what is behind any part of the slide.
    *  Null when it cannot be read (not loaded yet, no canvas, a picture the page may not read). */
   function pictureGrid(p: Part, frame: { width: number; height: number }): { w: number; h: number; data: ArrayLike<number> } | null {
@@ -1149,6 +1167,7 @@ function mountWith(host: HTMLElement, data: DeckData, opts: MountOptions, taken:
    *  (and whenever it cannot be) the scrim is as it always was. */
   function veil(p: Part, on: boolean) {
     const host = p.veils; if (!host) return;
+    turn(p, false);   // measured first with the words as the theme has them
     const boxes: ReturnType<typeof veilBoxes> = [];
     let band: ReturnType<typeof footBand> = null, strong: number | null = null, footStrong: number | null = null;
     if (on && typeof doc.createRange === 'function') {
@@ -1165,18 +1184,32 @@ function mountWith(host: HTMLElement, data: DeckData, opts: MountOptions, taken:
         const f = { x: frame.left, y: frame.top, w: frame.width, h: frame.height };
         boxes.push(...veilBoxes(words.filter(x => !x.foot).map(x => x.rect), f, em));
         band = footBand(words.filter(x => x.foot).map(x => x.rect), f, em);
-        // how strong: read from the picture behind each block of words
+        // how strong: read from the picture behind each block of words, with the words as the theme has them and
+        // then the other way round; the slide takes whichever needs clearly less shade
         const grid = pictureGrid(p, frame), look = win?.getComputedStyle(host);
-        const bg = look?.getPropertyValue('--psd-bg').trim() ?? '', wash = (parseFloat(look?.getPropertyValue('--psd-scrim-light') ?? '') || 0) / 100;
-        if (grid && readColor(bg)) {
-          strong = 0; footStrong = 0;
+        const wash = (parseFloat(look?.getPropertyValue('--psd-scrim-light') ?? '') || 0) / 100;
+        const measure = (bg: string): { main: number; foot: number } | null => {
+          if (!grid || !readColor(bg)) return null;
+          let main = 0, foot = 0;
           for (const x of words) {
             if (!(x.rect.w > 0) || !(x.rect.h > 0)) continue;
             const cs = win?.getComputedStyle(x.el), size = parseFloat(cs?.fontSize ?? '') || 0;
             const need = shadeNeeded(under(grid, x.rect, frame), bg, cs?.color ?? '', size >= em * LARGE_TEXT, wash);
-            if (x.foot) footStrong = Math.max(footStrong, need); else strong = Math.max(strong, need);
+            if (x.foot) foot = Math.max(foot, need); else main = Math.max(main, need);
+          }
+          return { main, foot };
+        };
+        const plain = measure(look?.getPropertyValue('--psd-bg').trim() ?? '');
+        let chosen = plain;
+        if (plain && p.inks) {
+          const worst = (m: { main: number; foot: number }) => (words.some(x => !x.foot) ? m.main : m.foot);
+          if (worst(plain) >= TURN_FROM) {
+            turn(p, true);
+            const turned = measure(p.inks.turnedBg);
+            if (turned && worst(turned) <= worst(plain) - TURN_GAIN) chosen = turned; else turn(p, false);
           }
         }
+        if (chosen) { strong = chosen.main; footStrong = chosen.foot; }
       }
     }
     while (host.firstChild) host.removeChild(host.firstChild);

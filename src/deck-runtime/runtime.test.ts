@@ -16,7 +16,7 @@ import { money, moneyParts, multiple, percent, shares100 } from './format';
 import { cleanFamily, faceName, fontSrcOk, shortHash } from './fonts';
 import { CENTRE_UNDER, shouldCentre, cleanFontFaces, cleanPaths, cleanRecipients, contrastRatio, DEFAULT_LEGAL, deckColors, fillAsk, fontStack, initialSwitches, MAX_SOURCES, mixColors, mountDeck, overflows, parseColor, parseHash, readableOn, reservedSlug, safeColor, str, textSafe } from './runtime';
 import type { DeckHandle } from './runtime';
-import { scrimLight, veilBoxes, footBand, shadeNeeded, readColor, VEILED, VEIL_LABEL, VEIL_NEAR, VEIL_PAD, VEIL_SNAP, FOOT_RISE, SHADE_SPARE } from './runtime';
+import { scrimLight, veilBoxes, footBand, shadeNeeded, readColor, VEILED, VEIL_LABEL, VEIL_NEAR, VEIL_PAD, VEIL_SNAP, FOOT_RISE, SHADE_SPARE, TURN_FROM, TURN_GAIN } from './runtime';
 
 // Only the invented sample film, dressed with invented content so that every layout appears.
 const pic = (id: string): LookImage => ({ id, dataUrl: `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" id="${id}"/>`, caption: `Picture ${id}`, section: 'tone' });
@@ -1880,6 +1880,15 @@ describe('the scrim behind the words of a picture slide', () => {
     expect(shadeNeeded(fill(1, 2, 3), bg, white, false, NaN)).toBe(0.85);
     expect(shadeNeeded([NaN, 0, 0, 255], bg, white, false, 0.1)).toBe(0.85);
   });
+  it('dark words on a pale picture need far less shade than light ones: that is when a slide is turned', () => {
+    const fill = (r: number, g: number, b: number, n = 40) => Array.from({ length: n }, () => [r, g, b, 255]).flat();
+    const night = '#141428', paper = '#f3ead2';
+    const light = shadeNeeded(fill(215, 215, 220), night, paper, false, 0.1), dark = shadeNeeded(fill(215, 215, 220), paper, night, false, 0.1);
+    expect(light).toBeGreaterThanOrEqual(TURN_FROM); expect(dark).toBeLessThanOrEqual(light - TURN_GAIN);   // pale salt: turned
+    const light2 = shadeNeeded(fill(40, 30, 60), night, paper, false, 0.1);
+    expect(light2).toBeLessThan(TURN_FROM);                                                                    // a night sky: left alone
+    expect(TURN_FROM).toBe(0.3); expect(TURN_GAIN).toBe(0.2);
+  });
   it('reads a colour the way a browser reports one', () => {
     expect(readColor('rgb(10, 20, 30)')).toEqual([10, 20, 30]); expect(readColor('#0a141e')).toEqual([10, 20, 30]);
     expect(readColor('rgba(10, 20, 30, 0.5)')).toEqual([10, 20, 30]);
@@ -1906,6 +1915,8 @@ describe('the scrim behind the words of a picture slide', () => {
         expect(veils, layout).not.toBeNull();
         expect(veils.getAttribute('aria-hidden')).toBe('true');
         expect(veils.children).toHaveLength(0);          // jsdom lays nothing out: nothing was measured
+        expect(s.classList.contains('psd-turned'), layout).toBe(false);   // and nothing was turned
+        expect(parseColor(s.style.getPropertyValue('--psd-turned-bg')), layout).not.toBeNull();   // the colour a turned slide would be shaded with is ready
         expect('veil' in s.dataset, layout).toBe(false);   // so the picture is under the scrim as it always was
         const scrim = s.querySelector<HTMLElement>('.psd-scrim')!;
         expect(parseFloat(scrim.style.getPropertyValue('--psd-scrim'))).toBeGreaterThanOrEqual(85);
@@ -1923,10 +1934,14 @@ describe('the scrim behind the words of a picture slide', () => {
     expect(sheet).toContain('.psd-slide[data-veil] .psd-veils { display: block; }');
     expect(sheet).toContain('.psd-slide[data-veil] .psd-scrim { background: color-mix(in srgb, var(--psd-bg) var(--psd-scrim-light, 25%), transparent); }');
     // the light wash is named in that one rule and nowhere else: without data-veil the old scrim stands
-    expect(sheet.replace(/\/\*[\s\S]*?\*\//g, '').match(/--psd-scrim-light/g)).toHaveLength(1);
+    expect(sheet.replace(/\/\*[\s\S]*?\*\//g, '').match(/--psd-scrim-light/g)).toHaveLength(2);   // and once more for a slide whose words are turned
+    // a slide whose words are turned the other way round: its shade, its wash and its printed scrim are the theme's ink colour
+    expect(sheet).toContain('.psd-slide.psd-turned { --psd-shade: var(--psd-turned-bg); }');
+    expect(sheet).toContain('.psd-slide[data-veil].psd-turned .psd-scrim { background: color-mix(in srgb, var(--psd-turned-bg) var(--psd-scrim-light, 25%), transparent); }');
+    expect(sheet.slice(sheet.indexOf('@media print'))).toContain('.psd-slide[data-veil].psd-turned .psd-scrim { background: color-mix(in srgb, var(--psd-turned-bg) var(--psd-scrim, 85%), transparent); }');
     expect(sheet).toContain('.psd-l-photo .psd-scrim, .psd-l-closing .psd-scrim { background: linear-gradient(to top, var(--s) 0%, var(--s) var(--psd-stop, 62%), var(--f) 100%); }');
     const veil = /\.psd-veil \{([^}]*)\}/.exec(sheet)![1];
-    expect(veil).toContain('background: var(--psd-bg)'); expect(veil).toContain('opacity: var(--k, var(--psd-scrim, 85%))');   // as strong as the picture needs; not measured, the scrim's own strength
+    expect(veil).toContain('background: var(--psd-shade, var(--psd-bg))'); expect(veil).toContain('opacity: var(--k, var(--psd-scrim, 85%))');   // as strong as the picture needs; not measured, the scrim's own strength
     const footRule = /\.psd-veil-foot \{([^}]*)\}/.exec(sheet)![1];
     expect(footRule).toContain('left: 0; right: 0; bottom: 0'); expect(footRule).toContain('opacity: var(--k, var(--psd-scrim, 85%))'); expect(footRule).toMatch(/linear-gradient\(to bottom, transparent/);
     expect(veil).toContain('mask-composite: intersect'); expect(veil).toContain('-webkit-mask-composite: source-in');

@@ -31,7 +31,7 @@
 .psd-ic-arrow { position: relative; width: 1.7em; height: .14em; background: currentColor; }
 .psd-ic-arrow::after { content: ""; position: absolute; right: .02em; top: 50%; width: .62em; height: .62em; border: solid currentColor; border-width: .14em .14em 0 0; transform: translateY(-50%) rotate(45deg); }
 .psd-stage { height: 100cqh; display: grid; place-items: center; scroll-snap-align: start; scroll-snap-stop: always; }
-.psd-slide { position: relative; width: min(100cqw, 177.778cqh); aspect-ratio: 16 / 9; overflow: hidden; container-type: inline-size; background: var(--psd-bg); }
+.psd-slide { position: relative; width: min(100cqw, 177.778cqh); aspect-ratio: 16 / 9; overflow: hidden; container-type: inline-size; background: var(--psd-bg); color: var(--psd-ink); }   /* its own ink: a picture slide sets one that holds over its picture */
 /* --psd-fs is the slide's type size; the runtime steps it down on a slide whose content does not fit */
 .psd-in { position: absolute; inset: 0; font-size: calc(var(--psd-fs, 1.4) * 1cqw); }
 /* a host with no height of its own: slides take the width and the page does the scrolling */
@@ -52,11 +52,15 @@
 .psd-veils { position: absolute; inset: 0; display: none; }
 .psd-slide[data-veil] .psd-veils { display: block; }
 .psd-slide[data-veil] .psd-scrim { background: color-mix(in srgb, var(--psd-bg) var(--psd-scrim-light, 25%), transparent); }
-.psd-veil { position: absolute; display: block; box-sizing: content-box; --v: 3.6em; margin: calc(var(--v) * -1) 0 0 calc(var(--v) * -1); padding: var(--v); background: var(--psd-bg); opacity: var(--k, var(--psd-scrim, 85%));
+.psd-veil { position: absolute; display: block; box-sizing: content-box; --v: 3.6em; margin: calc(var(--v) * -1) 0 0 calc(var(--v) * -1); padding: var(--v); background: var(--psd-shade, var(--psd-bg)); opacity: var(--k, var(--psd-scrim, 85%));
   --across: linear-gradient(to right, transparent, rgba(0, 0, 0, .12) calc(var(--v) * .25), rgba(0, 0, 0, .5) calc(var(--v) * .5), rgba(0, 0, 0, .88) calc(var(--v) * .75), #000 var(--v), #000 calc(100% - var(--v)), rgba(0, 0, 0, .88) calc(100% - var(--v) * .75), rgba(0, 0, 0, .5) calc(100% - var(--v) * .5), rgba(0, 0, 0, .12) calc(100% - var(--v) * .25), transparent);
   --down: linear-gradient(to bottom, transparent, rgba(0, 0, 0, .12) calc(var(--v) * .25), rgba(0, 0, 0, .5) calc(var(--v) * .5), rgba(0, 0, 0, .88) calc(var(--v) * .75), #000 var(--v), #000 calc(100% - var(--v)), rgba(0, 0, 0, .88) calc(100% - var(--v) * .75), rgba(0, 0, 0, .5) calc(100% - var(--v) * .5), rgba(0, 0, 0, .12) calc(100% - var(--v) * .25), transparent);
   -webkit-mask-image: var(--across), var(--down); -webkit-mask-composite: source-in; mask-image: var(--across), var(--down); mask-composite: intersect; }
-.psd-veil-foot { position: absolute; display: block; left: 0; right: 0; bottom: 0; background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--psd-bg) 35%, transparent) 1.2em, var(--psd-bg) 2.6em); opacity: var(--k, var(--psd-scrim, 85%)); }
+.psd-veil-foot { position: absolute; display: block; left: 0; right: 0; bottom: 0; background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--psd-shade, var(--psd-bg)) 35%, transparent) 1.2em, var(--psd-shade, var(--psd-bg)) 2.6em); opacity: var(--k, var(--psd-scrim, 85%)); }
+/* a slide whose picture suits its words better the other way round (.psd-turned, set by the runtime with the words'
+   colours): the shade, the light wash and a printed page's scrim are the theme's ink colour, not its background */
+.psd-slide.psd-turned { --psd-shade: var(--psd-turned-bg); }
+.psd-slide[data-veil].psd-turned .psd-scrim { background: color-mix(in srgb, var(--psd-turned-bg) var(--psd-scrim-light, 25%), transparent); }
 .psd-box { position: absolute; inset: 0; padding: 4.1em 5.6em 4.3em; display: flex; flex-direction: column; overflow: hidden; }
 .psd-foot { position: absolute; left: 5.6em; right: 5.6em; bottom: 1.1em; display: flex; justify-content: space-between; align-items: baseline; gap: 2em; text-transform: uppercase; color: var(--psd-muted-text); }
 .psd-foot span { font-size: max(.64em, var(--psd-min)); letter-spacing: .18em; }
@@ -660,6 +664,7 @@
   /* a printed page is laid out again, at a size nothing here measured: the scrim goes back to covering the picture */
   .psd-slide[data-veil] .psd-veils { display: none; }
   .psd-slide[data-veil] .psd-scrim { background: var(--s); }
+  .psd-slide[data-veil].psd-turned .psd-scrim { background: color-mix(in srgb, var(--psd-turned-bg) var(--psd-scrim, 85%), transparent); }
   .psd-pp { filter: none; }
   .psd-pp-sheet { box-shadow: none; }
   :is([data-paper="plain"], [data-paper="postcard"], [data-paper="notebook"]) .psd-pp-sheet { border: 1px solid var(--psd-pp-edge); }
