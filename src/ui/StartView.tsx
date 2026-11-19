@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import type { ProjectMeta } from '../store';
+import { copyState, copyWords, type FileCopies } from '../fileCopies';
+import { downloadAllProjects } from '../backups';
 import { money } from './format';
 import { StarterForm, type StarterSettings } from './StarterForm';
 
@@ -19,6 +21,9 @@ export interface StartActions {
   activeId: string | null;
   onOpenProject: (id: string) => void;
   onDeleteProject: (id: string) => void;
+  copies?: FileCopies;      // what is known about each project's copies in files
+  onCopiesChanged?: () => void;   // a download has just been noted
+  now?: () => number;       // the clock, for tests
 }
 
 const when = (iso: string) => {
@@ -29,7 +34,7 @@ const when = (iso: string) => {
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + (d.getFullYear() !== new Date().getFullYear() ? ` ${d.getFullYear()}` : '');
 };
 
-export function StartView({ onBlank, onImportBudget, onOpen, onSample, onScript, starter, setStarter, fresh, projects, activeId, onOpenProject, onDeleteProject }: StartActions) {
+export function StartView({ onBlank, onImportBudget, onOpen, onSample, onScript, starter, setStarter, fresh, projects, activeId, onOpenProject, onDeleteProject, copies = {}, onCopiesChanged, now = Date.now }: StartActions) {
   const [name, setName] = useState('');
   const [version, setVersion] = useState('Draft 1');
   const [days, setDays] = useState(20);
@@ -39,14 +44,28 @@ export function StartView({ onBlank, onImportBudget, onOpen, onSample, onScript,
   const [folded, setFolded] = useState(() => { try { return localStorage.getItem(FOLDED_KEY) === '1'; } catch { return false; } });
   const fold = (now: boolean) => { setFolded(now); try { if (now) localStorage.setItem(FOLDED_KEY, '1'); else localStorage.removeItem(FOLDED_KEY); } catch { /* it still folds for this visit */ } };
   const current = projects.find(m => m.id === activeId);
+  // "Download all my projects": one press, one file, and a sentence saying where it went
+  const [busy, setBusy] = useState(false);
+  const [said, setSaid] = useState('');
+  const downloadAll = async () => {
+    setBusy(true); setSaid('');
+    try { setSaid((await downloadAllProjects()).said); }
+    catch (e) { console.error('The projects could not be downloaded', e); setSaid('The download did not go through. Open each project and press Save instead.'); }
+    setBusy(false); onCopiesChanged?.();
+  };
   return (
     <div>
       {projects.length > 0 && (
         <details className="panel fold projects" open={!folded} onToggle={e => fold(!(e.target as HTMLDetailsElement).open)}>
           <summary><h2>Projects in this browser <span className="hint">{projects.length === 1 ? '1 project' : `${projects.length} projects`}{folded && current ? ` · ${current.name || 'Untitled'} is open` : ''}</span></h2></summary>
-          <p className="help">Every project you start or open is kept here, each one autosaved on its own. Open one to switch; the one you leave stays as it was. Each browser tab keeps to the project it opened, so two tabs on two projects don't write over each other. A .json you Save is the copy that leaves this browser.</p>
+          <p className="help">Every project you start or open is kept here, each one autosaved on its own. Open one to switch; the one you leave stays as it was. Each browser tab keeps to the project it opened, so two tabs on two projects don't write over each other. Projects are kept by this browser on this device, so clearing its site data or moving to another computer leaves them behind: a file you save is the copy that is safe.</p>
+          <div className="row backup-all">
+            <button type="button" className="btn" disabled={busy} onClick={() => void downloadAll()}>Download all my projects</button>
+            <span className="help">{projects.length === 1 ? 'Downloads this project as a .json file, the same file Save makes.' : 'Downloads one .zip with every project inside as its own .json file.'} To bring projects back, here or in another browser, press Open and pick the .zip or the files.</span>
+          </div>
+          <p className="backup-said" role="status" aria-live="polite">{said}</p>
           <table className="projlist">
-            <thead><tr><th className="l">Project</th><th className="l">Version</th><th>Shoot days</th><th>Lines</th><th>Scenes</th><th>Budget to raise</th><th>Saved</th><th /></tr></thead>
+            <thead><tr><th className="l">Project</th><th className="l">Version</th><th>Shoot days</th><th>Lines</th><th>Scenes</th><th>Budget to raise</th><th>Saved</th><th className="l">Copy in a file</th><th /></tr></thead>
             <tbody>
               {projects.map(m => {
                 const open = m.id === activeId;
@@ -59,6 +78,7 @@ export function StartView({ onBlank, onImportBudget, onOpen, onSample, onScript,
                     <td className="num">{m.scenes}</td>
                     <td className="num">{m.cashBudget ? money(m.cashBudget) : ''}</td>
                     <td className="num" title={new Date(m.savedAt).toLocaleString()}>{when(m.savedAt)}</td>
+                    <td className={`l filecopy ${copyState(copies[m.id])}`} title={copies[m.id]?.fileAt ? new Date(copies[m.id].fileAt!).toLocaleString() : undefined}>{copyWords(copies[m.id], now())}</td>
                     <td style={{ whiteSpace: 'nowrap' }}>
                       {!open && <button className="btn small primary" onClick={() => onOpenProject(m.id)}>Open</button>}{' '}
                       {confirmDelete === m.id

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useProject, downloadJson, pickFile, hadSavedProject, keepBoard, previousBoard, forgetPreviousBoard } from './store';
+import { useProject, pickFile, pickFiles, hadSavedProject, keepBoard, previousBoard, forgetPreviousBoard } from './store';
 import { foldMemoLines, memoLines, topSheet } from './engine/budget';
 import { SAG_TIERS, sagReport } from './engine/sag';
 import { parseBudgetFile } from './engine/importers/budget';
@@ -30,11 +30,13 @@ import { starterProject, applyStarter } from './engine/starter';
 import { money } from './ui/format';
 import { TIP_URL } from './ui/support';
 import { keepFieldsNamed } from './ui/nameFields';
+import { BackupReminder } from './ui/BackupReminder';
+import { readProjectsZip } from './backups';
 
 type Tab = 'start' | 'deal' | 'topsheet' | 'board' | 'calendar' | 'callsheets' | 'breakdowns' | 'points' | 'sag' | 'incentives' | 'pitch' | 'about';
 
 export default function App() {
-  const { project, setProject, undo, replace, canUndo, undoDepth, storageNote, startNote, dismissStartNote, projects, activeId, newProject, openProject, deleteProject } = useProject();
+  const { project, setProject, undo, replace, canUndo, undoDepth, storageNote, startNote, dismissStartNote, projects, activeId, newProject, openProject, deleteProject, copies, refreshCopies, saveToFile, quietBackupReminder } = useProject();
   const [hadSaved] = useState(hadSavedProject);
   // Fields in tables and label-beside-field boxes get the name a sighted person already sees, kept up to date as tabs are drawn.
   useEffect(() => { const root = document.getElementById('root'); return root ? keepFieldsNamed(root) : undefined; }, []);
@@ -68,9 +70,9 @@ export default function App() {
   }, [canUndo, undo]);
 
   // ---- file intake: one path for the buttons and for drag-and-drop ----
-  type Kind = 'project' | 'budget' | 'board' | 'script' | 'mbd' | 'unknown';
+  type Kind = 'project' | 'zip' | 'budget' | 'board' | 'script' | 'mbd' | 'unknown';
   const kindOf = (name: string): Kind =>
-    /\.json$/i.test(name) ? 'project' : /\.(xlsx|xls|csv|tsv)$/i.test(name) ? 'budget' : /\.sex$/i.test(name) ? 'board'
+    /\.json$/i.test(name) ? 'project' : /\.zip$/i.test(name) ? 'zip' : /\.(xlsx|xls|csv|tsv)$/i.test(name) ? 'budget' : /\.sex$/i.test(name) ? 'board'
       : /\.(fdx|pdf|fountain|txt|text)$/i.test(name) ? 'script' : /\.mbd$/i.test(name) ? 'mbd' : 'unknown';
   // a .txt is a script if it has scene headings, otherwise a tab-separated budget export
   const sniff = async (f: File): Promise<Kind> => {
@@ -79,16 +81,25 @@ export default function App() {
     return /^\s*(\d+[A-Z]?\s+)?(INT|EXT|I\/E)[.\s]/m.test(await f.text()) ? 'script' : 'budget';
   };
 
-  const loadProjectFile = async (f: File) => {
+  const loadProjectFile = async (f: File) => loadProjectText(await f.text(), f.name);
+  const loadProjectText = (text: string, name: string) => {
     // every project file comes in through one check: a project the app can draw, or a reason in plain words
-    const r = readProjectText(await f.text());
+    const r = readProjectText(text);
     if (!r.ok) throw new Error(r.reason);
     const was = fresh ? '' : `; ${project.name || 'the project you had open'} stays under Projects on the Start tab`;
-    try { replace(r.project); }
-    catch (e) { console.error(`${f.name} could not be opened`, e); throw new Error('This project file could not be opened. It may be damaged.'); }
+    try { replace(r.project, 'file'); }   // always a new project of its own: nothing in this browser is written over
+    catch (e) { console.error(`${name} could not be opened`, e); throw new Error('This project file could not be opened. It may be damaged.'); }
     setTab(fresh ? 'deal' : 'topsheet');
     const note = repairNote(r.repaired);
-    return `Opened ${f.name} as its own project${was}${note ? `. ${note}` : ''}`;
+    return `Opened ${name} as its own project${was}${note ? `. ${note}` : ''}`;
+  };
+  /** A .zip from "Download all my projects": each project file in it comes in as a project of its own. */
+  const loadZipFile = async (f: File) => {
+    const inside = readProjectsZip(new Uint8Array(await f.arrayBuffer()));
+    if (!inside.length) throw new Error('there are no project files (.json) in this .zip.');
+    const opened: string[] = [], not: string[] = [];
+    for (const p of inside) { try { loadProjectText(p.text, p.name); opened.push(p.name); } catch (e) { not.push(`${p.name}: ${(e as Error).message}`); } }
+    return `${opened.length} project${opened.length === 1 ? '' : 's'} opened from ${f.name}, each as its own project${opened.length > 1 ? '. The last one is open now; the rest are under Projects on the Start tab' : ''}${not.length ? `. Not opened: ${not.join('; ')}` : ''}`;
   };
   const loadBudgetFile = async (f: File) => {
     const imp = parseBudgetFile(await f.arrayBuffer(), f.name, standardChartOfAccounts());
@@ -198,7 +209,7 @@ export default function App() {
   };
   /** Take any mix of files, work out what each one is, and load it. Budgets before boards so cast days can link. */
   const intake = async (files: File[]) => {
-    const order: Record<Kind, number> = { budget: 0, board: 1, script: 1, project: 2, mbd: 3, unknown: 3 };
+    const order: Record<Kind, number> = { budget: 0, board: 1, script: 1, project: 2, zip: 2, mbd: 3, unknown: 3 };
     const kinds = new Map(await Promise.all(files.map(async f => [f, await sniff(f)] as const)));
     const sorted = [...files].sort((x, y) => order[kinds.get(x)!] - order[kinds.get(y)!]);
     const out: string[] = [];
@@ -206,6 +217,7 @@ export default function App() {
       try {
         const k = kinds.get(f)!;
         if (k === 'project') out.push(await loadProjectFile(f));
+        else if (k === 'zip') out.push(await loadZipFile(f));
         else if (k === 'budget') out.push(await loadBudgetFile(f));
         else if (k === 'board') out.push(await loadBoardFile(f));
         else if (k === 'script') out.push(fresh && files.length === 1 ? await startFromScript(f) : await loadScriptFile(f));
@@ -216,7 +228,8 @@ export default function App() {
     flash(out.join(' · '));
   };
   const pick = async (accept: string) => { const f = await pickFile(accept); if (f) await intake([f]); };
-  const openJson = () => pick('.json');
+  // several project files at once, or the .zip that "Download all my projects" makes
+  const openJson = async () => { const files = await pickFiles('.json,.zip'); if (files.length) await intake(files); };
   // .xls stays pickable so an old workbook gets the "save it as .xlsx" sentence instead of being greyed out.
   const importBudget = () => pick('.xlsx,.xls,.csv,.txt,.tsv');
   const importBoard = () => pick('.sex,.fdx,.pdf,.fountain,.txt');
@@ -242,8 +255,8 @@ export default function App() {
   // No project open (nothing in this browser yet, or New project): the start screen with the bare header. Every Start button
   // makes a new project; whatever was open before stays in the Projects list, so nothing needs a second click any more.
   const fresh = activeId === null;
-  const startBlank = (o: BlankOptions) => { replace(blankProject(o)); setTab('deal'); flash('Blank budget ready. Set the terms here, then build lines on the Top sheet.'); };
-  const startSample = () => { replace(sampleDemo()); setTab('deal'); flash('Sample project loaded: SALT FLAT, an invented 12-day feature. These are its terms; change any of them.'); };
+  const startBlank = (o: BlankOptions) => { replace(blankProject(o), 'untouched'); setTab('deal'); flash('Blank budget ready. Set the terms here, then build lines on the Top sheet.'); };
+  const startSample = () => { replace(sampleDemo(), 'untouched'); setTab('deal'); flash('Sample project loaded: SALT FLAT, an invented 12-day feature. These are its terms; change any of them.'); };
   const startImport = () => { replace(blankProject({ chartOfAccounts: 'empty' })); void importBudget(); };
   const startOpen = () => void openJson();
   const startNew = () => { newProject(); setTab('start'); flash(`${project.name || 'The project'} is saved in this browser; find it under Projects on the Start tab.`); };
@@ -260,7 +273,7 @@ export default function App() {
 
   return (
     <div className="app">
-      {dragging && <div className="dropzone"><div><b>Drop to import</b><span>Budgets (.xlsx, .csv), boards (.sex), scripts (.fdx, .pdf, .fountain, .txt), saved projects (.json). Several at once is fine.</span></div></div>}
+      {dragging && <div className="dropzone"><div><b>Drop to import</b><span>Budgets (.xlsx, .csv), boards (.sex), scripts (.fdx, .pdf, .fountain, .txt), saved projects (.json, or a .zip of them). Several at once is fine.</span></div></div>}
       <header className={`top ${fresh && tab === 'start' ? 'empty' : ''}`}>
         <span className="brand">
           <h1>ProfitShare</h1>
@@ -287,7 +300,7 @@ export default function App() {
           <button className="btn ghost" onClick={() => setTab('start')} title="Every project this browser holds">Projects{projects.length > 1 ? ` (${projects.length})` : ''}</button>
           <button className="btn ghost" onClick={startNew} title="Close this project (it stays saved here) and start another">New project</button>
           <button className="btn ghost" onClick={openJson}>Open</button>
-          <button className="btn ghost" onClick={() => downloadJson(project)}>Save</button>
+          <button className="btn ghost" onClick={saveToFile} title="Download this project as a .json file: the copy that is safe if this browser's data is cleared">Save</button>
           <button className="btn ghost" onClick={copyJson} title="Copy the project as JSON (for places where downloads are blocked)">Copy JSON</button>
           <button className="btn ghost" onClick={importBudget} title="Shamel Studio .xlsx, Movie Magic Budgeting Excel/CSV export, or any sheet with Account / Description / Amount / Rate / Total columns">Import budget (.xlsx / .csv)</button>
           <button className="btn ghost" onClick={importBoard}>Import board or script (.sex / .fdx / .pdf)</button>
@@ -303,6 +316,7 @@ export default function App() {
         <div role="status" aria-live="polite">{msg && <div className="notice row msg"><span>{msg.text}</span><button className="x" title="dismiss" aria-label="Dismiss this message" onClick={() => setMsg(null)}>×</button></div>}</div>
         {storageNote && <div className="notice" role="status">{storageNote}</div>}
         {startNote && <div className="notice row msg" role="status"><span>{startNote}</span><button className="x" title="dismiss" aria-label="Dismiss this message" onClick={dismissStartNote}>×</button></div>}
+        {!fresh && activeId && <BackupReminder copy={copies[activeId]} onSave={saveToFile} onDismiss={quietBackupReminder} />}
         {pendingScript && (
           <div className="notice row">
             <span><b>{pendingScript.name}</b> has {pendingScript.board.scenes.length} scenes and this project already has a board with {project.board.scenes.length}. <b>Merge</b> matches scenes by number and adds the script text, cast and a first pass of tags to the strips you have, keeping your day breaks, strip order, cast numbers, locations and every tag. <b>Replace</b> starts the board over from the script.</span>
@@ -311,7 +325,7 @@ export default function App() {
             <button className="btn small" onClick={() => setPendingScript(null)}>Cancel</button>
           </div>
         )}
-        {tab === 'start' && <StartView onBlank={startBlank} onImportBudget={startImport} onOpen={startOpen} onSample={startSample} onScript={pickScript} starter={starter} setStarter={setStarter} fresh={fresh} projects={projects} activeId={activeId} onOpenProject={switchTo} onDeleteProject={deleteProject} />}
+        {tab === 'start' && <StartView onBlank={startBlank} onImportBudget={startImport} onOpen={startOpen} onSample={startSample} onScript={pickScript} starter={starter} setStarter={setStarter} fresh={fresh} projects={projects} activeId={activeId} onOpenProject={switchTo} onDeleteProject={deleteProject} copies={copies} onCopiesChanged={refreshCopies} />}
         {tab === 'deal' && <DealView raw={project} eff={eff} setProject={setProject} fresh={!hadSaved && !msg} />}
         {tab === 'topsheet' && <>
           {controlled.size > 0 && <div className="notice">{controlled.size} line{controlled.size > 1 ? 's are' : ' is'} set by the deal (marked <span className="tag points">deal</span>): rates, hours or pay type come from the Deal tab. Days and descriptions are still yours to edit.</div>}
