@@ -1,0 +1,93 @@
+name: Something is wrong
+description: A number that looks wrong, a screen that breaks, a file that will not open.
+title: "Bug: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time. One thing first:
+
+        **Please do not attach a real budget, script or project file, and do not paste real numbers, names or pay.** Issues are public, and so is everything attached to them.
+
+        Show the problem on the sample film instead: open the app, press *Load the sample*, and give the steps from there. If it only happens with your own file, say so, describe the file in general terms (what made it, roughly how big), and we will work out an invented file that does the same.
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps, starting from the sample film
+      description: What to press, in order, so someone else can see it happen.
+      placeholder: |
+        1. Load the sample
+        2. Open the Deal tab
+        3. Set producer fees to points
+        4. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: happened
+    attributes:
+      label: What happened instead
+      description: The exact words of any message help. A screenshot of the sample film is welcome. Please check a screenshot shows nothing private before you add it.
+    validations:
+      required: true
+  - type: dropdown
+    id: tab
+    attributes:
+      label: Where in the app
+      options:
+        - Start
+        - Deal
+        - Top sheet & budget
+        - Stripboard
+        - Calendar
+        - Call sheets
+        - Breakdowns
+        - Points & waterfall
+        - SAG tier
+        - Incentives
+        - Pitch or the pitch deck
+        - A deck that was sent
+        - Opening, importing or saving a file
+        - Printing
+        - Somewhere else
+    validations:
+      required: true
+  - type: dropdown
+    id: browser
+    attributes:
+      label: Browser
+      options:
+        - Safari
+        - Chrome
+        - Firefox
+        - Edge
+        - Another browser
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Computer or phone
+      placeholder: "For example: MacBook Air, macOS 15. Or: iPhone 15."
+  - type: dropdown
+    id: where
+    attributes:
+      label: Which copy of the app
+      options:
+        - The live app at profitshare.alonegirlmovie.com
+        - A copy I run myself
+    validations:
+      required: true
+  - type: checkboxes
+    id: private
+    attributes:
+      label: Before you send
+      options:
+        - label: Nothing here or attached shows a real budget, real pay, a real script or anyone's private details.
+          required: true

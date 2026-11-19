@@ -1,0 +1,41 @@
+name: An idea
+description: Something ProfitShare could do, or do better.
+title: "Idea: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you. The most useful ideas start from a film: what you were trying to work out, and where the app stopped helping.
+
+        Please use invented names and numbers. Issues are public.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What were you trying to do?
+      description: The job on the film, in your own words. For example, "show an investor what happens if we shoot two days fewer".
+    validations:
+      required: true
+  - type: textarea
+    id: today
+    attributes:
+      label: What do you do today instead?
+      description: A spreadsheet, another app, by hand, or not at all.
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would help?
+      description: Describe what you would want to see or press. A rough sketch is welcome.
+    validations:
+      required: true
+  - type: textarea
+    id: source
+    attributes:
+      label: If it involves a rate or a rule, where is it published?
+      description: A union agreement, a state programme, a tax rule. Name the organisation and the document, so the figure can be checked.
+  - type: checkboxes
+    id: fit
+    attributes:
+      label: Worth knowing
+      options:
+        - label: I understand ProfitShare keeps everything on the person's own computer, with no accounts and no server, and this idea works within that.

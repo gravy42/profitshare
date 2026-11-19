@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Open the app
+    url: https://profitshare.alonegirlmovie.com/
+    about: The live app. Nothing to install and no account. Press "Load the sample" to look around an invented film.
+  - name: Report a security problem privately
+    url: https://github.com/gravy42/profitshare/security/advisories/new
+    about: Please do not open a public issue for a security problem. This opens a private report instead.

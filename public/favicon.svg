@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- ProfitShare: the film's money as one round, with a share lifted out of it. Midnight ground, periwinkle round, marigold share. -->
+  <rect width="32" height="32" rx="6" fill="#092827"/>
+  <path d="M15 17V5.5A11.5 11.5 0 1 0 26.5 17Z" fill="#91a9d9"/>
+  <path d="M17.5 14.5V3.5A11 11 0 0 1 28.5 14.5Z" fill="#f2b705"/>
+</svg>

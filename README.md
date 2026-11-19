@@ -219,6 +219,8 @@ Not built yet:
 
 [CHANGELOG.md](CHANGELOG.md) is kept by day, newest first, so you can see what changed and why before you start. Issues and pull requests are welcome. Engine changes need a test; the sample budget must still total $805,312.06 and round-trip through the importers.
 
+[CONTRIBUTING.md](CONTRIBUTING.md) has how to run the checks and the rules a change has to keep. [SECURITY.md](SECURITY.md) says how to report a security problem privately. [docs/file-format.md](docs/file-format.md) covers the project file and the rule for changing it, and [docs/rates.md](docs/rates.md) lists every rate and dated rule to check each year.
+
 
 ## Support
 
