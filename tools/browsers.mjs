@@ -232,11 +232,13 @@ try {
       const all = root => { for (const el of root.querySelectorAll('*')) { see(el); if (el.shadowRoot) all(el.shadowRoot); } };
       const say = el => `${el.tagName.toLowerCase()}${el.id ? '#' + el.id : ''}.${String(el.className?.baseVal ?? el.className).split(' ').slice(0, 2).join('.')}`;
       const see = el => {
-        const r = el.getBoundingClientRect(); const far = Math.max(r.right, r.left + el.scrollWidth * 0); if (far <= vw + 1) return;
+        // an element's box can end inside the screen while its words or pictures spill out of it: count the spill too
+        const r = el.getBoundingClientRect(); const cs0 = getComputedStyle(el); const spills = cs0.overflowX === 'visible' && cs0.display !== 'inline' && el.scrollWidth > el.clientWidth + 1;
+        const far = Math.max(r.right, spills ? r.left + el.scrollWidth : 0); if (far <= vw + 1) return;
         // held in by a box that clips sideways and itself ends inside the screen?
         let p = el.parentElement ?? el.getRootNode().host, held = false;
         while (p && p !== document.documentElement) { const cs = getComputedStyle(p); if (/(auto|scroll|hidden|clip)/.test(cs.overflowX) && p.getBoundingClientRect().right <= vw + 1) { held = true; break; } p = p.parentElement ?? p.getRootNode().host; }
-        if (!held) { const cs = getComputedStyle(el); out.push([Math.round(far - vw), `${say(el)} ${cs.display}/${cs.position} w${Math.round(r.width)} in ${el.parentElement ? say(el.parentElement) : 'shadow'}`]); }
+        if (!held) { const cs = getComputedStyle(el); out.push([Math.round(far - vw), `${say(el)} ${cs.display}/${cs.position} w${Math.round(r.width)} sw${el.scrollWidth} "${(el.textContent || '').trim().slice(0, 24)}" in ${el.parentElement ? say(el.parentElement) : 'shadow'}`]); }
       };
       all(document);
       const d = document.documentElement, b = document.body;
