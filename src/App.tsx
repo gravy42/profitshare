@@ -671,10 +671,13 @@ export default function App() {
         )}
       </header>
       <hr className="rule" aria-hidden="true" />
-      {!(fresh && tab === 'start') && (
+      {
+        // About comes first, so a newcomer can read what this is and find the glossary before anything else. With
+        // nothing open yet, About and Start are the only two places there are.
         <nav className="tabs">
           {(
             [
+              ['about', 'About'],
               ['start', 'Start'],
               ['deal', 'Deal'],
               ['topsheet', 'Top sheet & budget'],
@@ -686,15 +689,16 @@ export default function App() {
               ['sag', 'SAG tier'],
               ['incentives', 'Incentives'],
               ['pitch', 'Pitch'],
-              ['about', 'About'],
             ] as [Tab, string][]
-          ).map(([k, label]) => (
-            <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>
-              {label}
-            </button>
-          ))}
+          )
+            .filter(([k]) => !(fresh && tab === 'start') || k === 'about' || k === 'start')
+            .map(([k, label]) => (
+              <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>
+                {label}
+              </button>
+            ))}
         </nav>
-      )}
+      }
       <main>
         <div role="status" aria-live="polite">
           {msg && (

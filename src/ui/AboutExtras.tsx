@@ -13,6 +13,11 @@ export function WhatItIs() {
       </p>
       <ul>
         <li>
+          <b>Built by a filmmaker, not a lawyer or a C.P.A.</b> ProfitShare is a tool to get you 90% of the way to the
+          finish line. It is up to you to show your work to your legal team and your C.P.A. before and during your
+          contract and negotiation period.
+        </li>
+        <li>
           <b>US dollars, California rules.</b> Payroll fringes default to a California set, and the state incentive it
           models is the California film tax credit.
         </li>

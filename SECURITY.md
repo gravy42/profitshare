@@ -22,7 +22,7 @@ Please do not open a public issue or pull request for a security problem, and pl
 
 ## What to expect
 
-This is a one-person project. Reports are read and answered as soon as the maintainer can. There is no promised response time and no bounty. If the report holds up, the fix is made on `main`, which is what the live app is built from, and you can be named in the changelog if you would like to be.
+This is a one-person project. Reports are read and answered as soon as the maintainer can. There is no promised response time, and no bug bounty: reports are not paid for. If the report holds up, the fix is made on `main`, which is what the live app is built from, and you can be named in the changelog if you would like to be.
 
 Only the current version on `main` is supported. There are no older versions to patch.
 

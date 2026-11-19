@@ -14,6 +14,7 @@ const mark = readFileSync(new URL('../public/favicon.svg', import.meta.url), 'ut
 const fonts = `
   @font-face { font-family: "Special Elite"; src: url(${face('special-elite/files/special-elite-latin-400-normal.woff2')}) format("woff2"); }
   @font-face { font-family: "Work Sans"; font-weight: 500; src: url(${face('work-sans/files/work-sans-latin-500-normal.woff2')}) format("woff2"); }
+  @font-face { font-family: "Work Sans Ext"; font-weight: 500; src: url(${face('work-sans/files/work-sans-latin-ext-500-normal.woff2')}) format("woff2"); }
   * { margin: 0; box-sizing: border-box; } body { background: #092827; }`;
 
 const touch = `<!doctype html><style>${fonts} body { width: 180px; height: 180px; display: grid; place-items: center; } svg { width: 156px; height: 156px; }</style>${mark}`;
@@ -25,9 +26,9 @@ const social = `<!doctype html><style>${fonts}
   .name svg { width: 150px; height: 150px; flex: none; }
   h1 { font: 400 132px/1 "Special Elite", monospace; letter-spacing: .01em; color: #91a9d9; padding-top: 22px; }
   hr { border: 0; height: 6px; background: #f2b705; margin: 44px 0 46px; }
-  p { font: 500 40px/1.35 "Work Sans", sans-serif; color: #f4eddc; }
+  p { font: 500 40px/1.35 "Work Sans", "Work Sans Ext", sans-serif; color: #f4eddc; }
   p + p { color: #8c9fc2; margin-top: 6px; }
-</style><div class="name">${mark}<h1>ProfitShare</h1></div><hr><p>Film budgeting with a profit share built in.</p><p>Free and open source.</p>`;
+</style><div class="name">${mark}<h1>ProfitShare</h1></div><hr><p>Indie &amp; NonDē film budgeting with profit share modeling built in.</p><p>Free and open source.</p>`;
 
 const browser = await chromium
   .launch({ executablePath: '/opt/pw-browsers/chromium' })

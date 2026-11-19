@@ -39,6 +39,9 @@ Two independent reviews of the night's work found these, fixed the same morning:
 - **Tidying.** Report deck leftovers, the old smoke scripts and unused code are gone; the compiler now refuses unused locals and parameters; the browser walk covers every way in from the start screen (63 steps).
 - **README caught up.** It now describes the tour and glossary, export, the save reminder and *Download all my projects*, and the start screen and top sheet screenshots were retaken.
 - **One code style.** Prettier now formats the TypeScript and the tools at 120 columns (`npm run format`). No behaviour changes; stylesheets are left as they were because tests read them.
+- **About comes first.** It is the first tab, and a first-time visitor now sees About and Start before opening anything, so the glossary is findable from the first screen.
+- **"Built by a filmmaker, not a lawyer or a C.P.A."** now leads "What it is and what it is not" on About and in the README.
+- The link preview picture says "Indie & NonDē film budgeting with profit share modeling built in." The code of conduct says "they"; the security page says plainly that reports are not paid for.
 
 ## 2026-11-18
 

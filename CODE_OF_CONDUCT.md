@@ -21,7 +21,7 @@ ProfitShare is made for filmmakers, many of them budgeting a film for the first 
 
 Use GitHub's own tools: the **Report content** option in the menu beside any comment, issue or pull request, or GitHub's report abuse form for an account. Reports made that way are private and go to GitHub's own staff. You can also block an account from your own, so it can no longer reach you.
 
-The maintainer may edit, hide or remove comments, issues and contributions that break this code, and may block a person who keeps breaking it. This is a one-person project, so these calls are made by one person, as fairly and as soon as she can.
+The maintainer may edit, hide or remove comments, issues and contributions that break this code, and may block a person who keeps breaking it. This is a one-person project, so these calls are made by one person, as fairly and as soon as they can.
 
 ## Where this applies
 

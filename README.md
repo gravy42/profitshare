@@ -20,6 +20,7 @@ Written by a director budgeting her first feature, because none of the tools wou
 
 ## What it is and what it is not
 
+- **Built by a filmmaker, not a lawyer or a C.P.A.** ProfitShare is a tool to get you 90% of the way to the finish line. It is up to you to show your work to your legal team and your C.P.A. before and during your contract and negotiation period.
 - **US dollars, California rules.** Payroll fringes (the taxes and fees an employer pays on top of a wage) default to a California set, and the state incentive it models is the California film tax credit.
 - **SAG-AFTRA low-budget theatrical tiers.** Ultra Low Budget, Moderate Low Budget, Low Budget and Theatrical Basic, with the rates effective 7/1/2026.
 - **Built for a laptop screen.** It opens and works on a phone, where the widest tables scroll sideways inside their own box, but budgeting is easier with room. The pitch decks it makes are laid out for phones too.
