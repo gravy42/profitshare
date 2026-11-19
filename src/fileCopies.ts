@@ -87,6 +87,8 @@ export function noteSlotSaved(id: string, mark: string, kv: KV | null, now: numb
     const seen = firstSeen && Number.isFinite(Date.parse(firstSeen)) ? Math.min(Date.parse(firstSeen), now) : now;
     all[id] = { mark, since: new Date(seen).toISOString() };
   } else if (r.fileMark === mark) all[id] = { ...r, mark, since: undefined };   // changed back to what the file holds (an undo)
+  // the first change to a sample or blank that had been sitting untouched starts its clock now, not when it was opened
+  else if (r.untouched !== undefined && r.untouched === r.mark) all[id] = { ...r, mark, since: new Date(now).toISOString() };
   else all[id] = { ...r, mark, since: r.since ?? new Date(now).toISOString() };
   write(all, kv);
 }

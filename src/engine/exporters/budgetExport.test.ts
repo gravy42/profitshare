@@ -62,6 +62,16 @@ describe('budgetLines', () => {
     for (const x of lines) { expect(x.subtotal).toBe(lineSubtotal(x.line)); expect(x.fringes).toBe(lineFringes(x.line, sample.fringes)); }
     expect(round2(lines.reduce((n, x) => n + x.total, 0))).toBe(round2(rollupCashTotal(ts.subtotal)));
   });
+  it('a points line carries no fringes: its total is the value traded, so the columns add up to the top sheet', () => {
+    const fringed = sample.lines.find(l => lineFringes(l, sample.fringes) > 0)!;
+    const p = applyDeal({ ...sample, lines: sample.lines.map(l => l.id === fringed.id ? { ...l, payType: 'points' as const } : l) });
+    const rows = budgetLines(p), row = rows.find(r => r.line.id === fringed.id)!, t = topSheet(p);
+    expect(row.fringes).toBe(0);
+    expect(row.total).toBe(row.subtotal);
+    // up front + deferred + points on the top sheet is what the Total column now adds up to
+    const st = t.subtotal;
+    expect(round2(rows.reduce((a, r) => a + r.total, 0))).toBe(round2(st.cash + st.cashFringes + st.deferred + st.deferredFringes + st.points));
+  });
   it('leaves out a line whose account is gone, as the top sheet does', () => {
     const p = { ...sample, lines: [...sample.lines, { ...sample.lines[0], id: 'orphan', accountId: 'nowhere' }] };
     expect(budgetLines(p)).toHaveLength(sample.lines.length);
@@ -255,7 +265,7 @@ describe('the PDF', () => {
   /** The words on each page, in the order they were drawn, read back with the PDF reader the app already carries. */
   async function pagesText(bytes: Uint8Array): Promise<string[]> {
     const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
-    const doc = await pdfjs.getDocument({ data: bytes.slice(), isEvalSupported: false, useSystemFonts: false, disableFontFace: true, standardFontDataUrl: `${process.cwd()}/node_modules/pdfjs-dist/standard_fonts/` }).promise;
+    const doc = await pdfjs.getDocument({ data: bytes.slice(), useSystemFonts: false, disableFontFace: true, standardFontDataUrl: `${process.cwd()}/node_modules/pdfjs-dist/standard_fonts/` }).promise;
     const out: string[] = [];
     for (let n = 1; n <= doc.numPages; n++) {
       const content = await (await doc.getPage(n)).getTextContent();
@@ -294,11 +304,11 @@ describe('the PDF', () => {
 
   it('does not stop at letters the standard faces lack, or at very long words', async () => {
     const p = sampleProject();
-    const odd = applyDeal({ ...p, name: 'Соль 塩 Flat “quoted” — Žižek', version: 'v2 ✓',
+    const odd = applyDeal({ ...p, name: 'Соль 塩 Flat “quoted” — Žofka', version: 'v2 ✓',
       lines: p.lines.map((l, i) => i === 0 ? { ...l, description: 'Ł ǎ '.repeat(3) + ' ' + 'W'.repeat(400) + ' naïve café' } : l) });
     const bytes = await budgetPdf(odd, { date: DATE });
     const pages = await pagesText(bytes);
-    expect(pages[0]).toContain('???? ? Flat “quoted” — Žižek · v2 ?');   // Cyrillic and Japanese have no stand-in; the rest is in the face
+    expect(pages[0]).toContain('???? ? Flat “quoted” — Žofka · v2 ?');   // Cyrillic and Japanese have no stand-in; the rest is in the face
     expect(pages.join(' ')).toContain('$805,312.06');
   }, 30000);
 

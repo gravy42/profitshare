@@ -6,6 +6,8 @@
 // here, and nothing leaves for anywhere but the three hosts the app really talks to.
 //
 // The pitch decks the app exports carry their own, stricter policy (src/deck-runtime/exportHtml.ts). Not this one.
+import { readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 
 /** Every host besides its own that the app asks for anything. Each is named in the code that asks:
@@ -20,7 +22,8 @@ export function cspDirectives(scriptHashes = [], { oneFile = false } = {}) {
     ["default-src", "'none'"],
     // the app's own files, and the inline scripts in index.html by their hashes: no 'unsafe-inline', no eval.
     // 'wasm-unsafe-eval' lets WebAssembly be compiled and nothing else (no eval, no new Function): pdf.js decodes the
-    // JPEG 2000 pictures inside a PDF with a WebAssembly decoder it carries, when a look book or brand book has one
+    // JPEG 2000 pictures inside a PDF with a WebAssembly decoder, when a look book or brand book has one. The decoder
+    // is one of the app's own files (dist/pdfjs/, tools/pdfjs-decoders.mjs), read with fetch(): connect-src 'self'
     ["script-src", "'self'", "'wasm-unsafe-eval'", ...scriptHashes],
     // the app's stylesheets; 'unsafe-inline' for React's style attributes and the <style> the deck preview puts in its shadow root
     ["style-src", "'self'", "'unsafe-inline'"],
@@ -75,8 +78,20 @@ export function cspPlugin(options = {}) {
     apply: 'build',
     enforce: 'post',
     generateBundle(_options, bundle) {
+      if (options.oneFile) return;   // its scripts are not in the page yet: see writeBundle
       for (const file of Object.values(bundle)) {
         if (file.type === 'asset' && file.fileName.endsWith('.html')) file.source = withCsp(typeof file.source === 'string' ? file.source : Buffer.from(file.source).toString('utf8'), options);
+      }
+    },
+    // The one-file build puts the whole app into the page as an inline script after every plugin's generateBundle
+    // has run, so a policy written there would not know that script's hash and the page would refuse its own code.
+    // Here the page is on disk and finished: hash what is really in it.
+    writeBundle(out, bundle) {
+      if (!options.oneFile) return;
+      for (const file of Object.values(bundle)) {
+        if (file.type !== 'asset' || !file.fileName.endsWith('.html')) continue;
+        const at = join(out.dir ?? 'dist', file.fileName);
+        writeFileSync(at, withCsp(readFileSync(at, 'utf8'), options));
       }
     },
   };

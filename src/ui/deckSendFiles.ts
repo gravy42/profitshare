@@ -66,6 +66,7 @@ function pictureFor(src: string): Promise<string | null> {
 // the rule, where they already are. Nothing is asked of any other address.
 
 interface AppFace { family: string; weight: number; style: 'normal' | 'italic'; start: number; url: string }
+const WHOLE = -1;   // a rule that names no range: the file covers every character
 /** Every woff2 the page's own stylesheets declare, with the first code point of the range it covers. */
 function appFaces(doc: Document): AppFace[] {
   const out: AppFace[] = [];
@@ -82,7 +83,7 @@ function appFaces(doc: Document): AppFace[] {
       const range = /U\+([0-9a-f]+)/i.exec(st.getPropertyValue('unicode-range'));
       let url = m[2];
       if (!url.startsWith('data:')) { try { url = new URL(url, sheet.href ?? doc.baseURI).href; } catch { continue; } }
-      out.push({ family, weight: parseInt(st.getPropertyValue('font-weight'), 10) || 400, style: /italic/i.test(st.getPropertyValue('font-style')) ? 'italic' : 'normal', start: range ? parseInt(range[1], 16) : 0, url });
+      out.push({ family, weight: parseInt(st.getPropertyValue('font-weight'), 10) || 400, style: /italic/i.test(st.getPropertyValue('font-style')) ? 'italic' : 'normal', start: range ? parseInt(range[1], 16) : WHOLE, url });
     }
   }
   return out;
@@ -110,9 +111,13 @@ async function pageFonts(needs: FaceNeed[], ext: boolean): Promise<{ fonts: Page
   const fonts: PageFont[] = []; const missing = new Set<string>();
   const declared = needs.length ? appFaces(document) : [];
   const find = (n: FaceNeed, start: number) => declared.find(f => f.family.toLowerCase() === n.family.toLowerCase() && f.weight === n.weight && f.style === n.style && f.start === start);
+  // The Latin file is the one whose rule says its range begins at U+0000. A rule with no range is a whole, unsplit
+  // font: right when it is all there is, and never to be taken ahead of a rule that says it is the Latin one (a rule
+  // whose range could not be read looks the same, and may be the Vietnamese file, declared first).
+  const latinOf = (n: FaceNeed) => find(n, LATIN_START) ?? find(n, WHOLE);
   for (const n of needs) {
     try {
-      const latin = find(n, LATIN_START);
+      const latin = latinOf(n);
       if (!latin) throw new Error('not declared');
       fonts.push({ family: n.family, weight: n.weight, style: n.style, src: await fontDataUrl(latin.url), unicodeRange: LATIN_RANGE });
       const wide = ext ? find(n, LATIN_EXT_START) : undefined;

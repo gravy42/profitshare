@@ -98,5 +98,3 @@ Ask your attorney about these first. In each, the glossary says what the app doe
   $20,612 over. I thought an honest "closer, still over" taught more than a rigged fix; change it if you disagree.
 - The tour's claims about the sample are pinned by tests (`src/ui/tour.test.ts`), so a change to the sample that
   makes a step untrue will fail a test, not mislead a newcomer.
-- The reference PDF of waterfall schedules you supplied was read for understanding only. Nothing in the repo
-  quotes it, names it or copies its wording.

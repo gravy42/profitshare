@@ -72,7 +72,7 @@ describe('Download all my projects', () => {
     saveSlot('c', sampleProject(), kv);
     const r = await downloadAllProjects(kv, now);
     expect(r).toMatchObject({ count: 3, fileName: 'ProfitShare-projects-2026-11-18.zip' });
-    expect(r.said).toBe('3 projects downloaded in ProfitShare-projects-2026-11-18.zip. Look in your Downloads folder, and keep it somewhere safe.');
+    expect(r.said).toBe('3 projects downloaded in ProfitShare-projects-2026-11-18.zip. Keep it somewhere safe.');
     expect(got.map(g => g.name)).toEqual(['ProfitShare-projects-2026-11-18.zip']);
     const inside = readProjectsZip(await bytesOf(got[0].blob));
     const names = inside.map(f => f.name);
@@ -144,6 +144,30 @@ describe('opening several project files at once', () => {
     const copies = readFileCopies(localStorage);
     expect(list.filter(m => m.id !== 'mine').every(m => copies[m.id].from === 'opened' && copyState(copies[m.id]) === 'safe')).toBe(true);
     expect(copyState(copies.mine)).toBe('never');
+  });
+  it('an edit made just before another project is opened is kept, though autosave had not run yet', () => {
+    saveSlot('mine', { ...sampleProject(), name: 'Already Here' }); localStorage.setItem('profitshare.activeProject', 'mine');
+    let api: ReturnType<typeof useProject> | null = null;
+    function Probe() { api = useProject(); return <div />; }
+    draw(<Probe />);
+    act(() => { api!.setProject(p => ({ ...p, name: 'Renamed A Moment Ago' })); });
+    act(() => { api!.replace(sampleProject(), 'file'); });   // at once: the 300ms autosave has not fired
+    expect(JSON.parse(localStorage.getItem('profitshare.project.mine')!).name).toBe('Renamed A Moment Ago');
+  });
+  it('when the browser has no room, opening a file says so and writes no record of a project it did not keep', () => {
+    saveSlot('mine', sampleProject()); localStorage.setItem('profitshare.activeProject', 'mine');
+    let api: ReturnType<typeof useProject> | null = null;
+    function Probe() { api = useProject(); return <div id="open">{api.project.name}</div>; }
+    const el = draw(<Probe />);
+    const real = Storage.prototype.setItem;
+    const full = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (this: Storage, k: string, v: string) { if (k.startsWith('profitshare.project.') && !k.endsWith('.mine')) throw new DOMException('full', 'QuotaExceededError'); return real.call(this, k, v); });
+    let said = '';
+    act(() => { try { api!.replace({ ...sampleProject(), name: 'No Room' }, 'file'); } catch (e) { said = (e as Error).message; } });
+    full.mockRestore();
+    expect(said).toMatch(/no room left to keep another project/);
+    expect(readIndex()).toHaveLength(1);
+    expect(Object.keys(readFileCopies(localStorage)).filter(id => id !== 'mine')).toEqual([]);
+    expect(el.querySelector('#open')!.textContent).toBe(sampleProject().name);   // what was open is still open
   });
   it('Save from the hook downloads the open project and notes it', () => {
     const got = downloads();

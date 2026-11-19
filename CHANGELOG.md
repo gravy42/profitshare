@@ -24,6 +24,17 @@ Work done overnight from the audit's "soon after launch" list.
 - **Kept by the browser.** ProfitShare asks the browser, once, to keep its store when the disk runs low.
 - **A two-minute tour and a glossary (a draft, for Cris to edit).** New here? The Start screen offers a six-step tour of the sample film, from top sheet to pitch deck; one click dismisses it for good. About now has a glossary of the words the app uses, searchable, each with its own link. It says how ProfitShare uses each word and is not legal advice.
 
+Two independent reviews of the night's work found these, fixed the same morning:
+
+- **A points line in an export carries no fringes.** The Excel, CSV and PDF exports gave a points line the fringes it would have had as wages, so the Total and Fringes columns added up to more than any figure in the app. A points line's total is now the value traded, and the columns add up to the top sheet.
+- **An edit made just before switching project is kept.** Autosave waits a third of a second; opening a file, the sample or another project inside that moment left the last edit behind. The open project is now written first.
+- **A full browser store is said plainly.** Opening a file or a .zip with no room left used to claim the projects had opened. It now says there is no room, and writes no record of a project it did not keep.
+- **Smaller things.** A model list in an unexpected shape no longer breaks the key panel. The first edit to a sample that had sat untouched for days no longer brings the save reminder at once. The export help says what does not come back from a CSV. A failed export no longer asks for your project file in public. Four glossary definitions corrected where they said more than the app does.
+- **PDF reading updated.** The part of the app that reads PDFs (scripts, brand books, look-book pages) is now the current version. Scenes, eighths and cast from a script PDF are read exactly as before. The decoders for JPEG 2000 and scanned black-and-white pictures are now two small files of the app's own, fetched only when a PDF has such a picture.
+- **Typefaces in a sent deck.** The Latin font file is now chosen by what its rule says it covers, not by the order the rules are in.
+- **The one-file build opens again.** Its security policy was written before the app's code was put into the page, so the page refused its own script. The policy is now worked out from the finished file.
+- Tests run on the current jsdom (31).
+
 ## 2026-11-18
 
 Eight things fixed before telling anyone the app exists. They came out of a full audit of the repo.

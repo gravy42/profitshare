@@ -98,7 +98,11 @@ export async function listModels(key: string): Promise<AiModel[]> {
   const r = await fetch('https://api.anthropic.com/v1/models?limit=50', { headers: headers(key) });
   if (!r.ok) throw new Error(`${r.status} ${(await r.text()).slice(0, 200)}`);
   const j = await r.json();
-  return (j.data ?? []).map((m: any) => ({ id: m.id, name: m.display_name ?? m.id, created: typeof m.created_at === 'string' ? m.created_at : undefined }));
+  // only entries with a usable id: an answer in some other shape gives a plain sentence, not a crash in the picker
+  const rows: unknown[] = Array.isArray(j?.data) ? j.data : [];
+  if (!Array.isArray(j?.data)) throw new Error('Anthropic answered, but not with a list of models. Type a model id instead.');
+  return rows.filter((m): m is { id: string; display_name?: unknown; created_at?: unknown } => !!m && typeof (m as { id?: unknown }).id === 'string' && (m as { id: string }).id.length > 0)
+    .map(m => ({ id: m.id, name: typeof m.display_name === 'string' && m.display_name ? m.display_name : m.id, created: typeof m.created_at === 'string' ? m.created_at : undefined }));
 }
 
 // ---- documents the AI reads: a look book, a treatment, a deck, as PDFs kept in this browser only ----

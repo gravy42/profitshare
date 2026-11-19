@@ -28,7 +28,7 @@ Use it at https://profitshare.alonegirlmovie.com/. Press *Load the sample* to lo
 
 - A top sheet over a chart of accounts you can edit, with up front, deferred and points totals side by side.
 - Each line is amount × rate with fringes on top, and a pay type you can change in place.
-- The top sheet and the full budget print.
+- The top sheet and the full budget print, and export to Excel, CSV and PDF.
 
 ### Schedule
 
@@ -72,13 +72,12 @@ Use it at https://profitshare.alonegirlmovie.com/. Press *Load the sample* to lo
 
 - Tested on every pull request in Safari's engine (WebKit), Firefox and Chromium.
 - Light and dark. It fits a phone, where wide tables scroll inside their own box.
-- Every field and button has a name a screen reader can say, and nothing pressable is smaller than 24px.
+- Every field and button has a name a screen reader can say.
 
 ## What it does not do yet
 
 - **US dollars and California rules only.** Fringes default to a California set, and the state incentive is California's.
 - **SAG-AFTRA low-budget theatrical tiers only.** No other union agreements are modelled.
-- **No export to Excel or CSV.** The top sheet and the points schedule print, and print can save a PDF.
 - **No participation-agreement exhibit** from the points schedule.
 - **No Movie Magic Budgeting native `.mbd` files.** Export to Excel or CSV first. Old-format `.xls` files are not read either: save them as `.xlsx`.
 - **No scanned PDFs.** A script PDF needs real text in it.
