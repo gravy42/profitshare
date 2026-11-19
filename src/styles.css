@@ -983,3 +983,7 @@ button.rowopen:focus-visible { outline: 2px solid var(--focus); outline-offset: 
 .cal .shootchip:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 /* a pop-out takes focus as it opens so Tab starts inside it; the card itself needs no ring for that */
 .modal-card:focus { outline: none; }
+/* Budget export (Top sheet & budget tab): the Excel / CSV / PDF buttons sit together beside the print buttons and
+   wrap as one group on a phone. */
+.budget-export { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.budget-export-help [role="status"] { font-weight: 600; }

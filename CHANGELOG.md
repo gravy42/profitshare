@@ -18,6 +18,7 @@ Work done overnight from the audit's "soon after launch" list.
 - **The repo has the files a public project needs.** CONTRIBUTING.md says how to run the checks and the rules a change must keep. SECURITY.md says how to report a problem privately through GitHub. There is a short code of conduct, forms for bugs and ideas (the bug form asks for steps on the sample film and warns against attaching a real budget), and a pull request checklist.
 - **The project file has a written rule for change.** `docs/file-format.md` says what the app does with a newer file or an unreadable part, and when the format number must rise. `docs/rates.md` lists every rate and dated rule in the code, with what to check each year and who publishes it.
 - **A link to the app now shows a preview, and the tab has an icon.** The page carries a description, link preview tags, a theme colour and icons, all the app's own files.
+- **Export the budget to Excel, CSV and PDF.** The Top sheet & budget tab has Export buttons beside the print buttons. Excel is a workbook with the top sheet, every line, the points schedule and the deal terms. CSV is the budget lines alone, and ProfitShare can read it back in: the sample comes back with the same 154 lines and the same $805,312.06. PDF is the top sheet and the full budget with page numbers. Pay type, account names and fringe rates of your own do not come back from a CSV. Text that looks like a formula is always written as text.
 
 ## 2026-11-18
 

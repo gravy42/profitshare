@@ -10,6 +10,7 @@ import {
 import { money, PAY_LABEL } from './format';
 import { weeklyWageLines, weeksToDays } from '../engine/sag';
 import { BudgetReport, PrintPortal, TopSheetReport } from './print';
+import { BudgetExport, BUDGET_EXPORT_HELP } from './BudgetExport';
 
 const PAY: PayType[] = ['cash', 'deferred', 'points'];
 const UNITS = ['-', 'DAY', 'WEEK', 'HOUR', 'ALLOW', 'ITEM', 'MONTH', 'FLAT', 'FEET', 'MILE'];
@@ -27,6 +28,7 @@ export function TopSheetView({ project, raw, controlled, setProject, starter, se
   const [editing, setEditing] = useState(false);
   const [hideEmpty, setHideEmpty] = useState(false);
   const [printing, setPrinting] = useState<null | 'top' | 'full'>(null);
+  const [exportNote, setExportNote] = useState('');
   const toggle = (k: string) => setOpen(o => ({ ...o, [k]: !o[k] }));
   const toggleAcct = (k: string) => setOpenAcct(o => ({ ...o, [k]: !o[k] }));
   const f = filter.trim().toLowerCase();
@@ -120,6 +122,7 @@ export function TopSheetView({ project, raw, controlled, setProject, starter, se
           <div className="row">
             <button className="btn small" title="The top sheet as a PDF (the browser's print dialog saves to PDF)" onClick={() => setPrinting('top')}>Print top sheet</button>
             <button className="btn small" title="Every account and line with money on it, as a PDF" onClick={() => setPrinting('full')}>Print full budget</button>
+            {!empty && <BudgetExport project={project} onNote={setExportNote} />}
             <div className="bar" style={{ width: 220 }} title="up front / deferred / points">
               <i className="c" style={{ width: `${100 * rollupCashTotal(ts.subtotal) / total}%` }} />
               <i className="d" style={{ width: `${100 * ts.deferredTotal / total}%` }} />
@@ -145,6 +148,7 @@ export function TopSheetView({ project, raw, controlled, setProject, starter, se
             ? <>Nothing in the budget yet. Open a category, then an account, and press <b>+ line</b>. Every line is amount × rate × multiplier, with fringes on top. <b>Edit accounts</b> lets you rename, add or remove categories and accounts.</>
             : <>Click a category, then an account, to open its lines. Change <b>Pay</b> on any line to move it between up front, deferred and points. Up front is what you have to raise; deferred still counts for SAG; points live only in the back end.</>}
         </p>
+        {!empty && <p className="help budget-export-help">{BUDGET_EXPORT_HELP} <span role="status">{exportNote}</span></p>}
         <table>
           <thead><tr><th>Account</th><th>Up front</th><th>Deferred</th><th>Points</th><th>Fringes</th></tr></thead>
           <tbody>
