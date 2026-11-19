@@ -259,7 +259,10 @@ export default function App() {
     <div className="app">
       {dragging && <div className="dropzone"><div><b>Drop to import</b><span>Budgets (.xlsx, .csv), boards (.sex), scripts (.fdx, .pdf, .fountain, .txt), saved projects (.json). Several at once is fine.</span></div></div>}
       <header className={`top ${fresh && tab === 'start' ? 'empty' : ''}`}>
-        <h1>ProfitShare</h1>
+        <span className="brand">
+          <h1>ProfitShare</h1>
+          <a className="tipjar" href={TIP_URL} target="_blank" rel="noreferrer" title="ProfitShare is free. Tips help with its upkeep and with getting ALONE GIRL made.">Free to use · Tip jar</a>
+        </span>
         {!(fresh && tab === 'start') && <span className="proj">
           <input value={project.name} onChange={e => setProject(p => ({ ...p, name: e.target.value }))} /> {' '}
           <input value={project.version} style={{ width: 90 }} onChange={e => setProject(p => ({ ...p, version: e.target.value }))} />
