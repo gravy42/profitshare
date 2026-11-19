@@ -495,6 +495,9 @@ details.howto[open] > summary { margin-bottom: 4px; }
   /* Safari counts the words inside a menu or a text field as overflow of the page even when the box itself fits: a
      menu whose longest choice is wider than the screen made the whole page scroll sideways. Clipping the box ends that. */
   main select, main input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="range"]) { overflow: hidden; text-overflow: ellipsis; }
+  /* some builds of Safari's engine still count them from the menu itself, so the label-and-field box clips sideways too
+     (clip, not hidden: nothing scrolls, and the focus ring keeps a little room) */
+  .ctl { overflow-x: clip; overflow-clip-margin: 4px; }
   /* a menu takes the width of its longest choice; Safari will not clamp that with a percentage inside a column of
      fields, so the clamp is also given against the screen: the page's and the panel's padding, and a card's inside it */
   .start .card select, .start .card input:not([type="checkbox"]):not([type="radio"]) { max-width: min(100%, calc(100vw - 100px)); }
