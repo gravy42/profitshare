@@ -12,7 +12,7 @@ export interface BrandFound {
   fonts: Partial<PitchDesign['fonts']>;
   swatches: { name: string; hex: string }[];   // every named colour on the pages, for the status line
   faces: string[];                            // every type face recognised
-  rules: Partial<DeckRules>;                  // slide rules the document states: split layout, eyebrows, the bleed
+  rules: Partial<DeckRules>;                  // what the document states for the deck: the sign-off
 }
 
 const HEX = /#([0-9a-f]{6})\b/gi;
@@ -105,14 +105,10 @@ export function parseBrandText(text: string, fallbackName = ''): BrandFound {
   return found;
 }
 
-/** Slide rules a brand document states in words: "split layout", "photo bleeds 50 to 60%", "one eyebrow per slide". */
+/** What a brand document states in words for the deck: the sign-off tag on its closing slide. */
 export function deckRulesFromText(text: string): Partial<DeckRules> {
   const t = text.replace(/\s+/g, ' ');
   const out: Partial<DeckRules> = {};
-  if (/\bsplit[- ]layout\b/i.test(t) || /photo bleeds/i.test(t)) out.layout = 'split';
-  if (/\beyebrow/i.test(t)) out.eyebrow = true;
-  const m = /bleeds?\s+(\d{2})\s*(?:to|-|–)\s*(\d{2})\s*%/i.exec(t) ?? /bleeds?\s+(\d{2})\s*%/i.exec(t);
-  if (m) { const a = +m[1], b = m[2] ? +m[2] : a; const mid = Math.round(((a + b) / 2) / 5) * 5; if (mid >= 40 && mid <= 60) out.bleed = mid / 100; }
   const so = /sign-?off[^.]*?[“"]([^”"]{4,60})[”"]/i.exec(t) ?? /tag,?\s+[“"]?(from the world of [^”",.]{2,40})/i.exec(t);
   if (so) out.signoff = so[1].trim();
   return out;

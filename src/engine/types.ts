@@ -328,18 +328,13 @@ export interface FontFile {
   source?: 'google';          // picked from Google Fonts and downloaded into the project; left out for an attached file
   licence?: string;           // the open licence a picked font came under: OFL, Apache or UFL
 }
-/** Layout rules a brand system sets for its slides. */
+/** What a brand system sets for the deck's first and last slides. */
 export interface DeckRules {
-  // layout, eyebrow, bleed and lookSlides belonged to the report deck, which is gone; they stay so files saved with them still open
-  layout: 'split' | 'plain';  // split: a photo bleeds the left of a text slide, the text column sits right; plain: text on the ground
-  eyebrow: boolean;           // the slide's first word as a small caps label ending in a colon, instead of a big heading
-  bleed: number;              // how much of the slide the photo takes in the split layout, 0.4 to 0.6
   coverImageId?: string;      // a look book picture for the cover slide: it fills the slide (the art carries the title), the logline on a band at the foot
-  lookSlides?: number;        // full-bleed look slides from the pictures no slide took, 0 to 6 (default 3), one per section in turn
   closingImageId?: string;    // a look book picture for the closing slide
   signoff: string;            // "from the world of SALT FLAT": the closing slide's tag; empty for the film's own name
 }
-export interface LookImage { id: string; dataUrl: string; caption: string; section: 'tone' | 'world' | 'character' | 'reference'; credit?: string; slide?: boolean }   // slide: chosen for a full-bleed look slide
+export interface LookImage { id: string; dataUrl: string; caption: string; section: 'tone' | 'world' | 'character' | 'reference'; credit?: string }
 export interface ResearchItem { id: string; kind: 'market' | 'audience' | 'comp' | 'press' | 'other'; title: string; body: string; url?: string }
 export interface TeamMember { id: string; name: string; role: string; bio: string }
 

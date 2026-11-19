@@ -29,7 +29,7 @@ export function buildSamplePitch(engine) {
   const design = {
     name: 'Salt Flat', colors, card, fonts: { title: pair.title, body: pair.body }, paperShade: 'aged', hand: true,
     notes: 'Worked out from the look book: a dusk ground, a pale salt card, a dusty rose accent and the blue of the sky over the flats. Typewriter titles, plain text, handwriting on aged paper.',
-    deck: { layout: 'split', eyebrow: false, bleed: 0.55, lookSlides: 3, coverImageId: 'look_sign', closingImageId: 'look_wagon', signoff: 'Thank you for reading' },
+    deck: { coverImageId: 'look_sign', closingImageId: 'look_wagon', signoff: 'Thank you for reading' },
   };
 
   const logline = 'Two estranged sisters push a dead station wagon across the desert to deliver their mother\'s last letter.';

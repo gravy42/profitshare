@@ -73,7 +73,7 @@ describe('an optional part with its needed pieces missing', () => {
     ['pitch with only a logline', f => { f.pitch = { logline: 'A surveyor walks out onto the salt.' }; }, [], p => expect(p.pitch).toEqual({ ...defaultPitch(), logline: 'A surveyor walks out onto the salt.' })],
     ['pitch.design: {}', f => { f.pitch.design = {}; }, ['the pitch'], p => expect('design' in p.pitch!).toBe(false)],
     ['pitch.design with colours and faces only', f => { f.pitch.design = { colors: f.pitch.design.colors, fonts: f.pitch.design.fonts }; }, [], p => expect(p.pitch!.design).toMatchObject({ name: '', notes: '' })],
-    ['pitch.design.deck: {}', f => { f.pitch.design.deck = {}; }, [], p => expect(p.pitch!.design!.deck).toEqual({ layout: 'split', eyebrow: false, bleed: 0.55, signoff: '' })],
+    ['pitch.design.deck: {}', f => { f.pitch.design.deck = {}; }, [], p => expect(p.pitch!.design!.deck).toEqual({ signoff: '' })],
     ['pitch.design.fontFiles of {}', f => { f.pitch.design.fontFiles = [{}, { id: 'f' }]; }, ['the pitch'], p => expect(p.pitch!.design!.fontFiles).toEqual([])],
     ['lookbook, research, team, comps, revenue and sections of {}', f => { for (const k of ['lookbook', 'research', 'team', 'comps', 'revenue', 'sections']) f.pitch[k] = [{}, { id: 'x' }]; }, ['the pitch'],
       p => { expect(p.pitch!.lookbook).toEqual([]); expect(p.pitch!.research).toEqual([]); expect(p.pitch!.revenue).toEqual([]); expect(p.pitch!.team).toEqual([{ id: 'x', name: '', role: '', bio: '' }]); expect(p.pitch!.sections).toEqual([{ id: 'x', heading: '', body: '' }]); expect(p.pitch!.comps).toEqual([{ id: 'x', title: '', year: '', distributor: '', budget: null, domestic: null, worldwide: null, note: '', source: '' }]); }],

@@ -145,6 +145,39 @@ describe('a good file comes back exactly as it was', () => {
   });
 });
 
+describe('settings of the report deck, which was removed', () => {
+  /** A file as the app saved it while the report deck existed: its four slide rules, and its tick on a look book picture. */
+  const now = file();   // one copy to compare with: the sample makes new ids each time it is built
+  const old = (rules: Record<string, unknown> = { layout: 'plain', eyebrow: true, bleed: 0.45, lookSlides: 5 }, slide: unknown = true) => {
+    const f = file(now as Project);
+    f.pitch.design.deck = { ...f.pitch.design.deck, ...rules };
+    f.pitch.lookbook = f.pitch.lookbook.map((i: object, n: number) => (n === 0 ? { ...i, slide } : i));
+    return f;
+  };
+  it('a file that has them opens with nothing reported, and without them', () => {
+    const f = old(), before = JSON.stringify(f);
+    const r = opened(f);
+    expect(r.repaired).toEqual([]);
+    expect(repairNote(r.repaired)).toBe('');
+    expect(r.project.pitch!.design!.deck).toEqual(now.pitch.design.deck);       // the cover, the closing picture and the sign-off are kept
+    expect(r.project.pitch!.lookbook).toEqual(now.pitch.lookbook);
+    expect(r.project).toEqual(now);                                             // and nothing else in the file moved
+    expect(JSON.stringify(f)).toBe(before);                                        // the file that was read is not written on
+    expect(JSON.stringify(r.project)).not.toMatch(/"(lookSlides|bleed|slide)":|"layout":"plain"/);
+  });
+  it('whatever they hold, they are forgotten quietly: they were never a reason to mend the file', () => {
+    const r = opened(old({ layout: 7, eyebrow: 'yes', bleed: null, lookSlides: [] }, 'on'));
+    expect(r.repaired).toEqual([]);
+    expect(r.project).toEqual(now);
+  });
+  it('a deck with only those settings still gets its sign-off', () => {
+    const f = file(); f.pitch.design.deck = { layout: 'split', eyebrow: false, bleed: 0.55 };
+    const r = opened(f);
+    expect(r.repaired).toEqual([]);
+    expect(r.project.pitch!.design!.deck).toEqual({ signoff: '' });
+  });
+});
+
 describe('a part with defaults that cannot be read is reset, and the rest opens', () => {
   it('each optional part of the wrong type goes, by name', () => {
     const cases: [string, unknown, string][] = [

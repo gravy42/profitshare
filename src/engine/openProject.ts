@@ -49,11 +49,13 @@ const recordOf = (t: Test): Test => v => isObj(v) && Object.keys(v).every(k => t
 /** How one field of a record is read.
  *  must: there, and of this type, or the record is no good.
  *  fill: of this type; left out (or null), it takes the default, which loses nothing.
- *  may:  optional; of the wrong type it is taken off and the record is kept. */
-type Field = { test: Test; mode: 'must' } | { test: Test; mode: 'fill'; make: () => unknown } | { test: Test; mode: 'may' };
+ *  may:  optional; of the wrong type it is taken off and the record is kept.
+ *  gone: a setting of a feature that was removed; whatever it holds is taken off and nothing is said about it. */
+type Field = { test: Test; mode: 'must' } | { test: Test; mode: 'fill'; make: () => unknown } | { test: Test; mode: 'may' } | { test: Test; mode: 'gone' };
 const must = (test: Test): Field => ({ test, mode: 'must' });
 const fill = (test: Test, make: () => unknown): Field => ({ test, mode: 'fill', make });
 const may = (test: Test): Field => ({ test, mode: 'may' });
+const gone: Field = { test: v => v === undefined, mode: 'gone' };
 const text = fill(str, () => '');
 type Shape = Record<string, Field>;
 
@@ -65,6 +67,7 @@ function readShape(raw: unknown, shape: Shape): Read {
   for (const k of Object.keys(shape)) {
     const f = shape[k], v = own(raw, k);
     if (v !== undefined && f.test(v)) continue;
+    if (f.mode === 'gone') { if (v !== undefined) value = without(value, k); continue; }
     if (f.mode === 'must') return { bad: k };
     if (f.mode === 'fill') { if (v != null) return { bad: k }; value = withKey(value, k, f.make()); continue; }
     if (v === undefined) continue;
@@ -242,10 +245,11 @@ function looseList(raw: unknown, shape: Shape): { value: unknown[]; dropped: boo
 /** A part made of named fields, each read on its own: a field in a form that cannot be read goes back to its default
  *  (when the part needs it) or is left out (when it does not). `nested` are the fields that hold lists or parts of
  *  their own. Comes back as it was when nothing had to change. */
-function loosePart(raw: Obj, fields: Record<string, { test: Test; make?: () => unknown }>, nested: Record<string, (v: unknown) => { value: unknown; dropped: boolean } | 'leave-out'> = {}): { value: Obj; dropped: boolean } {
+function loosePart(raw: Obj, fields: Record<string, { test: Test; make?: () => unknown; forget?: true }>, nested: Record<string, (v: unknown) => { value: unknown; dropped: boolean } | 'leave-out'> = {}): { value: Obj; dropped: boolean } {
   let value = raw, dropped = false;
   for (const k of Object.keys(fields)) {
     const f = fields[k], v = own(raw, k);
+    if (f.forget) { if (v !== undefined) value = without(value, k); continue; }
     if (v !== undefined && f.test(v)) continue;
     if (v !== undefined && v !== null) dropped = true;
     if (f.make) value = withKey(value, k, f.make());
@@ -264,6 +268,8 @@ function loosePart(raw: Obj, fields: Record<string, { test: Test; make?: () => u
 const req = (test: Test, make: () => unknown) => ({ test, make });
 const opt = (test: Test) => ({ test });
 const reqText = req(str, () => '');
+/** A setting of a feature that was removed: taken off the part whatever it holds, and not counted as a repair. */
+const forgotten = { test: (v: unknown) => v === undefined, forget: true as const };
 const list = (shape: Shape) => (v: unknown) => looseList(v, shape);
 const listOrNone = (shape: Shape) => (v: unknown) => (Array.isArray(v) ? looseList(v, shape) : 'leave-out' as const);
 const partOrNone = (read: (o: Obj) => { value: Obj; dropped: boolean }) => (v: unknown) => (isObj(v) ? read(v) : 'leave-out' as const);
@@ -307,7 +313,7 @@ const readCalendar = (o: Obj) => {
 const COMP: Shape = { id: must(str), title: text, year: text, distributor: text, budget: fill(numOrNull, () => null), domestic: fill(numOrNull, () => null), worldwide: fill(numOrNull, () => null), note: text, source: text, group: may(str) };
 const REVENUE: Shape = { id: must(str), source: text, low: must(num), mid: must(num), high: must(num) };
 const PITCH_SECTION: Shape = { id: must(str), heading: text, body: text };
-const LOOK_IMAGE: Shape = { id: must(str), dataUrl: must(str), caption: text, section: must(oneOf('tone', 'world', 'character', 'reference')), credit: may(str), slide: may(bool) };
+const LOOK_IMAGE: Shape = { id: must(str), dataUrl: must(str), caption: text, section: must(oneOf('tone', 'world', 'character', 'reference')), credit: may(str), slide: gone };   // slide: the report deck's "use on a look slide" tick; that deck is gone
 const RESEARCH: Shape = { id: must(str), kind: must(oneOf('market', 'audience', 'comp', 'press', 'other')), title: text, body: text, url: may(str) };
 const TEAM: Shape = { id: must(str), name: text, role: text, bio: text };
 const fontWeight: Test = v => num(v) || (Array.isArray(v) && v.length === 2 && v.every(num));
@@ -320,7 +326,8 @@ const fonts: Test = v => isObj(v) && str(own(v, 'title')) && str(own(v, 'body'))
 const readDesign = (v: unknown) => {
   if (!isObj(v) || !colors(own(v, 'colors')) || !fonts(own(v, 'fonts'))) return 'leave-out' as const;
   return loosePart(v, { name: reqText, notes: reqText, logoDataUrl: opt(str), line: opt(str), card: opt(str), paper: opt(PAPERS), paperShade: opt(SHADES), hand: opt(bool), tilt: opt(bool) }, {
-    deck: partOrNone(r => loosePart(r, { layout: req(oneOf('split', 'plain'), () => 'split'), eyebrow: req(bool, () => false), bleed: req(num, () => 0.55), signoff: reqText, coverImageId: opt(str), closingImageId: opt(str), lookSlides: opt(num) })),
+    // layout, eyebrow, bleed and lookSlides were the report deck's; a file saved with them opens without them
+    deck: partOrNone(r => loosePart(r, { signoff: reqText, coverImageId: opt(str), closingImageId: opt(str), layout: forgotten, eyebrow: forgotten, bleed: forgotten, lookSlides: forgotten })),
     fontFiles: listOrNone(FONT_FILE),
   });
 };

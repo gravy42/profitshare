@@ -67,10 +67,10 @@ describe('reading a brand system', () => {
 });
 
 describe('slide rules in words', () => {
-  it('reads split layout, the bleed, eyebrows and the sign-off', async () => {
+  it('reads the sign-off, and no longer the report deck\'s split layout, bleed and eyebrows', async () => {
     const { deckRulesFromText } = await import('./brand');
     const r = deckRulesFromText('DECKSLIDE · SPLIT LAYOUT, ALWAYS NIGHT. Photo bleeds 50 to 60%, text column right with a 48px outer margin. One eyebrow per slide; the slide\'s first word is the eyebrow. The sign-off tag, from the world of SALT FLAT, goes on anything that is not already the film.');
-    expect(r).toMatchObject({ layout: 'split', eyebrow: true, bleed: 0.55, signoff: 'from the world of SALT FLAT' });
+    expect(r).toEqual({ signoff: 'from the world of SALT FLAT' });
     expect(deckRulesFromText('Colours and type only.')).toEqual({});
   });
 });
