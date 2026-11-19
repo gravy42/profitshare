@@ -8,6 +8,7 @@ import { money } from './format';
 import type { Board, Project, Scene, SceneUnit, Strip } from '../engine/types';
 import { autoDayBreaks, fitDayBreaks, clearDayBreaks, dood, eighthsToText, insertDayBreak, moveStrip, removeStrip, shootDays, totalEighths, firstUnitEighths, parkedStart, parkedScenes, setSceneUnit, UNIT_LABEL, UNIT_SHORT, moveStrips, moveDay, dayOfIndex, castSceneCounts, castOrderByAppearance, castOrderByScenes, renumberCast, splitStrip, unsplitScene, setPartEighths, stripPart, stripEighths, dropCastMember, unusedCast } from '../engine/board';
 import { AiBreakdown } from './AiBreakdown';
+import { useModalFocus } from './modalFocus';
 import { BREAKDOWN_CATEGORIES, addCast, addElement, autoTag, autoTagBoard, categoryColor, namedAnimals, removeCast, removeElement } from '../engine/breakdown';
 
 type SetProject = (f: (p: Project) => Project) => void;
@@ -287,9 +288,10 @@ function DoodPopout({ project, setProject, onClose }: { project: Project; setPro
   useEffect(() => { const k = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); }; window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k); }, [onClose]);
   const holds = dood(board).reduce((n, r) => n + Math.max(0, r.span - r.total), 0);
   const unused = unusedCast(board);
+  const card = useModalFocus();
   return (
     <div className="modal" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="modal-card">
+      <div className="modal-card" ref={card} role="dialog" aria-modal="true" aria-label="Day out of days">
         <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
           <h2>Day out of days · {board.castList.length} cast · {days.length} days · {holds} hold days</h2>
           <div className="row">

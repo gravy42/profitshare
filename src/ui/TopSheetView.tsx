@@ -63,7 +63,7 @@ export function TopSheetView({ project, raw, controlled, setProject, starter, se
     return (
       <>
         <tr key={key} className="cat" style={anyMoney ? undefined : { opacity: .7 }}>
-          <td onClick={() => toggle(key)}>{open[key] ? '▾' : '▸'} {c.category.number}{' '}
+          <td onClick={() => toggle(key)}><button type="button" className="rowopen" aria-expanded={!!open[key]} aria-label={`${c.category.number} ${c.category.name}`}>{open[key] ? '▾' : '▸'} {c.category.number}</button>{' '}
             {editing ? <input className="l inline" value={c.category.name} onClick={e => e.stopPropagation()} onChange={e => setProject(p => renameCategory(p, key, e.target.value))} /> : c.category.name}
             {editing && <button className="btn small danger" title="Remove this category and everything in it" onClick={e => { e.stopPropagation(); if (confirm(`Remove ${key} ${c.category.name} and its ${accts.length} accounts?`)) setProject(p => removeCategory(p, key)); }}>×</button>}
           </td>
@@ -82,7 +82,7 @@ export function TopSheetView({ project, raw, controlled, setProject, starter, se
           return (
             <>
               <tr key={ak} className="acct" style={a.cash + a.deferred + a.points ? undefined : { opacity: .7 }}>
-                <td style={{ paddingLeft: 22 }} onClick={() => toggleAcct(ak)}>{show ? '▾' : '▸'} {acc.number}{' '}
+                <td style={{ paddingLeft: 22 }} onClick={() => toggleAcct(ak)}><button type="button" className="rowopen" aria-expanded={!!show} aria-label={`${acc.number} ${acc.name}`}>{show ? '▾' : '▸'} {acc.number}</button>{' '}
                   {editing ? <input className="l inline" value={acc.name} onClick={e => e.stopPropagation()} onChange={e => setProject(p => renameAccount(p, ak, e.target.value))} /> : acc.name}
                   {editing && <button className="btn small danger" title="Remove this account and its lines" onClick={e => { e.stopPropagation(); if (confirm(`Remove ${ak} ${acc.name} and its ${lines.length} lines?`)) setProject(p => removeAccount(p, ak)); }}>×</button>}
                 </td>

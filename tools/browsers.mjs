@@ -266,6 +266,39 @@ try {
       }
       need(wide.length === 0, wide.join(', ')); return `${TABS.length} tabs`;
     });
+    // A table too wide for a phone must scroll inside its own box, never squeeze: a sum of money drawn on two lines
+    // ("$3" over "00" over ",0" over "00") means a column was crushed. Folds are opened, and a budget account, so the
+    // tables inside them are looked at too. (tools/phone-tables.py measures more, and says where.)
+    await step('at phone width no sum of money in a table is broken over lines', async () => {
+      const split = []; let sums = 0;
+      for (const label of TABS) {
+        await phone.getByRole('button', { name: label, exact: true }).click(); await phone.waitForTimeout(400);
+        await phone.evaluate(() => { for (const d of document.querySelectorAll('main details')) d.open = true; });
+        if (label === 'Top sheet & budget') { await phone.locator('tr.cat td:first-child').first().click(); await phone.locator('tr.acct td:first-child').first().click(); }
+        await phone.waitForTimeout(300);
+        const r = await phone.evaluate(() => {
+          const bad = []; let n = 0;
+          for (const cell of document.querySelectorAll('table th, table td')) {
+            const b = cell.getBoundingClientRect(); if (!b.width || !b.height) continue;
+            const walk = document.createTreeWalker(cell, NodeFilter.SHOW_TEXT);
+            for (let node = walk.nextNode(); node; node = walk.nextNode()) {
+              if (node.parentElement.closest('th, td') !== cell) continue;   // a table inside this cell is looked at on its own
+              for (const m of node.data.matchAll(/\S+/g)) {
+                if (!/^\$[\d,]+/.test(m[0])) continue;
+                const range = document.createRange(); range.setStart(node, m.index); range.setEnd(node, m.index + m[0].length);
+                const lines = new Set([...range.getClientRects()].filter(q => q.width > 0).map(q => Math.round(q.top)));
+                if (lines.size) n++;
+                if (lines.size > 1) bad.push(`${m[0]} on ${lines.size} lines in a cell ${Math.round(b.width)}px wide`);
+              }
+            }
+          }
+          return { n, bad };
+        });
+        sums += r.n; if (r.bad.length) split.push(`${label}: ${r.bad.length} (${r.bad.slice(0, 2).join('; ')})`);
+      }
+      need(split.length === 0, split.join(' | ')); need(sums > 50, `only ${sums} sums of money were found in tables, so the check is not looking at the tables`);
+      return `${sums} sums of money in tables, each on one line`;
+    });
     await ctx.close();
   }
 
