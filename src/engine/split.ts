@@ -10,9 +10,11 @@ export type SplitTerms = Pick<Waterfall, 'model' | 'recoupPct' | 'poolPct' | 'gr
  *  off-the-gross (the Sing Sing model): the pool takes grossSharePct % from dollar one until investors have
  *  recouped recoupPct % of the budget from their share; after that the split flips to poolPct %. */
 export function poolAt(w: SplitTerms, budget: number, revenue: number): number {
-  const recoup = w.recoupPct / 100, pool = w.poolPct / 100;
+  const recoup = w.recoupPct / 100,
+    pool = w.poolPct / 100;
   if (w.model === 'recoup-first') return Math.max(0, revenue - budget * recoup) * pool;
-  const gross = w.grossSharePct / 100, invShare = 1 - gross;
+  const gross = w.grossSharePct / 100,
+    invShare = 1 - gross;
   const rStar = invShare > 0 ? (budget * recoup) / invShare : Infinity; // revenue at which investors have recouped
   return revenue <= rStar ? gross * revenue : gross * rStar + pool * (revenue - rStar);
 }

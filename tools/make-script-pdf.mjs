@@ -7,19 +7,37 @@ import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const src = readFileSync(root + 'tools/fixtures/SaltFlat_Script.fountain', 'utf8').replace(/\r\n?/g, '\n');
-const body = src.slice(src.search(/\n\s*\n/));   // drop the title page block
+const body = src.slice(src.search(/\n\s*\n/)); // drop the title page block
 const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 
 const blocks = [];
 let mode = 'action';
 for (const raw of body.split('\n')) {
   const t = raw.trim();
-  if (!t) { mode = 'action'; continue; }
-  if (t === '===') continue;   // let the PDF paginate itself, the way a real script does
-  if (/^(INT|EXT|I\/E)[.\s]/.test(t)) { blocks.push(`<p class="h">${esc(t)}</p>`); mode = 'action'; continue; }
-  if (/TO:$|^FADE (IN|OUT)[:.]$/.test(t)) { blocks.push(`<p class="${/^FADE IN/.test(t) ? 'a' : 't'}">${esc(t)}</p>`); mode = 'action'; continue; }
-  if (mode === 'dialogue') { blocks.push(`<p class="${/^\(/.test(t) ? 'p' : 'd'}">${esc(t)}</p>`); continue; }
-  if (/^[A-Z0-9 .'()\-]+$/.test(t) && t.length < 40) { blocks.push(`<p class="c">${esc(t)}</p>`); mode = 'dialogue'; continue; }
+  if (!t) {
+    mode = 'action';
+    continue;
+  }
+  if (t === '===') continue; // let the PDF paginate itself, the way a real script does
+  if (/^(INT|EXT|I\/E)[.\s]/.test(t)) {
+    blocks.push(`<p class="h">${esc(t)}</p>`);
+    mode = 'action';
+    continue;
+  }
+  if (/TO:$|^FADE (IN|OUT)[:.]$/.test(t)) {
+    blocks.push(`<p class="${/^FADE IN/.test(t) ? 'a' : 't'}">${esc(t)}</p>`);
+    mode = 'action';
+    continue;
+  }
+  if (mode === 'dialogue') {
+    blocks.push(`<p class="${/^\(/.test(t) ? 'p' : 'd'}">${esc(t)}</p>`);
+    continue;
+  }
+  if (/^[A-Z0-9 .'()\-]+$/.test(t) && t.length < 40) {
+    blocks.push(`<p class="c">${esc(t)}</p>`);
+    mode = 'dialogue';
+    continue;
+  }
   blocks.push(`<p class="a">${esc(t)}</p>`);
 }
 
@@ -38,7 +56,15 @@ p { margin: 0 0 12pt 0; white-space: pre-wrap; }
 const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' }).catch(() => chromium.launch());
 const page = await browser.newPage();
 await page.setContent(html);
-const pdf = await page.pdf({ format: 'Letter', printBackground: false, displayHeaderFooter: true, headerTemplate: '<div style="font:12pt Courier New,Courier,monospace;width:100%;text-align:right;padding-right:1in"><span class="pageNumber"></span>.</div>', footerTemplate: '<div></div>', margin: { top: '1in', right: '1in', bottom: '1in', left: '1.5in' } });
+const pdf = await page.pdf({
+  format: 'Letter',
+  printBackground: false,
+  displayHeaderFooter: true,
+  headerTemplate:
+    '<div style="font:12pt Courier New,Courier,monospace;width:100%;text-align:right;padding-right:1in"><span class="pageNumber"></span>.</div>',
+  footerTemplate: '<div></div>',
+  margin: { top: '1in', right: '1in', bottom: '1in', left: '1.5in' },
+});
 writeFileSync(root + 'tools/fixtures/SaltFlat_Script.pdf', pdf);
 await browser.close();
 console.log('wrote tools/fixtures/SaltFlat_Script.pdf');

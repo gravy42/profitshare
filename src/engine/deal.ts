@@ -3,15 +3,32 @@
 // budget from raw lines + terms, and every view reads the effective one. Change a term, everything updates.
 import type { Deal, Participant, Project, SagTierId } from './types';
 import { setDayHours } from './budget';
-import { daysFromLines, everyoneAtScale, floorNonShootDays, isPayrollLine, isSagPerformerLine, rerateCast, sagTier } from './sag';
+import {
+  daysFromLines,
+  everyoneAtScale,
+  floorNonShootDays,
+  isPayrollLine,
+  isSagPerformerLine,
+  rerateCast,
+  sagTier,
+} from './sag';
 import type { LineItem, PremiumGroup } from './types';
 import { CA_MIN_WAGE } from './locations';
 
 /** The above-scale above-the-line money, in three groups, so a deal can treat each one differently. */
 export const PRESET_GROUPS: Record<PremiumGroup, { label: string; match: (l: LineItem) => boolean }> = {
-  producers: { label: 'Producer fees (1201 Fee lines)', match: l => l.accountId === '1201' && /^Fee$/i.test(l.description) },
-  script: { label: 'Script purchase (1102)', match: l => l.accountId === '1102' && /script purchase/i.test(l.description) },
-  allowances: { label: 'STAR / CAST ALLOWANCE lines (above-scale cast money)', match: l => /^(STAR|CAST) ALLOWANCE$/i.test(l.description) },
+  producers: {
+    label: 'Producer fees (1201 Fee lines)',
+    match: l => l.accountId === '1201' && /^Fee$/i.test(l.description),
+  },
+  script: {
+    label: 'Script purchase (1102)',
+    match: l => l.accountId === '1102' && /script purchase/i.test(l.description),
+  },
+  allowances: {
+    label: 'STAR / CAST ALLOWANCE lines (above-scale cast money)',
+    match: l => /^(STAR|CAST) ALLOWANCE$/i.test(l.description),
+  },
 };
 export type PresetGroup = PremiumGroup;
 export const PROFIT_SHARE_PRESET_MATCH = (l: LineItem) => Object.values(PRESET_GROUPS).some(g => g.match(l));
@@ -23,8 +40,14 @@ export const premiumGroupOf = (l: LineItem): PremiumGroup | null =>
 
 export function defaultDeal(p: { shootDays: number; sag: { targetTier: SagTierId } }): Deal {
   return {
-    pay: { model: 'as-budgeted', rerateCast: false, crewBasis: p.sag.targetTier, crewCustomRate: 400, crewBumpPct: 0,
-      premiums: { producers: 'cash', script: 'cash', allowances: 'cash' } },
+    pay: {
+      model: 'as-budgeted',
+      rerateCast: false,
+      crewBasis: p.sag.targetTier,
+      crewCustomRate: 400,
+      crewBumpPct: 0,
+      premiums: { producers: 'cash', script: 'cash', allowances: 'cash' },
+    },
     producers: { count: null, days: p.shootDays + 40 },
     nonShoot: { enabled: false, cashHourly: CA_MIN_WAGE, rest: 'points' },
   };
@@ -41,7 +64,7 @@ export function unbakeDerived(p: Project): Project {
     if (/^L_scale_/.test(l.id) || /^SPLIT:.*:rest$/.test(l.id)) continue;
     const m = /^SPLIT:(.+):cash$/.exec(l.id);
     if (m) {
-      if (/^L_scale_/.test(m[1])) continue;                                  // a producer's floored scale line: the deal remakes it
+      if (/^L_scale_/.test(m[1])) continue; // a producer's floored scale line: the deal remakes it
       lines.push({ ...l, id: m[1], description: l.description.replace(/\s*\(cash floor\)/i, '') });
       continue;
     }
@@ -54,11 +77,13 @@ export function unbakeDerived(p: Project): Project {
 export function withDeal(p0: Project): Project {
   const p = unbakeDerived(p0);
   const d = defaultDeal(p);
-  const deal: Deal = p.deal ? {
-    pay: { ...d.pay, ...p.deal.pay, premiums: { ...d.pay.premiums, ...(p.deal.pay?.premiums ?? {}) } },
-    producers: { ...d.producers, ...p.deal.producers },
-    nonShoot: { ...d.nonShoot, ...p.deal.nonShoot },
-  } : d;
+  const deal: Deal = p.deal
+    ? {
+        pay: { ...d.pay, ...p.deal.pay, premiums: { ...d.pay.premiums, ...(p.deal.pay?.premiums ?? {}) } },
+        producers: { ...d.producers, ...p.deal.producers },
+        nonShoot: { ...d.nonShoot, ...p.deal.nonShoot },
+      }
+    : d;
   return { ...p, deal, dayHours: p.dayHours ?? 12 };
 }
 
@@ -82,13 +107,26 @@ export function applyDeal(raw: Project): Project {
     const want = d.producers.count ?? producers.length;
     // each producer keeps their own days (editable on the points schedule); the deal's figure is the default for new ones
     const kept: Participant[] = producers.slice(0, want).map(x => ({ ...x, days: x.days || d.producers.days }));
-    for (let i = producers.length; i < want; i++) kept.push({ id: `p_producer_${i + 1}`, name: `Producer #${i + 1}`, role: 'Producer', group: 'producer', tierId: 'producer', days: d.producers.days, bonusMultiplier: 1 });
+    for (let i = producers.length; i < want; i++)
+      kept.push({
+        id: `p_producer_${i + 1}`,
+        name: `Producer #${i + 1}`,
+        role: 'Producer',
+        group: 'producer',
+        tierId: 'producer',
+        days: d.producers.days,
+        bonusMultiplier: 1,
+      });
     p = { ...p, participants: [...others, ...kept] };
   }
 
   // 3. pay model
   if (d.pay.model === 'everyone-at-scale') {
-    p = everyoneAtScale(p, p.sag.targetTier, { premiums: 'keep', producerDays: d.producers.days, crewDayRate: crewDayRateOf(p) });
+    p = everyoneAtScale(p, p.sag.targetTier, {
+      premiums: 'keep',
+      producerDays: d.producers.days,
+      crewDayRate: crewDayRateOf(p),
+    });
   } else {
     if (d.pay.rerateCast) p = rerateCast(p, p.sag.targetTier);
     if (d.pay.crewBumpPct) p = bumpCrew(p, d.pay.crewBumpPct);
@@ -98,12 +136,15 @@ export function applyDeal(raw: Project): Project {
 
   // 4. premiums: producer fees, script purchase, star / cast allowances
   const groups = Object.keys(PRESET_GROUPS) as PremiumGroup[];
-  p = { ...p, lines: p.lines.flatMap(l => {
-    const g = groups.find(k => PRESET_GROUPS[k].match(l));
-    if (!g) return [l];
-    const c = d.pay.premiums[g];
-    return c === 'delete' ? [] : [{ ...l, payType: c }];
-  }) };
+  p = {
+    ...p,
+    lines: p.lines.flatMap(l => {
+      const g = groups.find(k => PRESET_GROUPS[k].match(l));
+      if (!g) return [l];
+      const c = d.pay.premiums[g];
+      return c === 'delete' ? [] : [{ ...l, payType: c }];
+    }),
+  };
 
   // 5. prep / wrap / post days at a cash floor
   if (d.nonShoot.enabled) p = floorNonShootDays(p, { cashHourly: d.nonShoot.cashHourly, rest: d.nonShoot.rest });
@@ -117,7 +158,14 @@ export function applyDeal(raw: Project): Project {
 const ATL_WAGE_ACCOUNT = /^1[123]\d\d$/;
 function bumpCrew(p: Project, pct: number): Project {
   const f = 1 + pct / 100;
-  return { ...p, lines: p.lines.map(l => isPayrollLine(l) && !isSagPerformerLine(l) && !PROFIT_SHARE_PRESET_MATCH(l) && !ATL_WAGE_ACCOUNT.test(l.accountId) ? { ...l, rate: Math.round(l.rate * f * 100) / 100 } : l) };
+  return {
+    ...p,
+    lines: p.lines.map(l =>
+      isPayrollLine(l) && !isSagPerformerLine(l) && !PROFIT_SHARE_PRESET_MATCH(l) && !ATL_WAGE_ACCOUNT.test(l.accountId)
+        ? { ...l, rate: Math.round(l.rate * f * 100) / 100 }
+        : l,
+    ),
+  };
 }
 
 /** Which raw line ids the deal rewrites (rate or pay type differs from raw), so the top sheet can show them as set by the deal. */
@@ -126,8 +174,12 @@ export function dealControlledIds(raw: Project, effective: Project): Set<string>
   const out = new Set<string>();
   for (const l of effective.lines) {
     const r = rawById.get(l.id);
-    if (!r) { out.add(l.id); continue; }
-    if (r.rate !== l.rate || r.payType !== l.payType || r.multiplier !== l.multiplier || r.amount !== l.amount) out.add(l.id);
+    if (!r) {
+      out.add(l.id);
+      continue;
+    }
+    if (r.rate !== l.rate || r.payType !== l.payType || r.multiplier !== l.multiplier || r.amount !== l.amount)
+      out.add(l.id);
   }
   return out;
 }

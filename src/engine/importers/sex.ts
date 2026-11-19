@@ -16,7 +16,8 @@ export function parseSex(buf: ArrayBuffer): Board {
   const latin = (s: Uint8Array) => Array.from(s, c => String.fromCharCode(c)).join('');
   if (latin(b.subarray(0, 4)) !== 'SSI*') throw new Error('Not a Movie Magic .sex file');
   const marker = (i: number) => b[i] === 0x23 && b[i + 1] === 0 && b[i + 2] === 0 && b[i + 3] === 0;
-  let first = 6; while (first < b.length && !marker(first)) first++;
+  let first = 6;
+  while (first < b.length && !marker(first)) first++;
   const cats = latin(b.subarray(12, first)).split('\0').filter(Boolean);
 
   const scenes = new Map<number, Scene & { _order: number }>();
@@ -34,12 +35,26 @@ export function parseSex(buf: ArrayBuffer): Board {
       const m = /^(INT\/EXT|INT\.?\/EXT\.?|I\/E|INT|EXT)\.?\s*(.*?)-([^-]*)$/.exec(heading ?? '');
       const ieRaw = m ? m[1] : '';
       const ie: Scene['ie'] = ieRaw === 'INT' ? 'INT' : ieRaw === 'EXT' ? 'EXT' : 'I/E';
-      scenes.set(idx, { id: `sc${number}`, number, ie, set: m ? m[2].trim() : heading, tod: m ? m[3].trim() : '',
-        pages, eighths: 0, synopsis: '', location: '', scriptDay: '', cast: [], elements: {}, _order: order.length });
+      scenes.set(idx, {
+        id: `sc${number}`,
+        number,
+        ie,
+        set: m ? m[2].trim() : heading,
+        tod: m ? m[3].trim() : '',
+        pages,
+        eighths: 0,
+        synopsis: '',
+        location: '',
+        scriptDay: '',
+        cast: [],
+        elements: {},
+        _order: order.length,
+      });
       order.push(idx);
     } else if (type === 3) {
       const idx = dv.getUint16(i + 8, true);
-      const s = scenes.get(idx); if (s) s.eighths = dv.getUint16(i + 12, true);
+      const s = scenes.get(idx);
+      if (s) s.eighths = dv.getUint16(i + 12, true);
     } else if (type === 2) {
       const idx = dv.getUint16(i + 8, true);
       const cat = cats[pl[2]] ?? `cat${pl[2]}`;
@@ -50,8 +65,9 @@ export function parseSex(buf: ArrayBuffer): Board {
         else if (cat === 'Cast Members') s.cast.push({ name: text });
         else if (cat === 'Location') s.location = text;
         else if (cat === 'Script Day') s.scriptDay = text;
-        else if (cat === 'Comments') { /* ignore */ }
-        else (s.elements[cat] ??= []).push(text);
+        else if (cat === 'Comments') {
+          /* ignore */
+        } else (s.elements[cat] ??= []).push(text);
       }
     }
     i += 6 + len;
@@ -59,11 +75,15 @@ export function parseSex(buf: ArrayBuffer): Board {
   // Cast numbering: order of first appearance in script order, since the file carries names only.
   const sorted = [...scenes.values()].sort((a, b2) => (parseInt(a.number) || 0) - (parseInt(b2.number) || 0));
   const castList: { id: number; name: string }[] = [];
-  for (const s of sorted) for (const c of s.cast) {
-    let m = castList.find(x => x.name === c.name);
-    if (!m) { m = { id: castList.length + 1, name: c.name }; castList.push(m); }
-    c.id = m.id;
-  }
+  for (const s of sorted)
+    for (const c of s.cast) {
+      let m = castList.find(x => x.name === c.name);
+      if (!m) {
+        m = { id: castList.length + 1, name: c.name };
+        castList.push(m);
+      }
+      c.id = m.id;
+    }
   const strips: Strip[] = order.map(idx => ({ type: 'scene', sceneId: scenes.get(idx)!.id }));
   return { castList, scenes: sorted.map(({ _order, ...s }) => s), strips, targetEighthsPerDay: 44 };
 }

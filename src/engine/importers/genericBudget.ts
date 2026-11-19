@@ -26,12 +26,26 @@ interface GenericImport {
   name: string;
   sheet: string;
   columns: Partial<Record<Col, number>>;
-  categories: Category[]; accounts: Account[]; fringes: FringeDef[]; lines: LineItem[];
+  categories: Category[];
+  accounts: Account[];
+  fringes: FringeDef[];
+  lines: LineItem[];
   warnings: string[];
-  reportedTotal: number;    // sum of the file's own subtotal column, when it has one
+  reportedTotal: number; // sum of the file's own subtotal column, when it has one
 }
 
-type Col = 'account' | 'description' | 'amount' | 'unit' | 'multiplier' | 'rate' | 'subtotal' | 'fringeNames' | 'fringeAmount' | 'category' | 'notes';
+type Col =
+  | 'account'
+  | 'description'
+  | 'amount'
+  | 'unit'
+  | 'multiplier'
+  | 'rate'
+  | 'subtotal'
+  | 'fringeNames'
+  | 'fringeAmount'
+  | 'category'
+  | 'notes';
 
 const HEADERS: [Col, RegExp][] = [
   ['account', /^(acct\.?|acct ?#|account( ?(#|no\.?|number))?|no\.?|#|code)$/i],
@@ -50,13 +64,18 @@ const HEADERS: [Col, RegExp][] = [
 const num = (v: any): number | null => {
   if (v === null || v === undefined || v === '') return null;
   if (typeof v === 'number') return isFinite(v) ? v : null;
-  const s = String(v).replace(/[$,\s]/g, '').replace(/^\((.*)\)$/, '-$1');
+  const s = String(v)
+    .replace(/[$,\s]/g, '')
+    .replace(/^\((.*)\)$/, '-$1');
   if (!/^-?\d*\.?\d+$/.test(s)) return null;
   return Number(s);
 };
-const str = (v: any) => (v === null || v === undefined) ? '' : String(v).trim();
+const str = (v: any) => (v === null || v === undefined ? '' : String(v).trim());
 
-const sectionOf = (n: string) => { const x = parseInt(n, 10); return x < 2000 ? 'ATL' : x < 4000 ? 'PRODUCTION' : x < 5000 ? 'POST' : 'OTHER'; };
+const sectionOf = (n: string) => {
+  const x = parseInt(n, 10);
+  return x < 2000 ? 'ATL' : x < 4000 ? 'PRODUCTION' : x < 5000 ? 'POST' : 'OTHER';
+};
 
 function findHeader(rows: any[][]): { row: number; columns: Partial<Record<Col, number>> } | null {
   for (let r = 0; r < Math.min(rows.length, 40); r++) {
@@ -64,31 +83,55 @@ function findHeader(rows: any[][]): { row: number; columns: Partial<Record<Col, 
     rows[r].forEach((cell, c) => {
       const h = str(cell);
       if (!h) return;
-      for (const [col, re] of HEADERS) if (re.test(h) && cols[col] === undefined) { cols[col] = c; break; }
+      for (const [col, re] of HEADERS)
+        if (re.test(h) && cols[col] === undefined) {
+          cols[col] = c;
+          break;
+        }
     });
     // "Units" is ambiguous: MMB uses Amount + Units (unit type); some sheets use Units as the count.
     if (cols.unit !== undefined && cols.amount === undefined) {
-      const sample = rows.slice(r + 1, r + 40).map(x => x[cols.unit!]).filter(v => v !== '' && v !== undefined);
+      const sample = rows
+        .slice(r + 1, r + 40)
+        .map(x => x[cols.unit!])
+        .filter(v => v !== '' && v !== undefined);
       const numeric = sample.filter(v => num(v) !== null).length;
-      if (sample.length && numeric / sample.length > 0.8) { cols.amount = cols.unit; delete cols.unit; }
+      if (sample.length && numeric / sample.length > 0.8) {
+        cols.amount = cols.unit;
+        delete cols.unit;
+      }
     }
     // "Fringes" can be names (Shamel) or dollars (Movie Magic): look at the values
     if (cols.fringeNames !== undefined && cols.fringeAmount === undefined) {
-      const sample = rows.slice(r + 1, r + 60).map(x => x[cols.fringeNames!]).filter(v => v !== '' && v !== undefined);
+      const sample = rows
+        .slice(r + 1, r + 60)
+        .map(x => x[cols.fringeNames!])
+        .filter(v => v !== '' && v !== undefined);
       const numeric = sample.filter(v => num(v) !== null).length;
-      if (sample.length && numeric / sample.length > 0.8) { cols.fringeAmount = cols.fringeNames; delete cols.fringeNames; }
+      if (sample.length && numeric / sample.length > 0.8) {
+        cols.fringeAmount = cols.fringeNames;
+        delete cols.fringeNames;
+      }
     }
-    const score = ['account', 'description', 'amount', 'rate', 'subtotal'].filter(k => cols[k as Col] !== undefined).length;
+    const score = ['account', 'description', 'amount', 'rate', 'subtotal'].filter(
+      k => cols[k as Col] !== undefined,
+    ).length;
     if (cols.description !== undefined && score >= 3) return { row: r, columns: cols };
   }
   return null;
 }
 
-function parseGenericRows(rows: any[][], opts: { name?: string; sheet?: string; standard?: { categories: Category[]; accounts: Account[] } } = {}): GenericImport {
+function parseGenericRows(
+  rows: any[][],
+  opts: { name?: string; sheet?: string; standard?: { categories: Category[]; accounts: Account[] } } = {},
+): GenericImport {
   const hdr = findHeader(rows);
-  if (!hdr) throw new Error('Could not find a header row with Account / Description / Amount / Rate / Total columns. Export the budget with column headers, or open an issue with the file attached.');
+  if (!hdr)
+    throw new Error(
+      'Could not find a header row with Account / Description / Amount / Rate / Total columns. Export the budget with column headers, or open an issue with the file attached.',
+    );
   const C = hdr.columns;
-  const cell = (r: any[], k: Col) => C[k] === undefined ? undefined : r[C[k]!];
+  const cell = (r: any[], k: Col) => (C[k] === undefined ? undefined : r[C[k]!]);
   const warnings: string[] = [];
   const stdCat = new Map((opts.standard?.categories ?? []).map(c => [c.number, c.name]));
   const stdAcc = new Map((opts.standard?.accounts ?? []).map(a => [a.number, a.name]));
@@ -102,7 +145,12 @@ function parseGenericRows(rows: any[][], opts: { name?: string; sheet?: string; 
   let reportedTotal = 0;
 
   const ensureCategory = (n: string, name?: string) => {
-    if (!categories.has(n)) categories.set(n, { number: n, name: name || stdCat.get(n) || `Category ${n}`, section: sectionOf(n) as Category['section'] });
+    if (!categories.has(n))
+      categories.set(n, {
+        number: n,
+        name: name || stdCat.get(n) || `Category ${n}`,
+        section: sectionOf(n) as Category['section'],
+      });
     else if (name && /^Category /.test(categories.get(n)!.name)) categories.get(n)!.name = name;
   };
   const ensureAccount = (n: string, name?: string, cat?: string) => {
@@ -127,71 +175,130 @@ function parseGenericRows(rows: any[][], opts: { name?: string; sheet?: string; 
     const catCol = str(cell(row, 'category'));
     const hasMoney = (amount !== null && rate !== null) || (sub !== null && sub !== 0);
 
-    if (/^(grand )?total/i.test(desc) && !acctRaw) continue;                    // total rows
+    if (/^(grand )?total/i.test(desc) && !acctRaw) continue; // total rows
     if (/^(sub ?total|contingency)/i.test(desc) && !hasMoney) continue;
 
     // account / category header rows: a number and a name, no money
     const acctNum = acctRaw.replace(/[^\w.-]/g, '');
     if (acctNum && !hasMoney) {
-      if (/^\d{2,}00$/.test(acctNum) || catCol.toLowerCase() === desc.toLowerCase()) { ensureCategory(acctNum, desc || undefined); lastCategory = acctNum; }
-      else { ensureAccount(acctNum, desc || undefined, lastCategory && acctNum.startsWith(lastCategory.slice(0, 2)) ? lastCategory : undefined); lastAccount = acctNum; }
+      if (/^\d{2,}00$/.test(acctNum) || catCol.toLowerCase() === desc.toLowerCase()) {
+        ensureCategory(acctNum, desc || undefined);
+        lastCategory = acctNum;
+      } else {
+        ensureAccount(
+          acctNum,
+          desc || undefined,
+          lastCategory && acctNum.startsWith(lastCategory.slice(0, 2)) ? lastCategory : undefined,
+        );
+        lastAccount = acctNum;
+      }
       continue;
     }
     if (!hasMoney && !desc) continue;
-    if (!hasMoney) { // description-only row: treat as an account header if it looks like one, else skip
+    if (!hasMoney) {
+      // description-only row: treat as an account header if it looks like one, else skip
       continue;
     }
 
     // a detail line
     let accountId = acctNum || lastAccount;
-    if (acctNum && acctNum !== lastAccount) { lastAccount = acctNum; }
-    if (!accountId) { accountId = '9999'; warnings.push(`Row ${r + 1}: no account number; filed under 9999 UNASSIGNED`); }
+    if (acctNum && acctNum !== lastAccount) {
+      lastAccount = acctNum;
+    }
+    if (!accountId) {
+      accountId = '9999';
+      warnings.push(`Row ${r + 1}: no account number; filed under 9999 UNASSIGNED`);
+    }
     ensureAccount(accountId, undefined, catCol && /^\d+$/.test(catCol) ? catCol : undefined);
     if (accountId === '9999') accounts.get('9999')!.name = 'UNASSIGNED';
 
-    let a = amount ?? 1, rt = rate ?? 0, m = mult ?? 1;
-    if (rate === null && sub !== null) { a = amount ?? 1; rt = a ? round2(sub / a / (m || 1)) : sub; if (!a) { a = 1; rt = sub; } }
+    let a = amount ?? 1,
+      rt = rate ?? 0,
+      m = mult ?? 1;
+    if (rate === null && sub !== null) {
+      a = amount ?? 1;
+      rt = a ? round2(sub / a / (m || 1)) : sub;
+      if (!a) {
+        a = 1;
+        rt = sub;
+      }
+    }
     if (sub !== null && a * rt * m !== 0) {
       const calc = a * rt * m;
-      if (Math.abs(calc - sub) > 0.05 && mult === null && a * rt !== 0) m = round2(sub / (a * rt) * 1000) / 1000; // implied multiplier (e.g. hours)
+      if (Math.abs(calc - sub) > 0.05 && mult === null && a * rt !== 0) m = round2((sub / (a * rt)) * 1000) / 1000; // implied multiplier (e.g. hours)
     }
     if (sub !== null) reportedTotal += sub;
 
-    let fr = str(cell(row, 'fringeNames')).split(/[,;]/).map(s => s.trim()).filter(Boolean);
-    for (const f of fr) if (!knownFringe.has(f)) { knownFringe.add(f); fringes.push({ id: f, name: f, rate: 0, cap: null }); warnings.push(`Fringe "${f}" added at 0 %; set its rate in the Fringes panel`); }
+    let fr = str(cell(row, 'fringeNames'))
+      .split(/[,;]/)
+      .map(s => s.trim())
+      .filter(Boolean);
+    for (const f of fr)
+      if (!knownFringe.has(f)) {
+        knownFringe.add(f);
+        fringes.push({ id: f, name: f, rate: 0, cap: null });
+        warnings.push(`Fringe "${f}" added at 0 %; set its rate in the Fringes panel`);
+      }
     const frAmt = num(cell(row, 'fringeAmount'));
     const wages = round2(a * rt * m);
     if (!fr.length && frAmt && wages > 0) {
-      const pct = Math.round(frAmt / wages * 10000) / 10000;
+      const pct = Math.round((frAmt / wages) * 10000) / 10000;
       let id = synthetic.get(pct);
-      if (!id) { id = `IMPORTED ${(pct * 100).toFixed(2)}%`; synthetic.set(pct, id); fringes.push({ id, name: `Imported fringe ${(pct * 100).toFixed(2)} %`, rate: pct, cap: null }); }
+      if (!id) {
+        id = `IMPORTED ${(pct * 100).toFixed(2)}%`;
+        synthetic.set(pct, id);
+        fringes.push({ id, name: `Imported fringe ${(pct * 100).toFixed(2)} %`, rate: pct, cap: null });
+      }
       fr = [id];
     }
 
     lines.push({
-      id: `L${lines.length + 1}`, accountId, description: desc, amount: a, unit: unit || (amount !== null && rate !== null ? 'ITEM' : '-'),
-      rate: rt, multiplier: m, fringes: fr, tags: [], payType: 'cash', notes: str(cell(row, 'notes')) || undefined,
+      id: `L${lines.length + 1}`,
+      accountId,
+      description: desc,
+      amount: a,
+      unit: unit || (amount !== null && rate !== null ? 'ITEM' : '-'),
+      rate: rt,
+      multiplier: m,
+      fringes: fr,
+      tags: [],
+      payType: 'cash',
+      notes: str(cell(row, 'notes')) || undefined,
     });
   }
   if (!lines.length) throw new Error('Found the header row but no budget lines under it.');
   const uniq = [...new Set(warnings)];
-  const sortNum = (a: { number: string }, b: { number: string }) => a.number.localeCompare(b.number, undefined, { numeric: true });
+  const sortNum = (a: { number: string }, b: { number: string }) =>
+    a.number.localeCompare(b.number, undefined, { numeric: true });
   return {
-    name: opts.name || 'Imported budget', sheet: opts.sheet || '', columns: C,
-    categories: [...categories.values()].sort(sortNum), accounts: [...accounts.values()].sort(sortNum),
-    fringes, lines, warnings: uniq, reportedTotal: round2(reportedTotal),
+    name: opts.name || 'Imported budget',
+    sheet: opts.sheet || '',
+    columns: C,
+    categories: [...categories.values()].sort(sortNum),
+    accounts: [...accounts.values()].sort(sortNum),
+    fringes,
+    lines,
+    warnings: uniq,
+    reportedTotal: round2(reportedTotal),
   };
 }
 
 /** Pick the sheet that looks most like a detail list and parse it. Accepts .xlsx and .csv/.tsv/.txt (comma, tab, semicolon or pipe). */
-export function parseGenericBudget(src: ArrayBuffer | Workbook, filename = '', standard?: { categories: Category[]; accounts: Account[] }): GenericImport {
+export function parseGenericBudget(
+  src: ArrayBuffer | Workbook,
+  filename = '',
+  standard?: { categories: Category[]; accounts: Account[] },
+): GenericImport {
   const wb = isWorkbook(src) ? src : readSpreadsheet(src, filename);
-  let best: GenericImport | null = null; let firstErr: Error | null = null;
+  let best: GenericImport | null = null;
+  let firstErr: Error | null = null;
   for (const { name, rows } of wb.sheets) {
     try {
       const imp = parseGenericRows(rows, { name: filename.replace(/\.[^.]+$/, ''), sheet: name, standard });
       if (!best || imp.lines.length > best.lines.length) best = imp;
-    } catch (e: any) { firstErr ??= e; }
+    } catch (e: any) {
+      firstErr ??= e;
+    }
   }
   if (!best) throw firstErr ?? new Error('No sheet with budget lines');
   return best;

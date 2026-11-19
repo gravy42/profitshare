@@ -3,9 +3,32 @@
 // browser to api.anthropic.com. Draft sends the project brief (the pitch, the budget figures and the schedule in a
 // few hundred words); AI breakdown sends the scene text and the cast list. Nothing goes until the person presses it.
 import type { Board, Project, Scene } from './engine/types';
-import { BREAKDOWN_SYSTEM, BREAKDOWN_TOOL, breakdownPrompt, parseBreakdownReply, type AiSceneTags } from './engine/aiBreakdown';
-import { NOT_IN_FORM, motionRequest, readMotionReply, type AiRequest, type MotionPicture, type MotionProposal } from './engine/aiMotion';
-import { critiqueRequest, personRequest, punchRequest, readCritiqueReply, readPersonReply, readPunchReply, type AiProblem, type PersonBrief, type PersonSuggestion } from './engine/aiDeck';
+import {
+  BREAKDOWN_SYSTEM,
+  BREAKDOWN_TOOL,
+  breakdownPrompt,
+  parseBreakdownReply,
+  type AiSceneTags,
+} from './engine/aiBreakdown';
+import {
+  NOT_IN_FORM,
+  motionRequest,
+  readMotionReply,
+  type AiRequest,
+  type MotionPicture,
+  type MotionProposal,
+} from './engine/aiMotion';
+import {
+  critiqueRequest,
+  personRequest,
+  punchRequest,
+  readCritiqueReply,
+  readPersonReply,
+  readPunchReply,
+  type AiProblem,
+  type PersonBrief,
+  type PersonSuggestion,
+} from './engine/aiDeck';
 import type { DeckData } from './deck-runtime/data';
 import type { SlideLayout } from './engine/types';
 import { withPitch, compGroups, compStats, projections } from './engine/pitch';
@@ -17,18 +40,30 @@ import { money } from './ui/format';
 import { idbGet, idbSet, idbDel, idbKeys, STORES } from './idb';
 
 const KEY = 'profitshare.ai.key';
-const LEGACY_MODEL = 'profitshare.ai.model';         // before the app chose a model itself, this held the default as often as a real choice
-const PICKED = 'profitshare.ai.model.picked';        // the model the person chose themselves; absent when they have not chosen
-const MODELS = 'profitshare.ai.models';              // the list the last "Test the key" brought back, so the choice survives a reload without asking again
+const LEGACY_MODEL = 'profitshare.ai.model'; // before the app chose a model itself, this held the default as often as a real choice
+const PICKED = 'profitshare.ai.model.picked'; // the model the person chose themselves; absent when they have not chosen
+const MODELS = 'profitshare.ai.models'; // the list the last "Test the key" brought back, so the choice survives a reload without asking again
 /** Used when the key's own list is not known (the key has not been tested in this browser). */
 export const DEFAULT_MODEL = 'claude-sonnet-4-5';
 
-export interface AiModel { id: string; name: string; created?: string }
+export interface AiModel {
+  id: string;
+  name: string;
+  created?: string;
+}
 /** `model` is the one a request will use. `picked` is the person's own choice, empty when they have left it to the app. */
-export interface AiSettings { key: string; model: string; picked: string }
+export interface AiSettings {
+  key: string;
+  model: string;
+  picked: string;
+}
 
 /** The family the fallback belongs to, read off its own id: the word that is neither "claude" nor a number. */
-export const modelFamily = (id: string) => id.toLowerCase().split('-').find(part => part !== 'claude' && !/^\d+$/.test(part)) ?? '';
+export const modelFamily = (id: string) =>
+  id
+    .toLowerCase()
+    .split('-')
+    .find(part => part !== 'claude' && !/^\d+$/.test(part)) ?? '';
 
 /** The model to use when the person has not chosen one. The rule, which reads the key's own list and no table of names:
  *  1. No list (the key has not been tested here): the fallback constant.
@@ -45,7 +80,7 @@ export function newestSuitable(list: AiModel[], fallback = DEFAULT_MODEL): strin
   const when = pool.map(m => (m.created ? Date.parse(m.created) : NaN));
   if (when.some(Number.isNaN)) return pool[0].id;
   let best = 0;
-  for (let i = 1; i < pool.length; i++) if (when[i] > when[best]) best = i;   // a tie keeps the earlier one in the list
+  for (let i = 1; i < pool.length; i++) if (when[i] > when[best]) best = i; // a tie keeps the earlier one in the list
   return pool[best].id;
 }
 
@@ -57,17 +92,36 @@ export function resolveModel(picked: string, list: AiModel[]): { model: string; 
   if (!list.length || list.some(m => m.id === picked)) return { model: picked, note: '' };
   const model = newestSuitable(list);
   const name = list.find(m => m.id === model)?.name ?? model;
-  return { model, note: `The model you chose, ${picked}, is no longer on this key's list, so ${name} is used instead. Choose another from the list if you prefer.` };
+  return {
+    model,
+    note: `The model you chose, ${picked}, is no longer on this key's list, so ${name} is used instead. Choose another from the list if you prefer.`,
+  };
 }
 
 /** The key's list of models as last fetched; empty when it never was, or when the key has changed since. */
 export function knownModels(): AiModel[] {
   try {
     const list = JSON.parse(localStorage.getItem(MODELS) ?? '[]');
-    return Array.isArray(list) ? list.filter(m => m && typeof m.id === 'string').map(m => ({ id: m.id, name: typeof m.name === 'string' ? m.name : m.id, created: typeof m.created === 'string' ? m.created : undefined })) : [];
-  } catch { return []; }
+    return Array.isArray(list)
+      ? list
+          .filter(m => m && typeof m.id === 'string')
+          .map(m => ({
+            id: m.id,
+            name: typeof m.name === 'string' ? m.name : m.id,
+            created: typeof m.created === 'string' ? m.created : undefined,
+          }))
+      : [];
+  } catch {
+    return [];
+  }
 }
-export function rememberModels(list: AiModel[]) { try { localStorage.setItem(MODELS, JSON.stringify(list)); } catch { /* private window */ } }
+export function rememberModels(list: AiModel[]) {
+  try {
+    localStorage.setItem(MODELS, JSON.stringify(list));
+  } catch {
+    /* private window */
+  }
+}
 
 function pickedModel(): string {
   const own = localStorage.getItem(PICKED);
@@ -78,20 +132,39 @@ function pickedModel(): string {
   return old === 'claude-sonnet-4-5' ? '' : old;
 }
 export function aiSettings(): AiSettings {
-  try { const picked = pickedModel(); return { key: localStorage.getItem(KEY) ?? '', picked, model: resolveModel(picked, knownModels()).model }; }
-  catch { return { key: '', picked: '', model: DEFAULT_MODEL }; }
+  try {
+    const picked = pickedModel();
+    return { key: localStorage.getItem(KEY) ?? '', picked, model: resolveModel(picked, knownModels()).model };
+  } catch {
+    return { key: '', picked: '', model: DEFAULT_MODEL };
+  }
 }
 export function saveAiSettings(s: { key: string; picked: string }) {
   try {
-    if (s.key !== (localStorage.getItem(KEY) ?? '')) localStorage.removeItem(MODELS);   // the list belongs to the key it was fetched with
-    if (s.key) localStorage.setItem(KEY, s.key); else localStorage.removeItem(KEY);
-    localStorage.setItem(PICKED, s.picked); localStorage.removeItem(LEGACY_MODEL);
-  } catch { /* private window */ }
+    if (s.key !== (localStorage.getItem(KEY) ?? '')) localStorage.removeItem(MODELS); // the list belongs to the key it was fetched with
+    if (s.key) localStorage.setItem(KEY, s.key);
+    else localStorage.removeItem(KEY);
+    localStorage.setItem(PICKED, s.picked);
+    localStorage.removeItem(LEGACY_MODEL);
+  } catch {
+    /* private window */
+  }
 }
-export function forgetAi() { try { for (const k of [KEY, LEGACY_MODEL, PICKED, MODELS]) localStorage.removeItem(k); } catch { /* ignore */ } }
+export function forgetAi() {
+  try {
+    for (const k of [KEY, LEGACY_MODEL, PICKED, MODELS]) localStorage.removeItem(k);
+  } catch {
+    /* ignore */
+  }
+}
 export const aiReady = () => !!aiSettings().key;
 
-const headers = (key: string) => ({ 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' });
+const headers = (key: string) => ({
+  'content-type': 'application/json',
+  'x-api-key': key,
+  'anthropic-version': '2023-06-01',
+  'anthropic-dangerous-direct-browser-access': 'true',
+});
 
 /** The models this key can use, newest first, each with the date it was made when the list gives one. Throws when the call fails (the person can still type an id). */
 export async function listModels(key: string): Promise<AiModel[]> {
@@ -100,70 +173,149 @@ export async function listModels(key: string): Promise<AiModel[]> {
   const j = await r.json();
   // only entries with a usable id: an answer in some other shape gives a plain sentence, not a crash in the picker
   const rows: unknown[] = Array.isArray(j?.data) ? j.data : [];
-  if (!Array.isArray(j?.data)) throw new Error('Anthropic answered, but not with a list of models. Type a model id instead.');
-  return rows.filter((m): m is { id: string; display_name?: unknown; created_at?: unknown } => !!m && typeof (m as { id?: unknown }).id === 'string' && (m as { id: string }).id.length > 0)
-    .map(m => ({ id: m.id, name: typeof m.display_name === 'string' && m.display_name ? m.display_name : m.id, created: typeof m.created_at === 'string' ? m.created_at : undefined }));
+  if (!Array.isArray(j?.data))
+    throw new Error('Anthropic answered, but not with a list of models. Type a model id instead.');
+  return rows
+    .filter(
+      (m): m is { id: string; display_name?: unknown; created_at?: unknown } =>
+        !!m && typeof (m as { id?: unknown }).id === 'string' && (m as { id: string }).id.length > 0,
+    )
+    .map(m => ({
+      id: m.id,
+      name: typeof m.display_name === 'string' && m.display_name ? m.display_name : m.id,
+      created: typeof m.created_at === 'string' ? m.created_at : undefined,
+    }));
 }
 
 // ---- documents the AI reads: a look book, a treatment, a deck, as PDFs kept in this browser only ----
-export interface AiDoc { id: string; name: string; size: number; added: string }
-const DOC_META = (id: string) => `meta:${id}`, DOC_DATA = (id: string) => `data:${id}`;
+export interface AiDoc {
+  id: string;
+  name: string;
+  size: number;
+  added: string;
+}
+const DOC_META = (id: string) => `meta:${id}`,
+  DOC_DATA = (id: string) => `data:${id}`;
 export async function aiDocs(): Promise<AiDoc[]> {
   const keys = await idbKeys(STORES.docs).catch(() => [] as string[]);
   const metas = await Promise.all(keys.filter(k => k.startsWith('meta:')).map(k => idbGet<AiDoc>(STORES.docs, k)));
   return metas.filter((m): m is AiDoc => !!m).sort((a, b) => a.added.localeCompare(b.added));
 }
 export async function addAiDoc(file: File): Promise<AiDoc> {
-  if (file.size > 30 * 1024 * 1024) throw new Error(`${file.name} is ${(file.size / 1048576).toFixed(0)} MB; the model reads PDFs up to about 30 MB and 100 pages.`);
+  if (file.size > 30 * 1024 * 1024)
+    throw new Error(
+      `${file.name} is ${(file.size / 1048576).toFixed(0)} MB; the model reads PDFs up to about 30 MB and 100 pages.`,
+    );
   const id = `d_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
   const meta: AiDoc = { id, name: file.name, size: file.size, added: new Date().toISOString() };
   await idbSet(STORES.docs, DOC_DATA(id), await file.arrayBuffer());
   await idbSet(STORES.docs, DOC_META(id), meta);
   return meta;
 }
-export async function removeAiDoc(id: string) { await idbDel(STORES.docs, DOC_DATA(id)); await idbDel(STORES.docs, DOC_META(id)); }
-const b64 = (buf: ArrayBuffer) => { const bytes = new Uint8Array(buf); let s = ''; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000)); return btoa(s); };
+export async function removeAiDoc(id: string) {
+  await idbDel(STORES.docs, DOC_DATA(id));
+  await idbDel(STORES.docs, DOC_META(id));
+}
+const b64 = (buf: ArrayBuffer) => {
+  const bytes = new Uint8Array(buf);
+  let s = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(s);
+};
 async function docBlocks(): Promise<any[]> {
   const docs = await aiDocs();
   const out: any[] = [];
-  for (const d of docs) { const data = await idbGet<ArrayBuffer>(STORES.docs, DOC_DATA(d.id)); if (data) out.push({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: b64(data) }, title: d.name }); }
+  for (const d of docs) {
+    const data = await idbGet<ArrayBuffer>(STORES.docs, DOC_DATA(d.id));
+    if (data)
+      out.push({
+        type: 'document',
+        source: { type: 'base64', media_type: 'application/pdf', data: b64(data) },
+        title: d.name,
+      });
+  }
   return out;
 }
 
 /** One completion. The documents in the browser's store ride along with every request. Throws with the API's message on failure. */
-export async function ask(system: string, prompt: string, opts: { maxTokens?: number; model?: string } = {}): Promise<string> {
+export async function ask(
+  system: string,
+  prompt: string,
+  opts: { maxTokens?: number; model?: string } = {},
+): Promise<string> {
   const s = aiSettings();
   if (!s.key) throw new Error('No API key. Paste one under AI assist on the Pitch tab.');
   const docs = await docBlocks();
   const content = docs.length ? [...docs, { type: 'text', text: prompt }] : prompt;
   const r = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST', headers: headers(s.key),
-    body: JSON.stringify({ model: opts.model ?? s.model, max_tokens: opts.maxTokens ?? 1200, system, messages: [{ role: 'user', content }] }),
+    method: 'POST',
+    headers: headers(s.key),
+    body: JSON.stringify({
+      model: opts.model ?? s.model,
+      max_tokens: opts.maxTokens ?? 1200,
+      system,
+      messages: [{ role: 'user', content }],
+    }),
   });
   if (!r.ok) {
-    let msg = `${r.status}`; try { const j = await r.json(); msg = j.error?.message ?? msg; } catch { /* keep status */ }
+    let msg = `${r.status}`;
+    try {
+      const j = await r.json();
+      msg = j.error?.message ?? msg;
+    } catch {
+      /* keep status */
+    }
     throw new Error(msg);
   }
   const j = await r.json();
-  return (j.content ?? []).filter((c: any) => c.type === 'text').map((c: any) => c.text).join('\n').trim();
+  return (j.content ?? [])
+    .filter((c: any) => c.type === 'text')
+    .map((c: any) => c.text)
+    .join('\n')
+    .trim();
 }
 
 /** One forced tool call: the model answers through `tool` and its input comes back as data. No documents ride along:
  *  the look book has no business going out with a script. Throws with the API's message on failure. */
-async function askTool(system: string, prompt: string, tool: { name: string; description: string; input_schema: object }, opts: { maxTokens?: number; model?: string; signal?: AbortSignal; cutOff?: string; nothing?: string } = {}): Promise<unknown> {
+async function askTool(
+  system: string,
+  prompt: string,
+  tool: { name: string; description: string; input_schema: object },
+  opts: { maxTokens?: number; model?: string; signal?: AbortSignal; cutOff?: string; nothing?: string } = {},
+): Promise<unknown> {
   const s = aiSettings();
   if (!s.key) throw new Error('No API key. Paste one under AI assist.');
   const r = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST', headers: headers(s.key), signal: opts.signal,
-    body: JSON.stringify({ model: opts.model ?? s.model, max_tokens: opts.maxTokens ?? 4000, system, tools: [tool], tool_choice: { type: 'tool', name: tool.name }, messages: [{ role: 'user', content: prompt }] }),
+    method: 'POST',
+    headers: headers(s.key),
+    signal: opts.signal,
+    body: JSON.stringify({
+      model: opts.model ?? s.model,
+      max_tokens: opts.maxTokens ?? 4000,
+      system,
+      tools: [tool],
+      tool_choice: { type: 'tool', name: tool.name },
+      messages: [{ role: 'user', content: prompt }],
+    }),
   });
   if (!r.ok) {
-    let msg = `${r.status}`; try { const j = await r.json(); msg = j.error?.message ?? msg; } catch { /* keep status */ }
-    throw Object.assign(new Error(msg), { status: r.status });   // the status rides along, so the page can say what went wrong in plain words
+    let msg = `${r.status}`;
+    try {
+      const j = await r.json();
+      msg = j.error?.message ?? msg;
+    } catch {
+      /* keep status */
+    }
+    throw Object.assign(new Error(msg), { status: r.status }); // the status rides along, so the page can say what went wrong in plain words
   }
   let j: any;
-  try { j = await r.json(); } catch { throw new Error(opts.nothing ?? 'the reply could not be read'); }   // a reply that is not JSON at all: said plainly, never as the parser's own words
-  if (j.stop_reason === 'max_tokens') throw new Error(opts.cutOff ?? 'the reply was cut off before it finished; try fewer scenes at a time');
+  try {
+    j = await r.json();
+  } catch {
+    throw new Error(opts.nothing ?? 'the reply could not be read');
+  } // a reply that is not JSON at all: said plainly, never as the parser's own words
+  if (j.stop_reason === 'max_tokens')
+    throw new Error(opts.cutOff ?? 'the reply was cut off before it finished; try fewer scenes at a time');
   const use = (j.content ?? []).find((c: any) => c.type === 'tool_use' && c.name === tool.name);
   if (!use) throw new Error(opts.nothing ?? 'the model did not return a breakdown');
   return use.input;
@@ -173,10 +325,20 @@ async function askTool(system: string, prompt: string, tool: { name: string; des
 // Each sends exactly what its request builder (engine/aiMotion.ts, engine/aiDeck.ts) puts in the prompt and the tool,
 // through the forced tool call above; no documents ride along. What comes back goes through that file's reader.
 const deckAsk = (req: AiRequest, maxTokens: number, signal?: AbortSignal) =>
-  askTool(req.system, req.prompt, req.tool, { maxTokens, signal, cutOff: 'the answer was cut off before it finished', nothing: NOT_IN_FORM });
+  askTool(req.system, req.prompt, req.tool, {
+    maxTokens,
+    signal,
+    cutOff: 'the answer was cut off before it finished',
+    nothing: NOT_IN_FORM,
+  });
 
 /** Movement for one slide, from a request in the person's words. */
-export async function motionOnRequest(text: string, layout: SlideLayout, pictures: MotionPicture[], signal?: AbortSignal): Promise<MotionProposal> {
+export async function motionOnRequest(
+  text: string,
+  layout: SlideLayout,
+  pictures: MotionPicture[],
+  signal?: AbortSignal,
+): Promise<MotionProposal> {
   return readMotionReply(await deckAsk(motionRequest(text, layout, pictures), 500, signal), layout, pictures);
 }
 /** A cover line, a note and which ask first, for one person. */
@@ -189,63 +351,119 @@ export async function suggestSecondLines(headline: string, body: string, signal?
 }
 /** A read of the deck: at most eight problems, each tied to a slide that is on it. */
 export async function readTheDeck(deck: DeckData, signal?: AbortSignal): Promise<AiProblem[]> {
-  return readCritiqueReply(await deckAsk(critiqueRequest(deck), 2000, signal), deck.slides.map(s => s.id));
+  return readCritiqueReply(
+    await deckAsk(critiqueRequest(deck), 2000, signal),
+    deck.slides.map(s => s.id),
+  );
 }
 
 /** Break down one run of scenes. `done` is what earlier runs proposed, so labels and script days carry on. */
-export async function breakdownBatch(board: Board, batch: Scene[], done: AiSceneTags[], signal?: AbortSignal): Promise<AiSceneTags[]> {
-  const input = await askTool(BREAKDOWN_SYSTEM, breakdownPrompt(board, batch, done), BREAKDOWN_TOOL, { maxTokens: 16000, signal });
+export async function breakdownBatch(
+  board: Board,
+  batch: Scene[],
+  done: AiSceneTags[],
+  signal?: AbortSignal,
+): Promise<AiSceneTags[]> {
+  const input = await askTool(BREAKDOWN_SYSTEM, breakdownPrompt(board, batch, done), BREAKDOWN_TOOL, {
+    maxTokens: 16000,
+    signal,
+  });
   return parseBreakdownReply(input, batch, board);
 }
 
 /** What the model is told about the film: the pitch so far, the money, the schedule, the deal. Pure; tested. */
 export function projectBrief(p0: Project): string {
-  const p = withPitch(p0); const pitch = p.pitch!;
-  const e = p; const ts = topSheet(e); const sag = sagReport(e);   // the views hand over the project with the deal applied; applying it again inflated the budget the model was told
-  const days = shootDays(p.board); const parked = parkedScenes(p.board);
+  const p = withPitch(p0);
+  const pitch = p.pitch!;
+  const e = p;
+  const ts = topSheet(e);
+  const sag = sagReport(e); // the views hand over the project with the deal applied; applying it again inflated the budget the model was told
+  const days = shootDays(p.board);
+  const parked = parkedScenes(p.board);
   const pr = projections(p);
   const sets = [...new Set(p.board.scenes.filter(s => !s.unit).map(s => s.set))];
-  const cast = p.board.castList.slice(0, 12).map(c => c.name).join(', ');
-  const comps = compGroups(pitch.comps).map(g => { const st = compStats(g.comps); return `${g.group}: ${g.comps.map(c => `${c.title}${c.year ? ` (${c.year})` : ''}${c.budget ? ` budget ${money(c.budget)}` : ''}${c.worldwide ? ` worldwide ${money(c.worldwide)}` : ''}`).join('; ')}${st.medianMultiple ? ` — median ${st.medianMultiple.toFixed(1)}× budget` : ''}`; }).join('\n');
-  const research = (pitch.research ?? []).filter(r => r.title || r.body).map(r => `[${r.kind}] ${r.title}${r.body ? `: ${r.body.slice(0, 400)}` : ''}${r.url ? ` (${r.url})` : ''}`).join('\n');
-  const team = (pitch.team ?? []).filter(t => t.name).map(t => `${t.name}, ${t.role}${t.bio ? `: ${t.bio.slice(0, 300)}` : ''}`).join('\n');
+  const cast = p.board.castList
+    .slice(0, 12)
+    .map(c => c.name)
+    .join(', ');
+  const comps = compGroups(pitch.comps)
+    .map(g => {
+      const st = compStats(g.comps);
+      return `${g.group}: ${g.comps.map(c => `${c.title}${c.year ? ` (${c.year})` : ''}${c.budget ? ` budget ${money(c.budget)}` : ''}${c.worldwide ? ` worldwide ${money(c.worldwide)}` : ''}`).join('; ')}${st.medianMultiple ? ` — median ${st.medianMultiple.toFixed(1)}× budget` : ''}`;
+    })
+    .join('\n');
+  const research = (pitch.research ?? [])
+    .filter(r => r.title || r.body)
+    .map(r => `[${r.kind}] ${r.title}${r.body ? `: ${r.body.slice(0, 400)}` : ''}${r.url ? ` (${r.url})` : ''}`)
+    .join('\n');
+  const team = (pitch.team ?? [])
+    .filter(t => t.name)
+    .map(t => `${t.name}, ${t.role}${t.bio ? `: ${t.bio.slice(0, 300)}` : ''}`)
+    .join('\n');
   const tiers = p.tiers.map(t => `${t.name} ×${t.multiplier}`).join(', ');
   return [
     `FILM: ${p.name} (${p.version})`,
     pitch.logline && `LOGLINE: ${pitch.logline}`,
     pitch.why && `WHY THIS FILM: ${pitch.why}`,
-    (pitch.audience.primary || pitch.audience.secondary) && `AUDIENCE: ${pitch.audience.primary} | ${pitch.audience.secondary} | ${pitch.audience.notes}`,
-    pitch.sections.filter(s => s.heading || s.body).length && `THE CASE SO FAR:\n${pitch.sections.map(s => `## ${s.heading}\n${s.body}`).join('\n')}`,
+    (pitch.audience.primary || pitch.audience.secondary) &&
+      `AUDIENCE: ${pitch.audience.primary} | ${pitch.audience.secondary} | ${pitch.audience.notes}`,
+    pitch.sections.filter(s => s.heading || s.body).length &&
+      `THE CASE SO FAR:\n${pitch.sections.map(s => `## ${s.heading}\n${s.body}`).join('\n')}`,
     `SCRIPT: ${p.board.scenes.length} scenes${parked.length ? ` (${parked.length} off the first unit)` : ''}, ${days.length} shoot days planned, ${p.board.castList.length} speaking parts${cast ? ` (${cast})` : ''}, ${sets.length} sets${sets.length ? `: ${sets.slice(0, 10).join('; ')}` : ''}`,
     `MONEY: budget to raise ${money(ts.cashBudget)} (contingency ${p.contingencyPct}%); investors put in ${money(recoupableBudget(p))}; ${money(ts.pointsValue)} of wages and fees traded for points; deferred ${money(ts.deferredTotal)}; SAG tier target ${sag.target.name}, qualifies as ${sag.qualifying.name}${sag.dic ? ' with Diversity in Casting' : ''}; total production cost ${money(sag.totalProductionCost)}`,
     `DEAL: ${p.waterfall.model === 'off-the-gross' ? `off the gross: the pool takes ${p.waterfall.grossSharePct}% of every dollar and investors ${100 - p.waterfall.grossSharePct}% until investors have ${p.waterfall.recoupPct}% of their money back, then the pool takes ${p.waterfall.poolPct}%` : `investors recoup ${p.waterfall.recoupPct}% then the pool takes ${p.waterfall.poolPct}% of net`}${ts.deferredTotal > 0 ? `; deferred pay of ${money(ts.deferredTotal)} is paid from first proceeds before that split` : ''}; ${p.participants.length} participants hold points by tier (${tiers}); everyone on the film shares the back end`,
-    pitch.revenue.some(r => r.low || r.mid || r.high) && `PROJECTIONS (gross → net → investor return): low ${money(pr.low.gross)} → ${money(pr.low.net)} → ${pr.low.multiple.toFixed(2)}×; mid ${money(pr.mid.gross)} → ${money(pr.mid.net)} → ${pr.mid.multiple.toFixed(2)}×; high ${money(pr.high.gross)} → ${money(pr.high.net)} → ${pr.high.multiple.toFixed(2)}×`,
+    pitch.revenue.some(r => r.low || r.mid || r.high) &&
+      `PROJECTIONS (gross → net → investor return): low ${money(pr.low.gross)} → ${money(pr.low.net)} → ${pr.low.multiple.toFixed(2)}×; mid ${money(pr.mid.gross)} → ${money(pr.mid.net)} → ${pr.mid.multiple.toFixed(2)}×; high ${money(pr.high.gross)} → ${money(pr.high.net)} → ${pr.high.multiple.toFixed(2)}×`,
     comps && `COMPARABLES:\n${comps}`,
     research && `RESEARCH:\n${research}`,
     team && `TEAM:\n${team}`,
     pitch.ask && `THE ASK: ${pitch.ask}`,
-  ].filter(Boolean).join('\n\n');
+  ]
+    .filter(Boolean)
+    .join('\n\n');
 }
 
 export const SYSTEM = `You help an independent filmmaker write the investor-facing parts of a film pitch. Write in plain, confident, specific prose in the filmmaker's own first person where that fits. Use the brief and any documents attached (a look book, a treatment, a deck): their logline, story, style and tone are the filmmaker's own words and come first. Never invent facts, names, numbers or quotes that are not in the brief or the documents; where both are silent, leave a bracketed note like [add: the festival strategy] rather than making something up. No em dashes. No bullet points unless asked. No headings unless asked. Keep it tight: an investor reads this in a minute.`;
 
 export type DraftWhat = 'logline' | 'why' | 'audience' | 'section' | 'ask' | 'deck';
-export interface WholePitch { logline: string; why: string; audience: [string, string, string]; sections: { heading: string; body: string }[]; ask: string }
+export interface WholePitch {
+  logline: string;
+  why: string;
+  audience: [string, string, string];
+  sections: { heading: string; body: string }[];
+  ask: string;
+}
 /** Every written part at once, from the brief and the documents. */
 export async function draftWholePitch(p: Project): Promise<WholePitch> {
   const text = await ask(SYSTEM, draftPrompt('deck', projectBrief(p)), { maxTokens: 4000 });
-  const json = text.replace(/^```(?:json)?/m, '').replace(/```\s*$/m, '').trim();
-  const start = json.indexOf('{'), end = json.lastIndexOf('}');
+  const json = text
+    .replace(/^```(?:json)?/m, '')
+    .replace(/```\s*$/m, '')
+    .trim();
+  const start = json.indexOf('{'),
+    end = json.lastIndexOf('}');
   const o = JSON.parse(json.slice(start, end + 1));
   const str = (x: unknown) => (typeof x === 'string' ? x : '');
   const aud = Array.isArray(o.audience) ? o.audience.map(str) : [];
-  return { logline: str(o.logline), why: str(o.why), audience: [aud[0] ?? '', aud[1] ?? '', aud[2] ?? ''], sections: Array.isArray(o.sections) ? o.sections.map((s: any) => ({ heading: str(s?.heading), body: str(s?.body) })).filter((s: any) => s.heading || s.body) : [], ask: str(o.ask) };
+  return {
+    logline: str(o.logline),
+    why: str(o.why),
+    audience: [aud[0] ?? '', aud[1] ?? '', aud[2] ?? ''],
+    sections: Array.isArray(o.sections)
+      ? o.sections
+          .map((s: any) => ({ heading: str(s?.heading), body: str(s?.body) }))
+          .filter((s: any) => s.heading || s.body)
+      : [],
+    ask: str(o.ask),
+  };
 }
 export function draftPrompt(what: DraftWhat, brief: string, extra = ''): string {
   const task: Record<DraftWhat, string> = {
-    logline: 'Write a logline for the film in one or two sentences: protagonist, want, obstacle, what is at stake. Return only the logline.',
+    logline:
+      'Write a logline for the film in one or two sentences: protagonist, want, obstacle, what is at stake. Return only the logline.',
     why: 'Write "Why this film, why now" in 120 to 180 words, first person, from the filmmaker to an investor. Return only the paragraph(s).',
-    audience: 'Describe the primary audience, the secondary audience, and how the film reaches them, each in two or three sentences. Return exactly three paragraphs in that order, separated by blank lines, no labels.',
+    audience:
+      'Describe the primary audience, the secondary audience, and how the film reaches them, each in two or three sentences. Return exactly three paragraphs in that order, separated by blank lines, no labels.',
     section: `Write a pitch section for the heading given below, 120 to 200 words, as a case an investor should believe. Return only the body text.\nHEADING: ${extra}`,
     ask: 'Write "The ask" in 60 to 100 words: what is being raised, the structure in one sentence (investors recoup with their premium, then the split), what an investor gets, and a closing line inviting the conversation. Return only the text.',
     deck: 'Draft every written part of the pitch as JSON: {"logline": string, "why": string, "audience": [primary, secondary, how we reach them], "sections": [{"heading": string, "body": string}], "ask": string}. Why this film 120 to 180 words in the first person; three to five sections, each 80 to 140 words, headed as the case an investor should believe (the story, the audience and why now, the look, the plan, the money); the ask 60 to 100 words. Return only JSON, no code fence.',

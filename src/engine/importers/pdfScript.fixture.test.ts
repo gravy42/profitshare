@@ -21,14 +21,16 @@ const read = async (file: string) => {
   const doc = await pdfjs.getDocument({ data: new Uint8Array(readFileSync(`tools/fixtures/${file}`)) }).promise;
   const pages = await pdfPageItems(doc);
   const lines = linesFromPdfItems(pages);
-  return { pages, lines, script: parseScreenplayLines(lines, { cueIndent: 90 }) };   // cueIndent as App.tsx passes it for a PDF
+  return { pages, lines, script: parseScreenplayLines(lines, { cueIndent: 90 }) }; // cueIndent as App.tsx passes it for a PDF
 };
 
 describe('a screenplay PDF, read by the real pdf.js', () => {
   it('SaltFlat_Script.pdf: the same text, lines, scenes, eighths and cast as pdf.js 4.10 gave', async () => {
     const { pages, lines, script } = await read('SaltFlat_Script.pdf');
     expect(pages.map(p => p.items.filter(i => i.s !== '').length)).toEqual([327, 273, 356, 165]);
-    expect(sha(pages.map(p => ({ ...p, items: p.items.filter(i => i.s !== '') })))).toBe('8471cd9aa77514af43d6579e7041f300a47938e42729833f6592cd840bc19ce5');
+    expect(sha(pages.map(p => ({ ...p, items: p.items.filter(i => i.s !== '') })))).toBe(
+      '8471cd9aa77514af43d6579e7041f300a47938e42729833f6592cd840bc19ce5',
+    );
     expect(lines).toHaveLength(199);
     expect(sha(lines)).toBe('428757b5fc386ae2b748a6c07e9a1b3b4b560711f2be8e7389616116266bd030');
     expect(sha(script)).toBe('5c97b5a4af7a98a915d50753e9d540a7e16000fa0920bdadee6b038aa2069767');
@@ -46,11 +48,17 @@ describe('a screenplay PDF, read by the real pdf.js', () => {
   });
 });
 
-describe('pdf.js\'s picture decoders', () => {
-  it('are asked for at a whole address in the app\'s own folder, wherever the app is served from', () => {
-    expect(pdfDecoderOptions('https://profitshare.example/', 'pdfjs/')).toEqual({ wasmUrl: 'https://profitshare.example/pdfjs/' });
-    expect(pdfDecoderOptions('https://example.github.io/profitshare/index.html', 'pdfjs/')).toEqual({ wasmUrl: 'https://example.github.io/profitshare/pdfjs/' });
-    expect(pdfDecoderOptions('http://localhost:5173/', PDFJS_DECODER_DIR)).toEqual({ wasmUrl: 'http://localhost:5173/pdfjs/' });   // pdf.js refuses a folder without its closing slash
+describe("pdf.js's picture decoders", () => {
+  it("are asked for at a whole address in the app's own folder, wherever the app is served from", () => {
+    expect(pdfDecoderOptions('https://profitshare.example/', 'pdfjs/')).toEqual({
+      wasmUrl: 'https://profitshare.example/pdfjs/',
+    });
+    expect(pdfDecoderOptions('https://example.github.io/profitshare/index.html', 'pdfjs/')).toEqual({
+      wasmUrl: 'https://example.github.io/profitshare/pdfjs/',
+    });
+    expect(pdfDecoderOptions('http://localhost:5173/', PDFJS_DECODER_DIR)).toEqual({
+      wasmUrl: 'http://localhost:5173/pdfjs/',
+    }); // pdf.js refuses a folder without its closing slash
   });
   it('are not asked for at all in the one-file build, which has no folder beside it', () => {
     expect(pdfDecoderOptions('file:///home/ada/profitshare.html', '')).toEqual({ useWasm: false });
@@ -61,21 +69,29 @@ describe('pdf.js\'s picture decoders', () => {
     for (const f of PDFJS_DECODER_FILES) {
       const bytes = readFileSync(`${from}/${f}`);
       if (f.endsWith('.wasm')) expect([...bytes.subarray(0, 4)]).toEqual([0x00, 0x61, 0x73, 0x6d]);
-      else { expect(f).toMatch(/^LICENSE_/); expect(bytes.length).toBeGreaterThan(200); }
+      else {
+        expect(f).toMatch(/^LICENSE_/);
+        expect(bytes.length).toBeGreaterThan(200);
+      }
     }
-    for (const wasm of ['OPENJPEG', 'JBIG2']) expect(PDFJS_DECODER_FILES).toEqual(expect.arrayContaining([`LICENSE_${wasm}`, `LICENSE_PDFJS_${wasm}`]));
+    for (const wasm of ['OPENJPEG', 'JBIG2'])
+      expect(PDFJS_DECODER_FILES).toEqual(expect.arrayContaining([`LICENSE_${wasm}`, `LICENSE_PDFJS_${wasm}`]));
     expect(PDFJS_DECODER_FILES.some(f => /\.m?js$/.test(f))).toBe(false);
     // the names pdf.js's worker asks for, read from the worker itself
     const worker = readFileSync(`${from}/../legacy/build/pdf.worker.mjs`, 'utf8');
-    expect([...worker.matchAll(/_filename = "([^"]+)"/g)].map(m => m[1]).sort()).toEqual(['jbig2.wasm', 'openjpeg.wasm']);
+    expect([...worker.matchAll(/_filename = "([^"]+)"/g)].map(m => m[1]).sort()).toEqual([
+      'jbig2.wasm',
+      'openjpeg.wasm',
+    ]);
   });
-  it('pdf.js runs no eval and no new Function, which the app\'s policy would refuse', () => {
+  it("pdf.js runs no eval and no new Function, which the app's policy would refuse", () => {
     const from = pdfjsDecoderSource();
     for (const f of ['pdf.mjs', 'pdf.worker.mjs', 'pdf.min.mjs', 'pdf.worker.min.mjs']) {
       let code = readFileSync(`${from}/../legacy/build/${f}`, 'utf8');
       // One is written down and never reached: the last resort of a helper that looks for the global object, tried
       // only after `globalThis`, `window` and `self` have all failed to be it. Every browser the app runs in has those.
-      const lastResort = /check\((?:typeof globalThis == 'object'|"object"==typeof globalThis)[\s\S]{0,700}?\|\|\s*Function\((["'])return this\1\)\(\)/;
+      const lastResort =
+        /check\((?:typeof globalThis == 'object'|"object"==typeof globalThis)[\s\S]{0,700}?\|\|\s*Function\((["'])return this\1\)\(\)/;
       expect(code).toMatch(lastResort);
       code = code.replace(lastResort, '');
       expect(code).not.toMatch(/\bnew Function\b|[^.\w$]eval\s*\(|[^\w$.]Function\s*\(\s*["'`]|isEvalSupported/);

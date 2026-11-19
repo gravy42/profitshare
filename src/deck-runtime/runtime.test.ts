@@ -14,9 +14,45 @@ import type { LookImage, Project, SlideSpec } from '../engine/types';
 import type { DeckData, DeckSlide } from './data';
 import { money, moneyParts, multiple, percent, shares100 } from './format';
 import { cleanFamily, faceName, fontSrcOk, shortHash } from './fonts';
-import { CENTRE_UNDER, shouldCentre, cleanFontFaces, cleanPaths, cleanRecipients, contrastRatio, DEFAULT_LEGAL, deckColors, fillAsk, fontStack, initialSwitches, MAX_SOURCES, mixColors, mountDeck, overflows, parseColor, parseHash, readableOn, reservedSlug, safeColor, str, textSafe } from './runtime';
+import {
+  CENTRE_UNDER,
+  shouldCentre,
+  cleanFontFaces,
+  cleanPaths,
+  cleanRecipients,
+  contrastRatio,
+  DEFAULT_LEGAL,
+  deckColors,
+  fillAsk,
+  fontStack,
+  initialSwitches,
+  MAX_SOURCES,
+  mixColors,
+  mountDeck,
+  overflows,
+  parseColor,
+  parseHash,
+  readableOn,
+  reservedSlug,
+  safeColor,
+  str,
+  textSafe,
+} from './runtime';
 import type { DeckHandle } from './runtime';
-import { scrimLight, veilBoxes, shadeNeeded, readColor, VEILED, VEIL_LABEL, VEIL_NEAR, VEIL_PAD, VEIL_SNAP, SHADE_SPARE, TURN_FROM, TURN_GAIN } from './runtime';
+import {
+  scrimLight,
+  veilBoxes,
+  shadeNeeded,
+  readColor,
+  VEILED,
+  VEIL_LABEL,
+  VEIL_NEAR,
+  VEIL_PAD,
+  VEIL_SNAP,
+  SHADE_SPARE,
+  TURN_FROM,
+  TURN_GAIN,
+} from './runtime';
 
 // The clock a web page has: every timer a deck can set, and not Node's setImmediate, which no browser has and the
 // deck never calls. jsdom (from version 26 on) uses setImmediate for its own housekeeping: one is queued for each
@@ -24,7 +60,12 @@ import { scrimLight, veilBoxes, shadeNeeded, readColor, VEILED, VEIL_LABEL, VEIL
 const PAGE_TIMERS = ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date'] as const;
 
 // Only the invented sample film, dressed with invented content so that every layout appears.
-const pic = (id: string): LookImage => ({ id, dataUrl: `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" id="${id}"/>`, caption: `Picture ${id}`, section: 'tone' });
+const pic = (id: string): LookImage => ({
+  id,
+  dataUrl: `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" id="${id}"/>`,
+  caption: `Picture ${id}`,
+  section: 'tone',
+});
 
 function fixture(): DeckData {
   const base = withPitch(applyDeal({ ...sampleProject(), name: 'Salt Flat' }));
@@ -35,11 +76,37 @@ function fixture(): DeckData {
       ...base.pitch!,
       logline: 'A surveyor finds a town the maps left out. Nobody there wants to be found.',
       why: 'First invented paragraph.\n\nSecond invented paragraph.',
-      audience: { primary: 'Primary: invented adults', secondary: '', notes: 'How we reach them: invented screenings.' },
+      audience: {
+        primary: 'Primary: invented adults',
+        secondary: '',
+        notes: 'How we reach them: invented screenings.',
+      },
       sections: [],
       comps: [
-        { id: 'c1', title: 'Alkali Sisters (invented)', year: '2027', distributor: '', budget: 500_000, domestic: 0, worldwide: 4_000_000, note: '', source: '', group: 'Festival path' },
-        { id: 'c2', title: 'Benchmark (invented)', year: '2030', distributor: '', budget: 2_000_000, domestic: 0, worldwide: 2_600_000, note: '', source: '', group: 'Direct' },
+        {
+          id: 'c1',
+          title: 'Alkali Sisters (invented)',
+          year: '2027',
+          distributor: '',
+          budget: 500_000,
+          domestic: 0,
+          worldwide: 4_000_000,
+          note: '',
+          source: '',
+          group: 'Festival path',
+        },
+        {
+          id: 'c2',
+          title: 'Benchmark (invented)',
+          year: '2030',
+          distributor: '',
+          budget: 2_000_000,
+          domestic: 0,
+          worldwide: 2_600_000,
+          note: '',
+          source: '',
+          group: 'Direct',
+        },
       ],
       revenue: [{ id: 'rv', source: 'All', low: 500_000, mid: 2_250_000, high: 6_000_000 }],
       feePct: 20,
@@ -51,10 +118,34 @@ function fixture(): DeckData {
       team: [{ id: 't1', name: 'Ada Example', role: 'Writer and director', bio: 'Invented person.' }],
       ask: '',
       lookbook: [pic('img_a'), pic('img_b')],
-      design: { ...defaultDesign(), deck: { ...defaultDeckRules(), coverImageId: 'img_a', closingImageId: 'img_b', signoff: 'an invented sign-off' } },
+      design: {
+        ...defaultDesign(),
+        deck: {
+          ...defaultDeckRules(),
+          coverImageId: 'img_a',
+          closingImageId: 'img_b',
+          signoff: 'an invented sign-off',
+        },
+      },
       recipients: [
-        { id: 'r1', slug: 'dana-invented', name: 'Dana Invented', coverLine: 'Prepared for Dana Invented.', note: 'A note only Dana should read.', lead: 'with-grants', highlightCardId: 'give' },
-        { id: 'r2', slug: 'placeholder-fund', name: 'The Placeholder Fund', coverLine: 'Prepared for The Placeholder Fund.', note: 'A note only the Fund should read.', lead: 'without-grants', highlightCardId: 'invest' },
+        {
+          id: 'r1',
+          slug: 'dana-invented',
+          name: 'Dana Invented',
+          coverLine: 'Prepared for Dana Invented.',
+          note: 'A note only Dana should read.',
+          lead: 'with-grants',
+          highlightCardId: 'give',
+        },
+        {
+          id: 'r2',
+          slug: 'placeholder-fund',
+          name: 'The Placeholder Fund',
+          coverLine: 'Prepared for The Placeholder Fund.',
+          note: 'A note only the Fund should read.',
+          lead: 'without-grants',
+          highlightCardId: 'invest',
+        },
         { id: 'r3', slug: 'quiet', name: 'Quiet Person', coverLine: '', lead: 'with-grants' },
       ],
     },
@@ -62,7 +153,14 @@ function fixture(): DeckData {
   const edit: Record<string, Partial<SlideSpec>> = {
     cover: { byline: 'Written and directed by Ada Example' },
     logline: { imageId: 'img_a', headline: 'A town on no map.', punch: 'And a woman paid to draw it.' },
-    why: { headline: 'I know this place.', closing: 'An invented closing line.', columns: [{ label: 'Where', lines: ['An invented dry lake'] }, { label: 'When', lines: ['Spring 2031'] }] },
+    why: {
+      headline: 'I know this place.',
+      closing: 'An invented closing line.',
+      columns: [
+        { label: 'Where', lines: ['An invented dry lake'] },
+        { label: 'When', lines: ['Spring 2031'] },
+      ],
+    },
     gap: { headline: 'Nobody is making this film.' },
     opportunity: { headline: 'Small films pay back.', closing: 'An invented callout.' },
     audience: {
@@ -71,7 +169,13 @@ function fixture(): DeckData {
       quote: { text: 'I would drive two hours to see this.', by: 'an invented respondent' },
     },
     team: { aside: { title: 'Also attached', lines: ['Editor: Dee Fictional'], footnote: 'All invented.' } },
-    plan: { milestones: [{ id: 'ms1', when: 'March 2031', what: 'Invented shoot' }, { id: 'ms2', when: 'Autumn 2031', what: 'Invented premiere' }], closing: 'An invented plan note.' },
+    plan: {
+      milestones: [
+        { id: 'ms1', when: 'March 2031', what: 'Invented shoot' },
+        { id: 'ms2', when: 'Autumn 2031', what: 'Invented premiere' },
+      ],
+      closing: 'An invented plan note.',
+    },
     model: { body: 'An invented model paragraph.', closing: 'The same terms for everyone.' },
     numbers: { body: 'An invented numbers paragraph.' },
     ask: { nextStep: 'Next step: an invented call.', contact: 'ben@example.com' },
@@ -79,11 +183,28 @@ function fixture(): DeckData {
   const slides = defaultSlides(p0).map(s => ({ ...s, ...(edit[s.id] ?? {}) }));
   const data = deckData({ ...p0, pitch: { ...p0.pitch!, slides } }, { today: '2031-01-15' });
   // two more invented sources, so there are eight combinations to walk
-  data.paths.sources.push({ key: 'credit', label: 'Invented tax credit', amount: 90_000, on: false, note: 'not yet applied for' }, { key: 'perks', label: 'Invented perks', amount: 12_500, on: true });
+  data.paths.sources.push(
+    { key: 'credit', label: 'Invented tax credit', amount: 90_000, on: false, note: 'not yet applied for' },
+    { key: 'perks', label: 'Invented perks', amount: 12_500, on: true },
+  );
   return data;
 }
 
-const LAYOUTS: DeckSlide['layout'][] = ['cover', 'photo', 'text', 'cards', 'stats', 'timeline', 'comps', 'team', 'model', 'ways', 'numbers', 'ask', 'closing'];
+const LAYOUTS: DeckSlide['layout'][] = [
+  'cover',
+  'photo',
+  'text',
+  'cards',
+  'stats',
+  'timeline',
+  'comps',
+  'team',
+  'model',
+  'ways',
+  'numbers',
+  'ask',
+  'closing',
+];
 const mounted: DeckHandle[] = [];
 function mount(data: DeckData, opts: Parameters<typeof mountDeck>[2] = {}) {
   const host = document.createElement('div');
@@ -142,7 +263,8 @@ describe('mountDeck', () => {
   it('draws the key content of every layout', () => {
     const data = fixture();
     const { slide } = mount(data);
-    const by = <L extends DeckSlide['layout']>(l: L) => data.slides.find(s => s.layout === l) as Extract<DeckSlide, { layout: L }>;
+    const by = <L extends DeckSlide['layout']>(l: L) =>
+      data.slides.find(s => s.layout === l) as Extract<DeckSlide, { layout: L }>;
     const t = (l: string) => slide(l).textContent ?? '';
 
     expect(t('cover')).toContain('Salt Flat');
@@ -170,7 +292,10 @@ describe('mountDeck', () => {
     expect(slide('timeline').querySelectorAll('.psd-fact').length).toBe(by('timeline').facts.length);
     expect(slide('timeline').querySelectorAll('.psd-mile').length).toBe(2);
     const mile = slide('timeline').querySelector('.psd-mile')!;
-    expect(mile.querySelector('.psd-when')!.compareDocumentPosition(mile.querySelector('.psd-what')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(
+      mile.querySelector('.psd-when')!.compareDocumentPosition(mile.querySelector('.psd-what')!) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
 
     const bars = [...slide('comps').querySelectorAll('.psd-bar-row')];
     expect(bars.length).toBe(2);
@@ -197,7 +322,11 @@ describe('mountDeck', () => {
   it('inserts text as text: markup in the data never becomes an element', () => {
     const data = fixture();
     const evil = '<img src=x onerror="window.__pwned = 1">';
-    for (const s of data.slides) { s.headline = evil; s.punch = `<script>window.__pwned = 2</script>`; s.footnote = '<b>bold</b>'; }
+    for (const s of data.slides) {
+      s.headline = evil;
+      s.punch = `<script>window.__pwned = 2</script>`;
+      s.footnote = '<b>bold</b>';
+    }
     data.film = '<i>Film</i>';
     data.legal = '<u>legal</u>';
     data.recipients[0].note = '<a href="javascript:alert(1)">x</a>';
@@ -233,11 +362,16 @@ describe('mountDeck', () => {
   it('renders nothing for empty optional parts', () => {
     const data = fixture();
     const stats = data.slides.find(s => s.layout === 'stats') as Extract<DeckSlide, { layout: 'stats' }>;
-    delete stats.lead; delete stats.quote; delete stats.note; stats.stats = []; delete stats.body;
+    delete stats.lead;
+    delete stats.quote;
+    delete stats.note;
+    stats.stats = [];
+    delete stats.body;
     const team = data.slides.find(s => s.layout === 'team') as Extract<DeckSlide, { layout: 'team' }>;
     delete team.aside;
     const ask = data.slides.find(s => s.layout === 'ask') as Extract<DeckSlide, { layout: 'ask' }>;
-    ask.nextStep = ''; ask.contact = '';
+    ask.nextStep = '';
+    ask.contact = '';
     const { slide } = mount(data);
     expect(slide('stats').querySelector('.psd-lead, .psd-quote, .psd-stats, .psd-note, .psd-stats-top')).toBeNull();
     expect(slide('team').querySelector('.psd-card')).toBeNull();
@@ -247,13 +381,14 @@ describe('mountDeck', () => {
 });
 
 describe('the numbers slide', () => {
-  const readCases = (slide: HTMLElement) => [...slide.querySelectorAll<HTMLElement>('tr[data-case]')].map(tr => ({
-    label: tr.dataset.case,
-    gross: tr.querySelector('[data-col="gross"]')!.textContent,
-    net: tr.querySelector('[data-col="net"]')!.textContent,
-    toInvestors: tr.querySelector('[data-col="toInvestors"]')!.textContent,
-    multiple: tr.querySelector('[data-col="multiple"]')!.textContent,
-  }));
+  const readCases = (slide: HTMLElement) =>
+    [...slide.querySelectorAll<HTMLElement>('tr[data-case]')].map(tr => ({
+      label: tr.dataset.case,
+      gross: tr.querySelector('[data-col="gross"]')!.textContent,
+      net: tr.querySelector('[data-col="net"]')!.textContent,
+      toInvestors: tr.querySelector('[data-col="toInvestors"]')!.textContent,
+      multiple: tr.querySelector('[data-col="multiple"]')!.textContent,
+    }));
 
   it('matches pathFor for every combination as the toggles are clicked', () => {
     const data = fixture();
@@ -273,15 +408,23 @@ describe('the numbers slide', () => {
     expect(combos.length).toBe(8);
     const rows = [...numbers.querySelectorAll<HTMLElement>('.psd-combos tbody tr')];
     expect(rows.length).toBe(8);
-    combos.forEach((sw, i) => expect(rows[i].lastElementChild!.textContent).toBe(money(pathFor(data.paths, sw).investors, data.currency)));
+    combos.forEach((sw, i) =>
+      expect(rows[i].lastElementChild!.textContent).toBe(money(pathFor(data.paths, sw).investors, data.currency)),
+    );
 
     for (const sw of combos) {
       for (const b of buttons) if ((b.getAttribute('aria-pressed') === 'true') !== sw[b.dataset.key!]) b.click();
       const want = pathFor(data.paths, sw);
       expect(part('investors').textContent).toBe(money(want.investors, data.currency));
-      expect(readCases(numbers)).toEqual(want.cases.map(c => ({
-        label: c.label, gross: money(c.gross, data.currency), net: money(c.net, data.currency), toInvestors: money(c.toInvestors, data.currency), multiple: multiple(c.multiple),
-      })));
+      expect(readCases(numbers)).toEqual(
+        want.cases.map(c => ({
+          label: c.label,
+          gross: money(c.gross, data.currency),
+          net: money(c.net, data.currency),
+          toInvestors: money(c.toInvestors, data.currency),
+          multiple: multiple(c.multiple),
+        })),
+      );
       const current = rows.filter(r => r.getAttribute('aria-current') === 'true');
       expect(current.length).toBe(1);
       expect(current[0].dataset.combo).toBe(data.paths.sources.map(s => (sw[s.key] ? '1' : '0')).join(''));
@@ -291,8 +434,16 @@ describe('the numbers slide', () => {
       // a width read back from a style is as the page keeps it, not as it was written: jsdom keeps four decimal places of
       // a per cent and Chrome six figures, so 22.848285669532874% comes back as 22.8483%. Three places is asked here,
       // which on a bar 2,000px wide is a hundredth of a pixel: a wrong share would be out by whole per cents
-      data.paths.sources.forEach((s, i) => expect(parseFloat(segs[i].style.flexBasis)).toBeCloseTo(sw[s.key] ? (s.amount / data.paths.cashBudget) * 100 : 0, 3));
-      expect(parseFloat(segs[segs.length - 1].style.flexBasis)).toBeCloseTo((want.investors / data.paths.cashBudget) * 100, 3);
+      data.paths.sources.forEach((s, i) =>
+        expect(parseFloat(segs[i].style.flexBasis)).toBeCloseTo(
+          sw[s.key] ? (s.amount / data.paths.cashBudget) * 100 : 0,
+          3,
+        ),
+      );
+      expect(parseFloat(segs[segs.length - 1].style.flexBasis)).toBeCloseTo(
+        (want.investors / data.paths.cashBudget) * 100,
+        3,
+      );
     }
   });
 
@@ -345,13 +496,19 @@ describe('the ask slide', () => {
     const data = fixture();
     const { slide, part } = mount(data);
     const grants = data.paths.sources.find(s => s.key === 'grants')!;
-    const on = pathFor(data.paths), off = pathFor(data.paths, { grants: false });
+    const on = pathFor(data.paths),
+      off = pathFor(data.paths, { grants: false });
     const body = () => part('ask-body').textContent ?? '';
     expect(body()).toContain(`We are raising ${money(on.investors, data.currency)} from investors.`);
     expect(body()).toContain(`cover another ${money(grants.amount, data.currency)} of the budget`);
     expect(body()).not.toMatch(/[{}]/);
-    expect(part('ask-body').querySelector('.psd-ask-first')!.textContent).toBe(`We are raising ${money(on.investors, data.currency)} from investors. `);
-    expect([...part('ask-body').querySelectorAll('.psd-amt')].map(e => e.textContent)).toEqual([money(on.investors, data.currency), money(grants.amount, data.currency)]);
+    expect(part('ask-body').querySelector('.psd-ask-first')!.textContent).toBe(
+      `We are raising ${money(on.investors, data.currency)} from investors. `,
+    );
+    expect([...part('ask-body').querySelectorAll('.psd-amt')].map(e => e.textContent)).toEqual([
+      money(on.investors, data.currency),
+      money(grants.amount, data.currency),
+    ]);
 
     slide('numbers').querySelector<HTMLButtonElement>('button[data-key="grants"]')!.click();
     expect(body()).toContain(`We are raising ${money(off.investors, data.currency)} from investors.`);
@@ -366,7 +523,9 @@ describe('the ask slide', () => {
     ask.withGrants = 'We need {investors}. Grants add {grants}.';
     ask.withoutGrants = 'WRONG';
     const { part } = mount(data, { lead: 'without-grants' });
-    expect(part('ask-body').textContent).toBe(`We need ${money(pathFor(data.paths).investors, data.currency)}. Grants add.`);
+    expect(part('ask-body').textContent).toBe(
+      `We need ${money(pathFor(data.paths).investors, data.currency)}. Grants add.`,
+    );
   });
 });
 
@@ -375,13 +534,17 @@ describe('recipients', () => {
     const data = fixture();
     const { handle, slide, part, text, root } = mount(data);
     const noNote = () => expect(root.querySelector('[data-part="ask-note"]')).toBeNull();
-    const highlighted = () => [...slide('ways').querySelectorAll<HTMLElement>('.psd-highlight')].map(e => e.dataset.cardId);
+    const highlighted = () =>
+      [...slide('ways').querySelectorAll<HTMLElement>('.psd-highlight')].map(e => e.dataset.cardId);
     const grantsOn = () => slide('numbers').querySelector('button[data-key="grants"]')!.getAttribute('aria-pressed');
 
     expect(part('cover-line').textContent).toBe(data.coverLine);
     expect(highlighted()).toEqual([]);
     noNote();
-    for (const r of data.recipients) { expect(text()).not.toContain(r.name); if (r.note) expect(text()).not.toContain(r.note); }
+    for (const r of data.recipients) {
+      expect(text()).not.toContain(r.name);
+      if (r.note) expect(text()).not.toContain(r.note);
+    }
 
     handle.setRecipient('dana-invented');
     expect(part('cover-line').textContent).toBe('Prepared for Dana Invented.');
@@ -399,7 +562,7 @@ describe('recipients', () => {
     expect(text()).not.toContain('Dana');
     expect(text()).not.toContain('A note only Dana should read.');
 
-    handle.setRecipient('quiet');   // no cover line of their own, no note, no highlight
+    handle.setRecipient('quiet'); // no cover line of their own, no note, no highlight
     expect(part('cover-line').textContent).toBe(data.coverLine);
     noNote();
     expect(highlighted()).toEqual([]);
@@ -443,7 +606,7 @@ describe('recipients', () => {
     expect(on.text()).not.toContain('Placeholder Fund');
     on.handle.destroy();
     window.location.hash = '#dana-invented';
-    window.dispatchEvent(new Event('hashchange'));   // nothing left listening
+    window.dispatchEvent(new Event('hashchange')); // nothing left listening
     expect(on.host.shadowRoot!.childNodes.length).toBe(0);
   });
 });
@@ -459,7 +622,7 @@ describe('parseHash', () => {
     expect(parseHash('#dana-invented', slugs)).toEqual({ slug: 'dana-invented' });
     expect(parseHash('#dana-invented-without', slugs)).toEqual({ slug: 'dana-invented', lead: 'without-grants' });
     expect(parseHash('#placeholder-fund-with', slugs)).toEqual({ slug: 'placeholder-fund', lead: 'with-grants' });
-    expect(parseHash('#go-with', slugs)).toEqual({ slug: 'go-with' });               // a slug that ends like a lead is still the slug
+    expect(parseHash('#go-with', slugs)).toEqual({ slug: 'go-with' }); // a slug that ends like a lead is still the slug
     expect(parseHash('#go-with-without', slugs)).toEqual({ slug: 'go-with', lead: 'without-grants' });
     expect(parseHash('#without', slugs)).toEqual({ slug: null, lead: 'without-grants' });
     expect(parseHash('#with', slugs)).toEqual({ slug: null, lead: 'with-grants' });
@@ -473,29 +636,42 @@ describe('parseHash', () => {
 
 describe('helpers', () => {
   it('initialSwitches turns only the grants source off for a without-grants lead', () => {
-    const sources = [{ key: 'grants', on: true }, { key: 'ca', on: false }, { key: 'perks', on: true }];
+    const sources = [
+      { key: 'grants', on: true },
+      { key: 'ca', on: false },
+      { key: 'perks', on: true },
+    ];
     expect(initialSwitches(sources, 'with-grants')).toEqual({ grants: true, ca: false, perks: true });
     expect(initialSwitches(sources, 'without-grants')).toEqual({ grants: false, ca: false, perks: true });
   });
   it('fillAsk fills or removes the tokens', () => {
-    expect(fillAsk('Raise {investors}, grants {grants}.', '$1', '$2').map(p => p.text).join('')).toBe('Raise $1, grants $2.');
-    expect(fillAsk('Raise {investors}; the {grants} would come off.', '$1', null).map(p => p.text).join('')).toBe('Raise $1; the would come off.');
+    expect(
+      fillAsk('Raise {investors}, grants {grants}.', '$1', '$2')
+        .map(p => p.text)
+        .join(''),
+    ).toBe('Raise $1, grants $2.');
+    expect(
+      fillAsk('Raise {investors}; the {grants} would come off.', '$1', null)
+        .map(p => p.text)
+        .join(''),
+    ).toBe('Raise $1; the would come off.');
     expect(fillAsk('Only {investors}', '$1', '$2')).toEqual([{ text: 'Only ' }, { text: '$1', amount: true }]);
     expect(fillAsk('', '$1', '$2')).toEqual([]);
   });
   it('overflows compares injected sizes', () => {
     expect(overflows({ width: 1000, height: 500 }, { width: 1000, height: 500 })).toBe(false);
-    expect(overflows({ width: 1000, height: 500 }, { width: 1000, height: 502 })).toBe(false);   // within tolerance
+    expect(overflows({ width: 1000, height: 500 }, { width: 1000, height: 502 })).toBe(false); // within tolerance
     expect(overflows({ width: 1000, height: 500 }, { width: 1000, height: 503 })).toBe(true);
     expect(overflows({ width: 1000, height: 500 }, { width: 1010, height: 400 })).toBe(true);
     expect(overflows({ width: 1000, height: 500 }, { width: 1000, height: 520 }, 30)).toBe(false);
-    expect(overflows({ width: 0, height: 0 }, { width: 10, height: 10 })).toBe(false);          // not laid out (jsdom)
+    expect(overflows({ width: 0, height: 0 }, { width: 10, height: 10 })).toBe(false); // not laid out (jsdom)
   });
   it('checkOverflow reports the slides whose box is smaller than its content', () => {
     const { handle, root } = mount(fixture());
-    expect(handle.checkOverflow()).toEqual([]);   // jsdom lays nothing out
+    expect(handle.checkOverflow()).toEqual([]); // jsdom lays nothing out
     const box = root.querySelectorAll<HTMLElement>('.psd-box')[2];
-    for (const [k, v] of Object.entries({ clientWidth: 1000, clientHeight: 500, scrollWidth: 1000, scrollHeight: 640 })) Object.defineProperty(box, k, { configurable: true, value: v });
+    for (const [k, v] of Object.entries({ clientWidth: 1000, clientHeight: 500, scrollWidth: 1000, scrollHeight: 640 }))
+      Object.defineProperty(box, k, { configurable: true, value: v });
     expect(handle.checkOverflow()).toEqual([2]);
     expect(root.querySelectorAll('section')[2].getAttribute('data-overflow')).toBe('true');
     Object.defineProperty(box, 'scrollHeight', { configurable: true, value: 500 });
@@ -534,8 +710,11 @@ describe('destroy', () => {
     expect(host.shadowRoot!.childNodes.length).toBe(0);
     expect(host.classList.contains('psd-host')).toBe(false);
     expect(handle.slideCount).toBe(0);
-    button.click();   // detached and unlistened: nothing happens, nothing throws
-    handle.setSwitch('grants', false); handle.setRecipient('dana-invented'); handle.setLead('without-grants'); handle.goTo(3);
+    button.click(); // detached and unlistened: nothing happens, nothing throws
+    handle.setSwitch('grants', false);
+    handle.setRecipient('dana-invented');
+    handle.setLead('without-grants');
+    handle.goTo(3);
     expect(root.querySelector('[data-part="investors"]')).toBeNull();
     expect(before).toBeTruthy();
     handle.destroy();
@@ -563,20 +742,28 @@ describe('destroy', () => {
 describe('what the runtime may import', () => {
   const here = resolve(process.cwd(), 'src/deck-runtime');
   // every way a module can be named: from '…', import '…', import('…'), require('…'), with any of the three quotes
-  const importsOf = (src: string) => [...src.matchAll(/(?:\bfrom\s*|\bimport\s*\(?\s*|\brequire\s*\(\s*)(['"`])([^'"`]+)\1/g)].map(m => m[2]);
+  const importsOf = (src: string) =>
+    [...src.matchAll(/(?:\bfrom\s*|\bimport\s*\(?\s*|\brequire\s*\(\s*)(['"`])([^'"`]+)\1/g)].map(m => m[2]);
   it('the scanner sees static, side-effect, dynamic and backtick imports', () => {
-    const sample = ["import a from './a';", 'import "./b";', "const c = await import('./c');", 'const d = await import(`./d`);', "const e = require('./e');", "export { f } from './f';"].join('\n');
+    const sample = [
+      "import a from './a';",
+      'import "./b";',
+      "const c = await import('./c');",
+      'const d = await import(`./d`);',
+      "const e = require('./e');",
+      "export { f } from './f';",
+    ].join('\n');
     expect(importsOf(sample)).toEqual(['./a', './b', './c', './d', './e', './f']);
     expect('const d = await import(`../ui/${x}`);').toMatch(/\bimport\s*\(/);
   });
   const allowed: Record<string, string[]> = {
     'runtime.ts': ['../engine/pathMath', './data', './format', './fonts', './motion', './paper'],
-    'motion.ts': ['./data'],   // the movement vocabulary: types only come in
-    'paper.ts': ['./data'],    // the papers' vocabulary and the arithmetic of their edges: types only come in
+    'motion.ts': ['./data'], // the movement vocabulary: types only come in
+    'paper.ts': ['./data'], // the papers' vocabulary and the arithmetic of their edges: types only come in
     'format.ts': [],
     'fonts.ts': [],
     'data.ts': ['../engine/pathMath'],
-    'exportHtml.ts': ['./data', './fonts', './hash'],   // the page a deck is sent as: text in, text out
+    'exportHtml.ts': ['./data', './fonts', './hash'], // the page a deck is sent as: text in, text out
     'hash.ts': [],
   };
   for (const file of Object.keys(allowed)) {
@@ -586,17 +773,21 @@ describe('what the runtime may import', () => {
       for (const spec of found) expect(allowed[file].includes(spec), `${file} imports ${spec}`).toBe(true);
       expect(src, `${file} has a dynamic import or a require`).not.toMatch(/\bimport\s*\(|\brequire\s*\(/);
       if (file === 'runtime.ts') expect(found).toContain('../engine/pathMath');
-      if (file === 'data.ts' || file === 'motion.ts' || file === 'paper.ts') expect(src).not.toMatch(/^import (?!type\b)/m);   // types only
+      if (file === 'data.ts' || file === 'motion.ts' || file === 'paper.ts')
+        expect(src).not.toMatch(/^import (?!type\b)/m); // types only
     });
     it(`${file} builds no markup from strings and runs no strings as code`, () => {
       const src = readFileSync(resolve(here, file), 'utf8');
-      expect(src).not.toMatch(/\.innerHTML\s*=|\.outerHTML\s*=|insertAdjacentHTML|document\.write|\beval\s*\(|new\s+Function\s*\(|\bfetch\s*\(|XMLHttpRequest|https?:\/\//);
+      expect(src).not.toMatch(
+        /\.innerHTML\s*=|\.outerHTML\s*=|insertAdjacentHTML|document\.write|\beval\s*\(|new\s+Function\s*\(|\bfetch\s*\(|XMLHttpRequest|https?:\/\//,
+      );
     });
   }
   it('the engine modules the runtime uses import nothing but each other and types', () => {
     for (const file of ['pathMath.ts', 'split.ts']) {
       const src = readFileSync(resolve(process.cwd(), 'src/engine', file), 'utf8');
-      for (const spec of importsOf(src)) expect(['./split', './types'].includes(spec), `${file} imports ${spec}`).toBe(true);
+      for (const spec of importsOf(src))
+        expect(['./split', './types'].includes(spec), `${file} imports ${spec}`).toBe(true);
     }
   });
 });
@@ -604,13 +795,53 @@ describe('what the runtime may import', () => {
 // ---------- review fixes ----------
 
 const STRESS_THEMES = [
-  { bg: '#f7f3ea', ink: '#1c1a17', accent: '#c2410c', accent2: '#1d4ed8', muted: '#6b665e', card: '#ffffff', cardInk: '#1c1a17', line: '#8a8378' },
-  { bg: '#ffffff', ink: '#111111', accent: '#f5b700', accent2: '#00b4d8', muted: '#8a8a8a', card: '#fff8dc', cardInk: '#222222', line: '#bbbbbb' },
-  { bg: '#1b1d24', ink: '#e6e6e6', accent: '#3a3f52', accent2: '#2a2e3d', muted: '#5a5f70', card: '#22252e', cardInk: '#d8d8d8', line: '#343846' },
-  { bg: '#f4f1ec', ink: '#3b3a38', accent: '#d9c9a8', accent2: '#c8d3e0', muted: '#b9b4ab', card: '#f0ece4', cardInk: '#4a4844', line: '#ddd8cf' },
+  {
+    bg: '#f7f3ea',
+    ink: '#1c1a17',
+    accent: '#c2410c',
+    accent2: '#1d4ed8',
+    muted: '#6b665e',
+    card: '#ffffff',
+    cardInk: '#1c1a17',
+    line: '#8a8378',
+  },
+  {
+    bg: '#ffffff',
+    ink: '#111111',
+    accent: '#f5b700',
+    accent2: '#00b4d8',
+    muted: '#8a8a8a',
+    card: '#fff8dc',
+    cardInk: '#222222',
+    line: '#bbbbbb',
+  },
+  {
+    bg: '#1b1d24',
+    ink: '#e6e6e6',
+    accent: '#3a3f52',
+    accent2: '#2a2e3d',
+    muted: '#5a5f70',
+    card: '#22252e',
+    cardInk: '#d8d8d8',
+    line: '#343846',
+  },
+  {
+    bg: '#f4f1ec',
+    ink: '#3b3a38',
+    accent: '#d9c9a8',
+    accent2: '#c8d3e0',
+    muted: '#b9b4ab',
+    card: '#f0ece4',
+    cardInk: '#4a4844',
+    line: '#ddd8cf',
+  },
 ];
-const key = (e: Element, type: string, init: KeyboardEventInit = {}) => e.dispatchEvent(new KeyboardEvent('keydown', { key: type, bubbles: true, cancelable: true, composed: true, ...init }));
-const currentIndex = (root: ParentNode) => [...root.querySelectorAll('section')].findIndex(s => s.hasAttribute('data-current'));
+const key = (e: Element, type: string, init: KeyboardEventInit = {}) =>
+  e.dispatchEvent(
+    new KeyboardEvent('keydown', { key: type, bubbles: true, cancelable: true, composed: true, ...init }),
+  );
+const currentIndex = (root: ParentNode) =>
+  [...root.querySelectorAll('section')].findIndex(s => s.hasAttribute('data-current'));
 /** Everything in the shadow tree: text, every attribute, hidden nodes and all. */
 const everything = (host: HTMLElement) => host.shadowRoot!.innerHTML;
 
@@ -632,30 +863,42 @@ describe('colour', () => {
     const fixed = textSafe('#f5b700', ['#ffffff'], '#111111');
     expect(fixed).not.toBe('#f5b700');
     expect(contrastRatio(fixed, '#ffffff')).toBeGreaterThanOrEqual(4.5);
-    expect(contrastRatio(fixed, '#ffffff')).toBeLessThan(6.5);   // not all the way to the ink
-    expect(contrastRatio(textSafe('#888888', ['#808080'], '#909090'), '#808080')).toBeGreaterThanOrEqual(4.5);   // an ink that cannot help: black or white
+    expect(contrastRatio(fixed, '#ffffff')).toBeLessThan(6.5); // not all the way to the ink
+    expect(contrastRatio(textSafe('#888888', ['#808080'], '#909090'), '#808080')).toBeGreaterThanOrEqual(4.5); // an ink that cannot help: black or white
     expect(textSafe('tomato', ['#ffffff'], '#111111')).toBe('#111111');
   });
   for (const theme of STRESS_THEMES) {
     it(`every text colour derived from ${theme.bg} / ${theme.accent} reaches 4.5:1`, () => {
       const v = deckColors(theme);
-      expect(v['--psd-accent']).toBe(theme.accent);   // fills keep the theme's own colours
+      expect(v['--psd-accent']).toBe(theme.accent); // fills keep the theme's own colours
       expect(v['--psd-accent2']).toBe(theme.accent2);
       const panel = mixColors(theme.bg, v['--psd-ink'], 0.07);
-      for (const name of ['--psd-ink', '--psd-accent-text', '--psd-accent2-text', '--psd-muted-text', '--psd-soft', '--psd-legal']) {
+      for (const name of [
+        '--psd-ink',
+        '--psd-accent-text',
+        '--psd-accent2-text',
+        '--psd-muted-text',
+        '--psd-soft',
+        '--psd-legal',
+      ]) {
         expect(contrastRatio(v[name], theme.bg), `${name} on the background`).toBeGreaterThanOrEqual(4.5);
         expect(contrastRatio(v[name], panel), `${name} on a panel`).toBeGreaterThanOrEqual(4.5);
       }
-      for (const name of ['--psd-card-ink', '--psd-card-accent', '--psd-card-muted']) expect(contrastRatio(v[name], v['--psd-card']), name).toBeGreaterThanOrEqual(4.5);
+      for (const name of ['--psd-card-ink', '--psd-card-accent', '--psd-card-muted'])
+        expect(contrastRatio(v[name], v['--psd-card']), name).toBeGreaterThanOrEqual(4.5);
       expect(contrastRatio(v['--psd-row-text'], v['--psd-row'])).toBeGreaterThanOrEqual(4.5);
       expect(contrastRatio(v['--psd-row-ink'], v['--psd-row'])).toBeGreaterThanOrEqual(4.5);
       expect(contrastRatio(v['--psd-on-accent'], theme.accent)).toBeGreaterThanOrEqual(4.5);
       expect(contrastRatio(v['--psd-on-accent2'], theme.accent2)).toBeGreaterThanOrEqual(4.5);
       // on a picture slide: the same, with 15% of anything showing through the scrim
       const p = deckColors(theme, 0.15);
-      for (const name of Object.keys(p)) for (const behind of ['#000000', '#ffffff']) {
-        expect(contrastRatio(p[name], mixColors(theme.bg, behind, 0.15)), `${name} over a ${behind} picture`).toBeGreaterThanOrEqual(4.5);
-      }
+      for (const name of Object.keys(p))
+        for (const behind of ['#000000', '#ffffff']) {
+          expect(
+            contrastRatio(p[name], mixColors(theme.bg, behind, 0.15)),
+            `${name} over a ${behind} picture`,
+          ).toBeGreaterThanOrEqual(4.5);
+        }
     });
   }
   it('sets the derived colours on the deck and, stricter, on a picture slide; the scrim is at least 85%', () => {
@@ -667,43 +910,68 @@ describe('colour', () => {
     expect(contrastRatio(deck.style.getPropertyValue('--psd-accent-text'), '#ffffff')).toBeGreaterThanOrEqual(4.5);
     const cover = slide('cover');
     expect(cover.classList.contains('psd-has-picture')).toBe(true);
-    expect(contrastRatio(cover.style.getPropertyValue('--psd-accent-text'), mixColors('#ffffff', '#000000', 0.15))).toBeGreaterThanOrEqual(4.5);
-    expect(parseFloat(cover.querySelector<HTMLElement>('.psd-scrim')!.style.getPropertyValue('--psd-scrim'))).toBeGreaterThanOrEqual(85);
+    expect(
+      contrastRatio(cover.style.getPropertyValue('--psd-accent-text'), mixColors('#ffffff', '#000000', 0.15)),
+    ).toBeGreaterThanOrEqual(4.5);
+    expect(
+      parseFloat(cover.querySelector<HTMLElement>('.psd-scrim')!.style.getPropertyValue('--psd-scrim')),
+    ).toBeGreaterThanOrEqual(85);
     expect(slide('text').style.getPropertyValue('--psd-accent-text')).toBe('');
   });
   it('a theme in colours it cannot measure is passed through, and nothing throws', () => {
     const data = fixture();
-    data.theme.colors = { bg: 'white', ink: 'black', accent: 'oklch(0.7 0.2 30)', accent2: 'teal', muted: 'gray', card: 'ivory', cardInk: 'black', line: 'gray' };
+    data.theme.colors = {
+      bg: 'white',
+      ink: 'black',
+      accent: 'oklch(0.7 0.2 30)',
+      accent2: 'teal',
+      muted: 'gray',
+      card: 'ivory',
+      cardInk: 'black',
+      line: 'gray',
+    };
     const { root } = mount(data);
     expect(root.querySelector<HTMLElement>('.psd')!.style.getPropertyValue('--psd-accent')).toBe('oklch(0.7 0.2 30)');
   });
 });
 
 describe('fit and overflow', () => {
-  const size = (e: Element, v: Record<string, number>) => { for (const [k, n] of Object.entries(v)) Object.defineProperty(e, k, { configurable: true, value: n }); };
+  const size = (e: Element, v: Record<string, number>) => {
+    for (const [k, n] of Object.entries(v)) Object.defineProperty(e, k, { configurable: true, value: n });
+  };
   it('steps a slide that overflows down through the sizes, keeps the first that fits, and starts again from the top each time', () => {
     const { handle, root } = mount(fixture());
-    const section = root.querySelectorAll<HTMLElement>('section')[2], box = section.querySelector<HTMLElement>('.psd-box')!;
+    const section = root.querySelectorAll<HTMLElement>('section')[2],
+      box = section.querySelector<HTMLElement>('.psd-box')!;
     size(box, { clientWidth: 1000, clientHeight: 500, scrollWidth: 1000 });
     // fits only once the type is at 1.25
-    Object.defineProperty(box, 'scrollHeight', { configurable: true, get: () => (section.style.getPropertyValue('--psd-fs') ? 500 : 560) });
+    Object.defineProperty(box, 'scrollHeight', {
+      configurable: true,
+      get: () => (section.style.getPropertyValue('--psd-fs') ? 500 : 560),
+    });
     expect(handle.checkOverflow()).toEqual([]);
     expect(section.style.getPropertyValue('--psd-fs')).toBe('1.25');
     expect(section.dataset.overflow).toBe('false');
-    expect(handle.checkOverflow()).toEqual([]);                       // idempotent
+    expect(handle.checkOverflow()).toEqual([]); // idempotent
     expect(section.style.getPropertyValue('--psd-fs')).toBe('1.25');
-    Object.defineProperty(box, 'scrollHeight', { configurable: true, value: 500 });   // the content got shorter: back to full size
+    Object.defineProperty(box, 'scrollHeight', { configurable: true, value: 500 }); // the content got shorter: back to full size
     handle.checkOverflow();
     expect(section.style.getPropertyValue('--psd-fs')).toBe('');
-    Object.defineProperty(box, 'scrollHeight', { configurable: true, value: 900 });   // nothing helps: smallest size, flagged
+    Object.defineProperty(box, 'scrollHeight', { configurable: true, value: 900 }); // nothing helps: smallest size, flagged
     expect(handle.checkOverflow()).toEqual([2]);
     expect(section.style.getPropertyValue('--psd-fs')).toBe('1.1');
     expect(section.dataset.overflow).toBe('true');
   });
   it('counts a child that sticks out of its column sideways', () => {
     const { handle, root, slide } = mount(fixture());
-    const numbers = slide('numbers'), index = [...root.querySelectorAll('section')].indexOf(numbers);
-    size(numbers.querySelector('.psd-box')!, { clientWidth: 1000, clientHeight: 500, scrollWidth: 1000, scrollHeight: 500 });
+    const numbers = slide('numbers'),
+      index = [...root.querySelectorAll('section')].indexOf(numbers);
+    size(numbers.querySelector('.psd-box')!, {
+      clientWidth: 1000,
+      clientHeight: 500,
+      scrollWidth: 1000,
+      scrollHeight: 500,
+    });
     expect(handle.checkOverflow()).toEqual([]);
     size(numbers.querySelector('.psd-num-left')!, { clientWidth: 400, scrollWidth: 460 });
     expect(handle.checkOverflow()).toEqual([index]);
@@ -711,27 +979,34 @@ describe('fit and overflow', () => {
   });
   it('sizes the big figure by its length and stacks the pair when it is long', () => {
     const big = (budget: number, currency = 'USD') => {
-      const data = fixture(); data.paths.cashBudget = budget; data.currency = currency;
+      const data = fixture();
+      data.paths.cashBudget = budget;
+      data.currency = currency;
       for (const s of data.paths.sources) s.on = false;
       const figs = mount(data).slide('numbers').querySelector<HTMLElement>('.psd-figs')!;
       return [figs.dataset.size, figs.classList.contains('psd-figs-stack')];
     };
-    expect(big(811_758)).toEqual(['l', false]);          // $811,758
-    expect(big(1_811_758)).toEqual(['m', true]);         // $1,811,758
-    expect(big(12_811_758)).toEqual(['m', true]);        // $12,811,758
-    expect(big(128_117_580)).toEqual(['s', true]);       // $128,117,580
+    expect(big(811_758)).toEqual(['l', false]); // $811,758
+    expect(big(1_811_758)).toEqual(['m', true]); // $1,811,758
+    expect(big(12_811_758)).toEqual(['m', true]); // $12,811,758
+    expect(big(128_117_580)).toEqual(['s', true]); // $128,117,580
     expect(big(128_117_580, 'JPY')).toEqual(['s', true]);
   });
   it('sizes headlines and the cover title by their length, and the team list by its head count', () => {
     const data = fixture();
     const text = data.slides.find(s => s.layout === 'text')!;
-    text.headline = 'A headline that runs a good deal longer than forty-five characters'; text.punch = '';
+    text.headline = 'A headline that runs a good deal longer than forty-five characters';
+    text.punch = '';
     const cards = data.slides.find(s => s.layout === 'cards')!;
     cards.headline = 'x'.repeat(90);
     const cover = data.slides.find(s => s.layout === 'cover') as Extract<DeckSlide, { layout: 'cover' }>;
     cover.title = 'A Title Of More Than Twenty Characters';
     const team = data.slides.find(s => s.layout === 'team') as Extract<DeckSlide, { layout: 'team' }>;
-    team.members = Array.from({ length: 5 }, (_, i) => ({ name: `Person ${i} Invented`, role: 'Role', bio: 'Invented.' }));
+    team.members = Array.from({ length: 5 }, (_, i) => ({
+      name: `Person ${i} Invented`,
+      role: 'Role',
+      bio: 'Invented.',
+    }));
     const { slide } = mount(data);
     expect(slide('text').querySelector('.psd-h')!.classList.contains('psd-h-long')).toBe(true);
     expect(slide('cards').querySelector('.psd-h')!.classList.contains('psd-h-xlong')).toBe(true);
@@ -743,7 +1018,10 @@ describe('fit and overflow', () => {
   it('marks a slide that is only its headline', () => {
     const data = fixture();
     const text = data.slides.find(s => s.layout === 'text') as Extract<DeckSlide, { layout: 'text' }>;
-    text.body = ''; text.aside = []; text.closing = ''; text.footnote = 'Small print stays.';
+    text.body = '';
+    text.aside = [];
+    text.closing = '';
+    text.footnote = 'Small print stays.';
     const { slide } = mount(data);
     expect(slide('text').classList.contains('psd-only-head')).toBe(true);
     expect(slide('cards').classList.contains('psd-only-head')).toBe(false);
@@ -761,18 +1039,24 @@ describe('the numbers slide, made clearer', () => {
     expect(liveDeck.querySelector('.psd-combos caption')!.textContent).toContain('Investors fund');
     const staticDeck = mount(data, { static: true }).slide('numbers');
     expect(staticDeck.querySelector('.psd-toggles-lab')!.textContent).toBe('Funding sources');
-    expect(staticDeck.querySelector('[data-part="legal"]')!.textContent).toBe(data.legal);   // the legal line is in the PDF too
+    expect(staticDeck.querySelector('[data-part="legal"]')!.textContent).toBe(data.legal); // the legal line is in the PDF too
   });
   it('names each combination in the row itself, not in an aria-label on the row, and draws its marks as shapes', () => {
     const { slide } = mount(fixture());
     const rows = [...slide('numbers').querySelectorAll<HTMLElement>('.psd-combos tbody tr')];
     expect(rows.every(r => !r.hasAttribute('aria-label'))).toBe(true);
-    expect(rows[0].querySelector('th[scope="row"] .psd-vh')!.textContent).toBe('With Grants and fiscal sponsorship + Invented tax credit + Invented perks');
+    expect(rows[0].querySelector('th[scope="row"] .psd-vh')!.textContent).toBe(
+      'With Grants and fiscal sponsorship + Invented tax credit + Invented perks',
+    );
     expect(rows[7].querySelector('th[scope="row"] .psd-vh')!.textContent).toBe('Investors alone');
     expect(rows[0].querySelectorAll('.psd-mark .psd-ic-check').length).toBe(3);
     expect(rows[7].querySelectorAll('.psd-mark .psd-ic-dash').length).toBe(3);
     expect(rows[0].querySelector('.psd-mark')!.textContent).toBe('on');
-    expect(rows.every(r => r.firstElementChild!.classList.contains('psd-cur') && !!r.firstElementChild!.querySelector('.psd-ic-tri'))).toBe(true);
+    expect(
+      rows.every(
+        r => r.firstElementChild!.classList.contains('psd-cur') && !!r.firstElementChild!.querySelector('.psd-ic-tri'),
+      ),
+    ).toBe(true);
     // no glyph ticks, pointers or arrows anywhere in the deck
     expect(slide('numbers').textContent).not.toMatch(/[✓–▸→]/);
     expect(slide('model').textContent).not.toMatch(/→/);
@@ -787,12 +1071,19 @@ describe('the numbers slide, made clearer', () => {
     const shown = () => rows().filter(r => !r.hidden);
     const amount = (r: HTMLElement) => r.lastElementChild!.textContent;
     expect(rows().length).toBe(3);
-    expect(shown().map(r => r.querySelector('th')!.textContent)).toEqual(['This selection', 'Everything on', 'Investors alone']);
+    expect(shown().map(r => r.querySelector('th')!.textContent)).toEqual([
+      'This selection',
+      'Everything on',
+      'Investors alone',
+    ]);
     expect(amount(shown()[0])).toBe(money(pathFor(data.paths).investors, data.currency));
-    expect(amount(shown()[1])).toBe(money(pathFor(data.paths, { grants: true, credit: true, perks: true, presale: true }).investors, data.currency));
+    expect(amount(shown()[1])).toBe(
+      money(pathFor(data.paths, { grants: true, credit: true, perks: true, presale: true }).investors, data.currency),
+    );
     expect(amount(shown()[2])).toBe(money(data.paths.cashBudget, data.currency));
     expect(shown().map(r => r.getAttribute('aria-current'))).toEqual(['true', null, null]);
-    handle.setSwitch('credit', true); handle.setSwitch('presale', true);   // now everything is on: the selection row folds into it
+    handle.setSwitch('credit', true);
+    handle.setSwitch('presale', true); // now everything is on: the selection row folds into it
     expect(shown().map(r => r.querySelector('th')!.textContent)).toEqual(['Everything on', 'Investors alone']);
     expect(shown().map(r => r.getAttribute('aria-current'))).toEqual(['true', null]);
     expect(rows()[0].hasAttribute('aria-current')).toBe(false);
@@ -801,7 +1092,12 @@ describe('the numbers slide, made clearer', () => {
   });
   it('reads at most eight sources from a file, however many it holds', () => {
     const data = fixture();
-    data.paths.sources = Array.from({ length: 40 }, (_, i) => ({ key: `k${i}`, label: `Invented source ${i}`, amount: 1000, on: i % 2 === 0 }));
+    data.paths.sources = Array.from({ length: 40 }, (_, i) => ({
+      key: `k${i}`,
+      label: `Invented source ${i}`,
+      amount: 1000,
+      on: i % 2 === 0,
+    }));
     const { slide } = mount(data);
     expect(MAX_SOURCES).toBe(8);
     expect(slide('numbers').querySelectorAll('.psd-toggle').length).toBe(8);
@@ -818,11 +1114,12 @@ describe('the numbers slide, made clearer', () => {
     ];
     const { slide, handle } = mount(data);
     const numbers = slide('numbers');
-    const legend = () => [...numbers.querySelectorAll<HTMLElement>('.psd-legend-item')].filter(li => !li.hidden).map(li => li.textContent);
+    const legend = () =>
+      [...numbers.querySelectorAll<HTMLElement>('.psd-legend-item')].filter(li => !li.hidden).map(li => li.textContent);
     const label = () => numbers.querySelector('.psd-stack')!.getAttribute('aria-label');
-    expect(legend()).toEqual(['Invented grants34%', 'Invented credit33%', 'Investors33%']);   // thirds: 34 + 33 + 33
+    expect(legend()).toEqual(['Invented grants34%', 'Invented credit33%', 'Investors33%']); // thirds: 34 + 33 + 33
     expect(label()).toBe('Share of the budget: Invented grants 34%, Invented credit 33%, Investors 33%');
-    expect(numbers.querySelector('.psd-stack')!.textContent).toBe('');   // nothing is written inside the bar
+    expect(numbers.querySelector('.psd-stack')!.textContent).toBe(''); // nothing is written inside the bar
     handle.setSwitch('perks', true);
     expect(legend()).toEqual(['Invented grants33%', 'Invented credit33%', 'Invented perks17%', 'Investors17%']);
     expect(label()).toContain('Invented perks 17%');
@@ -836,7 +1133,13 @@ describe('the numbers slide, made clearer', () => {
     expect(shares100([1, 0, 999])).toEqual([0, 0, 100]);
     expect(shares100([0, 0])).toEqual([0, 0]);
     expect(shares100([NaN, -5, 10])).toEqual([0, 0, 100]);
-    for (const a of [[3, 3, 3, 3, 3, 3, 3], [1, 2, 3, 4, 5, 6], [0.5, 99.5], [12.5, 12.5, 12.5, 62.5]]) expect(shares100(a).reduce((x, y) => x + y, 0)).toBe(100);
+    for (const a of [
+      [3, 3, 3, 3, 3, 3, 3],
+      [1, 2, 3, 4, 5, 6],
+      [0.5, 99.5],
+      [12.5, 12.5, 12.5, 62.5],
+    ])
+      expect(shares100(a).reduce((x, y) => x + y, 0)).toBe(100);
   });
   it('the fee note carries the fee the cases were worked out with', () => {
     const data = fixture();
@@ -845,7 +1148,7 @@ describe('the numbers slide, made clearer', () => {
     expect(slide('numbers').querySelector('.psd-casenote')!.textContent).toContain('20%');
     const mid = [...slide('numbers').querySelectorAll('tr[data-case]')][1];
     expect(mid.querySelector('[data-col="gross"]')!.textContent).toBe('$2,250,000');
-    expect(mid.querySelector('[data-col="net"]')!.textContent).toBe('$1,800,000');   // 20% off the top
+    expect(mid.querySelector('[data-col="net"]')!.textContent).toBe('$1,800,000'); // 20% off the top
   });
   it('with no revenue cases leaves out the returns table and its fee note, and keeps the funding side', () => {
     const data = fixture();
@@ -854,11 +1157,13 @@ describe('the numbers slide, made clearer', () => {
     const numbers = slide('numbers');
     expect(numbers.querySelector('.psd-cases')).toBeNull();
     expect(numbers.querySelector('.psd-casenote')).toBeNull();
-    expect(numbers.querySelectorAll('thead th').length).toBe(5);   // only the tick matrix's own header (a pointer column, three sources, the amount)
+    expect(numbers.querySelectorAll('thead th').length).toBe(5); // only the tick matrix's own header (a pointer column, three sources, the amount)
     expect(numbers.textContent).not.toMatch(/Receipts|To investors|Multiple/);
     expect(numbers.querySelector('.psd-combos')).toBeTruthy();
     expect(numbers.querySelectorAll('.psd-toggle').length).toBe(3);
-    expect(numbers.querySelector('[data-part="investors"]')!.textContent).toBe(money(pathFor(data.paths).investors, data.currency));
+    expect(numbers.querySelector('[data-part="investors"]')!.textContent).toBe(
+      money(pathFor(data.paths).investors, data.currency),
+    );
     data.paths.sources = [];
     const bare = mount(data).slide('numbers');
     expect(bare.querySelector('table')).toBeNull();
@@ -866,13 +1171,18 @@ describe('the numbers slide, made clearer', () => {
     expect(bare.querySelector('[data-part="legal"]')).toBeTruthy();
   });
   it('sets a currency symbol the title face may not have in the body face, and leaves the dollar alone', () => {
-    const eur = fixture(); eur.currency = 'EUR';
+    const eur = fixture();
+    eur.currency = 'EUR';
     const inv = mount(eur).part('investors');
     expect(inv.querySelector('.psd-sym')!.textContent).toBe('€');
     expect(inv.textContent).toBe(money(pathFor(eur.paths).investors, 'EUR'));
     expect(mount(fixture()).part('investors').querySelector('.psd-sym')).toBeNull();
     expect(moneyParts(1200, 'JPY')).toEqual([{ text: '¥', symbol: true }, { text: '1,200' }]);
-    expect(moneyParts(1200, 'not a code').map(p => p.text).join('')).toContain('1,200');
+    expect(
+      moneyParts(1200, 'not a code')
+        .map(p => p.text)
+        .join(''),
+    ).toContain('1,200');
   });
 });
 
@@ -880,7 +1190,8 @@ describe('the ask slide, after review', () => {
   it('leaves out a headline that only repeats the eyebrow, and keeps one that says something', () => {
     const data = fixture();
     const ask = data.slides.find(s => s.layout === 'ask')!;
-    ask.eyebrow = 'The ask'; ask.headline = ' the ASK ';
+    ask.eyebrow = 'The ask';
+    ask.headline = ' the ASK ';
     expect(mount(data).slide('ask').querySelector('.psd-h')).toBeNull();
     ask.headline = 'What we need from you';
     expect(mount(data).slide('ask').querySelector('.psd-h1')!.textContent).toBe('What we need from you');
@@ -895,8 +1206,14 @@ describe('the ask slide, after review', () => {
     expect(part('ask-body').textContent).toContain('cover another $5,000,000 of the budget');
     expect(text()).not.toContain('$50,000,000 of the budget');
     expect(text()).not.toMatch(/NaN|Infinity|-0|-\$|e\+/);
-    expect([...slide('numbers').querySelectorAll('[data-col="multiple"]')].map(e => e.textContent)).toEqual(['0.0x', '0.0x', '0.0x']);
-    expect(slide('numbers').querySelector('.psd-stack')!.getAttribute('aria-label')).toBe('Share of the budget: Invented grants 100%');
+    expect([...slide('numbers').querySelectorAll('[data-col="multiple"]')].map(e => e.textContent)).toEqual([
+      '0.0x',
+      '0.0x',
+      '0.0x',
+    ]);
+    expect(slide('numbers').querySelector('.psd-stack')!.getAttribute('aria-label')).toBe(
+      'Share of the budget: Invented grants 100%',
+    );
   });
 });
 
@@ -906,7 +1223,11 @@ describe('keyboard and focus', () => {
     const { root } = mount(fixture());
     const deck = root.querySelector<HTMLElement>('.psd')!;
     const n = root.querySelectorAll('section').length;
-    const press = (k: string, init?: KeyboardEventInit) => { key(deck, k, init); vi.advanceTimersByTime(2000); return currentIndex(root); };
+    const press = (k: string, init?: KeyboardEventInit) => {
+      key(deck, k, init);
+      vi.advanceTimersByTime(2000);
+      return currentIndex(root);
+    };
     expect(currentIndex(root)).toBe(0);
     expect(press('ArrowRight')).toBe(1);
     expect(press('ArrowDown')).toBe(2);
@@ -927,7 +1248,10 @@ describe('keyboard and focus', () => {
     vi.useFakeTimers();
     const { root } = mount(fixture());
     const deck = root.querySelector<HTMLElement>('.psd')!;
-    for (let i = 0; i < 5; i++) { key(deck, 'ArrowRight'); vi.advanceTimersByTime(60); }
+    for (let i = 0; i < 5; i++) {
+      key(deck, 'ArrowRight');
+      vi.advanceTimersByTime(60);
+    }
     expect(currentIndex(root)).toBe(5);
     for (let i = 0; i < 3; i++) key(deck, 'ArrowLeft');
     expect(currentIndex(root)).toBe(2);
@@ -939,13 +1263,28 @@ describe('keyboard and focus', () => {
       const stage = this.classList.contains('psd-stage') ? [...this.parentElement!.children].indexOf(this) : 0;
       const sized = this.classList.contains('psd') || this.classList.contains('psd-stage');
       const top = stage * 900;
-      return { x: 0, y: top, top, left: 0, width: sized ? 1600 : 0, height: sized ? 900 : 0, right: sized ? 1600 : 0, bottom: top + (sized ? 900 : 0), toJSON() { return {}; } } as DOMRect;
+      return {
+        x: 0,
+        y: top,
+        top,
+        left: 0,
+        width: sized ? 1600 : 0,
+        height: sized ? 900 : 0,
+        right: sized ? 1600 : 0,
+        bottom: top + (sized ? 900 : 0),
+        toJSON() {
+          return {};
+        },
+      } as DOMRect;
     });
     const { root } = mount(fixture());
     const deck = root.querySelector<HTMLElement>('.psd')!;
-    for (let i = 0; i < 5; i++) { key(deck, 'ArrowRight'); vi.advanceTimersByTime(60); }
+    for (let i = 0; i < 5; i++) {
+      key(deck, 'ArrowRight');
+      vi.advanceTimersByTime(60);
+    }
     expect(currentIndex(root)).toBe(5);
-    vi.advanceTimersByTime(3000);   // the flight is over and the view (here) never moved: the next press steps from the view
+    vi.advanceTimersByTime(3000); // the flight is over and the view (here) never moved: the next press steps from the view
     key(deck, 'ArrowRight');
     expect(currentIndex(root)).toBe(1);
   });
@@ -961,12 +1300,12 @@ describe('keyboard and focus', () => {
     const stackedDeck = mount(fixture(), { stacked: true });
     expect(stackedDeck.root.querySelector('.psd')!.classList.contains('psd-stacked')).toBe(true);
     expect(stackedDeck.root.querySelectorAll('[inert]').length).toBe(0);
-    stackedDeck.handle.goTo(3);   // paging still works when stacked
+    stackedDeck.handle.goTo(3); // paging still works when stacked
     expect(currentIndex(stackedDeck.root)).toBe(3);
     expect(stackedDeck.root.querySelectorAll('[inert]').length).toBe(0);
     const toggle = stackedDeck.slide('numbers').querySelector<HTMLButtonElement>('button.psd-toggle')!;
     toggle.focus();
-    key(toggle, 'ArrowLeft');     // paged away from a focused toggle: focus goes to the deck here too
+    key(toggle, 'ArrowLeft'); // paged away from a focused toggle: focus goes to the deck here too
     expect(stackedDeck.host.shadowRoot!.activeElement).toBe(stackedDeck.root.querySelector('.psd'));
   });
   it('moves focus left on another slide to the deck, so a hidden toggle never takes Enter or Space', () => {
@@ -983,7 +1322,7 @@ describe('keyboard and focus', () => {
     expect(slide('numbers').hasAttribute('inert')).toBe(true);
     handle.goTo(numbers);
     toggle.focus();
-    key(toggle, ' ');   // Space on a button is the button's, not a page turn
+    key(toggle, ' '); // Space on a button is the button's, not a page turn
     expect(currentIndex(root)).toBe(numbers);
     expect(host.shadowRoot!.activeElement).toBe(toggle);
   });
@@ -998,54 +1337,93 @@ describe('keyboard and focus', () => {
     key(document.body, 'ArrowRight');
     expect(currentIndex(paged.root)).toBe(1);
     expect(currentIndex(plain.root)).toBe(0);
-    const input = document.createElement('input'); document.body.appendChild(input);
-    key(input, 'ArrowRight');   // a key meant for something else on the page
+    const input = document.createElement('input');
+    document.body.appendChild(input);
+    key(input, 'ArrowRight'); // a key meant for something else on the page
     expect(currentIndex(paged.root)).toBe(1);
   });
 });
 
 describe('small hosts', () => {
-  const sized = (w: number, h: number) => vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
-    const deck = this.classList.contains('psd');
-    return { x: 0, y: 0, top: 0, left: 0, width: deck ? w : 0, height: deck ? h : 0, right: deck ? w : 0, bottom: deck ? h : 0, toJSON() { return {}; } } as DOMRect;
-  });
-  const classes = (w: number, h: number, opts: Parameters<typeof mountDeck>[2] = {}) => { sized(w, h); const c = mount(fixture(), opts).root.querySelector('.psd')!.className; vi.restoreAllMocks(); return c; };
+  const sized = (w: number, h: number) =>
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
+      const deck = this.classList.contains('psd');
+      return {
+        x: 0,
+        y: 0,
+        top: 0,
+        left: 0,
+        width: deck ? w : 0,
+        height: deck ? h : 0,
+        right: deck ? w : 0,
+        bottom: deck ? h : 0,
+        toJSON() {
+          return {};
+        },
+      } as DOMRect;
+    });
+  const classes = (w: number, h: number, opts: Parameters<typeof mountDeck>[2] = {}) => {
+    sized(w, h);
+    const c = mount(fixture(), opts).root.querySelector('.psd')!.className;
+    vi.restoreAllMocks();
+    return c;
+  };
   it('stacks below 600px wide or when a slide would be under 420px tall, and not otherwise', () => {
-    expect(classes(390, 844)).toContain('psd-stacked');     // phone, upright
-    expect(classes(844, 390)).toContain('psd-stacked');     // phone, on its side
+    expect(classes(390, 844)).toContain('psd-stacked'); // phone, upright
+    expect(classes(844, 390)).toContain('psd-stacked'); // phone, on its side
     expect(classes(599, 2000)).toContain('psd-stacked');
     expect(classes(1024, 768)).not.toContain('psd-stacked');
     expect(classes(1600, 900)).not.toContain('psd-stacked');
-    expect(classes(1200, 0)).toBe('psd psd-unbounded');     // no height of its own: slides at the page's width
+    expect(classes(1200, 0)).toBe('psd psd-unbounded'); // no height of its own: slides at the page's width
     expect(classes(500, 0)).toContain('psd-stacked');
     expect(classes(390, 844, { stacked: false })).not.toContain('psd-stacked');
-    expect(classes(390, 844, { stacked: false })).toBe('psd psd-scaled');   // a scaled preview, with no pixel floor under small print
+    expect(classes(390, 844, { stacked: false })).toBe('psd psd-scaled'); // a scaled preview, with no pixel floor under small print
     expect(classes(1600, 900, { stacked: true })).toContain('psd-stacked');
     expect(classes(390, 844, { static: true })).toBe('psd psd-static');
   });
   it('follows the host as it is resized, and nothing is inert while stacked', () => {
     vi.useFakeTimers();
     let fire: () => void = () => {};
-    vi.stubGlobal('ResizeObserver', class { constructor(cb: () => void) { fire = cb; } observe() {} disconnect() {} });
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        constructor(cb: () => void) {
+          fire = cb;
+        }
+        observe() {}
+        disconnect() {}
+      },
+    );
     sized(1600, 900);
     const { root } = mount(fixture());
     const deck = root.querySelector('.psd')!;
     expect(deck.classList.contains('psd-stacked')).toBe(false);
     expect(root.querySelectorAll('[inert]').length).toBe(root.querySelectorAll('section').length - 1);
-    vi.restoreAllMocks(); sized(390, 844);
-    fire(); fire(); vi.advanceTimersByTime(200);
+    vi.restoreAllMocks();
+    sized(390, 844);
+    fire();
+    fire();
+    vi.advanceTimersByTime(200);
     expect(deck.classList.contains('psd-stacked')).toBe(true);
     expect(root.querySelectorAll('[inert]').length).toBe(0);
-    vi.restoreAllMocks(); sized(1600, 900);
-    fire(); vi.advanceTimersByTime(200);
+    vi.restoreAllMocks();
+    sized(1600, 900);
+    fire();
+    vi.advanceTimersByTime(200);
     expect(deck.classList.contains('psd-stacked')).toBe(false);
     expect(root.querySelectorAll('[inert]').length).toBe(root.querySelectorAll('section').length - 1);
   });
 });
 
 describe('recipients, isolated', () => {
-  const others = (data: DeckData, slug: string | null) => data.recipients.filter(r => r.slug !== slug).flatMap(r => [r.name, r.note ?? '', r.slug, r.coverLine].filter(Boolean));
-  const mine = (data: DeckData, slug: string) => { const r = data.recipients.find(x => x.slug === slug)!; return [r.coverLine, r.note ?? ''].filter(Boolean); };
+  const others = (data: DeckData, slug: string | null) =>
+    data.recipients
+      .filter(r => r.slug !== slug)
+      .flatMap(r => [r.name, r.note ?? '', r.slug, r.coverLine].filter(Boolean));
+  const mine = (data: DeckData, slug: string) => {
+    const r = data.recipients.find(x => x.slug === slug)!;
+    return [r.coverLine, r.note ?? ''].filter(Boolean);
+  };
   it('after every switch, nothing of anyone else is anywhere in the tree: text, attributes, hidden nodes', () => {
     const data = fixture();
     const { host, handle } = mount(data, { useHash: true });
@@ -1055,11 +1433,29 @@ describe('recipients, isolated', () => {
       if (slug) for (const own of mine(data, slug)) expect(all).toContain(own);
     };
     check(null);
-    for (const slug of ['dana-invented', 'placeholder-fund', 'quiet', 'dana-invented', 'quiet', null, 'placeholder-fund', 'nobody-we-know']) {
+    for (const slug of [
+      'dana-invented',
+      'placeholder-fund',
+      'quiet',
+      'dana-invented',
+      'quiet',
+      null,
+      'placeholder-fund',
+      'nobody-we-know',
+    ]) {
       handle.setRecipient(slug);
       check(data.recipients.some(r => r.slug === slug) ? slug : null);
     }
-    for (const [hash, slug] of [['#dana-invented', 'dana-invented'], ['#quiet', 'quiet'], ['#placeholder-fund-with', 'placeholder-fund'], ['#quiet-without', 'quiet'], ['#dana-invented-without', 'dana-invented'], ['', null], ['#placeholder-fund', 'placeholder-fund'], ['#without', null]] as const) {
+    for (const [hash, slug] of [
+      ['#dana-invented', 'dana-invented'],
+      ['#quiet', 'quiet'],
+      ['#placeholder-fund-with', 'placeholder-fund'],
+      ['#quiet-without', 'quiet'],
+      ['#dana-invented-without', 'dana-invented'],
+      ['', null],
+      ['#placeholder-fund', 'placeholder-fund'],
+      ['#without', null],
+    ] as const) {
       window.location.hash = hash;
       window.dispatchEvent(new Event('hashchange'));
       check(slug);
@@ -1080,7 +1476,8 @@ describe('recipients, isolated', () => {
   });
   it('marks the highlighted card as current, and only that one', () => {
     const { handle, slide } = mount(fixture(), { recipient: 'dana-invented' });
-    const current = () => [...slide('ways').querySelectorAll<HTMLElement>('.psd-card[aria-current="true"]')].map(e => e.dataset.cardId);
+    const current = () =>
+      [...slide('ways').querySelectorAll<HTMLElement>('.psd-card[aria-current="true"]')].map(e => e.dataset.cardId);
     expect(current()).toEqual(['give']);
     handle.setRecipient('placeholder-fund');
     expect(current()).toEqual(['invest']);
@@ -1089,24 +1486,31 @@ describe('recipients, isolated', () => {
     expect(slide('ways').querySelector('[aria-current]')).toBeNull();
   });
   it('setRecipient resets every switch and forgets a lead; setLead moves only the grants switch', () => {
-    const data = fixture();   // saved: grants on, credit off, perks on
+    const data = fixture(); // saved: grants on, credit off, perks on
     const { handle, slide } = mount(data, { recipient: 'dana-invented', lead: 'without-grants' });
-    const on = () => Object.fromEntries([...slide('numbers').querySelectorAll<HTMLElement>('button.psd-toggle')].map(b => [b.dataset.key, b.getAttribute('aria-pressed') === 'true']));
-    expect(on()).toEqual({ grants: false, credit: false, perks: true });          // opts.lead overrides Dana's with-grants lead
-    handle.setSwitch('credit', true); handle.setSwitch('perks', false);
+    const on = () =>
+      Object.fromEntries(
+        [...slide('numbers').querySelectorAll<HTMLElement>('button.psd-toggle')].map(b => [
+          b.dataset.key,
+          b.getAttribute('aria-pressed') === 'true',
+        ]),
+      );
+    expect(on()).toEqual({ grants: false, credit: false, perks: true }); // opts.lead overrides Dana's with-grants lead
+    handle.setSwitch('credit', true);
+    handle.setSwitch('perks', false);
     handle.setLead('with-grants');
-    expect(on()).toEqual({ grants: true, credit: true, perks: false });           // only grants moved
+    expect(on()).toEqual({ grants: true, credit: true, perks: false }); // only grants moved
     handle.setLead('without-grants');
     expect(on()).toEqual({ grants: false, credit: true, perks: false });
     handle.setRecipient('dana-invented');
-    expect(on()).toEqual({ grants: true, credit: false, perks: true });           // everything back to Dana's opening, the lead forgotten
+    expect(on()).toEqual({ grants: true, credit: false, perks: true }); // everything back to Dana's opening, the lead forgotten
     handle.setLead('without-grants');
     handle.setRecipient('placeholder-fund');
-    expect(on()).toEqual({ grants: false, credit: false, perks: true });          // the Fund's own lead
+    expect(on()).toEqual({ grants: false, credit: false, perks: true }); // the Fund's own lead
     handle.setLead('with-grants');
     handle.setRecipient(null);
     expect(on()).toEqual({ grants: true, credit: false, perks: true });
-    handle.setLead('nonsense' as never);                                          // anything but without-grants is with-grants
+    handle.setLead('nonsense' as never); // anything but without-grants is with-grants
     expect(on().grants).toBe(true);
   });
   it('normalises a recipient’s lead and ignores recipients it cannot address', () => {
@@ -1118,18 +1522,38 @@ describe('recipients, isolated', () => {
       { slug: '', name: 'Empty Slug Invented' },
       { slug: 7, name: 'Number Slug Invented' },
       { slug: 'a', name: 'Second A Invented' },
-      { slug: 'with', name: 'W' }, { slug: 'without', name: 'W' }, { slug: 'with-grants', name: 'W' }, { slug: 'without-grants', name: 'W' },
-      { slug: 'go-with', name: 'W' }, { slug: 'go-without', name: 'W' }, { slug: 'Go-WITH', name: 'W' },
-      null, 'text', [1],
+      { slug: 'with', name: 'W' },
+      { slug: 'without', name: 'W' },
+      { slug: 'with-grants', name: 'W' },
+      { slug: 'without-grants', name: 'W' },
+      { slug: 'go-with', name: 'W' },
+      { slug: 'go-without', name: 'W' },
+      { slug: 'Go-WITH', name: 'W' },
+      null,
+      'text',
+      [1],
     ]);
-    expect(cleaned.map(r => [r.slug, r.lead])).toEqual([['a', 'without-grants'], ['b', 'with-grants'], ['c', 'with-grants'], ['7', 'with-grants']]);
+    expect(cleaned.map(r => [r.slug, r.lead])).toEqual([
+      ['a', 'without-grants'],
+      ['b', 'with-grants'],
+      ['c', 'with-grants'],
+      ['7', 'with-grants'],
+    ]);
     expect(cleaned[0].name).toBe('A Invented');
-    for (const s of ['with', 'without', 'with-grants', 'without-grants', 'x-with', 'x-without']) expect(reservedSlug(s), s).toBe(true);
-    for (const s of ['within', 'withouts', 'with-x', 'grants', 'dana-invented', 'x-with-grants']) expect(reservedSlug(s), s).toBe(false);
+    for (const s of ['with', 'without', 'with-grants', 'without-grants', 'x-with', 'x-without'])
+      expect(reservedSlug(s), s).toBe(true);
+    for (const s of ['within', 'withouts', 'with-x', 'grants', 'dana-invented', 'x-with-grants'])
+      expect(reservedSlug(s), s).toBe(false);
   });
   it('never opens on a recipient with no slug, whatever the caller leaves out', () => {
     const data = fixture();
-    (data.recipients as unknown[]).unshift({ name: 'Slugless Invented', coverLine: 'Prepared for Slugless Invented.', note: 'A slugless note.', lead: 'without-grants', highlightCardId: 'give' });
+    (data.recipients as unknown[]).unshift({
+      name: 'Slugless Invented',
+      coverLine: 'Prepared for Slugless Invented.',
+      note: 'A slugless note.',
+      lead: 'without-grants',
+      highlightCardId: 'give',
+    });
     for (const opts of [{}, { recipient: undefined }, { recipient: '' }, { recipient: null as never }]) {
       const { host, part, slide } = mount(data, opts);
       expect(part('cover-line').textContent).toBe(data.coverLine);
@@ -1147,15 +1571,17 @@ describe('lifecycle', () => {
     mounted.push(second);
     const sections = () => first.host.shadowRoot!.querySelectorAll('section').length;
     expect(sections()).toBe(data.slides.length);
-    expect(first.handle.slideCount).toBe(0);     // the first deck has gone
-    first.handle.destroy();                      // a stale destroy: a no-op
-    first.handle.setRecipient('dana-invented'); first.handle.setSwitch('grants', false); first.handle.goTo(4);
+    expect(first.handle.slideCount).toBe(0); // the first deck has gone
+    first.handle.destroy(); // a stale destroy: a no-op
+    first.handle.setRecipient('dana-invented');
+    first.handle.setSwitch('grants', false);
+    first.handle.goTo(4);
     expect(sections()).toBe(data.slides.length);
     expect(first.host.classList.contains('psd-host')).toBe(true);
     const line = () => first.host.shadowRoot!.querySelector('[data-part="cover-line"]')!.textContent;
     expect(line()).toBe(data.coverLine);
     window.location.hash = '#dana-invented';
-    window.dispatchEvent(new Event('hashchange'));   // the new deck still listens, once
+    window.dispatchEvent(new Event('hashchange')); // the new deck still listens, once
     expect(line()).toBe('Prepared for Dana Invented.');
     second.destroy();
     expect(first.host.shadowRoot!.childNodes.length).toBe(0);
@@ -1163,14 +1589,16 @@ describe('lifecycle', () => {
   it('keeps the shared page rule until the last deck that needs it has gone', () => {
     const data = fixture();
     const style = () => document.querySelectorAll('#psd-page-style').length;
-    const a = mount(data, { static: true }), b = mount(data, { static: true }), c = mount(data);
+    const a = mount(data, { static: true }),
+      b = mount(data, { static: true }),
+      c = mount(data);
     expect(style()).toBe(1);
     a.handle.destroy();
     expect(style()).toBe(1);
-    a.handle.destroy();   // twice: still counted once
+    a.handle.destroy(); // twice: still counted once
     expect(style()).toBe(1);
     b.handle.destroy();
-    expect(style()).toBe(1);   // the live deck prints too
+    expect(style()).toBe(1); // the live deck prints too
     c.handle.destroy();
     expect(style()).toBe(0);
     const d = mount(data, { static: true });
@@ -1179,20 +1607,44 @@ describe('lifecycle', () => {
     expect(style()).toBe(0);
   });
   it('leaves no listener, observer or timer behind', () => {
-    window.location.hash = '#dana-invented';   // before the clock is faked: jsdom announces the change on a timer of its own
+    window.location.hash = '#dana-invented'; // before the clock is faked: jsdom announces the change on a timer of its own
     vi.useFakeTimers({ toFake: [...PAGE_TIMERS] });
     const liveListeners = new Set<string>();
-    const targets: [string, EventTarget][] = [['window', window], ['document', document]];
+    const targets: [string, EventTarget][] = [
+      ['window', window],
+      ['document', document],
+    ];
     const watch = (name: string, t: EventTarget) => {
-      const add = t.addEventListener.bind(t), remove = t.removeEventListener.bind(t);
-      const ids = new Map<unknown, number>(); let next = 0;
-      const id = (type: string, fn: unknown) => { if (!ids.has(fn)) ids.set(fn, next++); return `${name}:${type}:${ids.get(fn)}`; };
-      vi.spyOn(t, 'addEventListener').mockImplementation(((type: string, fn: never, o?: never) => { liveListeners.add(id(type, fn)); add(type, fn, o); }) as never);
-      vi.spyOn(t, 'removeEventListener').mockImplementation(((type: string, fn: never, o?: never) => { liveListeners.delete(id(type, fn)); remove(type, fn, o); }) as never);
+      const add = t.addEventListener.bind(t),
+        remove = t.removeEventListener.bind(t);
+      const ids = new Map<unknown, number>();
+      let next = 0;
+      const id = (type: string, fn: unknown) => {
+        if (!ids.has(fn)) ids.set(fn, next++);
+        return `${name}:${type}:${ids.get(fn)}`;
+      };
+      vi.spyOn(t, 'addEventListener').mockImplementation(((type: string, fn: never, o?: never) => {
+        liveListeners.add(id(type, fn));
+        add(type, fn, o);
+      }) as never);
+      vi.spyOn(t, 'removeEventListener').mockImplementation(((type: string, fn: never, o?: never) => {
+        liveListeners.delete(id(type, fn));
+        remove(type, fn, o);
+      }) as never);
     };
     for (const [name, t] of targets) watch(name, t);
     const observers = { made: 0, live: 0 };
-    const Observer = class { constructor(_cb: unknown) { observers.made++; observers.live++; } observe() {} unobserve() {} disconnect() { observers.live--; } };
+    const Observer = class {
+      constructor(_cb: unknown) {
+        observers.made++;
+        observers.live++;
+      }
+      observe() {}
+      unobserve() {}
+      disconnect() {
+        observers.live--;
+      }
+    };
     vi.stubGlobal('ResizeObserver', Observer);
     vi.stubGlobal('IntersectionObserver', Observer);
 
@@ -1201,9 +1653,14 @@ describe('lifecycle', () => {
     watch('host', host);
     const data = fixture();
     const handle = mountDeck(host, data, { useHash: true, pageKeys: true, css: '.x{}' });
-    expect([...liveListeners].sort()).toEqual(['document:fullscreenchange:1', 'document:keydown:0', 'window:hashchange:0']);
+    expect([...liveListeners].sort()).toEqual([
+      'document:fullscreenchange:1',
+      'document:keydown:0',
+      'window:hashchange:0',
+    ]);
     expect(observers.made).toBe(2);
-    handle.goTo(3); handle.setSwitch('grants', false);
+    handle.goTo(3);
+    handle.setSwitch('grants', false);
     host.shadowRoot!.querySelector('.psd')!.dispatchEvent(new Event('scroll'));
     expect(vi.getTimerCount()).toBeGreaterThan(0);
     // a remount on the same host, mid-flight: the first deck's listeners go with it
@@ -1219,8 +1676,10 @@ describe('lifecycle', () => {
     expect(host.shadowRoot!.childNodes.length).toBe(0);
     expect(document.getElementById('psd-page-style')).toBeNull();
     // two static decks side by side
-    const h2 = document.createElement('div'); document.body.appendChild(h2);
-    const s1 = mountDeck(host, data, { static: true }), s2 = mountDeck(h2, data, { static: true });
+    const h2 = document.createElement('div');
+    document.body.appendChild(h2);
+    const s1 = mountDeck(host, data, { static: true }),
+      s2 = mountDeck(h2, data, { static: true });
     s1.destroy();
     expect(h2.shadowRoot!.querySelectorAll('section').length).toBe(data.slides.length);
     expect(document.getElementById('psd-page-style')).toBeTruthy();
@@ -1235,11 +1694,34 @@ describe('lifecycle', () => {
 describe('hostile and hand-edited data', () => {
   const tryMount = (data: unknown, opts: Parameters<typeof mountDeck>[2] = {}) => mount(data as DeckData, opts);
   it('str takes text from anything', () => {
-    expect([str('a'), str(4), str(NaN), str(null), str(undefined), str({}), str([1]), str(true)]).toEqual(['a', '4', '', '', '', '', '', '']);
+    expect([str('a'), str(4), str(NaN), str(null), str(undefined), str({}), str([1]), str(true)]).toEqual([
+      'a',
+      '4',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+    ]);
   });
   it('mounts whatever is missing', () => {
-    for (const data of [null, undefined, 42, 'deck', [], {}, { slides: 'no' }, { slides: [null, 3, 'x', [], {}] }, { ...fixture(), paths: undefined }, { ...fixture(), paths: null }, { ...fixture(), paths: 'x' },
-      { ...fixture(), paths: { cashBudget: '9', sources: 'no', cases: null } }, { ...fixture(), paths: { sources: [null, 4, { key: 'grants' }] } }, { ...fixture(), theme: null, images: null, recipients: 'x', currency: 7, legal: 9, film: null }]) {
+    for (const data of [
+      null,
+      undefined,
+      42,
+      'deck',
+      [],
+      {},
+      { slides: 'no' },
+      { slides: [null, 3, 'x', [], {}] },
+      { ...fixture(), paths: undefined },
+      { ...fixture(), paths: null },
+      { ...fixture(), paths: 'x' },
+      { ...fixture(), paths: { cashBudget: '9', sources: 'no', cases: null } },
+      { ...fixture(), paths: { sources: [null, 4, { key: 'grants' }] } },
+      { ...fixture(), theme: null, images: null, recipients: 'x', currency: 7, legal: 9, film: null },
+    ]) {
       expect(() => tryMount(data), JSON.stringify(data)?.slice(0, 60)).not.toThrow();
       expect(() => tryMount(data, { static: true })).not.toThrow();
     }
@@ -1255,32 +1737,76 @@ describe('hostile and hand-edited data', () => {
       for (const s of data.slides) {
         for (const k of Object.keys(s)) {
           if (k === 'layout') continue;
-          if (Array.isArray(s[k])) s[k] = [null, bad, ...(s[k] as unknown[]).map(item => (item && typeof item === 'object' ? Object.fromEntries(Object.keys(item).map(f => [f, bad])) : bad)), 5];
+          if (Array.isArray(s[k]))
+            s[k] = [
+              null,
+              bad,
+              ...(s[k] as unknown[]).map(item =>
+                item && typeof item === 'object' ? Object.fromEntries(Object.keys(item).map(f => [f, bad])) : bad,
+              ),
+              5,
+            ];
           else s[k] = bad;
         }
       }
       let deck!: ReturnType<typeof mount>;
-      expect(() => { deck = tryMount(data); }, `with ${JSON.stringify(bad)}`).not.toThrow();
+      expect(
+        () => {
+          deck = tryMount(data);
+        },
+        `with ${JSON.stringify(bad)}`,
+      ).not.toThrow();
       expect(deck.handle.slideCount).toBe(LAYOUTS.length);
       expect(deck.text()).not.toMatch(/undefined|\[object|NaN/);
-      expect(() => { deck.handle.setRecipient('dana-invented'); deck.handle.setLead('without-grants'); deck.handle.goTo(99); deck.handle.checkOverflow(); }).not.toThrow();
+      expect(() => {
+        deck.handle.setRecipient('dana-invented');
+        deck.handle.setLead('without-grants');
+        deck.handle.goTo(99);
+        deck.handle.checkOverflow();
+      }).not.toThrow();
     }
   });
   it('skips layouts it does not know, including names every object has', () => {
     const data = fixture();
     const n = data.slides.length;
-    (data.slides as unknown[]).push({ id: 'a', layout: 'constructor' }, { id: 'b', layout: 'toString' }, { id: 'c', layout: '__proto__' }, { id: 'd', layout: 5 }, { id: 'e' }, { id: 'f', layout: 'hologram' });
+    (data.slides as unknown[]).push(
+      { id: 'a', layout: 'constructor' },
+      { id: 'b', layout: 'toString' },
+      { id: 'c', layout: '__proto__' },
+      { id: 'd', layout: 5 },
+      { id: 'e' },
+      { id: 'f', layout: 'hologram' },
+    );
     expect(tryMount(data).handle.slideCount).toBe(n);
   });
   it('drops sources with reserved or repeated keys, and keeps its switches off every prototype', () => {
     const cleaned = cleanPaths({
-      cashBudget: 1000, cases: [{ label: 'Mid', gross: 5000 }, null, { label: 3, gross: 'x' }], feePct: '20', waterfall: null,
-      sources: [{ key: '__proto__', label: 'P', amount: 1, on: true }, { key: 'constructor', label: 'C', amount: 1, on: true }, { key: 'prototype', label: 'T', amount: 1, on: true },
-        { key: 'grants', label: 'Invented grants', amount: 100, on: true }, { key: 'grants', label: 'Again', amount: 900, on: true }, { key: '', amount: 5 }, { label: 'No key', amount: 5 }, null,
-        { key: 'toString', label: 'Odd but allowed', amount: -50, on: 1 }, { key: 'hasOwnProperty', amount: 'lots', on: false }],
+      cashBudget: 1000,
+      cases: [{ label: 'Mid', gross: 5000 }, null, { label: 3, gross: 'x' }],
+      feePct: '20',
+      waterfall: null,
+      sources: [
+        { key: '__proto__', label: 'P', amount: 1, on: true },
+        { key: 'constructor', label: 'C', amount: 1, on: true },
+        { key: 'prototype', label: 'T', amount: 1, on: true },
+        { key: 'grants', label: 'Invented grants', amount: 100, on: true },
+        { key: 'grants', label: 'Again', amount: 900, on: true },
+        { key: '', amount: 5 },
+        { label: 'No key', amount: 5 },
+        null,
+        { key: 'toString', label: 'Odd but allowed', amount: -50, on: 1 },
+        { key: 'hasOwnProperty', amount: 'lots', on: false },
+      ],
     });
-    expect(cleaned.sources.map(s => [s.key, s.label, s.amount, s.on])).toEqual([['grants', 'Invented grants', 100, true], ['toString', 'Odd but allowed', 0, true], ['hasOwnProperty', 'hasOwnProperty', 0, false]]);
-    expect(cleaned.cases).toEqual([{ label: 'Mid', gross: 5000 }, { label: '3', gross: 0 }]);
+    expect(cleaned.sources.map(s => [s.key, s.label, s.amount, s.on])).toEqual([
+      ['grants', 'Invented grants', 100, true],
+      ['toString', 'Odd but allowed', 0, true],
+      ['hasOwnProperty', 'hasOwnProperty', 0, false],
+    ]);
+    expect(cleaned.cases).toEqual([
+      { label: 'Mid', gross: 5000 },
+      { label: '3', gross: 0 },
+    ]);
     expect(cleaned.feePct).toBe(0);
     expect(cleaned.waterfall.model).toBe('off-the-gross');
     const sw = initialSwitches(cleaned.sources, 'with-grants');
@@ -1288,8 +1814,14 @@ describe('hostile and hand-edited data', () => {
     expect(sw.toString).toBe(true);
 
     const data = fixture();
-    (data.paths.sources as unknown[]).unshift({ key: '__proto__', label: 'Proto source', amount: 5, on: true }, { key: 'constructor', label: 'Ctor source', amount: 5, on: true });
-    data.paths.sources.push({ key: 'grants', label: 'Twice', amount: 1, on: true }, { key: 'toString', label: 'Invented odd key', amount: 10_000, on: false });
+    (data.paths.sources as unknown[]).unshift(
+      { key: '__proto__', label: 'Proto source', amount: 5, on: true },
+      { key: 'constructor', label: 'Ctor source', amount: 5, on: true },
+    );
+    data.paths.sources.push(
+      { key: 'grants', label: 'Twice', amount: 1, on: true },
+      { key: 'toString', label: 'Invented odd key', amount: 10_000, on: false },
+    );
     const before = Object.keys(Object.prototype).length;
     const { slide, handle, part, text } = tryMount(data);
     const keys = [...slide('numbers').querySelectorAll<HTMLElement>('button.psd-toggle')].map(b => b.dataset.key);
@@ -1297,18 +1829,29 @@ describe('hostile and hand-edited data', () => {
     expect(text()).not.toMatch(/Proto source|Ctor source|Twice/);
     const clean = cleanPaths(data.paths);
     expect(part('investors').textContent).toBe(money(pathFor(clean).investors, 'USD'));
-    handle.setSwitch('__proto__', true); handle.setSwitch('constructor', true);
+    handle.setSwitch('__proto__', true);
+    handle.setSwitch('constructor', true);
     expect(part('investors').textContent).toBe(money(pathFor(clean).investors, 'USD'));
     handle.setSwitch('toString', true);
     slide('numbers').querySelector<HTMLButtonElement>('button[data-key="toString"]')!.click();
     slide('numbers').querySelector<HTMLButtonElement>('button[data-key="toString"]')!.click();
-    expect(part('investors').textContent).toBe(money(pathFor(clean, { toString: true } as Record<string, boolean>).investors, 'USD'));
+    expect(part('investors').textContent).toBe(
+      money(pathFor(clean, { toString: true } as Record<string, boolean>).investors, 'USD'),
+    );
     expect(Object.keys(Object.prototype).length).toBe(before);
     expect(({} as Record<string, unknown>).grants).toBeUndefined();
   });
   it('ignores recipients with reserved link endings, so a link ending never means two things', () => {
     const data = fixture();
-    data.recipients.push({ slug: 'without', name: 'Reserved Invented', coverLine: 'Prepared for Reserved.', lead: 'with-grants' }, { slug: 'dana-invented-without', name: 'Shadow Invented', coverLine: 'Prepared for Shadow.', lead: 'with-grants' });
+    data.recipients.push(
+      { slug: 'without', name: 'Reserved Invented', coverLine: 'Prepared for Reserved.', lead: 'with-grants' },
+      {
+        slug: 'dana-invented-without',
+        name: 'Shadow Invented',
+        coverLine: 'Prepared for Shadow.',
+        lead: 'with-grants',
+      },
+    );
     window.location.hash = '#without';
     const a = mount(data, { useHash: true });
     expect(a.part('cover-line').textContent).toBe(data.coverLine);
@@ -1381,26 +1924,87 @@ describe('font files', () => {
   function stubFonts() {
     const made: { family: string; src: string; status: string; load: () => Promise<unknown> }[] = [];
     const set = new Set<unknown>();
-    class Face { status = 'unloaded'; constructor(public family: string, public src: string) { made.push(this); } load() { this.status = 'loaded'; return Promise.resolve(this); } }
+    class Face {
+      status = 'unloaded';
+      constructor(
+        public family: string,
+        public src: string,
+      ) {
+        made.push(this);
+      }
+      load() {
+        this.status = 'loaded';
+        return Promise.resolve(this);
+      }
+    }
     vi.stubGlobal('FontFace', Face);
     (window as unknown as { FontFace: unknown }).FontFace = Face;
-    Object.defineProperty(document, 'fonts', { configurable: true, value: { add: (f: unknown) => { set.add(f); }, delete: (f: unknown) => set.delete(f), ready: Promise.resolve() } });
+    Object.defineProperty(document, 'fonts', {
+      configurable: true,
+      value: {
+        add: (f: unknown) => {
+          set.add(f);
+        },
+        delete: (f: unknown) => set.delete(f),
+        ready: Promise.resolve(),
+      },
+    });
     return { made, set };
   }
-  afterEach(() => { delete (document as unknown as { fonts?: unknown }).fonts; delete (window as unknown as { FontFace?: unknown }).FontFace; });
-  const withFaces = (faces: unknown): DeckData => { const d = fixture(); (d.theme as unknown as { fontFaces: unknown }).fontFaces = faces; return d; };
-  const stackOf = (root: ParentNode, which: 'title' | 'body') => (root.querySelector('.psd') as HTMLElement).style.getPropertyValue(`--psd-${which}-font`);
+  afterEach(() => {
+    delete (document as unknown as { fonts?: unknown }).fonts;
+    delete (window as unknown as { FontFace?: unknown }).FontFace;
+  });
+  const withFaces = (faces: unknown): DeckData => {
+    const d = fixture();
+    (d.theme as unknown as { fontFaces: unknown }).fontFaces = faces;
+    return d;
+  };
+  const stackOf = (root: ParentNode, which: 'title' | 'body') =>
+    (root.querySelector('.psd') as HTMLElement).style.getPropertyValue(`--psd-${which}-font`);
 
   it('takes only a base64 font data URL as a source', () => {
-    for (const ok of [FONT, OTHER_FONT, 'data:font/ttf;base64,AAEAAAA=', 'data:font/otf;base64,T1RUTw==', 'data:application/font-woff;base64,d09GRg==', 'data:application/x-font-ttf;base64,AAEAAAA=', 'data:application/font-sfnt;base64,AAEA', 'DATA:FONT/WOFF2;BASE64,d09GMg=='])
+    for (const ok of [
+      FONT,
+      OTHER_FONT,
+      'data:font/ttf;base64,AAEAAAA=',
+      'data:font/otf;base64,T1RUTw==',
+      'data:application/font-woff;base64,d09GRg==',
+      'data:application/x-font-ttf;base64,AAEAAAA=',
+      'data:application/font-sfnt;base64,AAEA',
+      'DATA:FONT/WOFF2;BASE64,d09GMg==',
+    ])
       expect(fontSrcOk(ok)).toBe(true);
-    for (const bad of ['', 'https://example.com/a.woff2', '//example.com/a.woff2', 'a.woff2', 'blob:https://example.com/1', 'data:text/html;base64,PGI+', 'data:image/png;base64,iVBOR', 'data:font/woff2,plain', 'data:font/woff2;base64,', 'data:font/woff2;base64,AA"); x{}', 'data:font/woff2;base64,AAAA) format("woff2"), url(https://example.com/a.woff2', 'data:font/woff2;base64,AA AA', 'data:font/woff2;base64,AA\nAA', 'data:application/javascript;base64,AAAA', 'data:application/octet-streamx;base64,AAAA', ' data:font/woff2;base64,AAAA', 42, null, undefined, {}])
+    for (const bad of [
+      '',
+      'https://example.com/a.woff2',
+      '//example.com/a.woff2',
+      'a.woff2',
+      'blob:https://example.com/1',
+      'data:text/html;base64,PGI+',
+      'data:image/png;base64,iVBOR',
+      'data:font/woff2,plain',
+      'data:font/woff2;base64,',
+      'data:font/woff2;base64,AA"); x{}',
+      'data:font/woff2;base64,AAAA) format("woff2"), url(https://example.com/a.woff2',
+      'data:font/woff2;base64,AA AA',
+      'data:font/woff2;base64,AA\nAA',
+      'data:application/javascript;base64,AAAA',
+      'data:application/octet-streamx;base64,AAAA',
+      ' data:font/woff2;base64,AAAA',
+      42,
+      null,
+      undefined,
+      {},
+    ])
       expect(fontSrcOk(bad)).toBe(false);
   });
   it('cleans a family name down to letters, digits, spaces and hyphens', () => {
     expect(cleanFamily('Invented Grotesk-2')).toBe('Invented Grotesk-2');
     expect(cleanFamily('  Made   Up  ')).toBe('Made Up');
-    expect(cleanFamily('x"; } body { display: none } @import url(https://example.com/a.css); "')).toBe('x body display none import urlhttpsexample.coma.css'.replace(/\./g, ''));
+    expect(cleanFamily('x"; } body { display: none } @import url(https://example.com/a.css); "')).toBe(
+      'x body display none import urlhttpsexample.coma.css'.replace(/\./g, ''),
+    );
     expect(cleanFamily('a\\b</style>')).toBe('abstyle');
     expect(cleanFamily("O'Invented")).toBe('OInvented');
     expect(cleanFamily('é字')).toBe('');
@@ -1408,32 +2012,50 @@ describe('font files', () => {
     for (const v of [null, undefined, 7, {}, []]) expect(cleanFamily(v)).toBe('');
     expect(faceName('title', 'Invented Grotesk', FONT)).toBe(`psd-title Invented Grotesk ${shortHash(FONT)}`);
     expect(faceName('title', 'Invented Grotesk', FONT)).toMatch(/^psd-title Invented Grotesk [a-z0-9]{1,7}$/);
-    expect(faceName('body', 'Invented Grotesk', FONT)).not.toBe(faceName('title', 'Invented Grotesk', FONT));        // one name a role
-    expect(faceName('title', 'Invented Grotesk', OTHER_FONT)).not.toBe(faceName('title', 'Invented Grotesk', FONT));   // and one a file
+    expect(faceName('body', 'Invented Grotesk', FONT)).not.toBe(faceName('title', 'Invented Grotesk', FONT)); // one name a role
+    expect(faceName('title', 'Invented Grotesk', OTHER_FONT)).not.toBe(faceName('title', 'Invented Grotesk', FONT)); // and one a file
     expect(shortHash('')).toBe(shortHash(''));
     expect(shortHash('a')).not.toBe(shortHash('b'));
   });
   it('drops every face a hand-edited file gets wrong, and reads eight at most', () => {
-    expect(cleanFontFaces([
+    expect(
+      cleanFontFaces([
+        { family: 'Good One', src: FONT, role: 'title' },
+        { family: 'Remote', src: 'https://example.com/a.woff2', role: 'title' },
+        { family: '"; }', src: FONT, role: 'body' },
+        { family: 'No Role', src: FONT },
+        { family: 'Odd Role', src: FONT, role: 'caption' },
+        'text',
+        null,
+        5,
+        { family: 'Good <Two>', src: OTHER_FONT, role: 'body' },
+      ]),
+    ).toEqual([
       { family: 'Good One', src: FONT, role: 'title' },
-      { family: 'Remote', src: 'https://example.com/a.woff2', role: 'title' },
-      { family: '"; }', src: FONT, role: 'body' },
-      { family: 'No Role', src: FONT },
-      { family: 'Odd Role', src: FONT, role: 'caption' },
-      'text', null, 5,
-      { family: 'Good <Two>', src: OTHER_FONT, role: 'body' },
-    ])).toEqual([{ family: 'Good One', src: FONT, role: 'title' }, { family: 'Good Two', src: OTHER_FONT, role: 'body' }]);
-    expect(cleanFontFaces(Array.from({ length: 12 }, (_, i) => ({ family: `F ${i}`, src: FONT, role: 'body' })))).toHaveLength(8);
+      { family: 'Good Two', src: OTHER_FONT, role: 'body' },
+    ]);
+    expect(
+      cleanFontFaces(Array.from({ length: 12 }, (_, i) => ({ family: `F ${i}`, src: FONT, role: 'body' }))),
+    ).toHaveLength(8);
     for (const v of [undefined, null, 'x', 3, {}]) expect(cleanFontFaces(v)).toEqual([]);
   });
-  it('registers each face with the document and puts it in front of its role\'s stack', () => {
+  it("registers each face with the document and puts it in front of its role's stack", () => {
     const { made, set } = stubFonts();
-    const { root, handle } = mount(withFaces([{ family: 'Invented Slab', src: FONT, role: 'title' }, { family: 'Invented Sans', src: OTHER_FONT, role: 'body' }]), { css: '.x{}' });
-    expect(made.map(f => f.family)).toEqual([faceName('title', 'Invented Slab', FONT), faceName('body', 'Invented Sans', OTHER_FONT)]);
+    const { root, handle } = mount(
+      withFaces([
+        { family: 'Invented Slab', src: FONT, role: 'title' },
+        { family: 'Invented Sans', src: OTHER_FONT, role: 'body' },
+      ]),
+      { css: '.x{}' },
+    );
+    expect(made.map(f => f.family)).toEqual([
+      faceName('title', 'Invented Slab', FONT),
+      faceName('body', 'Invented Sans', OTHER_FONT),
+    ]);
     expect(made[0].src).toBe(`url("${FONT}")`);
     expect(set.size).toBe(2);
     expect(stackOf(root, 'title')).toMatch(/^"psd-title Invented Slab [a-z0-9]+", /);
-    expect(stackOf(root, 'title')).toContain('Special Elite');   // the built-in fallback is still behind it
+    expect(stackOf(root, 'title')).toContain('Special Elite'); // the built-in fallback is still behind it
     expect(stackOf(root, 'title')).not.toContain('Invented Sans');
     expect(stackOf(root, 'body')).toMatch(/^"psd-body Invented Sans [a-z0-9]+", /);
     expect(stackOf(root, 'body')).toContain('Work Sans');
@@ -1441,21 +2063,32 @@ describe('font files', () => {
     expect([...(root as ParentNode).querySelectorAll('style')].map(st => st.textContent)).toEqual(['.x{}']);
     expect(document.head.textContent).not.toContain('font-face');
     handle.destroy();
-    expect(set.size).toBe(0);   // the faces go with the deck
+    expect(set.size).toBe(0); // the faces go with the deck
   });
   it('never lets a hostile family name or address reach the stylesheet', () => {
     const { made, set } = stubFonts();
-    const { root } = mount(withFaces([
-      { family: 'Evil"; } .psd { display: none } @import url(https://evil.invalid/x.css); "', src: FONT, role: 'title' },
-      { family: 'Remote', src: 'https://evil.invalid/a.woff2', role: 'body' },
-      { family: 'Breakout', src: 'data:font/woff2;base64,AAAA"), url("https://evil.invalid/a.woff2', role: 'body' },
-      { family: 'Script', src: 'javascript:alert(1)', role: 'body' },
-    ]));
+    const { root } = mount(
+      withFaces([
+        {
+          family: 'Evil"; } .psd { display: none } @import url(https://evil.invalid/x.css); "',
+          src: FONT,
+          role: 'title',
+        },
+        { family: 'Remote', src: 'https://evil.invalid/a.woff2', role: 'body' },
+        { family: 'Breakout', src: 'data:font/woff2;base64,AAAA"), url("https://evil.invalid/a.woff2', role: 'body' },
+        { family: 'Script', src: 'javascript:alert(1)', role: 'body' },
+      ]),
+    );
     expect(made).toHaveLength(1);
     expect(made[0].family).toMatch(/^psd-title [A-Za-z0-9 -]+$/);
     expect(set.size).toBe(1);
-    const title = stackOf(root, 'title'), body = stackOf(root, 'body');
-    for (const stack of [title, body]) { expect(stack).not.toMatch(/[;{}()@:/\\]/); expect(stack).not.toContain('evil.invalid'); expect((stack.match(/"/g) ?? []).length % 2).toBe(0); }
+    const title = stackOf(root, 'title'),
+      body = stackOf(root, 'body');
+    for (const stack of [title, body]) {
+      expect(stack).not.toMatch(/[;{}()@:/\\]/);
+      expect(stack).not.toContain('evil.invalid');
+      expect((stack.match(/"/g) ?? []).length % 2).toBe(0);
+    }
     expect(body).not.toContain('Remote');
     expect(body).not.toContain('Breakout');
     expect((root as unknown as Node).textContent).not.toContain('evil.invalid');
@@ -1463,29 +2096,36 @@ describe('font files', () => {
   it('shares one registration between decks that carry the same file, and keeps it across a remount', () => {
     const { made, set } = stubFonts();
     const data = withFaces([{ family: 'Invented Slab', src: FONT, role: 'title' }]);
-    const a = mount(data), b = mount(data);
+    const a = mount(data),
+      b = mount(data);
     expect(made).toHaveLength(1);
     expect(set.size).toBe(1);
-    const again = mountDeck(a.host, data);   // a remount on the same host: the face is never dropped and read again
+    const again = mountDeck(a.host, data); // a remount on the same host: the face is never dropped and read again
     mounted.push(again);
     expect(made).toHaveLength(1);
     expect(set.size).toBe(1);
-    a.handle.destroy();                      // the handle that was replaced: nothing to let go of twice
+    a.handle.destroy(); // the handle that was replaced: nothing to let go of twice
     expect(set.size).toBe(1);
     again.destroy();
-    expect(set.size).toBe(1);                // the other deck still uses it
+    expect(set.size).toBe(1); // the other deck still uses it
     b.handle.destroy();
     expect(set.size).toBe(0);
-    mounted.push(mountDeck(a.host, withFaces([{ family: 'Invented Slab', src: OTHER_FONT, role: 'title' }])));   // another file under the same name is another face
+    mounted.push(mountDeck(a.host, withFaces([{ family: 'Invented Slab', src: OTHER_FONT, role: 'title' }]))); // another file under the same name is another face
     expect(made).toHaveLength(2);
   });
   it('a title file and a body file with the same family name are two faces, each in its own stack', () => {
     const { made, set } = stubFonts();
-    const { root } = mount(withFaces([{ family: 'Same Name', src: FONT, role: 'title' }, { family: 'Same Name', src: OTHER_FONT, role: 'body' }]));
+    const { root } = mount(
+      withFaces([
+        { family: 'Same Name', src: FONT, role: 'title' },
+        { family: 'Same Name', src: OTHER_FONT, role: 'body' },
+      ]),
+    );
     expect(made).toHaveLength(2);
     expect(new Set(made.map(f => f.family)).size).toBe(2);
     expect(set.size).toBe(2);
-    const title = made.find(f => f.src === `url("${FONT}")`)!.family, body = made.find(f => f.src === `url("${OTHER_FONT}")`)!.family;
+    const title = made.find(f => f.src === `url("${FONT}")`)!.family,
+      body = made.find(f => f.src === `url("${OTHER_FONT}")`)!.family;
     expect(stackOf(root, 'title').startsWith(`"${title}", `)).toBe(true);
     expect(stackOf(root, 'title')).not.toContain(body);
     expect(stackOf(root, 'body').startsWith(`"${body}", `)).toBe(true);
@@ -1502,17 +2142,22 @@ describe('font files', () => {
     expect(stackOf(b.root, 'title')).toContain(made[1].family);
     a.handle.destroy();
     expect(set.size).toBe(1);
-    expect([...set][0]).toBe(made[1]);   // the other deck's face is still there
+    expect([...set][0]).toBe(made[1]); // the other deck's face is still there
   });
   it('a mount that fails lets go of the faces it took', () => {
     const { made, set } = stubFonts();
     const data = withFaces([{ family: 'Invented Slab', src: FONT, role: 'title' }]);
-    Object.defineProperty(data, 'slides', { get() { throw new Error('a getter that throws'); } });
-    const host = document.createElement('div'); document.body.appendChild(host);
+    Object.defineProperty(data, 'slides', {
+      get() {
+        throw new Error('a getter that throws');
+      },
+    });
+    const host = document.createElement('div');
+    document.body.appendChild(host);
     expect(() => mountDeck(host, data)).toThrow('a getter that throws');
     expect(made).toHaveLength(1);
     expect(set.size).toBe(0);
-    const ok = mount(withFaces([{ family: 'Invented Slab', src: FONT, role: 'title' }]));   // and the next mount starts clean
+    const ok = mount(withFaces([{ family: 'Invented Slab', src: FONT, role: 'title' }])); // and the next mount starts clean
     expect(set.size).toBe(1);
     ok.handle.destroy();
     expect(set.size).toBe(0);
@@ -1521,17 +2166,35 @@ describe('font files', () => {
     const { made } = stubFonts();
     const { handle } = mount(withFaces([{ family: 'Invented Slab', src: FONT, role: 'title' }]));
     const spy = vi.spyOn(handle, 'checkOverflow');
-    await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
     expect(made[0].status).toBe('loaded');
-    expect(spy).not.toHaveBeenCalled();   // the deck refits itself: nobody has to ask
+    expect(spy).not.toHaveBeenCalled(); // the deck refits itself: nobody has to ask
     expect(handle.checkOverflow()).toEqual([]);
   });
   it('mounts without the FontFace API (and with one that throws): the stack still names the face', () => {
     const plain = mount(withFaces([{ family: 'Invented Slab', src: FONT, role: 'title' }]));
     expect(stackOf(plain.root, 'title')).toMatch(/^"psd-title Invented Slab [a-z0-9]+", /);
-    vi.stubGlobal('FontFace', class { constructor() { throw new Error('no'); } });
+    vi.stubGlobal(
+      'FontFace',
+      class {
+        constructor() {
+          throw new Error('no');
+        }
+      },
+    );
     (window as unknown as { FontFace: unknown }).FontFace = (globalThis as unknown as { FontFace: unknown }).FontFace;
-    Object.defineProperty(document, 'fonts', { configurable: true, value: { add: () => { throw new Error('no'); }, delete: () => false, ready: Promise.resolve() } });
+    Object.defineProperty(document, 'fonts', {
+      configurable: true,
+      value: {
+        add: () => {
+          throw new Error('no');
+        },
+        delete: () => false,
+        ready: Promise.resolve(),
+      },
+    });
     expect(() => mount(withFaces([{ family: 'Invented Slab', src: FONT, role: 'title' }]))).not.toThrow();
     expect(() => mount(withFaces('nonsense'))).not.toThrow();
   });
@@ -1554,13 +2217,16 @@ describe('the preview options', () => {
     handle.goTo(5);
     expect(seen).toEqual([5]);
     handle.goTo(5);
-    expect(seen).toEqual([5]);   // only a change is reported
+    expect(seen).toEqual([5]); // only a change is reported
     handle.goTo(0);
     expect(seen).toEqual([5, 0]);
   });
   it('clamps a start that is out of range, and ignores one that is not a number', () => {
     const n = fixture().slides.length;
-    const at = (startAt: unknown) => [...mount(fixture(), { startAt: startAt as number }).root.querySelectorAll('section')].findIndex(s => s.hasAttribute('data-current'));
+    const at = (startAt: unknown) =>
+      [...mount(fixture(), { startAt: startAt as number }).root.querySelectorAll('section')].findIndex(s =>
+        s.hasAttribute('data-current'),
+      );
     expect(at(999)).toBe(n - 1);
     expect(at(-4)).toBe(0);
     expect(at(NaN)).toBe(0);
@@ -1570,7 +2236,17 @@ describe('the preview options', () => {
   it('after the host is resized the deck goes back to the slide it was on', () => {
     vi.useFakeTimers();
     let fire: () => void = () => undefined;
-    class RO { constructor(cb: () => void) { fire = cb; } observe() { /* held in `fire` */ } disconnect() { /* nothing */ } }
+    class RO {
+      constructor(cb: () => void) {
+        fire = cb;
+      }
+      observe() {
+        /* held in `fire` */
+      }
+      disconnect() {
+        /* nothing */
+      }
+    }
     vi.stubGlobal('ResizeObserver', RO);
     (window as unknown as { ResizeObserver: unknown }).ResizeObserver = RO;
     const { root, handle } = mount(fixture());
@@ -1578,16 +2254,21 @@ describe('the preview options', () => {
     Object.defineProperty(deck, 'scrollHeight', { configurable: true, value: 5000 });
     Object.defineProperty(deck, 'clientHeight', { configurable: true, value: 400 });
     const calls: ScrollToOptions[] = [];
-    deck.scrollTo = ((o: ScrollToOptions) => { calls.push(o); }) as typeof deck.scrollTo;
+    deck.scrollTo = ((o: ScrollToOptions) => {
+      calls.push(o);
+    }) as typeof deck.scrollTo;
     handle.goTo(4);
     calls.length = 0;
-    fire(); vi.advanceTimersByTime(200);
+    fire();
+    vi.advanceTimersByTime(200);
     expect(calls).toHaveLength(1);
     expect(calls[0].behavior).toBe('instant');
     expect([...root.querySelectorAll('section')].findIndex(s => s.hasAttribute('data-current'))).toBe(4);
-    handle.goTo(0); calls.length = 0;
-    fire(); vi.advanceTimersByTime(200);
-    expect(calls).toHaveLength(0);   // on the first slide there is nowhere to go back to
+    handle.goTo(0);
+    calls.length = 0;
+    fire();
+    vi.advanceTimersByTime(200);
+    expect(calls).toHaveLength(0); // on the first slide there is nowhere to go back to
     delete (window as unknown as { ResizeObserver?: unknown }).ResizeObserver;
   });
   describe('a resize that re-snaps the scroll', () => {
@@ -1595,7 +2276,17 @@ describe('the preview options', () => {
     function laidOut(onSlide: (i: number) => void) {
       vi.useFakeTimers();
       let fire: () => void = () => undefined;
-      class RO { constructor(cb: () => void) { fire = cb; } observe() { /* held in `fire` */ } disconnect() { /* nothing */ } }
+      class RO {
+        constructor(cb: () => void) {
+          fire = cb;
+        }
+        observe() {
+          /* held in `fire` */
+        }
+        disconnect() {
+          /* nothing */
+        }
+      }
       vi.stubGlobal('ResizeObserver', RO);
       (window as unknown as { ResizeObserver: unknown }).ResizeObserver = RO;
       const { root, handle } = mount(fixture(), { onSlide });
@@ -1603,46 +2294,89 @@ describe('the preview options', () => {
       let top = 0;
       Object.defineProperty(deck, 'scrollHeight', { configurable: true, value: 7800 });
       Object.defineProperty(deck, 'clientHeight', { configurable: true, value: 600 });
-      const rect = (t: number, h: number) => ({ top: t, bottom: t + h, left: 0, right: 1200, width: 1200, height: h, x: 0, y: t, toJSON: () => ({}) }) as DOMRect;
+      const rect = (t: number, h: number) =>
+        ({
+          top: t,
+          bottom: t + h,
+          left: 0,
+          right: 1200,
+          width: 1200,
+          height: h,
+          x: 0,
+          y: t,
+          toJSON: () => ({}),
+        }) as DOMRect;
       deck.getBoundingClientRect = () => rect(0, 600);
       [...root.querySelectorAll<HTMLElement>('.psd-stage')].forEach((st, i) => {
         st.getBoundingClientRect = () => rect(i * 600 - top, 600);
         Object.defineProperty(st, 'offsetTop', { configurable: true, get: () => i * 600 });
       });
       const jumps: number[] = [];
-      deck.scrollTo = ((o: ScrollToOptions) => { if (o.behavior === 'instant') jumps.push(o.top ?? 0); top = o.top ?? 0; }) as typeof deck.scrollTo;
+      deck.scrollTo = ((o: ScrollToOptions) => {
+        if (o.behavior === 'instant') jumps.push(o.top ?? 0);
+        top = o.top ?? 0;
+      }) as typeof deck.scrollTo;
       const current = () => [...root.querySelectorAll('section')].findIndex(s => s.hasAttribute('data-current'));
-      const snapTo = (i: number) => { top = i * 600; deck.dispatchEvent(new Event('scroll')); };
-      vi.advanceTimersByTime(1000);   // the mount's own first resize notice has run its course
-      return { handle, deck, current, snapTo, resize: () => fire(), jumps, cleanup: () => { delete (window as unknown as { ResizeObserver?: unknown }).ResizeObserver; } };
+      const snapTo = (i: number) => {
+        top = i * 600;
+        deck.dispatchEvent(new Event('scroll'));
+      };
+      vi.advanceTimersByTime(1000); // the mount's own first resize notice has run its course
+      return {
+        handle,
+        deck,
+        current,
+        snapTo,
+        resize: () => fire(),
+        jumps,
+        cleanup: () => {
+          delete (window as unknown as { ResizeObserver?: unknown }).ResizeObserver;
+        },
+      };
     }
     it('without a resize, a scroll that settles on another slide is followed (the reader paged by hand)', () => {
       const seen: number[] = [];
       const t = laidOut(i => seen.push(i));
-      t.handle.goTo(4); vi.advanceTimersByTime(2000);
+      t.handle.goTo(4);
+      vi.advanceTimersByTime(2000);
       seen.length = 0;
-      t.snapTo(1); vi.advanceTimersByTime(200);
+      t.snapTo(1);
+      vi.advanceTimersByTime(200);
       expect(t.current()).toBe(1);
       expect(seen).toEqual([1]);
       t.cleanup();
     });
-    it.each([['the scroll comes first, then the resize notice', true], ['the resize notice comes first, then the scroll', false]])('%s: the slide and the selection stay', (_name, scrollFirst) => {
+    it.each([
+      ['the scroll comes first, then the resize notice', true],
+      ['the resize notice comes first, then the scroll', false],
+    ])('%s: the slide and the selection stay', (_name, scrollFirst) => {
       const seen: number[] = [];
       const t = laidOut(i => seen.push(i));
-      t.handle.goTo(4); vi.advanceTimersByTime(2000);
-      seen.length = 0; t.jumps.length = 0;
-      if (scrollFirst) { t.snapTo(1); vi.advanceTimersByTime(5); t.resize(); } else { t.resize(); vi.advanceTimersByTime(5); t.snapTo(1); }
-      vi.advanceTimersByTime(130);          // the scroll would have settled by now
+      t.handle.goTo(4);
+      vi.advanceTimersByTime(2000);
+      seen.length = 0;
+      t.jumps.length = 0;
+      if (scrollFirst) {
+        t.snapTo(1);
+        vi.advanceTimersByTime(5);
+        t.resize();
+      } else {
+        t.resize();
+        vi.advanceTimersByTime(5);
+        t.snapTo(1);
+      }
+      vi.advanceTimersByTime(130); // the scroll would have settled by now
       expect(t.current()).toBe(4);
       expect(seen).toEqual([]);
-      vi.advanceTimersByTime(30);           // the resize handler runs: back to the slide the deck was on
+      vi.advanceTimersByTime(30); // the resize handler runs: back to the slide the deck was on
       expect(t.jumps).toEqual([2400]);
-      t.deck.dispatchEvent(new Event('scroll'));   // the scroll that jump made
+      t.deck.dispatchEvent(new Event('scroll')); // the scroll that jump made
       vi.advanceTimersByTime(250);
       expect(t.current()).toBe(4);
       expect(seen).toEqual([]);
-      vi.advanceTimersByTime(400);          // thawed: the reader's own scrolling is followed again
-      t.snapTo(2); vi.advanceTimersByTime(200);
+      vi.advanceTimersByTime(400); // thawed: the reader's own scrolling is followed again
+      t.snapTo(2);
+      vi.advanceTimersByTime(200);
       expect(t.current()).toBe(2);
       expect(seen).toEqual([2]);
       t.cleanup();
@@ -1650,10 +2384,13 @@ describe('the preview options', () => {
     it('entering or leaving full screen counts as a resize', () => {
       const seen: number[] = [];
       const t = laidOut(i => seen.push(i));
-      t.handle.goTo(3); vi.advanceTimersByTime(2000);
-      seen.length = 0; t.jumps.length = 0;
+      t.handle.goTo(3);
+      vi.advanceTimersByTime(2000);
+      seen.length = 0;
+      t.jumps.length = 0;
       document.dispatchEvent(new Event('fullscreenchange'));
-      t.snapTo(0); vi.advanceTimersByTime(600);
+      t.snapTo(0);
+      vi.advanceTimersByTime(600);
       expect(t.current()).toBe(3);
       expect(seen).toEqual([]);
       expect(t.jumps).toEqual([1800]);
@@ -1670,12 +2407,18 @@ describe('the preview options', () => {
     });
   });
   it('a listener that throws does not stop the deck paging', () => {
-    const { root, handle } = mount(fixture(), { onSlide: () => { throw new Error('listener'); } });
+    const { root, handle } = mount(fixture(), {
+      onSlide: () => {
+        throw new Error('listener');
+      },
+    });
     expect(() => handle.goTo(2)).not.toThrow();
     expect([...root.querySelectorAll('section')].findIndex(s => s.hasAttribute('data-current'))).toBe(2);
   });
   it('with motion off every slide is in its final state, and the deck still pages and switches', () => {
-    const Observer = vi.fn(function () { return { observe: vi.fn(), disconnect: vi.fn() }; });   // a plain function, so it can be called with `new`
+    const Observer = vi.fn(function () {
+      return { observe: vi.fn(), disconnect: vi.fn() };
+    }); // a plain function, so it can be called with `new`
     vi.stubGlobal('IntersectionObserver', Observer);
     (window as unknown as { IntersectionObserver: unknown }).IntersectionObserver = Observer;
     const { root, handle, slide } = mount(fixture(), { motion: false });
@@ -1684,7 +2427,7 @@ describe('the preview options', () => {
     expect(deck.classList.contains('psd-static')).toBe(false);
     expect([...root.querySelectorAll('section')].every(s => s.classList.contains('psd-seen'))).toBe(true);
     expect(Observer).not.toHaveBeenCalled();
-    expect(slide('numbers').querySelectorAll('button.psd-toggle').length).toBeGreaterThan(0);   // still the live slide
+    expect(slide('numbers').querySelectorAll('button.psd-toggle').length).toBeGreaterThan(0); // still the live slide
     expect((deck as HTMLElement).tabIndex).toBe(0);
     handle.goTo(1);
     expect(root.querySelectorAll('section')[1].hasAttribute('data-current')).toBe(true);
@@ -1696,11 +2439,13 @@ describe('the preview options', () => {
     expect(css).toMatch(/\.psd-still \.psd-rise \{ opacity: 1; transform: none; \}/);
     expect(css).toMatch(/\.psd-still \.psd-bar-fill \{ width: var\(--w, 0%\); \}/);
   });
-  it('a recipient\'s card is picked out on a cards slide as well as a ways slide', () => {
+  it("a recipient's card is picked out on a cards slide as well as a ways slide", () => {
     const data = fixture();
     const cards = data.slides.find(s => s.layout === 'cards') as Extract<DeckSlide, { layout: 'cards' }>;
     const target = cards.cards[1].id;
-    data.recipients = [{ slug: 'ada-example', name: 'Ada Example', coverLine: '', lead: 'with-grants', highlightCardId: target }];
+    data.recipients = [
+      { slug: 'ada-example', name: 'Ada Example', coverLine: '', lead: 'with-grants', highlightCardId: target },
+    ];
     const { slide, handle } = mount(data, { recipient: 'ada-example' });
     const lit = () => [...slide('cards').querySelectorAll<HTMLElement>('.psd-highlight')].map(e => e.dataset.cardId);
     expect(lit()).toEqual([target]);
@@ -1712,21 +2457,25 @@ describe('the preview options', () => {
 });
 
 describe('the scratch page', () => {
-  const run = (...args: string[]) => execFileSync('node', [resolve(process.cwd(), 'tools/deck-scratch.mjs'), ...args], { encoding: 'utf8' });
+  const run = (...args: string[]) =>
+    execFileSync('node', [resolve(process.cwd(), 'tools/deck-scratch.mjs'), ...args], { encoding: 'utf8' });
   it('writes no recipient unless one is named, and then only that one', () => {
     const dir = mkdtempSync(join(tmpdir(), 'psd-scratch-'));
     const data = fixture();
     data.film = 'Salt </script><script>window.__pwned = 1</script> Flat';
     writeFileSync(join(dir, 'deck.json'), JSON.stringify(data));
-    const general = join(dir, 'general.html'), dana = join(dir, 'dana.html');
+    const general = join(dir, 'general.html'),
+      dana = join(dir, 'dana.html');
     expect(run(join(dir, 'deck.json'), general)).toMatch(/left out 3 recipients/);
     const g = readFileSync(general, 'utf8');
-    for (const r of data.recipients) for (const secret of [r.name, r.slug, r.note].filter(Boolean)) expect(g).not.toContain(secret as string);
+    for (const r of data.recipients)
+      for (const secret of [r.name, r.slug, r.note].filter(Boolean)) expect(g).not.toContain(secret as string);
     expect(g).not.toContain('</script><script>window.__pwned');
     expect(run(join(dir, 'deck.json'), dana, '--recipient', 'dana-invented')).not.toMatch(/left out/);
     const d = readFileSync(dana, 'utf8');
     expect(d).toContain('Prepared for Dana Invented.');
-    for (const secret of ['Placeholder Fund', 'placeholder-fund', 'A note only the Fund should read.', 'Quiet Person']) expect(d).not.toContain(secret);
+    for (const secret of ['Placeholder Fund', 'placeholder-fund', 'A note only the Fund should read.', 'Quiet Person'])
+      expect(d).not.toContain(secret);
     expect(() => run(join(dir, 'deck.json'), join(dir, 'x.html'), '--recipient', 'nobody')).toThrow();
   }, 60_000);
 });
@@ -1738,8 +2487,8 @@ describe('a slide with little on it', () => {
     expect(shouldCentre(600, 419)).toBe(true);
     expect(shouldCentre(600, 420)).toBe(false);
     expect(shouldCentre(600, 590)).toBe(false);
-    expect(shouldCentre(600, 900)).toBe(false);     // overflowing: never
-    expect(shouldCentre(0, 0)).toBe(false);         // not laid out: nothing can be said
+    expect(shouldCentre(600, 900)).toBe(false); // overflowing: never
+    expect(shouldCentre(0, 0)).toBe(false); // not laid out: nothing can be said
     expect(shouldCentre(600, 0)).toBe(false);
     expect(shouldCentre(-5, 10)).toBe(false);
   });
@@ -1748,8 +2497,10 @@ describe('a slide with little on it', () => {
     expect(css).toMatch(/\.psd-centre \.psd-box::before \{ content: ""; flex: 1 1 0; \}/);
     expect(css).toMatch(/\.psd-centre \.psd-box::after \{ content: ""; flex: 1\.3 1 0; order: 1; \}/);
     expect(css).toMatch(/\.psd-centre \.psd-footnote \{ order: 2; margin-top: 0; \}/);
-    expect(css).toMatch(/\.psd-stacked \.psd-centre \.psd-box::before, \.psd-stacked \.psd-centre \.psd-box::after \{ content: none; \}/);
-    expect(css).not.toMatch(/psd-centre[^{]*\{[^}]*text-align/);   // still set from the left
+    expect(css).toMatch(
+      /\.psd-stacked \.psd-centre \.psd-box::before, \.psd-stacked \.psd-centre \.psd-box::after \{ content: none; \}/,
+    );
+    expect(css).not.toMatch(/psd-centre[^{]*\{[^}]*text-align/); // still set from the left
   });
   it('is decided from what is measured: with no layout to measure (here), no slide is marked', () => {
     const { root, handle } = mount(fixture());
@@ -1760,22 +2511,38 @@ describe('a slide with little on it', () => {
     const { root, handle } = mount(fixture());
     const sections = [...root.querySelectorAll<HTMLElement>('section.psd-slide')];
     // give every slide a 900 px box with 100 px of padding, and content 200 px tall (short) or 700 px (full on the team slide)
-    const rect = (top: number, bottom: number) => ({ top, bottom, left: 0, right: 0, width: 0, height: bottom - top, x: 0, y: top, toJSON: () => ({}) });
+    const rect = (top: number, bottom: number) => ({
+      top,
+      bottom,
+      left: 0,
+      right: 0,
+      width: 0,
+      height: bottom - top,
+      x: 0,
+      y: top,
+      toJSON: () => ({}),
+    });
     for (const sec of sections) {
       const box = sec.querySelector<HTMLElement>('.psd-box')!;
       Object.defineProperty(box, 'clientHeight', { value: 900, configurable: true });
       Object.defineProperty(box, 'clientWidth', { value: 1600, configurable: true });
       Object.defineProperty(box, 'scrollHeight', { value: 900, configurable: true });
       Object.defineProperty(box, 'scrollWidth', { value: 1600, configurable: true });
-      box.style.paddingTop = '50px'; box.style.paddingBottom = '50px';
+      box.style.paddingTop = '50px';
+      box.style.paddingBottom = '50px';
       const kids = [...box.children].filter(k => !k.classList.contains('psd-footnote')) as HTMLElement[];
       const tall = sec.dataset.layout === 'team' ? 700 : 200;
-      kids.forEach((k, i) => { k.getBoundingClientRect = () => rect(100 + (i * tall) / kids.length, 100 + ((i + 1) * tall) / kids.length) as DOMRect; });
+      kids.forEach((k, i) => {
+        k.getBoundingClientRect = () =>
+          rect(100 + (i * tall) / kids.length, 100 + ((i + 1) * tall) / kids.length) as DOMRect;
+      });
     }
     handle.checkOverflow();
     const centred = sections.filter(s => s.classList.contains('psd-centre')).map(s => s.dataset.layout);
-    for (const layout of ['text', 'cards', 'ways', 'stats', 'timeline', 'comps', 'model', 'ask']) expect(centred, layout).toContain(layout);
-    for (const layout of ['team', 'numbers', 'cover', 'photo', 'closing']) expect(centred, layout).not.toContain(layout);
+    for (const layout of ['text', 'cards', 'ways', 'stats', 'timeline', 'comps', 'model', 'ask'])
+      expect(centred, layout).toContain(layout);
+    for (const layout of ['team', 'numbers', 'cover', 'photo', 'closing'])
+      expect(centred, layout).not.toContain(layout);
     // the mark is taken off before the next measure, and a stacked deck never has it
     const narrow = mount(fixture(), { stacked: true });
     narrow.handle.checkOverflow();
@@ -1786,22 +2553,37 @@ describe('a slide with little on it', () => {
 // ---------- a look book slide ----------
 
 describe('a look book slide, drawn', () => {
-  const px = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+  const px =
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
   const deckWith = (pictures: unknown[], extra: Record<string, unknown> = {}): DeckData => {
     const d = fixture();
     d.images = ['a', 'b', 'c', 'd', 'e', 'f', 'g'].map(id => ({ id, src: px, alt: `Picture ${id}` }));
-    d.slides = [{ id: 'look', layout: 'look', eyebrow: 'The look', headline: 'Dusk and salt.', pictures, ...extra } as never];
+    d.slides = [
+      { id: 'look', layout: 'look', eyebrow: 'The look', headline: 'Dusk and salt.', pictures, ...extra } as never,
+    ];
     return d;
   };
   it('draws one figure for each picture, in order, with its caption and credit under it', () => {
-    const { slide } = mount(deckWith([{ imageId: 'b', caption: 'The motel', credit: 'Ada Example' }, { imageId: 'a' }, { imageId: 'c', caption: 'The road' }]));
-    const s = slide('look'), figs = [...s.querySelectorAll<HTMLElement>('.psd-look > figure.psd-look-fig')];
+    const { slide } = mount(
+      deckWith([
+        { imageId: 'b', caption: 'The motel', credit: 'Ada Example' },
+        { imageId: 'a' },
+        { imageId: 'c', caption: 'The road' },
+      ]),
+    );
+    const s = slide('look'),
+      figs = [...s.querySelectorAll<HTMLElement>('.psd-look > figure.psd-look-fig')];
     expect(s.querySelector('.psd-look')!.getAttribute('data-n')).toBe('3');
     expect(figs.map(f => f.querySelector('img')!.alt)).toEqual(['Picture b', 'Picture a', 'Picture c']);
-    expect(figs.map(f => f.querySelector('figcaption')?.textContent ?? null)).toEqual(['The motel · Ada Example', null, 'The road']);
-    expect(figs.every(f => f.classList.contains('psd-rise'))).toBe(true);                                  // they arrive like any other part
+    expect(figs.map(f => f.querySelector('figcaption')?.textContent ?? null)).toEqual([
+      'The motel · Ada Example',
+      null,
+      'The road',
+    ]);
+    expect(figs.every(f => f.classList.contains('psd-rise'))).toBe(true); // they arrive like any other part
     expect(s.querySelector('h2, h1')!.textContent).toContain('Dusk and salt.');
-    expect(s.querySelector('img.psd-bg')).toBeNull(); expect(s.classList.contains('psd-has-picture')).toBe(false);
+    expect(s.querySelector('img.psd-bg')).toBeNull();
+    expect(s.classList.contains('psd-has-picture')).toBe(false);
   });
   it('passes over a picture the file does not carry, shows six at most, and draws only the heading when there is none', () => {
     const many = mount(deckWith(['a', 'b', 'c', 'd', 'e', 'f', 'g'].map(imageId => ({ imageId }))));
@@ -1812,20 +2594,31 @@ describe('a look book slide, drawn', () => {
     const none = mount(deckWith([]));
     expect(none.slide('look').querySelector('.psd-look')).toBeNull();
     expect(none.slide('look').textContent).toContain('Dusk and salt.');
-    expect(mount(deckWith('nonsense' as never)).slide('look').querySelector('.psd-look')).toBeNull();
+    expect(
+      mount(deckWith('nonsense' as never))
+        .slide('look')
+        .querySelector('.psd-look'),
+    ).toBeNull();
   });
   it('never writes a caption as markup', () => {
-    const { slide } = mount(deckWith([{ imageId: 'a', caption: '<img src=x onerror=alert(1)>', credit: '<b>bold</b>' }]));
+    const { slide } = mount(
+      deckWith([{ imageId: 'a', caption: '<img src=x onerror=alert(1)>', credit: '<b>bold</b>' }]),
+    );
     const cap = slide('look').querySelector('figcaption')!;
-    expect(cap.querySelector('img, b')).toBeNull(); expect(cap.textContent).toBe('<img src=x onerror=alert(1)> · <b>bold</b>');
+    expect(cap.querySelector('img, b')).toBeNull();
+    expect(cap.textContent).toBe('<img src=x onerror=alert(1)> · <b>bold</b>');
   });
   it('lays the pictures out by how many there are, and one after another on a phone', () => {
     const sheet = readFileSync(resolve(process.cwd(), 'src/deck-runtime/deck.css'), 'utf8');
     expect(sheet).toContain('.psd-look { flex: 1 1 0; min-height: 0; display: grid;');
     expect(sheet).toContain('.psd-look[data-n="1"] .psd-look-fig { grid-column: span 6; }');
-    expect(sheet).toContain('.psd-look[data-n="2"] .psd-look-fig, .psd-look[data-n="4"] .psd-look-fig { grid-column: span 3; }');
+    expect(sheet).toContain(
+      '.psd-look[data-n="2"] .psd-look-fig, .psd-look[data-n="4"] .psd-look-fig { grid-column: span 3; }',
+    );
     expect(sheet).toContain('.psd-look[data-n="5"] .psd-look-fig:nth-child(n + 4) { grid-column: span 3; }');
-    expect(sheet).toContain('.psd-look-pic { flex: 1 1 0; min-height: 0; width: 100%; object-fit: cover; display: block; }');
+    expect(sheet).toContain(
+      '.psd-look-pic { flex: 1 1 0; min-height: 0; width: 100%; object-fit: cover; display: block; }',
+    );
     expect(sheet).toMatch(/\.psd-stacked \.psd-look \{ flex: none; display: grid; grid-template-columns: 1fr 1fr;/);
   });
 });
@@ -1835,7 +2628,9 @@ describe('the plan slide names the agreement', () => {
     const d = fixture();
     const plan = d.slides.find(s => s.layout === 'timeline') as unknown as Record<string, unknown>;
     plan.agreement = 'Budgeted under the SAG-AFTRA Invented agreement.';
-    expect(mount(d).slide('timeline').querySelector('.psd-agreement')!.textContent).toBe('Budgeted under the SAG-AFTRA Invented agreement.');
+    expect(mount(d).slide('timeline').querySelector('.psd-agreement')!.textContent).toBe(
+      'Budgeted under the SAG-AFTRA Invented agreement.',
+    );
     delete plan.agreement;
     expect(mount(d).slide('timeline').querySelector('.psd-agreement')).toBeNull();
   });
@@ -1845,97 +2640,167 @@ describe('the plan slide names the agreement', () => {
 
 describe('the scrim behind the words of a picture slide', () => {
   const sheet = readFileSync(resolve(process.cwd(), 'src/deck-runtime/deck.css'), 'utf8');
-  const frame = { x: 0, y: 0, w: 1600, h: 900 }, EM = 20;
-  const inside = (t: { x: number; y: number; w: number; h: number }, boxes: ReturnType<typeof veilBoxes>, f = frame) => boxes.some(b => {
-    const l = f.x + (b.left / 100) * f.w, a = f.y + (b.top / 100) * f.h, r = l + (b.width / 100) * f.w, bt = a + (b.height / 100) * f.h;
-    return l <= t.x + 1e-6 && a <= t.y + 1e-6 && r >= t.x + t.w - 1e-6 && bt >= t.y + t.h - 1e-6;
-  });
-  it('the light part follows the author\'s own setting, never under 10% and never over 30%', () => {
-    expect(scrimLight(0)).toBe(10); expect(scrimLight(0.1)).toBe(10); expect(scrimLight(0.25)).toBe(10);
-    expect(scrimLight(0.45)).toBe(18); expect(scrimLight(0.5)).toBe(20); expect(scrimLight(0.7)).toBe(28);
-    expect(scrimLight(0.75)).toBe(30); expect(scrimLight(1)).toBe(30); expect(scrimLight(7)).toBe(30); expect(scrimLight(-3)).toBe(10);
-    for (const raw of [undefined, null, NaN, Infinity, '0.2', {}, []]) expect(scrimLight(raw), String(raw)).toBe(28);   // nothing usable: the default, 0.7
-    for (let a = 0; a <= 1; a += 0.05) { expect(scrimLight(a)).toBeGreaterThanOrEqual(10); expect(scrimLight(a)).toBeLessThanOrEqual(30); expect(scrimLight(a + 0.05)).toBeGreaterThanOrEqual(scrimLight(a)); }
+  const frame = { x: 0, y: 0, w: 1600, h: 900 },
+    EM = 20;
+  const inside = (t: { x: number; y: number; w: number; h: number }, boxes: ReturnType<typeof veilBoxes>, f = frame) =>
+    boxes.some(b => {
+      const l = f.x + (b.left / 100) * f.w,
+        a = f.y + (b.top / 100) * f.h,
+        r = l + (b.width / 100) * f.w,
+        bt = a + (b.height / 100) * f.h;
+      return l <= t.x + 1e-6 && a <= t.y + 1e-6 && r >= t.x + t.w - 1e-6 && bt >= t.y + t.h - 1e-6;
+    });
+  it("the light part follows the author's own setting, never under 10% and never over 30%", () => {
+    expect(scrimLight(0)).toBe(10);
+    expect(scrimLight(0.1)).toBe(10);
+    expect(scrimLight(0.25)).toBe(10);
+    expect(scrimLight(0.45)).toBe(18);
+    expect(scrimLight(0.5)).toBe(20);
+    expect(scrimLight(0.7)).toBe(28);
+    expect(scrimLight(0.75)).toBe(30);
+    expect(scrimLight(1)).toBe(30);
+    expect(scrimLight(7)).toBe(30);
+    expect(scrimLight(-3)).toBe(10);
+    for (const raw of [undefined, null, NaN, Infinity, '0.2', {}, []]) expect(scrimLight(raw), String(raw)).toBe(28); // nothing usable: the default, 0.7
+    for (let a = 0; a <= 1; a += 0.05) {
+      expect(scrimLight(a)).toBeGreaterThanOrEqual(10);
+      expect(scrimLight(a)).toBeLessThanOrEqual(30);
+      expect(scrimLight(a + 0.05)).toBeGreaterThanOrEqual(scrimLight(a));
+    }
   });
   it('a block of text gets a box that holds all of it and half an em more on every side, in percentages of the slide', () => {
     const t = { x: 400, y: 300, w: 480, h: 180 };
     const [b] = veilBoxes([t], frame, EM);
-    expect(b).toEqual({ left: 24.37, top: 32.22, width: 31.26, height: 22.23 });   // 390 to 890 across, 290 to 490 down, rounded outward
+    expect(b).toEqual({ left: 24.37, top: 32.22, width: 31.26, height: 22.23 }); // 390 to 890 across, 290 to 490 down, rounded outward
     expect(VEIL_PAD).toBe(0.5);
-    expect((b.left / 100) * 1600).toBeLessThanOrEqual(400 - 10); expect(((b.left + b.width) / 100) * 1600).toBeGreaterThanOrEqual(880 + 10);
-    expect((b.top / 100) * 900).toBeLessThanOrEqual(300 - 10); expect(((b.top + b.height) / 100) * 900).toBeGreaterThanOrEqual(480 + 10);
+    expect((b.left / 100) * 1600).toBeLessThanOrEqual(400 - 10);
+    expect(((b.left + b.width) / 100) * 1600).toBeGreaterThanOrEqual(880 + 10);
+    expect((b.top / 100) * 900).toBeLessThanOrEqual(300 - 10);
+    expect(((b.top + b.height) / 100) * 900).toBeGreaterThanOrEqual(480 + 10);
     // wherever the slide sits on the page, and at any size
-    expect(veilBoxes([{ x: 400 + 37, y: 300 + 512, w: 480, h: 180 }], { x: 37, y: 512, w: 1600, h: 900 }, EM)).toEqual([b]);
+    expect(veilBoxes([{ x: 400 + 37, y: 300 + 512, w: 480, h: 180 }], { x: 37, y: 512, w: 1600, h: 900 }, EM)).toEqual([
+      b,
+    ]);
     expect(veilBoxes([{ x: 200, y: 150, w: 240, h: 90 }], { x: 0, y: 0, w: 800, h: 450 }, EM / 2)).toEqual([b]);
   });
   it('no pixel of any text is ever outside a box: many slides of made-up text, with labels joined and edges snapped', () => {
-    let seed = 7; const rand = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
+    let seed = 7;
+    const rand = () => {
+      seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+      return seed / 0x7fffffff;
+    };
     for (let n = 0; n < 300; n++) {
-      const f = { x: rand() * 200, y: rand() * 4000, w: 300 + rand() * 1700, h: 0 }; f.h = f.w * 0.5625;
-      const em = f.w * 0.014, texts = Array.from({ length: 1 + Math.floor(rand() * 9) }, () => { const w = em * (2 + rand() * 60), h = em * (0.6 + rand() * (rand() < 0.5 ? 1.4 : 9)); return { x: f.x + rand() * Math.max(1, f.w - w), y: f.y + rand() * Math.max(1, f.h - h), w: Math.min(w, f.w), h: Math.min(h, f.h) }; });
+      const f = { x: rand() * 200, y: rand() * 4000, w: 300 + rand() * 1700, h: 0 };
+      f.h = f.w * 0.5625;
+      const em = f.w * 0.014,
+        texts = Array.from({ length: 1 + Math.floor(rand() * 9) }, () => {
+          const w = em * (2 + rand() * 60),
+            h = em * (0.6 + rand() * (rand() < 0.5 ? 1.4 : 9));
+          return {
+            x: f.x + rand() * Math.max(1, f.w - w),
+            y: f.y + rand() * Math.max(1, f.h - h),
+            w: Math.min(w, f.w),
+            h: Math.min(h, f.h),
+          };
+        });
       const boxes = veilBoxes(texts, f, em);
       for (const t of texts) expect(inside(t, boxes, f), `slide ${n}`).toBe(true);
-      for (const b of boxes) { expect(b.left).toBeGreaterThanOrEqual(0); expect(b.top).toBeGreaterThanOrEqual(0); expect(b.left + b.width).toBeLessThanOrEqual(100.001); expect(b.top + b.height).toBeLessThanOrEqual(100.001); expect(b.width).toBeGreaterThan(0); expect(b.height).toBeGreaterThan(0); }
+      for (const b of boxes) {
+        expect(b.left).toBeGreaterThanOrEqual(0);
+        expect(b.top).toBeGreaterThanOrEqual(0);
+        expect(b.left + b.width).toBeLessThanOrEqual(100.001);
+        expect(b.top + b.height).toBeLessThanOrEqual(100.001);
+        expect(b.width).toBeGreaterThan(0);
+        expect(b.height).toBeGreaterThan(0);
+      }
       expect(boxes.length).toBeLessThanOrEqual(texts.length);
-      expect(veilBoxes(texts, f, em)).toEqual(boxes);   // the same answer every time
+      expect(veilBoxes(texts, f, em)).toEqual(boxes); // the same answer every time
     }
   });
   it('a heading and the paragraphs under it share one box, so the shade has one plain shape; text far away, or beside it, keeps its own', () => {
-    const eyebrow = { x: 126, y: 388, w: 230, h: 22 }, headline = { x: 126, y: 428, w: 1326, h: 62 }, para = { x: 126, y: 520, w: 970, h: 130 }, para2 = { x: 126, y: 676, w: 960, h: 86 };
+    const eyebrow = { x: 126, y: 388, w: 230, h: 22 },
+      headline = { x: 126, y: 428, w: 1326, h: 62 },
+      para = { x: 126, y: 520, w: 970, h: 130 },
+      para2 = { x: 126, y: 676, w: 960, h: 86 };
     const boxes = veilBoxes([eyebrow, headline, para, para2], frame, 22.4);
-    expect(boxes).toHaveLength(1);                                              // not a step for every line
-    expect((boxes[0].left / 100) * 1600).toBeLessThanOrEqual(126 - 11); expect(boxes[0].left).toBeGreaterThan(VEIL_SNAP);   // it stops where the words do: the picture shows beside it
-    expect(((boxes[0].left + boxes[0].width) / 100) * 1600).toBeGreaterThanOrEqual(1452 + 11); expect(boxes[0].left + boxes[0].width).toBeLessThan(100 - VEIL_SNAP);
-    expect((boxes[0].top / 100) * 900).toBeLessThanOrEqual(388 - 11); expect(((boxes[0].top + boxes[0].height) / 100) * 900).toBeGreaterThanOrEqual(762 + 11);
-    expect(VEIL_LABEL).toBe(2.2); expect(VEIL_NEAR).toBe(1.6);
-    const title = { x: 500, y: 380, w: 600, h: 110 }, signoff = { x: 640, y: 512, w: 320, h: 20 }, far = { x: 640, y: 700, w: 320, h: 20 };
+    expect(boxes).toHaveLength(1); // not a step for every line
+    expect((boxes[0].left / 100) * 1600).toBeLessThanOrEqual(126 - 11);
+    expect(boxes[0].left).toBeGreaterThan(VEIL_SNAP); // it stops where the words do: the picture shows beside it
+    expect(((boxes[0].left + boxes[0].width) / 100) * 1600).toBeGreaterThanOrEqual(1452 + 11);
+    expect(boxes[0].left + boxes[0].width).toBeLessThan(100 - VEIL_SNAP);
+    expect((boxes[0].top / 100) * 900).toBeLessThanOrEqual(388 - 11);
+    expect(((boxes[0].top + boxes[0].height) / 100) * 900).toBeGreaterThanOrEqual(762 + 11);
+    expect(VEIL_LABEL).toBe(2.2);
+    expect(VEIL_NEAR).toBe(1.6);
+    const title = { x: 500, y: 380, w: 600, h: 110 },
+      signoff = { x: 640, y: 512, w: 320, h: 20 },
+      far = { x: 640, y: 700, w: 320, h: 20 };
     expect(veilBoxes([title, signoff], frame, 22.4)).toHaveLength(1);
     expect(veilBoxes([title, far], frame, 22.4)).toHaveLength(2);
-    expect(veilBoxes([title, { ...signoff, x: 1200 }], frame, 22.4)).toHaveLength(2);   // beside it, not under it: not joined
-    expect(veilBoxes([para, { ...para2, y: 900 - 86 - 30 }], frame, 22.4)).toHaveLength(2);   // two paragraphs a long way apart stay two
+    expect(veilBoxes([title, { ...signoff, x: 1200 }], frame, 22.4)).toHaveLength(2); // beside it, not under it: not joined
+    expect(veilBoxes([para, { ...para2, y: 900 - 86 - 30 }], frame, 22.4)).toHaveLength(2); // two paragraphs a long way apart stay two
     for (const t of [eyebrow, headline, para, para2]) expect(inside(t, boxes)).toBe(true);
   });
   it('a box that ends right at an edge of the slide runs off it; anything further in stops where its words do', () => {
     expect(VEIL_SNAP).toBe(3);
-    const [a] = veilBoxes([{ x: 40, y: 400, w: 300, h: 100 }], frame, 22.4);   // 28.8 px in: under 3% of 1600
+    const [a] = veilBoxes([{ x: 40, y: 400, w: 300, h: 100 }], frame, 22.4); // 28.8 px in: under 3% of 1600
     expect(a.left).toBe(0);
-    const [b] = veilBoxes([{ x: 126, y: 400, w: 300, h: 100 }], frame, 22.4);  // the usual margin: over 3%
+    const [b] = veilBoxes([{ x: 126, y: 400, w: 300, h: 100 }], frame, 22.4); // the usual margin: over 3%
     expect(b.left).toBeGreaterThan(3);
     const mid = veilBoxes([{ x: 600, y: 400, w: 400, h: 100 }], frame, 22.4)[0];
-    expect(mid.left).toBeGreaterThan(30); expect(mid.top).toBeGreaterThan(40); expect(mid.left + mid.width).toBeLessThan(70); expect(mid.top + mid.height).toBeLessThan(60);
+    expect(mid.left).toBeGreaterThan(30);
+    expect(mid.top).toBeGreaterThan(40);
+    expect(mid.left + mid.width).toBeLessThan(70);
+    expect(mid.top + mid.height).toBeLessThan(60);
     expect(veilBoxes([{ x: 600, y: 30, w: 400, h: 60 }], frame, 22.4)[0].top).toBe(0);
   });
-  it('the footer\'s two labels get a small box each, where they are: no band across the slide', () => {
-    const film = { x: 126, y: 856, w: 80, h: 14 }, page = { x: 1418, y: 856, w: 56, h: 14 };
+  it("the footer's two labels get a small box each, where they are: no band across the slide", () => {
+    const film = { x: 126, y: 856, w: 80, h: 14 },
+      page = { x: 1418, y: 856, w: 56, h: 14 };
     const [a, b] = veilBoxes([film, page], frame, 22.4);
-    expect(a.width).toBeLessThan(8); expect(b.width).toBeLessThan(8);          // a label's width and its padding, no more
-    expect(a.left).toBeGreaterThan(VEIL_SNAP); expect(b.left + b.width).toBeLessThan(100 - VEIL_SNAP);
-    expect(a.top).toBeGreaterThan(90); expect(b.top).toBeGreaterThan(90);
+    expect(a.width).toBeLessThan(8);
+    expect(b.width).toBeLessThan(8); // a label's width and its padding, no more
+    expect(a.left).toBeGreaterThan(VEIL_SNAP);
+    expect(b.left + b.width).toBeLessThan(100 - VEIL_SNAP);
+    expect(a.top).toBeGreaterThan(90);
+    expect(b.top).toBeGreaterThan(90);
   });
   it('the shade is only as strong as the picture needs: nothing over a dark picture, a lot over a white one, never past the old scrim', () => {
     const fill = (r: number, g: number, b: number, n = 40) => Array.from({ length: n }, () => [r, g, b, 255]).flat();
-    const bg = '#141428', white = '#ffffff';
-    expect(shadeNeeded(fill(10, 10, 20), bg, white, false, 0.1)).toBe(SHADE_SPARE);            // already readable: only the spare
+    const bg = '#141428',
+      white = '#ffffff';
+    expect(shadeNeeded(fill(10, 10, 20), bg, white, false, 0.1)).toBe(SHADE_SPARE); // already readable: only the spare
     const salt = shadeNeeded(fill(215, 215, 220), bg, white, false, 0.1);
-    expect(salt).toBeGreaterThanOrEqual(0.4); expect(salt).toBeLessThan(0.85);                   // pale salt under white words: a good deal, but less than the old scrim
-    expect(shadeNeeded(fill(120, 80, 110), bg, white, false, 0.1)).toBe(SHADE_SPARE);             // a dusk sky: white words already read on it
+    expect(salt).toBeGreaterThanOrEqual(0.4);
+    expect(salt).toBeLessThan(0.85); // pale salt under white words: a good deal, but less than the old scrim
+    expect(shadeNeeded(fill(120, 80, 110), bg, white, false, 0.1)).toBe(SHADE_SPARE); // a dusk sky: white words already read on it
     const haze = shadeNeeded(fill(175, 140, 160), bg, white, false, 0.1);
-    expect(haze).toBeGreaterThan(SHADE_SPARE); expect(haze).toBeLessThan(salt);                   // a paler sky: somewhere between
-    expect(shadeNeeded(fill(175, 140, 160), bg, white, true, 0.1)).toBeLessThan(haze);            // large words need less
-    expect(shadeNeeded(fill(175, 140, 160), bg, white, false, 0.3)).toBeLessThanOrEqual(haze);    // a heavier wash has done some of the work
-    expect(shadeNeeded(fill(255, 255, 255), bg, '#777788', false, 0)).toBe(0.85);                 // words that cannot be saved: the ceiling, as before
+    expect(haze).toBeGreaterThan(SHADE_SPARE);
+    expect(haze).toBeLessThan(salt); // a paler sky: somewhere between
+    expect(shadeNeeded(fill(175, 140, 160), bg, white, true, 0.1)).toBeLessThan(haze); // large words need less
+    expect(shadeNeeded(fill(175, 140, 160), bg, white, false, 0.3)).toBeLessThanOrEqual(haze); // a heavier wash has done some of the work
+    expect(shadeNeeded(fill(255, 255, 255), bg, '#777788', false, 0)).toBe(0.85); // words that cannot be saved: the ceiling, as before
     // a few bright pixels (a moon, a star) do not darken the whole shade; a tenth of the picture does
-    const speck = [...fill(10, 10, 20, 97), ...fill(255, 255, 240, 3)], patch = [...fill(10, 10, 20, 88), ...fill(255, 255, 240, 12)];
+    const speck = [...fill(10, 10, 20, 97), ...fill(255, 255, 240, 3)],
+      patch = [...fill(10, 10, 20, 88), ...fill(255, 255, 240, 12)];
     expect(shadeNeeded(speck, bg, white, false, 0.1)).toBe(SHADE_SPARE);
     expect(shadeNeeded(patch, bg, white, false, 0.1)).toBeGreaterThan(0.4);
     // the answer really does give the contrast it promises
-    for (const px of [[215, 215, 220], [120, 80, 110], [240, 200, 60], [90, 140, 200]]) {
-      const k = shadeNeeded(fill(px[0], px[1], px[2]), bg, white, false, 0.1), b = [20, 20, 40];
-      const washed = px.map((v, i) => v + (b[i] - v) * 0.1), under = washed.map((v, i) => Math.round(v + (b[i] - v) * k));
+    for (const px of [
+      [215, 215, 220],
+      [120, 80, 110],
+      [240, 200, 60],
+      [90, 140, 200],
+    ]) {
+      const k = shadeNeeded(fill(px[0], px[1], px[2]), bg, white, false, 0.1),
+        b = [20, 20, 40];
+      const washed = px.map((v, i) => v + (b[i] - v) * 0.1),
+        under = washed.map((v, i) => Math.round(v + (b[i] - v) * k));
       expect(contrastRatio(white, `rgb(${under.join(',')})`), String(px)).toBeGreaterThanOrEqual(4.5);
     }
     // nothing to read: the old scrim
-    for (const bad of [[], [1, 2], null as unknown as number[]]) expect(shadeNeeded(bad, bg, white, false, 0.1)).toBe(0.85);
+    for (const bad of [[], [1, 2], null as unknown as number[]])
+      expect(shadeNeeded(bad, bg, white, false, 0.1)).toBe(0.85);
     expect(shadeNeeded(fill(1, 2, 3), 'not a colour', white, false, 0.1)).toBe(0.85);
     expect(shadeNeeded(fill(1, 2, 3), bg, 'var(--x)', false, 0.1)).toBe(0.85);
     expect(shadeNeeded(fill(1, 2, 3), bg, white, false, NaN)).toBe(0.85);
@@ -1943,74 +2808,136 @@ describe('the scrim behind the words of a picture slide', () => {
   });
   it('dark words on a pale picture need far less shade than light ones: that is when a slide is turned', () => {
     const fill = (r: number, g: number, b: number, n = 40) => Array.from({ length: n }, () => [r, g, b, 255]).flat();
-    const night = '#141428', paper = '#f3ead2';
-    const light = shadeNeeded(fill(215, 215, 220), night, paper, false, 0.1), dark = shadeNeeded(fill(215, 215, 220), paper, night, false, 0.1);
-    expect(light).toBeGreaterThanOrEqual(TURN_FROM); expect(dark).toBeLessThanOrEqual(light - TURN_GAIN);   // pale salt: turned
+    const night = '#141428',
+      paper = '#f3ead2';
+    const light = shadeNeeded(fill(215, 215, 220), night, paper, false, 0.1),
+      dark = shadeNeeded(fill(215, 215, 220), paper, night, false, 0.1);
+    expect(light).toBeGreaterThanOrEqual(TURN_FROM);
+    expect(dark).toBeLessThanOrEqual(light - TURN_GAIN); // pale salt: turned
     const light2 = shadeNeeded(fill(40, 30, 60), night, paper, false, 0.1);
-    expect(light2).toBeLessThan(TURN_FROM);                                                                    // a night sky: left alone
-    expect(TURN_FROM).toBe(0.3); expect(TURN_GAIN).toBe(0.2);
+    expect(light2).toBeLessThan(TURN_FROM); // a night sky: left alone
+    expect(TURN_FROM).toBe(0.3);
+    expect(TURN_GAIN).toBe(0.2);
   });
   it('reads a colour the way a browser reports one', () => {
-    expect(readColor('rgb(10, 20, 30)')).toEqual([10, 20, 30]); expect(readColor('#0a141e')).toEqual([10, 20, 30]);
+    expect(readColor('rgb(10, 20, 30)')).toEqual([10, 20, 30]);
+    expect(readColor('#0a141e')).toEqual([10, 20, 30]);
     expect(readColor('rgba(10, 20, 30, 0.5)')).toEqual([10, 20, 30]);
-    expect(readColor('color(srgb 1 0.5 0)')).toEqual([255, 127.5, 0]); expect(readColor('color(srgb 0.2 0.2 0.2 / 0.6)')).toEqual([51, 51, 51]);
+    expect(readColor('color(srgb 1 0.5 0)')).toEqual([255, 127.5, 0]);
+    expect(readColor('color(srgb 0.2 0.2 0.2 / 0.6)')).toEqual([51, 51, 51]);
     for (const bad of ['', 'red-ish', 'var(--x)', 'color(display-p3 1 0 0)']) expect(readColor(bad), bad).toBeNull();
   });
   it('takes nonsense without throwing: a block with no size gets no box, a slide with no size gets none at all', () => {
     expect(veilBoxes([], frame, EM)).toEqual([]);
-    expect(veilBoxes([{ x: 10, y: 10, w: 0, h: 20 }, { x: 10, y: 10, w: 20, h: 0 }, { x: NaN, y: 0, w: 5, h: 5 }, { x: 0, y: 0, w: Infinity, h: 5 }], frame, EM)).toEqual([]);
-    expect(veilBoxes([{ x: 5000, y: 5000, w: 50, h: 50 }, { x: -900, y: -900, w: 50, h: 50 }], frame, EM)).toEqual([]);   // wholly off the slide
-    for (const f of [{ x: 0, y: 0, w: 0, h: 900 }, { x: 0, y: 0, w: 1600, h: 0 }, { x: 0, y: 0, w: NaN, h: NaN }]) expect(veilBoxes([{ x: 1, y: 1, w: 9, h: 9 }], f, EM)).toEqual([]);
-    for (const em of [0, -4, NaN, Infinity]) { const [b] = veilBoxes([{ x: 400, y: 300, w: 480, h: 180 }], frame, em); expect(b.left).toBe(25); expect(b.top).toBe(33.33); expect(b.width).toBeGreaterThanOrEqual(30); expect(b.width).toBeLessThanOrEqual(30.02); expect(b.height).toBeGreaterThanOrEqual(20); expect(b.height).toBeLessThanOrEqual(20.02); }   // no padding to add: the text's own box
-    expect(veilBoxes([{ x: 400, y: 300, w: 480, h: 180 }, { x: 400, y: 300, w: 480, h: 180 }], frame, EM)).toHaveLength(1);
+    expect(
+      veilBoxes(
+        [
+          { x: 10, y: 10, w: 0, h: 20 },
+          { x: 10, y: 10, w: 20, h: 0 },
+          { x: NaN, y: 0, w: 5, h: 5 },
+          { x: 0, y: 0, w: Infinity, h: 5 },
+        ],
+        frame,
+        EM,
+      ),
+    ).toEqual([]);
+    expect(
+      veilBoxes(
+        [
+          { x: 5000, y: 5000, w: 50, h: 50 },
+          { x: -900, y: -900, w: 50, h: 50 },
+        ],
+        frame,
+        EM,
+      ),
+    ).toEqual([]); // wholly off the slide
+    for (const f of [
+      { x: 0, y: 0, w: 0, h: 900 },
+      { x: 0, y: 0, w: 1600, h: 0 },
+      { x: 0, y: 0, w: NaN, h: NaN },
+    ])
+      expect(veilBoxes([{ x: 1, y: 1, w: 9, h: 9 }], f, EM)).toEqual([]);
+    for (const em of [0, -4, NaN, Infinity]) {
+      const [b] = veilBoxes([{ x: 400, y: 300, w: 480, h: 180 }], frame, em);
+      expect(b.left).toBe(25);
+      expect(b.top).toBe(33.33);
+      expect(b.width).toBeGreaterThanOrEqual(30);
+      expect(b.width).toBeLessThanOrEqual(30.02);
+      expect(b.height).toBeGreaterThanOrEqual(20);
+      expect(b.height).toBeLessThanOrEqual(20.02);
+    } // no padding to add: the text's own box
+    expect(
+      veilBoxes(
+        [
+          { x: 400, y: 300, w: 480, h: 180 },
+          { x: 400, y: 300, w: 480, h: 180 },
+        ],
+        frame,
+        EM,
+      ),
+    ).toHaveLength(1);
   });
   it('a slide that has not been measured keeps its scrim over the whole picture: the boxes are an empty layer, on the three layouts whose picture shows', () => {
     expect([...VEILED].sort()).toEqual(['closing', 'cover', 'photo']);
     const data = fixture();
-    const text = data.slides.find(s => s.layout === 'text')!; text.imageId = data.images[0].id;
+    const text = data.slides.find(s => s.layout === 'text')!;
+    text.imageId = data.images[0].id;
     for (const opts of [{}, { static: true }, { stacked: true }, { motion: false }]) {
       const { slide, root } = mount(data, opts);
       for (const layout of ['cover', 'photo', 'closing']) {
-        const s = slide(layout); if (!s.querySelector('.psd-bg')) continue;
+        const s = slide(layout);
+        if (!s.querySelector('.psd-bg')) continue;
         const veils = s.querySelector<HTMLElement>('.psd-scrim > .psd-veils')!;
         expect(veils, layout).not.toBeNull();
         expect(veils.getAttribute('aria-hidden')).toBe('true');
-        expect(veils.children).toHaveLength(0);          // jsdom lays nothing out: nothing was measured
-        expect(s.classList.contains('psd-turned'), layout).toBe(false);   // and nothing was turned
-        expect(parseColor(s.style.getPropertyValue('--psd-turned-bg')), layout).not.toBeNull();   // the colour a turned slide would be shaded with is ready
-        expect('veil' in s.dataset, layout).toBe(false);   // so the picture is under the scrim as it always was
+        expect(veils.children).toHaveLength(0); // jsdom lays nothing out: nothing was measured
+        expect(s.classList.contains('psd-turned'), layout).toBe(false); // and nothing was turned
+        expect(parseColor(s.style.getPropertyValue('--psd-turned-bg')), layout).not.toBeNull(); // the colour a turned slide would be shaded with is ready
+        expect('veil' in s.dataset, layout).toBe(false); // so the picture is under the scrim as it always was
         const scrim = s.querySelector<HTMLElement>('.psd-scrim')!;
         expect(parseFloat(scrim.style.getPropertyValue('--psd-scrim'))).toBeGreaterThanOrEqual(85);
         const light = parseFloat(scrim.style.getPropertyValue('--psd-scrim-light'));
-        expect(light).toBeGreaterThanOrEqual(10); expect(light).toBeLessThanOrEqual(30);
+        expect(light).toBeGreaterThanOrEqual(10);
+        expect(light).toBeLessThanOrEqual(30);
       }
       expect(slide('cover').querySelector('.psd-veils')).not.toBeNull();
       expect(slide('text').querySelector('.psd-bg')).not.toBeNull();
-      expect(slide('text').querySelector('.psd-veils')).toBeNull();   // a slide of text over a picture keeps the scrim everywhere
+      expect(slide('text').querySelector('.psd-veils')).toBeNull(); // a slide of text over a picture keeps the scrim everywhere
       expect((root as unknown as Element).querySelectorAll('.psd-veil')).toHaveLength(0);
     }
   });
   it('the stylesheet lightens the scrim only where the runtime has marked a slide as measured, and never on a printed page', () => {
     expect(sheet).toContain('.psd-veils { position: absolute; inset: 0; display: none; }');
     expect(sheet).toContain('.psd-slide[data-veil] .psd-veils { display: block; }');
-    expect(sheet).toContain('.psd-slide[data-veil] .psd-scrim { background: color-mix(in srgb, var(--psd-bg) var(--psd-scrim-light, 25%), transparent); }');
+    expect(sheet).toContain(
+      '.psd-slide[data-veil] .psd-scrim { background: color-mix(in srgb, var(--psd-bg) var(--psd-scrim-light, 25%), transparent); }',
+    );
     // the light wash is named in that one rule and nowhere else: without data-veil the old scrim stands
-    expect(sheet.replace(/\/\*[\s\S]*?\*\//g, '').match(/--psd-scrim-light/g)).toHaveLength(2);   // and once more for a slide whose words are turned
+    expect(sheet.replace(/\/\*[\s\S]*?\*\//g, '').match(/--psd-scrim-light/g)).toHaveLength(2); // and once more for a slide whose words are turned
     // a slide whose words are turned the other way round: its shade, its wash and its printed scrim are the theme's ink colour
     expect(sheet).toContain('.psd-slide.psd-turned { --psd-shade: var(--psd-turned-bg); }');
-    expect(sheet).toContain('.psd-slide[data-veil].psd-turned .psd-scrim { background: color-mix(in srgb, var(--psd-turned-bg) var(--psd-scrim-light, 25%), transparent); }');
-    expect(sheet.slice(sheet.indexOf('@media print'))).toContain('.psd-slide[data-veil].psd-turned .psd-scrim { background: color-mix(in srgb, var(--psd-turned-bg) var(--psd-scrim, 85%), transparent); }');
-    expect(sheet).toContain('.psd-l-photo .psd-scrim, .psd-l-closing .psd-scrim { background: linear-gradient(to top, var(--s) 0%, var(--s) var(--psd-stop, 62%), var(--f) 100%); }');
+    expect(sheet).toContain(
+      '.psd-slide[data-veil].psd-turned .psd-scrim { background: color-mix(in srgb, var(--psd-turned-bg) var(--psd-scrim-light, 25%), transparent); }',
+    );
+    expect(sheet.slice(sheet.indexOf('@media print'))).toContain(
+      '.psd-slide[data-veil].psd-turned .psd-scrim { background: color-mix(in srgb, var(--psd-turned-bg) var(--psd-scrim, 85%), transparent); }',
+    );
+    expect(sheet).toContain(
+      '.psd-l-photo .psd-scrim, .psd-l-closing .psd-scrim { background: linear-gradient(to top, var(--s) 0%, var(--s) var(--psd-stop, 62%), var(--f) 100%); }',
+    );
     const veil = /\.psd-veil \{([^}]*)\}/.exec(sheet)![1];
-    expect(veil).toContain('background: var(--psd-shade, var(--psd-bg))'); expect(veil).toContain('opacity: var(--k, var(--psd-scrim, 85%))');   // as strong as the picture needs; not measured, the scrim's own strength
-    expect(sheet).toContain('.psd-veil.psd-veil-small { --v: 1.1em; }'); expect(sheet).not.toContain('psd-veil-foot');   // a footer label has a small patch, and there is no band
-    expect(veil).toContain('mask-composite: intersect'); expect(veil).toContain('-webkit-mask-composite: source-in');
-    expect(veil).toMatch(/#000 var\(--v\), #000 calc\(100% - var\(--v\)\)/);   // nothing fades inside the box itself: the fade is all in the padding round it
+    expect(veil).toContain('background: var(--psd-shade, var(--psd-bg))');
+    expect(veil).toContain('opacity: var(--k, var(--psd-scrim, 85%))'); // as strong as the picture needs; not measured, the scrim's own strength
+    expect(sheet).toContain('.psd-veil.psd-veil-small { --v: 1.1em; }');
+    expect(sheet).not.toContain('psd-veil-foot'); // a footer label has a small patch, and there is no band
+    expect(veil).toContain('mask-composite: intersect');
+    expect(veil).toContain('-webkit-mask-composite: source-in');
+    expect(veil).toMatch(/#000 var\(--v\), #000 calc\(100% - var\(--v\)\)/); // nothing fades inside the box itself: the fade is all in the padding round it
     expect(veil).toMatch(/margin: calc\(var\(--v\) \* -1\) 0 0 calc\(var\(--v\) \* -1\); padding: var\(--v\)/);
     expect(veil).not.toMatch(/blur\(|url\(/);
     const print = sheet.slice(sheet.indexOf('@media print'));
     expect(print).toContain('.psd-slide[data-veil] .psd-veils { display: none; }');
     expect(print).toContain('.psd-slide[data-veil] .psd-scrim { background: var(--s); }');
-    expect(sheet).toContain('.psd-stacked :is(.psd-l-cover, .psd-l-photo) .psd-scrim { display: none; }');   // a phone: the picture is a band above the text, as before
+    expect(sheet).toContain('.psd-stacked :is(.psd-l-cover, .psd-l-photo) .psd-scrim { display: none; }'); // a phone: the picture is a band above the text, as before
   });
 });

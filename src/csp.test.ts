@@ -5,46 +5,88 @@ import { createHash } from 'node:crypto';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { CONNECT_HOSTS, contentSecurityPolicy, cspDirectives, cspPlugin, inlineScripts, scriptHash, withCsp } from '../tools/csp.mjs';
+import {
+  CONNECT_HOSTS,
+  contentSecurityPolicy,
+  cspDirectives,
+  cspPlugin,
+  inlineScripts,
+  scriptHash,
+  withCsp,
+} from '../tools/csp.mjs';
 import { GOOGLE_CSS_ORIGIN, GOOGLE_FILE_ORIGIN } from './engine/googleFonts';
 
 const indexHtml = readFileSync('index.html', 'utf8');
 /** A policy string as { directive: [sources] }. */
-const read = (policy: string): Record<string, string[]> => Object.fromEntries(policy.split(';').map(d => d.trim().split(/\s+/)).map(([name, ...sources]) => [name, sources]));
-const policyOf = (html: string): string => /<meta http-equiv="Content-Security-Policy" content="([^"]*)" \/>/.exec(html)![1];
+const read = (policy: string): Record<string, string[]> =>
+  Object.fromEntries(
+    policy
+      .split(';')
+      .map(d => d.trim().split(/\s+/))
+      .map(([name, ...sources]) => [name, sources]),
+  );
+const policyOf = (html: string): string =>
+  /<meta http-equiv="Content-Security-Policy" content="([^"]*)" \/>/.exec(html)![1];
 const sha = (text: string) => `'sha256-${createHash('sha256').update(text, 'utf8').digest('base64')}'`;
 const HASH = /^'sha256-[A-Za-z0-9+/]{43}='$/;
 
-describe('the app page\'s Content-Security-Policy', () => {
+describe("the app page's Content-Security-Policy", () => {
   const policy = read(contentSecurityPolicy([sha('x')]));
 
   it('starts from nothing and names every directive it needs, once', () => {
     const names = cspDirectives().map(d => d[0]);
     expect(new Set(names).size).toBe(names.length);
-    expect(names.sort()).toEqual(['base-uri', 'connect-src', 'default-src', 'font-src', 'form-action', 'frame-src', 'img-src', 'object-src', 'script-src', 'style-src', 'worker-src']);
+    expect(names.sort()).toEqual([
+      'base-uri',
+      'connect-src',
+      'default-src',
+      'font-src',
+      'form-action',
+      'frame-src',
+      'img-src',
+      'object-src',
+      'script-src',
+      'style-src',
+      'worker-src',
+    ]);
     expect(policy['default-src']).toEqual(["'none'"]);
   });
-  it('script-src: the app\'s own files and hashed inline scripts; no unsafe-inline, no unsafe-eval', () => {
+  it("script-src: the app's own files and hashed inline scripts; no unsafe-inline, no unsafe-eval", () => {
     const scripts = policy['script-src'];
     expect(scripts).not.toContain("'unsafe-inline'");
     expect(scripts).not.toContain("'unsafe-eval'");
-    expect(scripts.join(' ')).not.toMatch(/unsafe-inline|unsafe-eval(?!')|unsafe-hashes|strict-dynamic|data:|blob:|https?:|\*/);
-    expect(scripts.slice(0, 2)).toEqual(["'self'", "'wasm-unsafe-eval'"]);   // WebAssembly only (pdf.js's JPEG 2000 decoder); it does not allow eval
+    expect(scripts.join(' ')).not.toMatch(
+      /unsafe-inline|unsafe-eval(?!')|unsafe-hashes|strict-dynamic|data:|blob:|https?:|\*/,
+    );
+    expect(scripts.slice(0, 2)).toEqual(["'self'", "'wasm-unsafe-eval'"]); // WebAssembly only (pdf.js's JPEG 2000 decoder); it does not allow eval
     for (const s of scripts.slice(2)) expect(s).toMatch(HASH);
     expect(read(contentSecurityPolicy())['script-src']).toEqual(["'self'", "'wasm-unsafe-eval'"]);
   });
   it('connect-src: itself and exactly the three hosts the code asks', () => {
-    expect(policy['connect-src']).toEqual(["'self'", 'https://api.anthropic.com', 'https://fonts.googleapis.com', 'https://fonts.gstatic.com']);
-    expect(CONNECT_HOSTS).toEqual(['https://api.anthropic.com', GOOGLE_CSS_ORIGIN, GOOGLE_FILE_ORIGIN]);   // the font picker's two hosts, as its own code names them
+    expect(policy['connect-src']).toEqual([
+      "'self'",
+      'https://api.anthropic.com',
+      'https://fonts.googleapis.com',
+      'https://fonts.gstatic.com',
+    ]);
+    expect(CONNECT_HOSTS).toEqual(['https://api.anthropic.com', GOOGLE_CSS_ORIGIN, GOOGLE_FILE_ORIGIN]); // the font picker's two hosts, as its own code names them
   });
-  it('every address the app\'s code asks with fetch() is on one of those hosts', () => {
-    const files = (dir: string): string[] => readdirSync(dir, { withFileTypes: true }).flatMap(e => e.isDirectory() ? files(join(dir, e.name)) : /\.tsx?$/.test(e.name) && !/\.test\.tsx?$/.test(e.name) ? [join(dir, e.name)] : []);
+  it("every address the app's code asks with fetch() is on one of those hosts", () => {
+    const files = (dir: string): string[] =>
+      readdirSync(dir, { withFileTypes: true }).flatMap(e =>
+        e.isDirectory()
+          ? files(join(dir, e.name))
+          : /\.tsx?$/.test(e.name) && !/\.test\.tsx?$/.test(e.name)
+            ? [join(dir, e.name)]
+            : [],
+      );
     const asked = new Set<string>();
-    for (const f of files('src')) for (const m of readFileSync(f, 'utf8').matchAll(/fetch\(\s*[`'"](https?:\/\/[^/`'"$]+)/g)) asked.add(m[1]);
-    expect([...asked]).toEqual(['https://api.anthropic.com']);   // src/ai.ts; the font picker builds its addresses from the two constants above
+    for (const f of files('src'))
+      for (const m of readFileSync(f, 'utf8').matchAll(/fetch\(\s*[`'"](https?:\/\/[^/`'"$]+)/g)) asked.add(m[1]);
+    expect([...asked]).toEqual(['https://api.anthropic.com']); // src/ai.ts; the font picker builds its addresses from the two constants above
     for (const host of asked) expect(CONNECT_HOSTS).toContain(host);
   });
-  it('pictures and fonts: the app\'s own and the ones a project carries, never another site\'s', () => {
+  it("pictures and fonts: the app's own and the ones a project carries, never another site's", () => {
     expect(policy['img-src']).toEqual(["'self'", 'data:', 'blob:']);
     expect(policy['font-src']).toEqual(["'self'", 'data:']);
     expect(policy['style-src']).toEqual(["'self'", "'unsafe-inline'"]);
@@ -56,7 +98,10 @@ describe('the app page\'s Content-Security-Policy', () => {
   it('names no other site, no whole scheme and no wildcard anywhere', () => {
     const sources = Object.values(policy).flat();
     expect(sources.filter(s => /^https?:\/\//.test(s))).toEqual(CONNECT_HOSTS);
-    for (const s of sources) { expect(s).not.toContain('*'); expect(s).not.toMatch(/^(https?|wss?|filesystem|mediastream):$/); }
+    for (const s of sources) {
+      expect(s).not.toContain('*');
+      expect(s).not.toMatch(/^(https?|wss?|filesystem|mediastream):$/);
+    }
   });
   it('leaves out what a <meta> policy cannot carry', () => {
     for (const d of ['frame-ancestors', 'report-uri', 'report-to', 'sandbox']) expect(policy[d]).toBeUndefined();
@@ -97,7 +142,9 @@ describe('the policy written into index.html', () => {
     expect(at).toBeGreaterThan(built.indexOf('<meta charset'));
     expect(at).toBeLessThan(built.indexOf('<script'));
     expect(built.indexOf('<meta charset')).toBeLessThan(200);
-    expect(built.replace(/\n\s*<meta http-equiv="Content-Security-Policy"[^>]*>/, '')).toBe(indexHtml.replace(/\r\n?/g, '\n'));
+    expect(built.replace(/\n\s*<meta http-equiv="Content-Security-Policy"[^>]*>/, '')).toBe(
+      indexHtml.replace(/\r\n?/g, '\n'),
+    );
     expect(policyOf(built)).toBe(contentSecurityPolicy([sha(themeScript)]));
   });
   it('a page saved with Windows line ends gets the hash the browser will work out', () => {
@@ -106,9 +153,15 @@ describe('the policy written into index.html', () => {
     expect(crlf).not.toContain('\r');
   });
   it('hashes every inline script that runs, and only those', () => {
-    const page = '<!doctype html><html><head><meta charset="UTF-8" /><script>one()</script><script type="module">two()</script><script src="/a.js"></script><script type="module" crossorigin src="/b.js"></script><script type="application/json">{"three":3}</script><script>one()</script></head><body></body></html>';
+    const page =
+      '<!doctype html><html><head><meta charset="UTF-8" /><script>one()</script><script type="module">two()</script><script src="/a.js"></script><script type="module" crossorigin src="/b.js"></script><script type="application/json">{"three":3}</script><script>one()</script></head><body></body></html>';
     expect(inlineScripts(page)).toEqual(['one()', 'two()', 'one()']);
-    expect(read(policyOf(withCsp(page)))['script-src']).toEqual(["'self'", "'wasm-unsafe-eval'", sha('one()'), sha('two()')]);
+    expect(read(policyOf(withCsp(page)))['script-src']).toEqual([
+      "'self'",
+      "'wasm-unsafe-eval'",
+      sha('one()'),
+      sha('two()'),
+    ]);
   });
   it('refuses a page that already carries a policy, or has no head to put one in', () => {
     expect(() => withCsp(built)).toThrow(/already carries a policy/);

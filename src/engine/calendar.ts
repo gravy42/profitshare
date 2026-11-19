@@ -2,15 +2,32 @@ import type { Board, Calendar, CalEvent, Project } from './types';
 import { shootDays } from './board';
 
 /** Dates are plain 'YYYY-MM-DD' strings everywhere; no time zones. */
-export const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-export const parseYmd = (s: string) => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
-export const addDays = (s: string, n: number) => { const d = parseYmd(s); d.setDate(d.getDate() + n); return ymd(d); };
+export const ymd = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+export const parseYmd = (s: string) => {
+  const [y, m, d] = s.split('-').map(Number);
+  return new Date(y, m - 1, d);
+};
+export const addDays = (s: string, n: number) => {
+  const d = parseYmd(s);
+  d.setDate(d.getDate() + n);
+  return ymd(d);
+};
 const monthOf = (s: string) => s.slice(0, 7);
-export const dow = (s: string) => parseYmd(s).getDay();          // 0 = Sunday
-export const daysInMonth = (ym: string) => { const [y, m] = ym.split('-').map(Number); return new Date(y, m, 0).getDate(); };
-const addMonths = (ym: string, n: number) => { const [y, m] = ym.split('-').map(Number); const d = new Date(y, m - 1 + n, 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; };
-export const monthName = (ym: string) => parseYmd(ym + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-export const shortDate = (s: string) => parseYmd(s).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+export const dow = (s: string) => parseYmd(s).getDay(); // 0 = Sunday
+export const daysInMonth = (ym: string) => {
+  const [y, m] = ym.split('-').map(Number);
+  return new Date(y, m, 0).getDate();
+};
+const addMonths = (ym: string, n: number) => {
+  const [y, m] = ym.split('-').map(Number);
+  const d = new Date(y, m - 1 + n, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+};
+export const monthName = (ym: string) =>
+  parseYmd(ym + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+export const shortDate = (s: string) =>
+  parseYmd(s).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 
 /** Months from `from` to `to` inclusive, as 'YYYY-MM'. */
 export function monthRange(from: string, to: string): string[] {
@@ -22,7 +39,8 @@ export function monthRange(from: string, to: string): string[] {
 
 /** Empty until the user picks a range: no months, no Day 1, nothing placed. */
 export const defaultCalendar = (_p: Project): Calendar => ({
-  from: '', to: '',
+  from: '',
+  to: '',
   workDays: [1, 2, 3, 4, 5],
   skipHolidays: true,
   events: [],
@@ -33,11 +51,13 @@ export const withCalendar = (p: Project): Project => (p.calendar ? p : { ...p, c
 // ---------- US holidays (the ones a film crew actually takes) ----------
 
 const nthWeekday = (y: number, m: number, weekday: number, n: number) => {
-  const first = new Date(y, m, 1); const off = (weekday - first.getDay() + 7) % 7;
+  const first = new Date(y, m, 1);
+  const off = (weekday - first.getDay() + 7) % 7;
   return ymd(new Date(y, m, 1 + off + 7 * (n - 1)));
 };
 const lastWeekday = (y: number, m: number, weekday: number) => {
-  const last = new Date(y, m + 1, 0); const off = (last.getDay() - weekday + 7) % 7;
+  const last = new Date(y, m + 1, 0);
+  const off = (last.getDay() - weekday + 7) % 7;
   return ymd(new Date(y, m + 1, 0 - off));
 };
 /** A fixed-date holiday observed on the nearest weekday when it lands on a weekend. */
@@ -68,16 +88,25 @@ export function usHolidays(year: number): { date: string; label: string }[] {
 
 export function holidaysBetween(from: string, to: string): Map<string, string> {
   const out = new Map<string, string>();
-  const y0 = +from.slice(0, 4), y1 = +to.slice(0, 4);
-  for (let y = y0; y <= y1; y++) for (const h of usHolidays(y)) if (monthOf(h.date) >= from && monthOf(h.date) <= to) out.set(h.date, h.label);
+  const y0 = +from.slice(0, 4),
+    y1 = +to.slice(0, 4);
+  for (let y = y0; y <= y1; y++)
+    for (const h of usHolidays(y)) if (monthOf(h.date) >= from && monthOf(h.date) <= to) out.set(h.date, h.label);
   return out;
 }
 
 // ---------- events ----------
 
 export const EVENT_KINDS: { id: CalEvent['kind']; label: string }[] = [
-  { id: 'prep', label: 'Prep' }, { id: 'shoot', label: 'Shoot day' }, { id: 'test', label: 'Test shoot' }, { id: 'wrap', label: 'Wrap' }, { id: 'post', label: 'Post' },
-  { id: 'travel', label: 'Travel / move' }, { id: 'hold', label: 'Hold / hiatus' }, { id: 'off', label: 'Company day off' }, { id: 'note', label: 'Note' },
+  { id: 'prep', label: 'Prep' },
+  { id: 'shoot', label: 'Shoot day' },
+  { id: 'test', label: 'Test shoot' },
+  { id: 'wrap', label: 'Wrap' },
+  { id: 'post', label: 'Post' },
+  { id: 'travel', label: 'Travel / move' },
+  { id: 'hold', label: 'Hold / hiatus' },
+  { id: 'off', label: 'Company day off' },
+  { id: 'note', label: 'Note' },
 ];
 
 export function eventsOn(cal: Calendar, date: string): CalEvent[] {
@@ -90,7 +119,8 @@ export function eventsOn(cal: Calendar, date: string): CalEvent[] {
 function isWorkDate(cal: Calendar, date: string, holidays: Map<string, string>): boolean {
   if (!cal.workDays.includes(dow(date))) return false;
   if (cal.skipHolidays && holidays.has(date)) return false;
-  if (cal.events.some(e => e.kind === 'off' && date >= e.date && date <= (e.end && e.end > e.date ? e.end : e.date))) return false;
+  if (cal.events.some(e => e.kind === 'off' && date >= e.date && date <= (e.end && e.end > e.date ? e.end : e.date)))
+    return false;
   return true;
 }
 
@@ -102,11 +132,17 @@ export function shootDates(board: Board, cal: Calendar): Map<number, string> {
   const pinned = new Map<number, string>();
   for (const e of cal.events) if (e.kind === 'shoot' && e.dayIndex) pinned.set(e.dayIndex, e.date);
   const taken = new Set(pinned.values());
-  const holidays = cal.dayOne ? holidaysBetween(monthOf(cal.dayOne), addMonths(monthOf(cal.dayOne), 12)) : new Map<string, string>();
+  const holidays = cal.dayOne
+    ? holidaysBetween(monthOf(cal.dayOne), addMonths(monthOf(cal.dayOne), 12))
+    : new Map<string, string>();
   let d = cal.dayOne;
   for (const day of days) {
     const pin = pinned.get(day.index) ?? (day.date && /^\d{4}-\d{2}-\d{2}$/.test(day.date) ? day.date : undefined);
-    if (pin) { out.set(day.index, pin); if (d && pin >= d) d = addDays(pin, 1); continue; }
+    if (pin) {
+      out.set(day.index, pin);
+      if (d && pin >= d) d = addDays(pin, 1);
+      continue;
+    }
     if (!d) continue;
     let guard = 0;
     while ((!isWorkDate(cal, d, holidays) || taken.has(d)) && guard++ < 400) d = addDays(d, 1);
@@ -130,8 +166,20 @@ export function stampBoardDates(p: Project): Project {
   return { ...p, board: { ...p.board, strips } };
 }
 
-export const newEvent = (date: string, label: string, kind: CalEvent['kind'], end?: string, dayIndex?: number): CalEvent =>
-  ({ id: `ev_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`, date, end: end && end > date ? end : undefined, label, kind, ...(dayIndex ? { dayIndex } : {}) });
+export const newEvent = (
+  date: string,
+  label: string,
+  kind: CalEvent['kind'],
+  end?: string,
+  dayIndex?: number,
+): CalEvent => ({
+  id: `ev_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`,
+  date,
+  end: end && end > date ? end : undefined,
+  label,
+  kind,
+  ...(dayIndex ? { dayIndex } : {}),
+});
 
 // ---------- export ----------
 
@@ -142,15 +190,31 @@ export function toIcs(p: Project): string {
   const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//ProfitShare//Calendar//EN'];
   const esc = (s: string) => s.replace(/[\\,;]/g, m => '\\' + m);
   for (const day of shootDays(p.board)) {
-    const d = dates.get(day.index); if (!d) continue;
+    const d = dates.get(day.index);
+    if (!d) continue;
     const loc = [...new Set(day.scenes.map(s => s.location).filter(Boolean))].join(' / ');
-    lines.push('BEGIN:VEVENT', `UID:shoot-${day.index}@profitshare`, `DTSTART;VALUE=DATE:${icsDate(d)}`, `DTEND;VALUE=DATE:${icsDate(addDays(d, 1))}`,
-      `SUMMARY:${esc(`${p.name}: Shoot Day ${day.index}`)}`, `DESCRIPTION:${esc(`${day.scenes.map(s => s.number).join(', ')}${loc ? ' · ' + loc : ''}`)}`, 'END:VEVENT');
+    lines.push(
+      'BEGIN:VEVENT',
+      `UID:shoot-${day.index}@profitshare`,
+      `DTSTART;VALUE=DATE:${icsDate(d)}`,
+      `DTEND;VALUE=DATE:${icsDate(addDays(d, 1))}`,
+      `SUMMARY:${esc(`${p.name}: Shoot Day ${day.index}`)}`,
+      `DESCRIPTION:${esc(`${day.scenes.map(s => s.number).join(', ')}${loc ? ' · ' + loc : ''}`)}`,
+      'END:VEVENT',
+    );
   }
   for (const e of cal.events) {
     if (e.kind === 'shoot' && e.dayIndex) continue;
     const end = e.end && e.end > e.date ? e.end : e.date;
-    lines.push('BEGIN:VEVENT', `UID:${e.id}@profitshare`, `DTSTART;VALUE=DATE:${icsDate(e.date)}`, `DTEND;VALUE=DATE:${icsDate(addDays(end, 1))}`, `SUMMARY:${esc(`${p.name}: ${e.label}`)}`, `CATEGORIES:${e.kind}`, 'END:VEVENT');
+    lines.push(
+      'BEGIN:VEVENT',
+      `UID:${e.id}@profitshare`,
+      `DTSTART;VALUE=DATE:${icsDate(e.date)}`,
+      `DTEND;VALUE=DATE:${icsDate(addDays(end, 1))}`,
+      `SUMMARY:${esc(`${p.name}: ${e.label}`)}`,
+      `CATEGORIES:${e.kind}`,
+      'END:VEVENT',
+    );
   }
   lines.push('END:VCALENDAR');
   return lines.join('\r\n');

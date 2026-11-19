@@ -12,12 +12,28 @@ export { PROMISE_TEXT, promiseOfReturns };
 export const promisesReturns = (text: unknown): boolean => promiseOfReturns(text).flagged;
 const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 
-export const COVER_MAX = 90, NOTE_MAX = 240, ABOUT_MAX = 2000, PUNCH_MAX = 90, PROBLEM_MAX = 220, PROBLEMS_MAX = 8, SLIDE_TEXT_MAX = 1500;
+export const COVER_MAX = 90,
+  NOTE_MAX = 240,
+  ABOUT_MAX = 2000,
+  PUNCH_MAX = 90,
+  PROBLEM_MAX = 220,
+  PROBLEMS_MAX = 8,
+  SLIDE_TEXT_MAX = 1500;
 
 /** One line of plain text, cut to `max`. Control characters go; everything else (angle brackets too) is text. */
-const line = (s: unknown, max: number): string => (typeof s === 'string' ? s.replace(/[\u0000-\u001f\u007f]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max).trim() : '');
-const obj = (v: unknown): Record<string, unknown> => (v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : {});
-const own = (o: Record<string, unknown>, k: string): unknown => (Object.prototype.hasOwnProperty.call(o, k) ? o[k] : undefined);
+const line = (s: unknown, max: number): string =>
+  typeof s === 'string'
+    ? s
+        .replace(/[\u0000-\u001f\u007f]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, max)
+        .trim()
+    : '';
+const obj = (v: unknown): Record<string, unknown> =>
+  v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
+const own = (o: Record<string, unknown>, k: string): unknown =>
+  Object.prototype.hasOwnProperty.call(o, k) ? o[k] : undefined;
 
 // ---------- what a slide says, as text ----------
 
@@ -25,38 +41,98 @@ const own = (o: Record<string, unknown>, k: string): unknown => (Object.prototyp
  *  for both: `slideText` can only label what it reads with a kind from here, and the page's sentence about what is
  *  sent is made from the same words. A test fails if a kind is read that is not listed, or listed and never read. */
 export const CRITIQUE_SENT = [
-  ['headline', 'headlines'], ['paragraph', 'paragraphs'], ['card', 'cards'], ['number', 'numbers and their sources'], ['team', 'team names and bios'],
-  ['comp', 'comparable film titles'], ['terms', 'the deal terms shown on the model slide'], ['contact', 'your contact line'], ['film', 'the film\'s title'],
+  ['headline', 'headlines'],
+  ['paragraph', 'paragraphs'],
+  ['card', 'cards'],
+  ['number', 'numbers and their sources'],
+  ['team', 'team names and bios'],
+  ['comp', 'comparable film titles'],
+  ['terms', 'the deal terms shown on the model slide'],
+  ['contact', 'your contact line'],
+  ['film', "the film's title"],
 ] as const;
-type SentKind = typeof CRITIQUE_SENT[number][0];
-export const CRITIQUE_NOT_SENT = ['your budget lines', 'the figures on the money slide', 'pictures', 'the people you send the deck to'] as const;
-interface SlideWords { field: string; kind: SentKind; text: string }
+type SentKind = (typeof CRITIQUE_SENT)[number][0];
+export const CRITIQUE_NOT_SENT = [
+  'your budget lines',
+  'the figures on the money slide',
+  'pictures',
+  'the people you send the deck to',
+] as const;
+interface SlideWords {
+  field: string;
+  kind: SentKind;
+  text: string;
+}
 
 /** A slide's words, field by field, the way its reader sees them: no pictures, no figures from the budget. `field`
  *  is where the editor has it; `kind` is what it is called when the page says what is sent. */
 export function slideText(s: DeckSlide): SlideWords[] {
   const out: SlideWords[] = [];
-  const add = (field: string, kind: SentKind, text: unknown) => { const t = typeof text === 'string' ? text.trim() : ''; if (t) out.push({ field, kind, text: t }); };
-  add('eyebrow', 'headline', s.eyebrow); add('headline', 'headline', s.headline); add('punch', 'headline', s.punch);
+  const add = (field: string, kind: SentKind, text: unknown) => {
+    const t = typeof text === 'string' ? text.trim() : '';
+    if (t) out.push({ field, kind, text: t });
+  };
+  add('eyebrow', 'headline', s.eyebrow);
+  add('headline', 'headline', s.headline);
+  add('punch', 'headline', s.punch);
   switch (s.layout) {
-    case 'cover': add('tagline', 'paragraph', s.tagline); add('byline', 'paragraph', s.byline); break;
-    case 'photo': add('body', 'paragraph', s.body); break;
-    case 'look': for (const x of s.pictures) add('pictures', 'paragraph', [x.caption, x.credit].filter(Boolean).join(' · ')); break;
-    case 'text': add('body', 'paragraph', s.body); for (const a of s.aside ?? []) add('body', 'paragraph', [a.label, ...a.lines].join(': ')); add('closing', 'paragraph', s.closing); break;
-    case 'cards': case 'ways': for (const c of s.cards) add('cards', 'card', [c.kicker, c.title, c.body, c.footnote].filter(Boolean).join(' | ')); break;
+    case 'cover':
+      add('tagline', 'paragraph', s.tagline);
+      add('byline', 'paragraph', s.byline);
+      break;
+    case 'photo':
+      add('body', 'paragraph', s.body);
+      break;
+    case 'look':
+      for (const x of s.pictures) add('pictures', 'paragraph', [x.caption, x.credit].filter(Boolean).join(' · '));
+      break;
+    case 'text':
+      add('body', 'paragraph', s.body);
+      for (const a of s.aside ?? []) add('body', 'paragraph', [a.label, ...a.lines].join(': '));
+      add('closing', 'paragraph', s.closing);
+      break;
+    case 'cards':
+    case 'ways':
+      for (const c of s.cards)
+        add('cards', 'card', [c.kicker, c.title, c.body, c.footnote].filter(Boolean).join(' | '));
+      break;
     case 'stats':
       if (s.lead) add('numbers', 'number', `${s.lead.value} ${s.lead.text} (source: ${s.lead.source})`);
       add('body', 'paragraph', s.body);
       for (const x of s.stats) add('numbers', 'number', `${x.value} ${x.label} (source: ${x.source})`);
       if (s.quote) add('body', 'paragraph', `"${s.quote.text}" ${s.quote.by}`);
-      add('closing', 'paragraph', s.note); break;
-    case 'timeline': for (const m of s.milestones) add('body', 'paragraph', `${m.when}: ${m.what}`); add('closing', 'paragraph', s.note); break;
-    case 'comps': for (const g of s.groups) add('body', 'comp', `${g.group}: ${g.rows.map(r => `${r.title} ${r.year}`.trim()).join('; ')}`); add('closing', 'paragraph', s.callout); break;
-    case 'team': for (const m of s.members) add('body', 'team', `${m.name}, ${m.role}: ${m.bio}`); if (s.aside) add('body', 'team', [s.aside.title, ...s.aside.lines].join(': ')); break;
-    case 'model': add('body', 'paragraph', s.body); for (const x of s.steps) add('body', 'terms', `${x.label}: ${x.title}. ${x.body}`); add('closing', 'paragraph', s.closing); break;
-    case 'numbers': add('body', 'paragraph', s.body); add('closing', 'paragraph', s.caseNote); break;
-    case 'ask': add('ask', 'paragraph', s.withGrants); if (s.withoutGrants !== s.withGrants) add('ask', 'paragraph', s.withoutGrants); add('nextStep', 'paragraph', s.nextStep); add('contact', 'contact', s.contact); break;
-    case 'closing': break;
+      add('closing', 'paragraph', s.note);
+      break;
+    case 'timeline':
+      for (const m of s.milestones) add('body', 'paragraph', `${m.when}: ${m.what}`);
+      add('closing', 'paragraph', s.note);
+      break;
+    case 'comps':
+      for (const g of s.groups)
+        add('body', 'comp', `${g.group}: ${g.rows.map(r => `${r.title} ${r.year}`.trim()).join('; ')}`);
+      add('closing', 'paragraph', s.callout);
+      break;
+    case 'team':
+      for (const m of s.members) add('body', 'team', `${m.name}, ${m.role}: ${m.bio}`);
+      if (s.aside) add('body', 'team', [s.aside.title, ...s.aside.lines].join(': '));
+      break;
+    case 'model':
+      add('body', 'paragraph', s.body);
+      for (const x of s.steps) add('body', 'terms', `${x.label}: ${x.title}. ${x.body}`);
+      add('closing', 'paragraph', s.closing);
+      break;
+    case 'numbers':
+      add('body', 'paragraph', s.body);
+      add('closing', 'paragraph', s.caseNote);
+      break;
+    case 'ask':
+      add('ask', 'paragraph', s.withGrants);
+      if (s.withoutGrants !== s.withGrants) add('ask', 'paragraph', s.withoutGrants);
+      add('nextStep', 'paragraph', s.nextStep);
+      add('contact', 'contact', s.contact);
+      break;
+    case 'closing':
+      break;
   }
   add('footnote', 'paragraph', s.footnote);
   return out;
@@ -65,7 +141,11 @@ export function slideText(s: DeckSlide): SlideWords[] {
 // ---------- checks that need no model ----------
 
 /** A problem on the deck, tied to a slide and (when there is one) the field to open. */
-interface DeckProblem { slideId: string; field: string; message: string }
+interface DeckProblem {
+  slideId: string;
+  field: string;
+  message: string;
+}
 
 /** What can be said about the deck's words without asking anyone: text that reads as a promise of returns, and an
  *  ask with no way to answer it. (Missing sources, lost pictures and the rest are `deckWarnings`; a slide that is too
@@ -81,21 +161,44 @@ export function deckChecks(d: DeckData): DeckProblem[] {
       out.push({ slideId: s.id, field: t.field, message: `${PROMISE_TEXT} ("${v.phrase}")` });
     }
     if (s.layout === 'ask') {
-      if (!s.contact.trim()) out.push({ slideId: s.id, field: 'contact', message: 'The ask does not say how to reach you.' });
-      if (!s.nextStep.trim()) out.push({ slideId: s.id, field: 'nextStep', message: 'The ask does not say what you want the reader to do next.' });
+      if (!s.contact.trim())
+        out.push({ slideId: s.id, field: 'contact', message: 'The ask does not say how to reach you.' });
+      if (!s.nextStep.trim())
+        out.push({
+          slideId: s.id,
+          field: 'nextStep',
+          message: 'The ask does not say what you want the reader to do next.',
+        });
     }
   }
   for (const r of Array.isArray(d?.recipients) ? d.recipients : []) {
     const v = [promiseOfReturns(r.note), promiseOfReturns(r.coverLine)].find(x => x.flagged);
-    if (v) out.push({ slideId: `recipient:${r.slug}`, field: 'note', message: `${r.name || 'Someone'}: ${PROMISE_TEXT} ("${v.phrase}")` });
+    if (v)
+      out.push({
+        slideId: `recipient:${r.slug}`,
+        field: 'note',
+        message: `${r.name || 'Someone'}: ${PROMISE_TEXT} ("${v.phrase}")`,
+      });
   }
   return out;
 }
 
 // ---------- for one person ----------
 
-export interface PersonBrief { about: string; film: string; logline: string; askWith: string; askWithout: string; hasGrants: boolean }
-export interface PersonSuggestion { coverLine: string; note: string; lead: 'with-grants' | 'without-grants'; flagged: boolean }   // flagged: the note or the line reads as a promise of returns
+export interface PersonBrief {
+  about: string;
+  film: string;
+  logline: string;
+  askWith: string;
+  askWithout: string;
+  hasGrants: boolean;
+}
+export interface PersonSuggestion {
+  coverLine: string;
+  note: string;
+  lead: 'with-grants' | 'without-grants';
+  flagged: boolean;
+} // flagged: the note or the line reads as a promise of returns
 
 const PERSON_SYSTEM = `You help an independent filmmaker tailor a pitch deck for one person or fund they are sending it to. From what the filmmaker pasted about that person, suggest: a cover line (the short line above the film's title, such as "Prepared for Ada Example."), a short note to them for the ask slide, and which ask they should read first.
 
@@ -103,62 +206,119 @@ Rules. Plain and specific. No flattery. Use only what the pasted text says about
 
 export function personTool(hasGrants: boolean): AiTool {
   return {
-    name: 'suggest_for_person', description: 'Suggest a cover line, a note and which ask to show first for this one person.',
+    name: 'suggest_for_person',
+    description: 'Suggest a cover line, a note and which ask to show first for this one person.',
     input_schema: {
-      type: 'object', additionalProperties: false, required: ['cover_line', 'note', 'lead'],
+      type: 'object',
+      additionalProperties: false,
+      required: ['cover_line', 'note', 'lead'],
       properties: {
         cover_line: { type: 'string', maxLength: COVER_MAX },
         note: { type: 'string', maxLength: NOTE_MAX },
-        lead: { type: 'string', enum: hasGrants ? ['with-grants', 'without-grants'] : ['with-grants'], description: 'with-grants: the smaller raise, grants counted. without-grants: the whole raise.' },
+        lead: {
+          type: 'string',
+          enum: hasGrants ? ['with-grants', 'without-grants'] : ['with-grants'],
+          description: 'with-grants: the smaller raise, grants counted. without-grants: the whole raise.',
+        },
       },
     },
   };
 }
 /** Everything a request for one person carries, part by part: how the part is written into the prompt, and the
  *  words the page uses for it. The prompt is made from this list and so is the sentence that says what is sent. */
-export const PERSON_SENT: { key: string; words: (hasGrants: boolean) => string; write: (b: PersonBrief) => string }[] = [
-  { key: 'about', words: () => 'what you paste here', write: b => `ABOUT THE PERSON (pasted by the filmmaker):\n${(typeof b.about === 'string' ? b.about : '').trim().slice(0, ABOUT_MAX)}` },
-  { key: 'film', words: () => 'the film\'s title', write: b => `THE FILM: ${line(b.film, 200)}` },
-  { key: 'logline', words: () => 'its logline', write: b => `LOGLINE: ${line(b.logline, 600) || '(none yet)'}` },
-  { key: 'asks', words: g => (g ? 'the two ask sentences from your deck, with the amounts in them (what you are raising and the grants figure)' : 'the ask sentence from your deck, with the amount in it (what you are raising)'),
-    write: b => (b.hasGrants ? `THE ASK, WITH GRANTS COUNTED: ${line(b.askWith, 600)}\n\nTHE ASK, WITHOUT GRANTS: ${line(b.askWithout, 600)}` : `THE ASK: ${line(b.askWith, 600)}`) },
-];
+export const PERSON_SENT: { key: string; words: (hasGrants: boolean) => string; write: (b: PersonBrief) => string }[] =
+  [
+    {
+      key: 'about',
+      words: () => 'what you paste here',
+      write: b =>
+        `ABOUT THE PERSON (pasted by the filmmaker):\n${(typeof b.about === 'string' ? b.about : '').trim().slice(0, ABOUT_MAX)}`,
+    },
+    { key: 'film', words: () => "the film's title", write: b => `THE FILM: ${line(b.film, 200)}` },
+    { key: 'logline', words: () => 'its logline', write: b => `LOGLINE: ${line(b.logline, 600) || '(none yet)'}` },
+    {
+      key: 'asks',
+      words: g =>
+        g
+          ? 'the two ask sentences from your deck, with the amounts in them (what you are raising and the grants figure)'
+          : 'the ask sentence from your deck, with the amount in it (what you are raising)',
+      write: b =>
+        b.hasGrants
+          ? `THE ASK, WITH GRANTS COUNTED: ${line(b.askWith, 600)}\n\nTHE ASK, WITHOUT GRANTS: ${line(b.askWithout, 600)}`
+          : `THE ASK: ${line(b.askWith, 600)}`,
+    },
+  ];
 const PERSON_NOT_SENT = ['your budget lines', 'anyone else you send the deck to', 'your slides', 'pictures'];
 /** What is sent for one person: exactly the parts of `PERSON_SENT`, in order. */
 export function personRequest(b: PersonBrief): AiRequest {
-  return { system: PERSON_SYSTEM, prompt: PERSON_SENT.map(part => part.write(b)).join('\n\n'), tool: personTool(b.hasGrants) };
+  return {
+    system: PERSON_SYSTEM,
+    prompt: PERSON_SENT.map(part => part.write(b)).join('\n\n'),
+    tool: personTool(b.hasGrants),
+  };
 }
 export function readPersonReply(input: unknown, hasGrants: boolean): PersonSuggestion {
   if (!isObj(input)) throw new Error(NOT_IN_FORM);
   const o = obj(input);
-  const coverLine = line(own(o, 'cover_line'), COVER_MAX), note = line(own(o, 'note'), NOTE_MAX);
+  const coverLine = line(own(o, 'cover_line'), COVER_MAX),
+    note = line(own(o, 'note'), NOTE_MAX);
   if (!coverLine && !note) throw new Error('the answer had no cover line and no note in it');
-  return { coverLine, note, lead: hasGrants && own(o, 'lead') === 'without-grants' ? 'without-grants' : 'with-grants', flagged: promisesReturns(coverLine) || promisesReturns(note) };
+  return {
+    coverLine,
+    note,
+    lead: hasGrants && own(o, 'lead') === 'without-grants' ? 'without-grants' : 'with-grants',
+    flagged: promisesReturns(coverLine) || promisesReturns(note),
+  };
 }
 export const personSends = (hasGrants: boolean): string =>
-  `${sendsText(PERSON_SENT.map(part => part.words(hasGrants)), PERSON_NOT_SENT)} What you paste is not saved in the project.`;
+  `${sendsText(
+    PERSON_SENT.map(part => part.words(hasGrants)),
+    PERSON_NOT_SENT,
+  )} What you paste is not saved in the project.`;
 
 // ---------- a second line for a headline ----------
 
 const PUNCH_SYSTEM = `You write the second line of a slide's headline in a film's pitch deck. The headline is line one; the second line lands the point in a few words, in the same voice. You are given the slide's own headline and text and nothing else, so use only what they say: no new facts, no numbers that are not there, nothing about what an investment will return. Each option is one short line, under 80 characters, no em dashes, not a repeat of the headline. Give three options that differ from each other, through the suggest_second_lines tool only.`;
 const PUNCH_TOOL: AiTool = {
-  name: 'suggest_second_lines', description: 'Three options for the second line of this slide\'s headline.',
-  input_schema: { type: 'object', additionalProperties: false, required: ['options'], properties: { options: { type: 'array', minItems: 3, maxItems: 3, items: { type: 'string', maxLength: PUNCH_MAX } } } },
+  name: 'suggest_second_lines',
+  description: "Three options for the second line of this slide's headline.",
+  input_schema: {
+    type: 'object',
+    additionalProperties: false,
+    required: ['options'],
+    properties: {
+      options: { type: 'array', minItems: 3, maxItems: 3, items: { type: 'string', maxLength: PUNCH_MAX } },
+    },
+  },
 };
 export const PUNCH_SENT: { key: string; words: string; write: (headline: string, body: string) => string }[] = [
-  { key: 'headline', words: 'this slide\'s headline', write: headline => `HEADLINE: ${line(headline, 300) || '(none yet)'}` },
-  { key: 'text', words: 'the slide\'s own text (its paragraphs, cards, numbers and quote)', write: (_h, body) => `THE SLIDE'S TEXT:\n${(typeof body === 'string' ? body : '').trim().slice(0, SLIDE_TEXT_MAX) || '(none)'}` },
+  {
+    key: 'headline',
+    words: "this slide's headline",
+    write: headline => `HEADLINE: ${line(headline, 300) || '(none yet)'}`,
+  },
+  {
+    key: 'text',
+    words: "the slide's own text (its paragraphs, cards, numbers and quote)",
+    write: (_h, body) =>
+      `THE SLIDE'S TEXT:\n${(typeof body === 'string' ? body : '').trim().slice(0, SLIDE_TEXT_MAX) || '(none)'}`,
+  },
 ];
 const PUNCH_NOT_SENT = ['anything else on the deck', 'pictures', 'your budget'];
 export function punchRequest(headline: string, body: string): AiRequest {
-  return { system: PUNCH_SYSTEM, prompt: PUNCH_SENT.map(part => part.write(headline, body)).join('\n\n'), tool: PUNCH_TOOL };
+  return {
+    system: PUNCH_SYSTEM,
+    prompt: PUNCH_SENT.map(part => part.write(headline, body)).join('\n\n'),
+    tool: PUNCH_TOOL,
+  };
 }
 /** Up to three options, each one line, none empty, none twice, none the headline again. An option that reads like a
  *  promise of returns is kept, so the page can show it flagged: the person sees what was suggested and why not to use it. */
 export function readPunchReply(input: unknown, headline = ''): string[] {
   if (!isObj(input)) throw new Error(NOT_IN_FORM);
   const list = own(obj(input), 'options');
-  const out: string[] = []; const said = new Set([line(headline, 300).toLowerCase()]);
+  const out: string[] = [];
+  const said = new Set([line(headline, 300).toLowerCase()]);
   for (const x of Array.isArray(list) ? list : []) {
     const t = line(x, PUNCH_MAX);
     if (!t || said.has(t.toLowerCase())) continue;
@@ -169,14 +329,19 @@ export function readPunchReply(input: unknown, headline = ''): string[] {
   if (!out.length) throw new Error('the answer had no usable line in it');
   return out;
 }
-export const PUNCH_SENDS = sendsText(PUNCH_SENT.map(part => part.words), PUNCH_NOT_SENT);
+export const PUNCH_SENDS = sendsText(
+  PUNCH_SENT.map(part => part.words),
+  PUNCH_NOT_SENT,
+);
 
 // ---------- a read of the whole deck ----------
 
 const PROBLEM_KINDS = ['unsourced', 'vague', 'empty-headline', 'too-full', 'unclear-ask', 'promise', 'other'] as const;
-type ProblemKind = typeof PROBLEM_KINDS[number];
+type ProblemKind = (typeof PROBLEM_KINDS)[number];
 const PROBLEM_FIELDS = ['headline', 'body', 'cards', 'numbers', 'ask', 'other'] as const;
-export interface AiProblem extends DeckProblem { kind: ProblemKind }
+export interface AiProblem extends DeckProblem {
+  kind: ProblemKind;
+}
 
 const CRITIQUE_SYSTEM = `You read an independent film's pitch deck the way a careful investor's adviser would, and report at most eight concrete problems, the most serious first. Each problem is tied to one slide by its id and says, in one or two plain sentences, what is wrong and what to do about it.
 
@@ -186,17 +351,27 @@ Do not rewrite the deck, do not praise it, and do not report what is fine. Do no
 
 export function critiqueTool(slideIds: string[]): AiTool {
   return {
-    name: 'report_problems', description: 'Report at most eight concrete problems, each tied to a slide.',
+    name: 'report_problems',
+    description: 'Report at most eight concrete problems, each tied to a slide.',
     input_schema: {
-      type: 'object', additionalProperties: false, required: ['problems'],
+      type: 'object',
+      additionalProperties: false,
+      required: ['problems'],
       properties: {
         problems: {
-          type: 'array', maxItems: PROBLEMS_MAX,
+          type: 'array',
+          maxItems: PROBLEMS_MAX,
           items: {
-            type: 'object', additionalProperties: false, required: ['slide_id', 'kind', 'problem'],
+            type: 'object',
+            additionalProperties: false,
+            required: ['slide_id', 'kind', 'problem'],
             properties: {
               slide_id: { type: 'string', enum: slideIds },
-              field: { type: 'string', enum: [...PROBLEM_FIELDS], description: 'The part of the slide the problem is in.' },
+              field: {
+                type: 'string',
+                enum: [...PROBLEM_FIELDS],
+                description: 'The part of the slide the problem is in.',
+              },
               kind: { type: 'string', enum: [...PROBLEM_KINDS] },
               problem: { type: 'string', maxLength: PROBLEM_MAX },
             },
@@ -211,29 +386,58 @@ export function critiqueTool(slideIds: string[]): AiTool {
  *  recipients, no figures from the budget. */
 export function critiqueRequest(d: DeckData): AiRequest {
   const slides = Array.isArray(d?.slides) ? d.slides : [];
-  const body = slides.map((s, i) => {
-    const text = slideText(s).map(t => `${t.kind} (${t.field}): ${t.text}`).join('\n').slice(0, SLIDE_TEXT_MAX);
-    return `### slide ${i + 1} | id=${s.id} | layout=${s.layout}\n${text || '(no words of its own)'}`;
-  }).join('\n\n');
-  return { system: CRITIQUE_SYSTEM, prompt: `THE FILM: ${line(d?.film, 200)}\n\nTHE DECK, SLIDE BY SLIDE:\n\n${body}`, tool: critiqueTool(slides.map(s => s.id)) };
+  const body = slides
+    .map((s, i) => {
+      const text = slideText(s)
+        .map(t => `${t.kind} (${t.field}): ${t.text}`)
+        .join('\n')
+        .slice(0, SLIDE_TEXT_MAX);
+      return `### slide ${i + 1} | id=${s.id} | layout=${s.layout}\n${text || '(no words of its own)'}`;
+    })
+    .join('\n\n');
+  return {
+    system: CRITIQUE_SYSTEM,
+    prompt: `THE FILM: ${line(d?.film, 200)}\n\nTHE DECK, SLIDE BY SLIDE:\n\n${body}`,
+    tool: critiqueTool(slides.map(s => s.id)),
+  };
 }
 /** The problems that came back, checked: a slide id that is not on the deck is dropped, a kind or a field that is
  *  not on the list becomes "other", each message is one capped line of plain text, and there are eight at most. */
 export function readCritiqueReply(input: unknown, slideIds: string[]): AiProblem[] {
   const list = isObj(input) ? own(input, 'problems') : undefined;
-  if (!Array.isArray(list)) throw new Error(NOT_IN_FORM);   // only a list (an empty one too) is an answer; anything else is not "nothing to report"
-  const out: AiProblem[] = []; const said = new Set<string>();
+  if (!Array.isArray(list)) throw new Error(NOT_IN_FORM); // only a list (an empty one too) is an answer; anything else is not "nothing to report"
+  const out: AiProblem[] = [];
+  const said = new Set<string>();
   for (const raw of Array.isArray(list) ? list : []) {
     const r = obj(raw);
     const slideId = own(r, 'slide_id');
     const message = line(own(r, 'problem'), PROBLEM_MAX);
-    if (typeof slideId !== 'string' || !slideIds.includes(slideId) || !message || said.has(`${slideId}|${message}`)) continue;
+    if (typeof slideId !== 'string' || !slideIds.includes(slideId) || !message || said.has(`${slideId}|${message}`))
+      continue;
     said.add(`${slideId}|${message}`);
-    const kind = own(r, 'kind'), field = own(r, 'field');
-    out.push({ slideId, field: (PROBLEM_FIELDS as readonly unknown[]).includes(field) ? (field as string) : 'other', kind: (PROBLEM_KINDS as readonly unknown[]).includes(kind) ? (kind as ProblemKind) : 'other', message });
+    const kind = own(r, 'kind'),
+      field = own(r, 'field');
+    out.push({
+      slideId,
+      field: (PROBLEM_FIELDS as readonly unknown[]).includes(field) ? (field as string) : 'other',
+      kind: (PROBLEM_KINDS as readonly unknown[]).includes(kind) ? (kind as ProblemKind) : 'other',
+      message,
+    });
     if (out.length >= PROBLEMS_MAX) break;
   }
   return out;
 }
-export const CRITIQUE_SENDS = `Everything written on your slides is sent: ${CRITIQUE_SENT.slice(0, -1).map(k => k[1]).join(', ')}, and ${CRITIQUE_SENT[CRITIQUE_SENT.length - 1][1]}. Not sent: ${CRITIQUE_NOT_SENT.slice(0, -1).join(', ')}, or ${CRITIQUE_NOT_SENT[CRITIQUE_NOT_SENT.length - 1]}.`;
-export const KIND_WORDS: Record<ProblemKind, string> = { unsourced: 'No source', vague: 'Vague', 'empty-headline': 'Headline says nothing', 'too-full': 'Too full', 'unclear-ask': 'Unclear ask', promise: 'Reads as a promise of returns', other: 'To check' };
+export const CRITIQUE_SENDS = `Everything written on your slides is sent: ${CRITIQUE_SENT.slice(0, -1)
+  .map(k => k[1])
+  .join(
+    ', ',
+  )}, and ${CRITIQUE_SENT[CRITIQUE_SENT.length - 1][1]}. Not sent: ${CRITIQUE_NOT_SENT.slice(0, -1).join(', ')}, or ${CRITIQUE_NOT_SENT[CRITIQUE_NOT_SENT.length - 1]}.`;
+export const KIND_WORDS: Record<ProblemKind, string> = {
+  unsourced: 'No source',
+  vague: 'Vague',
+  'empty-headline': 'Headline says nothing',
+  'too-full': 'Too full',
+  'unclear-ask': 'Unclear ask',
+  promise: 'Reads as a promise of returns',
+  other: 'To check',
+};

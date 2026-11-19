@@ -21,17 +21,17 @@ export function totalPoints(p: Project): number {
 interface PayoutRow {
   participant: Participant;
   points: number;
-  share: number;               // fraction of the pool
-  payouts: number[];           // one per scenario
-  cashPay: number;             // what the budget pays them in cash (from linked lines)
+  share: number; // fraction of the pool
+  payouts: number[]; // one per scenario
+  cashPay: number; // what the budget pays them in cash (from linked lines)
 }
 
 interface WaterfallReport {
-  budget: number;              // what the waterfall recoups: the cash budget less non-recoupable money
+  budget: number; // what the waterfall recoups: the cash budget less non-recoupable money
   totalPoints: number;
   scenarios: number[];
-  deferred: number;            // fixed deferred pay owed from first proceeds
-  deferredPaid: number[];      // how much of it each scenario pays, before the split
+  deferred: number; // fixed deferred pay owed from first proceeds
+  deferredPaid: number[]; // how much of it each scenario pays, before the split
   pools: number[];
   investors: number[];
   rows: PayoutRow[];
@@ -41,13 +41,14 @@ interface WaterfallReport {
  *  tax credits and perks switched on under Incentives. */
 export function recoupableBudget(p: Project): number {
   const left = topSheet(p).cashBudget - sponsorNet(p.waterfall) - incentiveProceeds(p);
-  return left < 0.005 ? 0 : left;   // under half a cent is nothing
+  return left < 0.005 ? 0 : left; // under half a cent is nothing
 }
 
 /** What the fiscal sponsor keeps of the grants and donations, and what reaches the film. */
 /** A hand-edited file can carry a negative figure; grants are never negative money. */
 const grantsOf = (w: Waterfall): number => Math.max(0, w.nonRecoupable ?? 0);
-export const sponsorFee = (w: Waterfall): number => grantsOf(w) * Math.max(0, Math.min(100, w.sponsorFeePct ?? 0)) / 100;
+export const sponsorFee = (w: Waterfall): number =>
+  (grantsOf(w) * Math.max(0, Math.min(100, w.sponsorFeePct ?? 0))) / 100;
 export const sponsorNet = (w: Waterfall): number => grantsOf(w) - sponsorFee(w);
 
 export function waterfallReport(p: Project): WaterfallReport {
@@ -61,13 +62,23 @@ export function waterfallReport(p: Project): WaterfallReport {
   const cashByParticipant = new Map<string, number>();
   for (const l of p.lines) {
     if (!l.participantId || l.payType === 'points') continue;
-    cashByParticipant.set(l.participantId, (cashByParticipant.get(l.participantId) ?? 0) + l.amount * l.rate * l.multiplier);
+    cashByParticipant.set(
+      l.participantId,
+      (cashByParticipant.get(l.participantId) ?? 0) + l.amount * l.rate * l.multiplier,
+    );
   }
-  const rows: PayoutRow[] = p.participants.map(pt => {
-    const pts = participantPoints(pt, p.tiers);
-    return { participant: pt, points: pts, share: pts / tp, payouts: pools.map(pool => pool * pts / tp),
-      cashPay: cashByParticipant.get(pt.id) ?? 0 };
-  }).sort((a, b) => b.points - a.points);
+  const rows: PayoutRow[] = p.participants
+    .map(pt => {
+      const pts = participantPoints(pt, p.tiers);
+      return {
+        participant: pt,
+        points: pts,
+        share: pts / tp,
+        payouts: pools.map(pool => (pool * pts) / tp),
+        cashPay: cashByParticipant.get(pt.id) ?? 0,
+      };
+    })
+    .sort((a, b) => b.points - a.points);
   return { budget, totalPoints: tp, scenarios, deferred, deferredPaid: split.map(s => s.paid), pools, investors, rows };
 }
 
@@ -82,5 +93,5 @@ export function syncDaysFromBudget(p: Project): Project {
     const d = l.unit === 'DAY' ? l.amount : l.unit === 'WEEK' ? weekDays : 0;
     days.set(l.participantId, (days.get(l.participantId) ?? 0) + d);
   }
-  return { ...p, participants: p.participants.map(pt => days.has(pt.id) ? { ...pt, days: days.get(pt.id)! } : pt) };
+  return { ...p, participants: p.participants.map(pt => (days.has(pt.id) ? { ...pt, days: days.get(pt.id)! } : pt)) };
 }

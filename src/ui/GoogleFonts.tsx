@@ -5,7 +5,18 @@ import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import type { FontFile, PitchDesign } from '../engine/types';
 import { fileSize } from '../engine/deckEdit';
 import { fontSrcOk, weightText } from '../deck-runtime/fonts';
-import { GOOGLE_WARN_BYTES, LICENCE_NAMES, pickedFontName, removeRoleFonts, roleFont, setRoleFonts, type CatalogueFamily, type FontLicence, type FontRole, type RoleFont } from '../engine/googleFonts';
+import {
+  GOOGLE_WARN_BYTES,
+  LICENCE_NAMES,
+  pickedFontName,
+  removeRoleFonts,
+  roleFont,
+  setRoleFonts,
+  type CatalogueFamily,
+  type FontLicence,
+  type FontRole,
+  type RoleFont,
+} from '../engine/googleFonts';
 import { Boundary } from './Boundary';
 import './googleFonts.css';
 
@@ -23,8 +34,21 @@ export function withoutRoleFont(d: PitchDesign, role: FontRole): PitchDesign {
   return had?.google && typed.trim() === had.family ? { ...next, fonts: { ...next.fonts, [role]: '' } } : next;
 }
 /** The design with a family picked from Google Fonts as a role's font: its files in the project, its name in the font field. */
-export function withGoogleFont(d: PitchDesign, role: FontRole, family: CatalogueFamily, files: FontFile[]): PitchDesign {
-  return { ...d, fonts: { title: typeof d.fonts?.title === 'string' ? d.fonts.title : '', body: typeof d.fonts?.body === 'string' ? d.fonts.body : '', [role]: pickedFontName(family) }, fontFiles: setRoleFonts(d.fontFiles, role, files) };
+export function withGoogleFont(
+  d: PitchDesign,
+  role: FontRole,
+  family: CatalogueFamily,
+  files: FontFile[],
+): PitchDesign {
+  return {
+    ...d,
+    fonts: {
+      title: typeof d.fonts?.title === 'string' ? d.fonts.title : '',
+      body: typeof d.fonts?.body === 'string' ? d.fonts.body : '',
+      [role]: pickedFontName(family),
+    },
+    fontFiles: setRoleFonts(d.fontFiles, role, files),
+  };
 }
 
 /** The app's own pages draw a font field's value by name (the slide corner beside the design system). A picked family
@@ -36,44 +60,115 @@ function useFontOnThisPage(font: RoleFont | undefined): void {
     const faces: FontFace[] = [];
     for (const f of font.files) {
       if (!fontSrcOk(f.dataUrl)) continue;
-      try { const face = new FontFace(font.family, `url("${f.dataUrl}")`, { weight: f.weight !== undefined ? weightText(f.weight) : '400', style: f.style ?? 'normal' }); document.fonts.add(face); void face.load().catch(() => undefined); faces.push(face); }
-      catch { /* a file the browser will not take: the field's next font is drawn */ }
+      try {
+        const face = new FontFace(font.family, `url("${f.dataUrl}")`, {
+          weight: f.weight !== undefined ? weightText(f.weight) : '400',
+          style: f.style ?? 'normal',
+        });
+        document.fonts.add(face);
+        void face.load().catch(() => undefined);
+        faces.push(face);
+      } catch {
+        /* a file the browser will not take: the field's next font is drawn */
+      }
     }
-    return () => { for (const face of faces) document.fonts.delete(face); };
-  }, [key]);   // eslint-disable-line react-hooks/exhaustive-deps
+    return () => {
+      for (const face of faces) document.fonts.delete(face);
+    };
+  }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
 }
 
 /** "Pick from Google Fonts", for one role. Opens the picker; a font picked there becomes the role's font. */
-export function GoogleFontPick({ role, design, set, film }: { role: FontRole; design: PitchDesign; set: SetDesign; film: string }) {
+export function GoogleFontPick({
+  role,
+  design,
+  set,
+  film,
+}: {
+  role: FontRole;
+  design: PitchDesign;
+  set: SetDesign;
+  film: string;
+}) {
   const [open, setOpen] = useState(false);
   const [said, setSaid] = useState<{ text: string; warn: boolean } | null>(null);
   const button = useRef<HTMLButtonElement>(null);
   const font = roleFont(design.fontFiles, role);
   useFontOnThisPage(font);
-  const close = () => { setOpen(false); window.setTimeout(() => button.current?.focus(), 0); };
+  const close = () => {
+    setOpen(false);
+    window.setTimeout(() => button.current?.focus(), 0);
+  };
   const pick = (family: CatalogueFamily, files: FontFile[]) => {
     set(d => withGoogleFont(d, role, family, files));
     const bytes = roleFont(files, role)?.bytes ?? 0;
-    setSaid({ text: `${family.family} is now the ${role} font, and ${fileSize(bytes)} of font files are saved in your project${bytes > GOOGLE_WARN_BYTES ? '. That is a lot for a font: every deck you send will be that much bigger.' : ', so the deck never needs Google.'}`, warn: bytes > GOOGLE_WARN_BYTES });
+    setSaid({
+      text: `${family.family} is now the ${role} font, and ${fileSize(bytes)} of font files are saved in your project${bytes > GOOGLE_WARN_BYTES ? '. That is a lot for a font: every deck you send will be that much bigger.' : ', so the deck never needs Google.'}`,
+      warn: bytes > GOOGLE_WARN_BYTES,
+    });
     close();
   };
   return (
     <div className="gf-pick">
-      <button type="button" ref={button} className="btn small" aria-haspopup="dialog" aria-label={`Pick the ${role} font from Google Fonts`} onClick={() => { setSaid(null); setOpen(true); }}>Pick from Google Fonts</button>
-      <div role="status" aria-live="polite">{said && <p className={`small ${said.warn ? 'pd-bad' : 'gf-said'}`}>{said.warn ? '' : '✓ '}{said.text}</p>}</div>
-      {open && <Boundary what="The font picker"><Suspense fallback={null}><Dialog role={role} film={film} current={font?.google ? font.family : undefined} onPick={pick} onClose={close} /></Suspense></Boundary>}
+      <button
+        type="button"
+        ref={button}
+        className="btn small"
+        aria-haspopup="dialog"
+        aria-label={`Pick the ${role} font from Google Fonts`}
+        onClick={() => {
+          setSaid(null);
+          setOpen(true);
+        }}
+      >
+        Pick from Google Fonts
+      </button>
+      <div role="status" aria-live="polite">
+        {said && (
+          <p className={`small ${said.warn ? 'pd-bad' : 'gf-said'}`}>
+            {said.warn ? '' : '✓ '}
+            {said.text}
+          </p>
+        )}
+      </div>
+      {open && (
+        <Boundary what="The font picker">
+          <Suspense fallback={null}>
+            <Dialog
+              role={role}
+              film={film}
+              current={font?.google ? font.family : undefined}
+              onPick={pick}
+              onClose={close}
+            />
+          </Suspense>
+        </Boundary>
+      )}
     </div>
   );
 }
 
 /** What a role's picked font is, under Font files: the family, its weights, its size, its licence. */
 export function GoogleFontDetail({ font }: { font: RoleFont }) {
-  const licence = isLicence(font.licence) ? `Open licence (${font.licence}): can go inside a deck you send.` : 'Open licence: can go inside a deck you send.';
+  const licence = isLicence(font.licence)
+    ? `Open licence (${font.licence}): can go inside a deck you send.`
+    : 'Open licence: can go inside a deck you send.';
   return (
     <div className="fontrow-detail gf-detail">
-      <p><b>{font.family}</b> <span className="small">from Google Fonts · {font.weights || 'one weight'} · {font.missing ? 'missing from this browser: pick it again' : fileSize(font.bytes)}</span></p>
+      <p>
+        <b>{font.family}</b>{' '}
+        <span className="small">
+          from Google Fonts · {font.weights || 'one weight'} ·{' '}
+          {font.missing ? 'missing from this browser: pick it again' : fileSize(font.bytes)}
+        </span>
+      </p>
       <p className="hint">{licence} It is saved in your project file, so the deck never asks Google for it.</p>
-      {font.bytes > GOOGLE_WARN_BYTES && <p className="pd-bad small">These font files are {fileSize(font.bytes)} together. A deck that carries them will be slower to send and to open.</p>}
+      {font.bytes > GOOGLE_WARN_BYTES && (
+        <p className="pd-bad small">
+          These font files are {fileSize(font.bytes)} together. A deck that carries them will be slower to send and to
+          open.
+        </p>
+      )}
     </div>
   );
 }

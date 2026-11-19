@@ -3,11 +3,26 @@
 // src/deck-runtime/data.ts, which the deck's runtime draws. Pass the effective project (after applyDeal), as
 // everywhere in the engine. Nothing here reads the clock or rolls dice: the same project gives the same deck.
 import type { LookImage, Project, Recipient, SlideCard, SlideSpec, Waterfall } from './types';
-import type { DeckCard, DeckData, DeckImage, DeckMilestone, DeckRecipient, DeckSlide, DeckStat, DeckTheme } from '../deck-runtime/data';
+import type {
+  DeckCard,
+  DeckData,
+  DeckImage,
+  DeckMilestone,
+  DeckRecipient,
+  DeckSlide,
+  DeckStat,
+  DeckTheme,
+} from '../deck-runtime/data';
 import { DECK_DATA_VERSION } from '../deck-runtime/data';
 import { cleanFamily, cleanStyle, cleanWeight, fontSrcOk, MAX_FONT_FACES } from '../deck-runtime/fonts';
 import { cleanDeckMotion, cleanMotion } from '../deck-runtime/motion';
-import { cleanPaper, cleanPaperShade, cleanSlidePaper, cleanSlidePaperShade, PAPER_LAYOUTS } from '../deck-runtime/paper';
+import {
+  cleanPaper,
+  cleanPaperShade,
+  cleanSlidePaper,
+  cleanSlidePaperShade,
+  PAPER_LAYOUTS,
+} from '../deck-runtime/paper';
 import { withPitch, defaultDesign, defaultDeckRules, compGroups, compMultiple } from './pitch';
 import { topSheet } from './budget';
 import { shootDays, parkedScenes } from './board';
@@ -19,22 +34,30 @@ import { pathInputs } from './paths';
 import { pathFor } from './pathMath';
 
 /** "Primary: women who…" in the Primary box says the label twice; the slide keeps the label and drops the prefix. */
-export const unlabel = (text: string, label: string) => text.replace(new RegExp(`^\\s*${label}\\s*[:.\\u2014-]\\s*`, 'i'), '');
+export const unlabel = (text: string, label: string) =>
+  text.replace(new RegExp(`^\\s*${label}\\s*[:.\\u2014-]\\s*`, 'i'), '');
 
 interface DeckDataOptions {
-  today?: string;                  // ISO date; only for the month and year in the default cover line
-  fonts?: 'all' | 'embeddable';    // which attached font files the deck carries: only those cleared to travel in a file (the default: what a deck that is sent may hold), or all of them (the in-app preview)
+  today?: string; // ISO date; only for the month and year in the default cover line
+  fonts?: 'all' | 'embeddable'; // which attached font files the deck carries: only those cleared to travel in a file (the default: what a deck that is sent may hold), or all of them (the in-app preview)
 }
 
-export const DECK_LEGAL = 'The figures in this deck are illustrative projections, not a promise of returns. Investing in a film is speculative and investors can lose all of the money they put in. This deck is not an offer to sell securities or a solicitation of an offer to buy them.';
-export const DARK_INK = '#1b1608', LIGHT_INK = '#f4eddc';
-export const DEFAULT_CARD = '#f1e9d6';   // the cards' paper, when the design system names no card colour
+export const DECK_LEGAL =
+  'The figures in this deck are illustrative projections, not a promise of returns. Investing in a film is speculative and investors can lose all of the money they put in. This deck is not an offer to sell securities or a solicitation of an offer to buy them.';
+export const DARK_INK = '#1b1608',
+  LIGHT_INK = '#f4eddc';
+export const DEFAULT_CARD = '#f1e9d6'; // the cards' paper, when the design system names no card colour
 export const MAX_CARDS = 4;
-const TAGLINE_MAX = 120;                 // a logline's first sentence longer than this is not a tagline
+const TAGLINE_MAX = 120; // a logline's first sentence longer than this is not a tagline
 
 /** "Ada Example" → "ada-example": lower-case letters, digits and single hyphens only. */
 export const slugify = (name: string): string =>
-  name.normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  name
+    .normalize('NFKD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 
 /** The first sentence of a paragraph: up to the first full stop, question or exclamation mark that ends a word. */
 export function firstSentence(text: string): string {
@@ -46,16 +69,21 @@ export function firstSentence(text: string): string {
 const pc = (n: number) => String(Math.round(n * 100) / 100);
 const people = (n: number) => (n === 1 ? '1 person' : `${n} people`);
 
-const investBody = (w: Waterfall): string => w.model === 'off-the-gross'
-  ? `You take ${pc(100 - w.grossSharePct)} cents of every dollar the film earns until you have ${pc(w.recoupPct)}% of your investment back, then ${pc(100 - w.poolPct)}% of everything after.`
-  : `You recoup ${pc(w.recoupPct)}% of your investment first, then share ${pc(100 - w.poolPct)}% of everything after.`;
+const investBody = (w: Waterfall): string =>
+  w.model === 'off-the-gross'
+    ? `You take ${pc(100 - w.grossSharePct)} cents of every dollar the film earns until you have ${pc(w.recoupPct)}% of your investment back, then ${pc(100 - w.poolPct)}% of everything after.`
+    : `You recoup ${pc(w.recoupPct)}% of your investment first, then share ${pc(100 - w.poolPct)}% of everything after.`;
 
 function waysCards(p: Project): SlideCard[] {
   const w = p.waterfall;
   const cards: SlideCard[] = [{ id: 'invest', title: 'Invest', body: investBody(w) }];
   if (sponsorNet(w) > 0) {
     const fee = Math.max(0, Math.min(100, w.sponsorFeePct ?? 0));
-    const give: SlideCard = { id: 'give', title: 'Give', body: 'A grant or a donation through the film’s fiscal sponsor. It is never repaid, and every dollar of it lowers what investors have to put in.' };
+    const give: SlideCard = {
+      id: 'give',
+      title: 'Give',
+      body: 'A grant or a donation through the film’s fiscal sponsor. It is never repaid, and every dollar of it lowers what investors have to put in.',
+    };
     if (fee > 0) give.footnote = `The fiscal sponsor keeps ${pc(fee)}% of each gift.`;
     cards.push(give);
   }
@@ -64,7 +92,8 @@ function waysCards(p: Project): SlideCard[] {
 
 /** The deck the Pitch tab already implies, in a fixed order with fixed ids; a slide with nothing to say is left out. */
 export function defaultSlides(p0: Project): SlideSpec[] {
-  const p = withPitch(p0); const pitch = p.pitch!;
+  const p = withPitch(p0);
+  const pitch = p.pitch!;
   const rules = pitch.design?.deck ?? defaultDeckRules();
   const out: SlideSpec[] = [];
 
@@ -72,25 +101,44 @@ export function defaultSlides(p0: Project): SlideSpec[] {
   if (rules.coverImageId) cover.imageId = rules.coverImageId;
   out.push(cover);
 
-  if (pitch.logline.trim()) out.push({ id: 'logline', layout: 'photo', eyebrow: 'Logline', body: pitch.logline.trim() });
-  if (pitch.why.trim()) out.push({ id: 'why', layout: 'text', eyebrow: 'Why this film, why me', body: pitch.why.trim() });
+  if (pitch.logline.trim())
+    out.push({ id: 'logline', layout: 'photo', eyebrow: 'Logline', body: pitch.logline.trim() });
+  if (pitch.why.trim())
+    out.push({ id: 'why', layout: 'text', eyebrow: 'Why this film, why me', body: pitch.why.trim() });
 
-  const market = (pitch.research ?? []).filter(r => r.kind === 'market' && (r.title.trim() || r.body.trim())).slice(0, MAX_CARDS);
-  if (market.length) out.push({ id: 'gap', layout: 'cards', eyebrow: 'The gap', cards: market.map(r => ({ id: r.id, title: r.title.trim(), body: firstSentence(r.body), footnote: (r.url ?? '').trim() })) });
+  const market = (pitch.research ?? [])
+    .filter(r => r.kind === 'market' && (r.title.trim() || r.body.trim()))
+    .slice(0, MAX_CARDS);
+  if (market.length)
+    out.push({
+      id: 'gap',
+      layout: 'cards',
+      eyebrow: 'The gap',
+      cards: market.map(r => ({
+        id: r.id,
+        title: r.title.trim(),
+        body: firstSentence(r.body),
+        footnote: (r.url ?? '').trim(),
+      })),
+    });
 
   if (pitch.comps.length) out.push({ id: 'opportunity', layout: 'comps', eyebrow: 'The opportunity' });
 
   const a = pitch.audience;
   if (a.primary.trim() || a.secondary.trim() || a.notes.trim()) {
     const s: SlideSpec = { id: 'audience', layout: 'stats', eyebrow: 'The audience', stats: [] };
-    const body = [unlabel(a.primary, 'primary').trim(), unlabel(a.secondary, 'secondary').trim()].filter(Boolean).join('\n\n');
+    const body = [unlabel(a.primary, 'primary').trim(), unlabel(a.secondary, 'secondary').trim()]
+      .filter(Boolean)
+      .join('\n\n');
     if (body) s.body = body;
     const note = unlabel(a.notes, 'how we reach them').trim();
-    if (note) s.closing = note;   // a stats slide draws its closing line as the note under the numbers
+    if (note) s.closing = note; // a stats slide draws its closing line as the note under the numbers
     out.push(s);
   }
 
-  for (const sec of pitch.sections) if (sec.heading.trim() || sec.body.trim()) out.push({ id: `sec:${sec.id}`, layout: 'text', headline: sec.heading.trim(), body: sec.body.trim() });
+  for (const sec of pitch.sections)
+    if (sec.heading.trim() || sec.body.trim())
+      out.push({ id: `sec:${sec.id}`, layout: 'text', headline: sec.heading.trim(), body: sec.body.trim() });
 
   if ((pitch.team ?? []).some(t => t.name.trim())) out.push({ id: 'team', layout: 'team', eyebrow: 'The team' });
   if (p.board.scenes.length || p.lines.length) out.push({ id: 'plan', layout: 'timeline', eyebrow: 'The plan' });
@@ -117,14 +165,23 @@ export function slidesOf(p: Project): SlideSpec[] {
 function rgbOf(hex: string): [number, number, number] | null {
   const m = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(hex.trim());
   if (!m) return null;
-  const h = m[1].length === 3 ? m[1].split('').map(c => c + c).join('') : m[1];
+  const h =
+    m[1].length === 3
+      ? m[1]
+          .split('')
+          .map(c => c + c)
+          .join('')
+      : m[1];
   return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
 }
 /** WCAG relative luminance, 0 (black) to 1 (white); null when the colour is not a hex. */
 export function luminance(hex: string): number | null {
   const rgb = rgbOf(hex);
   if (!rgb) return null;
-  const [r, g, b] = rgb.map(v => { const c = v / 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; });
+  const [r, g, b] = rgb.map(v => {
+    const c = v / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 const contrast = (a: number, b: number) => (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
@@ -138,23 +195,37 @@ export function cardInkFor(card: string): string {
 /** A font stack as the deck can carry it: an entry that is a CSS variable (`var(--font-title)`, which a brand-book
  *  import adds for the app's own pages) means nothing inside a deck file, so it is taken out. */
 export const stackOf = (stack: unknown): string =>
-  (typeof stack === 'string' ? stack : '').split(',').map(x => x.trim()).filter(x => x && !/var\s*\(/i.test(x)).join(', ');
+  (typeof stack === 'string' ? stack : '')
+    .split(',')
+    .map(x => x.trim())
+    .filter(x => x && !/var\s*\(/i.test(x))
+    .join(', ');
 
 function themeOf(p: Project, opts: DeckDataOptions = {}): DeckTheme {
-  const d = p.pitch?.design; const base = defaultDesign();
+  const d = p.pitch?.design;
+  const base = defaultDesign();
   const faces = fontFacesOf(p, opts.fonts !== 'all');
-  const raw = (v: unknown) => (typeof v === 'string' ? v.trim() : '');   // a hand-edited file can hold anything where a colour or a name belongs
+  const raw = (v: unknown) => (typeof v === 'string' ? v.trim() : ''); // a hand-edited file can hold anything where a colour or a name belongs
   const col = (k: keyof typeof base.colors) => raw(d?.colors?.[k]) || base.colors[k];
   const muted = col('muted');
   const card = raw(d?.card) || DEFAULT_CARD;
   return {
     name: raw(d?.name),
-    colors: { bg: col('bg'), ink: col('ink'), accent: col('accent'), accent2: col('accent2'), muted, card, cardInk: cardInkFor(card), line: raw(d?.line) || muted },
+    colors: {
+      bg: col('bg'),
+      ink: col('ink'),
+      accent: col('accent'),
+      accent2: col('accent2'),
+      muted,
+      card,
+      cardInk: cardInkFor(card),
+      line: raw(d?.line) || muted,
+    },
     fonts: { title: stackOf(d?.fonts?.title), body: stackOf(d?.fonts?.body) },
     signoff: raw(d?.deck?.signoff),
     ...(faces.length ? { fontFaces: faces } : {}),
-    ...(cleanPaper(d?.paper) !== 'plain' ? { paper: cleanPaper(d?.paper) } : {}),   // a plain card is what a deck with no word for it draws
-    ...(cleanPaperShade(d?.paperShade) !== 'theme' ? { paperShade: cleanPaperShade(d?.paperShade) } : {}),   // the card colour is what a deck with no word for it uses
+    ...(cleanPaper(d?.paper) !== 'plain' ? { paper: cleanPaper(d?.paper) } : {}), // a plain card is what a deck with no word for it draws
+    ...(cleanPaperShade(d?.paperShade) !== 'theme' ? { paperShade: cleanPaperShade(d?.paperShade) } : {}), // the card colour is what a deck with no word for it uses
     ...(d?.hand === true ? { hand: true } : {}),
     ...(d?.tilt === true ? { tilt: true } : {}),
   };
@@ -166,7 +237,8 @@ function themeOf(p: Project, opts: DeckDataOptions = {}): DeckTheme {
  *  `embedOnly` (the default) keeps only the files whose licence the author says lets them travel: what a deck that
  *  is sent may carry. The in-app preview passes false. */
 export function fontFacesOf(p: Project, embedOnly = true): NonNullable<DeckTheme['fontFaces']> {
-  const out: NonNullable<DeckTheme['fontFaces']> = []; const seen = new Map<string, { family: string; sized: boolean; had: Set<string> }>();
+  const out: NonNullable<DeckTheme['fontFaces']> = [];
+  const seen = new Map<string, { family: string; sized: boolean; had: Set<string> }>();
   const files = p.pitch?.design?.fontFiles;
   for (const f of Array.isArray(files) ? files : []) {
     if (!f || typeof f !== 'object' || (f.role !== 'title' && f.role !== 'body')) continue;
@@ -174,12 +246,21 @@ export function fontFacesOf(p: Project, embedOnly = true): NonNullable<DeckTheme
     if (lead && !lead.sized) continue;
     const family = cleanFamily(f.family);
     if (!family || !fontSrcOk(f.dataUrl) || (embedOnly && f.embedOk !== true)) continue;
-    const weight = cleanWeight(f.weight), style = cleanStyle(f.style);
+    const weight = cleanWeight(f.weight),
+      style = cleanStyle(f.style);
     const sized = weight !== undefined || style !== undefined;
     const which = `${weight === undefined ? '' : String(weight)}/${style ?? 'normal'}`;
-    if (lead) { if (!sized || family !== lead.family || lead.had.has(which)) continue; lead.had.add(which); }
-    else seen.set(f.role, { family, sized, had: new Set([which]) });
-    out.push({ family, src: f.dataUrl, role: f.role, ...(weight !== undefined ? { weight } : {}), ...(style ? { style } : {}) });
+    if (lead) {
+      if (!sized || family !== lead.family || lead.had.has(which)) continue;
+      lead.had.add(which);
+    } else seen.set(f.role, { family, sized, had: new Set([which]) });
+    out.push({
+      family,
+      src: f.dataUrl,
+      role: f.role,
+      ...(weight !== undefined ? { weight } : {}),
+      ...(style ? { style } : {}),
+    });
     if (out.length >= MAX_FONT_FACES) break;
   }
   return out;
@@ -187,26 +268,53 @@ export function fontFacesOf(p: Project, embedOnly = true): NonNullable<DeckTheme
 
 // ---------- the parts the project fills in ----------
 
-const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-const parts = (iso: string) => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso); return m && +m[2] >= 1 && +m[2] <= 12 ? { y: +m[1], m: +m[2], d: +m[3] } : null; };
-const monthDay = (iso: string) => { const x = parts(iso)!; return `${MONTHS[x.m - 1].slice(0, 3)} ${x.d}`; };
+const MONTHS = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
+const parts = (iso: string) => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
+  return m && +m[2] >= 1 && +m[2] <= 12 ? { y: +m[1], m: +m[2], d: +m[3] } : null;
+};
+const monthDay = (iso: string) => {
+  const x = parts(iso)!;
+  return `${MONTHS[x.m - 1].slice(0, 3)} ${x.d}`;
+};
 /** "Mar 8 to Apr 2, 2027"; both years when the shoot crosses New Year; one date when it is a single day. */
 export function dateSpan(first: string, last: string): string {
-  const a = parts(first), b = parts(last);
+  const a = parts(first),
+    b = parts(last);
   if (!a || !b) return '';
   if (first === last) return `${monthDay(first)}, ${a.y}`;
-  return a.y === b.y ? `${monthDay(first)} to ${monthDay(last)}, ${b.y}` : `${monthDay(first)}, ${a.y} to ${monthDay(last)}, ${b.y}`;
+  return a.y === b.y
+    ? `${monthDay(first)} to ${monthDay(last)}, ${b.y}`
+    : `${monthDay(first)}, ${a.y} to ${monthDay(last)}, ${b.y}`;
 }
 
 function currencySymbol(code: string): string {
   try {
-    const sym = new Intl.NumberFormat('en-US', { style: 'currency', currency: code, currencyDisplay: 'narrowSymbol' }).formatToParts(0).find(x => x.type === 'currency')?.value;
+    const sym = new Intl.NumberFormat('en-US', { style: 'currency', currency: code, currencyDisplay: 'narrowSymbol' })
+      .formatToParts(0)
+      .find(x => x.type === 'currency')?.value;
     return sym && sym !== code ? sym : `${code} `;
-  } catch { return code ? `${code} ` : ''; }
+  } catch {
+    return code ? `${code} ` : '';
+  }
 }
 /** "$1.2M", "$850K", "$900": a budget as a fact on a slide. */
 export function compactMoney(n: number, currency = 'USD'): string {
-  const sym = currencySymbol(currency); const abs = Math.abs(n);
+  const sym = currencySymbol(currency);
+  const abs = Math.abs(n);
   const one = (x: number) => String(Math.round(x * 10) / 10);
   let body: string;
   if (abs >= 999_950_000) body = `${one(abs / 1e9)}B`;
@@ -219,7 +327,12 @@ export function compactMoney(n: number, currency = 'USD'): string {
 function timelineFacts(p: Project): { value: string; label: string }[] {
   const days = shootDays(p.board).length;
   const scenes = p.board.scenes.length - parkedScenes(p.board).length;
-  const sets = new Set(p.board.scenes.filter(s => !s.unit).map(s => s.set.trim()).filter(Boolean)).size;
+  const sets = new Set(
+    p.board.scenes
+      .filter(s => !s.unit)
+      .map(s => s.set.trim())
+      .filter(Boolean),
+  ).size;
   const cast = p.board.castList.length;
   const cash = topSheet(p).cashBudget;
   const out: { value: string; label: string }[] = [];
@@ -248,33 +361,74 @@ function derivedMilestones(p: Project): DeckMilestone[] {
 }
 
 function modelSteps(p: Project): { label: string; title: string; body: string }[] {
-  const w = p.waterfall; const n = p.participants.length;
-  const inv = pc(100 - w.poolPct), pool = pc(w.poolPct), recoup = pc(w.recoupPct);
+  const w = p.waterfall;
+  const n = p.participants.length;
+  const inv = pc(100 - w.poolPct),
+    pool = pc(w.poolPct),
+    recoup = pc(w.recoupPct);
   const steps: { label: string; title: string; body: string }[] = [];
   if (w.model === 'off-the-gross') {
-    steps.push({ label: 'From dollar one', title: `${pc(100 - w.grossSharePct)}¢ to investors, ${pc(w.grossSharePct)}¢ to the pool`, body: `Of every dollar the film earns, until investors have ${recoup}% of their investment back.` });
+    steps.push({
+      label: 'From dollar one',
+      title: `${pc(100 - w.grossSharePct)}¢ to investors, ${pc(w.grossSharePct)}¢ to the pool`,
+      body: `Of every dollar the film earns, until investors have ${recoup}% of their investment back.`,
+    });
   } else {
-    steps.push({ label: 'First', title: `Investors recoup ${recoup}%`, body: `Every dollar the film earns goes to investors until they have ${recoup}% of their investment back.` });
+    steps.push({
+      label: 'First',
+      title: `Investors recoup ${recoup}%`,
+      body: `Every dollar the film earns goes to investors until they have ${recoup}% of their investment back.`,
+    });
   }
-  steps.push({ label: `After ${recoup}%`, title: `${inv}% to investors, ${pool}% to the pool`, body: 'Of everything the film earns from then on.' });
-  if (n > 0) steps.push({ label: 'The pool', title: people(n), body: 'The cast and crew who make the film share the pool by their points.' });
+  steps.push({
+    label: `After ${recoup}%`,
+    title: `${inv}% to investors, ${pool}% to the pool`,
+    body: 'Of everything the film earns from then on.',
+  });
+  if (n > 0)
+    steps.push({
+      label: 'The pool',
+      title: people(n),
+      body: 'The cast and crew who make the film share the pool by their points.',
+    });
   return steps;
 }
 
 function numbersNote(p: Project): string {
-  const pitch = withPitch(p).pitch!; const deferred = topSheet(p).deferredTotal;
+  const pitch = withPitch(p).pitch!;
+  const deferred = topSheet(p).deferredTotal;
   const fee = `Sales and distribution fees and expenses of ${pc(pitch.feePct)}% come off the top of every case.`;
-  return deferred > 0 ? `${fee} Deferred pay of ${compactMoney(deferred, p.currency)} is paid first, before the split.` : fee;
+  return deferred > 0
+    ? `${fee} Deferred pay of ${compactMoney(deferred, p.currency)} is paid first, before the split.`
+    : fee;
 }
 
-export const ASK_WITH_GRANTS = 'We are raising {investors} from investors. Grants and fiscal sponsorship cover another {grants} of the budget, and that money is never repaid.';
+export const ASK_WITH_GRANTS =
+  'We are raising {investors} from investors. Grants and fiscal sponsorship cover another {grants} of the budget, and that money is never repaid.';
 export const ASK_NO_GRANTS = 'We are raising {investors} from investors.';
-export const ASK_WITHOUT_GRANTS = 'We are raising {investors} from investors. That is the whole raise if no grant comes in; the {grants} we are applying for would come off it.';
+export const ASK_WITHOUT_GRANTS =
+  'We are raising {investors} from investors. That is the whole raise if no grant comes in; the {grants} we are applying for would come off it.';
 
 // ---------- specs → contract ----------
 
-const text = (s: unknown): string => (typeof s === 'string' ? s : typeof s === 'number' && Number.isFinite(s) ? String(s) : '').trim();
-const LAYOUTS: ReadonlySet<string> = new Set(['cover', 'photo', 'look', 'text', 'cards', 'stats', 'timeline', 'comps', 'team', 'model', 'ways', 'numbers', 'ask', 'closing']);
+const text = (s: unknown): string =>
+  (typeof s === 'string' ? s : typeof s === 'number' && Number.isFinite(s) ? String(s) : '').trim();
+const LAYOUTS: ReadonlySet<string> = new Set([
+  'cover',
+  'photo',
+  'look',
+  'text',
+  'cards',
+  'stats',
+  'timeline',
+  'comps',
+  'team',
+  'model',
+  'ways',
+  'numbers',
+  'ask',
+  'closing',
+]);
 const isObj = (x: unknown): x is Record<string, unknown> => !!x && typeof x === 'object' && !Array.isArray(x);
 const list = (x: unknown): Record<string, unknown>[] => (Array.isArray(x) ? x.filter(isObj) : []);
 const lines = (x: unknown): string[] => (Array.isArray(x) ? x.map(text).filter(Boolean) : []);
@@ -286,7 +440,13 @@ export const MAX_LOOKS = 6;
  *  none chosen by hand, the first of its section (or of the whole look book). Never more than `MAX_LOOKS`. */
 export function lookPictures(s: SlideSpec, lookbook: LookImage[]): LookImage[] {
   const usable = lookbook.filter(i => !!i && typeof i.id === 'string' && typeof i.dataUrl === 'string' && !!i.dataUrl);
-  if (Array.isArray(s.looks)) { const byId = new Map(usable.map(i => [i.id, i] as const)); return s.looks.map(id => byId.get(id)).filter((i): i is LookImage => !!i).slice(0, MAX_LOOKS); }
+  if (Array.isArray(s.looks)) {
+    const byId = new Map(usable.map(i => [i.id, i] as const));
+    return s.looks
+      .map(id => byId.get(id))
+      .filter((i): i is LookImage => !!i)
+      .slice(0, MAX_LOOKS);
+  }
   return (s.lookSection ? usable.filter(i => i.section === s.lookSection) : usable).slice(0, MAX_LOOKS);
 }
 
@@ -302,115 +462,255 @@ export function reservedSlug(slug: string): boolean {
  */
 function cleanSpec(raw: unknown): SlideSpec | null {
   if (!isObj(raw)) return null;
-  const id = text(raw.id), layout = text(raw.layout);
+  const id = text(raw.id),
+    layout = text(raw.layout);
   if (!id || !LAYOUTS.has(layout)) return null;
   const s: SlideSpec = { id, layout: layout as SlideSpec['layout'] };
-  for (const k of ['eyebrow', 'headline', 'punch', 'body', 'imageId', 'closing', 'footnote', 'byline', 'nextStep', 'contact'] as const) { const v = text(raw[k]); if (v) s[k] = v; }
+  for (const k of [
+    'eyebrow',
+    'headline',
+    'punch',
+    'body',
+    'imageId',
+    'closing',
+    'footnote',
+    'byline',
+    'nextStep',
+    'contact',
+  ] as const) {
+    const v = text(raw[k]);
+    if (v) s[k] = v;
+  }
   if (typeof raw.scrim === 'number') s.scrim = raw.scrim;
   if (raw.hidden === true) s.hidden = true;
-  const motion = cleanMotion(raw.motion, layout);   // only words from the movement vocabulary, whatever the file holds
+  const motion = cleanMotion(raw.motion, layout); // only words from the movement vocabulary, whatever the file holds
   if (motion) s.motion = motion;
-  const paper = cleanSlidePaper(raw.paper);   // a word from the list of papers, or the slide follows the deck
+  const paper = cleanSlidePaper(raw.paper); // a word from the list of papers, or the slide follows the deck
   if (paper) s.paper = paper;
-  const shade = cleanSlidePaperShade(raw.paperShade);   // a word from the list of shades, or the slide follows the deck
+  const shade = cleanSlidePaperShade(raw.paperShade); // a word from the list of shades, or the slide follows the deck
   if (shade) s.paperShade = shade;
-  const cards = list(raw.cards).map((c, i) => ({ id: text(c.id) || `card${i + 1}`, kicker: text(c.kicker), title: text(c.title), body: text(c.body), footnote: text(c.footnote) }));
+  const cards = list(raw.cards).map((c, i) => ({
+    id: text(c.id) || `card${i + 1}`,
+    kicker: text(c.kicker),
+    title: text(c.title),
+    body: text(c.body),
+    footnote: text(c.footnote),
+  }));
   if (cards.length) s.cards = cards;
-  const stats = list(raw.stats).map((x, i) => ({ id: text(x.id) || `stat${i + 1}`, value: text(x.value), label: text(x.label), source: text(x.source) }));
+  const stats = list(raw.stats).map((x, i) => ({
+    id: text(x.id) || `stat${i + 1}`,
+    value: text(x.value),
+    label: text(x.label),
+    source: text(x.source),
+  }));
   if (stats.length) s.stats = stats;
-  const ms = list(raw.milestones).map((m, i) => ({ id: text(m.id) || `m${i + 1}`, when: text(m.when), what: text(m.what) }));
+  const ms = list(raw.milestones).map((m, i) => ({
+    id: text(m.id) || `m${i + 1}`,
+    when: text(m.when),
+    what: text(m.what),
+  }));
   if (ms.length) s.milestones = ms;
-  if (isObj(raw.lead)) s.lead = { value: text(raw.lead.value), text: text(raw.lead.text), source: text(raw.lead.source) };
+  if (isObj(raw.lead))
+    s.lead = { value: text(raw.lead.value), text: text(raw.lead.text), source: text(raw.lead.source) };
   if (isObj(raw.quote)) s.quote = { text: text(raw.quote.text), by: text(raw.quote.by) };
-  const cols = list(raw.columns).map(c => ({ label: text(c.label), lines: lines(c.lines) })).filter(c => c.label || c.lines.length);
+  const cols = list(raw.columns)
+    .map(c => ({ label: text(c.label), lines: lines(c.lines) }))
+    .filter(c => c.label || c.lines.length);
   if (cols.length) s.columns = cols;
-  if (isObj(raw.aside)) { const a = { title: text(raw.aside.title), lines: lines(raw.aside.lines), footnote: text(raw.aside.footnote) }; if (a.title || a.lines.length) s.aside = a.footnote ? a : { title: a.title, lines: a.lines }; }
-  if (Array.isArray(raw.looks)) s.looks = [...new Set(raw.looks.map(text).filter(Boolean))];   // chosen by hand, even when none is chosen yet
+  if (isObj(raw.aside)) {
+    const a = { title: text(raw.aside.title), lines: lines(raw.aside.lines), footnote: text(raw.aside.footnote) };
+    if (a.title || a.lines.length) s.aside = a.footnote ? a : { title: a.title, lines: a.lines };
+  }
+  if (Array.isArray(raw.looks)) s.looks = [...new Set(raw.looks.map(text).filter(Boolean))]; // chosen by hand, even when none is chosen yet
   if (LOOK_SECTION_IDS.has(text(raw.lookSection))) s.lookSection = text(raw.lookSection) as LookImage['section'];
   if (raw.captions === false) s.captions = false;
   if (raw.agreement === false) s.agreement = false;
   return s;
 }
-const cleanSlides = (p: Project): SlideSpec[] => slidesOf(p).map(cleanSpec).filter((s): s is SlideSpec => !!s);
-const cardsOf = (cards: SlideCard[] | undefined): DeckCard[] => (cards ?? []).map(c => {
-  const out: DeckCard = { id: c.id, title: c.title ?? '', body: c.body ?? '' };
-  if (text(c.kicker)) out.kicker = c.kicker!.trim();
-  if (text(c.footnote)) out.footnote = c.footnote!.trim();
-  return out;
-});
+const cleanSlides = (p: Project): SlideSpec[] =>
+  slidesOf(p)
+    .map(cleanSpec)
+    .filter((s): s is SlideSpec => !!s);
+const cardsOf = (cards: SlideCard[] | undefined): DeckCard[] =>
+  (cards ?? []).map(c => {
+    const out: DeckCard = { id: c.id, title: c.title ?? '', body: c.body ?? '' };
+    if (text(c.kicker)) out.kicker = c.kicker!.trim();
+    if (text(c.footnote)) out.footnote = c.footnote!.trim();
+    return out;
+  });
 const sourced = (x: { source?: unknown } | undefined): boolean => !!x && !!text(x.source);
 
 function slideOf(p: Project, s: SlideSpec, pictures: Map<string, LookImage>): DeckSlide {
   const pitch = p.pitch!;
-  const base: { id: string; eyebrow?: string; headline?: string; punch?: string; imageId?: string; scrim?: number; footnote?: string; motion?: SlideSpec['motion']; paper?: SlideSpec['paper']; paperShade?: SlideSpec['paperShade'] } = { id: s.id };
-  if (s.paper && PAPER_LAYOUTS.includes(s.layout)) base.paper = s.paper;   // only a slide that draws a card carries a paper
+  const base: {
+    id: string;
+    eyebrow?: string;
+    headline?: string;
+    punch?: string;
+    imageId?: string;
+    scrim?: number;
+    footnote?: string;
+    motion?: SlideSpec['motion'];
+    paper?: SlideSpec['paper'];
+    paperShade?: SlideSpec['paperShade'];
+  } = { id: s.id };
+  if (s.paper && PAPER_LAYOUTS.includes(s.layout)) base.paper = s.paper; // only a slide that draws a card carries a paper
   if (s.paperShade && PAPER_LAYOUTS.includes(s.layout)) base.paperShade = s.paperShade;
   if (text(s.eyebrow)) base.eyebrow = s.eyebrow!.trim();
   if (text(s.headline)) base.headline = s.headline!.trim();
   if (text(s.punch)) base.punch = s.punch!.trim();
-  if (s.imageId && pictures.has(s.imageId)) base.imageId = s.imageId;   // an id that matches no picture is dropped, and warned about
+  if (s.imageId && pictures.has(s.imageId)) base.imageId = s.imageId; // an id that matches no picture is dropped, and warned about
   if (typeof s.scrim === 'number' && Number.isFinite(s.scrim)) base.scrim = Math.max(0, Math.min(1, s.scrim));
   if (text(s.footnote)) base.footnote = s.footnote!.trim();
-  if (s.motion) {   // a travelling picture that is no longer in the look book is dropped, and warned about
+  if (s.motion) {
+    // a travelling picture that is no longer in the look book is dropped, and warned about
     const { marker, ...rest } = s.motion;
     const motion = marker && pictures.has(marker.imageId) ? { ...rest, marker } : rest;
     if (Object.keys(motion).length) base.motion = motion;
   }
-  const body = text(s.body), closing = text(s.closing);
+  const body = text(s.body),
+    closing = text(s.closing);
 
   switch (s.layout) {
     case 'cover': {
       const first = firstSentence(pitch.logline);
-      return { ...base, layout: 'cover', title: p.name, tagline: first.length <= TAGLINE_MAX ? first : '', byline: (s.byline ?? '').trim() };
+      return {
+        ...base,
+        layout: 'cover',
+        title: p.name,
+        tagline: first.length <= TAGLINE_MAX ? first : '',
+        byline: (s.byline ?? '').trim(),
+      };
     }
-    case 'photo': return { ...base, layout: 'photo', body };
+    case 'photo':
+      return { ...base, layout: 'photo', body };
     case 'look': {
-      delete base.imageId; delete base.scrim;   // the pictures are the slide: nothing goes behind them
+      delete base.imageId;
+      delete base.scrim; // the pictures are the slide: nothing goes behind them
       const show = s.captions !== false;
-      return { ...base, layout: 'look', pictures: lookPictures(s, [...pictures.values()]).map(i => ({ imageId: i.id, ...(show && text(i.caption) ? { caption: text(i.caption) } : {}), ...(show && text(i.credit) ? { credit: text(i.credit) } : {}) })) };
+      return {
+        ...base,
+        layout: 'look',
+        pictures: lookPictures(s, [...pictures.values()]).map(i => ({
+          imageId: i.id,
+          ...(show && text(i.caption) ? { caption: text(i.caption) } : {}),
+          ...(show && text(i.credit) ? { credit: text(i.credit) } : {}),
+        })),
+      };
     }
-    case 'text': return { ...base, layout: 'text', body, ...(s.columns?.length ? { aside: s.columns.map(c => ({ label: c.label, lines: [...c.lines] })) } : {}), ...(closing ? { closing } : {}) };
-    case 'cards': return { ...base, layout: 'cards', cards: cardsOf(s.cards) };
-    case 'ways': return { ...base, layout: 'ways', cards: cardsOf(s.cards) };
+    case 'text':
+      return {
+        ...base,
+        layout: 'text',
+        body,
+        ...(s.columns?.length ? { aside: s.columns.map(c => ({ label: c.label, lines: [...c.lines] })) } : {}),
+        ...(closing ? { closing } : {}),
+      };
+    case 'cards':
+      return { ...base, layout: 'cards', cards: cardsOf(s.cards) };
+    case 'ways':
+      return { ...base, layout: 'ways', cards: cardsOf(s.cards) };
     case 'stats': {
-      const stats: DeckStat[] = (s.stats ?? []).filter(sourced).map(x => ({ id: x.id, value: x.value ?? '', label: x.label ?? '', source: x.source.trim() }));
-      return { ...base, layout: 'stats',
-        ...(sourced(s.lead) ? { lead: { value: s.lead!.value ?? '', text: s.lead!.text ?? '', source: s.lead!.source.trim() } } : {}),
-        ...(body ? { body } : {}), stats,
+      const stats: DeckStat[] = (s.stats ?? [])
+        .filter(sourced)
+        .map(x => ({ id: x.id, value: x.value ?? '', label: x.label ?? '', source: x.source.trim() }));
+      return {
+        ...base,
+        layout: 'stats',
+        ...(sourced(s.lead)
+          ? { lead: { value: s.lead!.value ?? '', text: s.lead!.text ?? '', source: s.lead!.source.trim() } }
+          : {}),
+        ...(body ? { body } : {}),
+        stats,
         ...(s.quote && text(s.quote.text) ? { quote: { text: s.quote.text.trim(), by: text(s.quote.by) } } : {}),
-        ...(closing ? { note: closing } : {}) };
+        ...(closing ? { note: closing } : {}),
+      };
     }
     case 'timeline': {
-      const own = (s.milestones ?? []).filter(m => text(m.when) || text(m.what)).map(m => ({ id: m.id, when: text(m.when), what: text(m.what) }));
-      const tier = s.agreement === false || !p.board.castList.length ? '' : text(sagReport(p).target?.name);   // only a film with speaking parts has an agreement to name
-      return { ...base, layout: 'timeline', facts: timelineFacts(p), milestones: own.length ? own : derivedMilestones(p), ...(closing ? { note: closing } : {}), ...(tier ? { agreement: `Budgeted under the SAG-AFTRA ${tier} agreement.` } : {}) };
+      const own = (s.milestones ?? [])
+        .filter(m => text(m.when) || text(m.what))
+        .map(m => ({ id: m.id, when: text(m.when), what: text(m.what) }));
+      const tier = s.agreement === false || !p.board.castList.length ? '' : text(sagReport(p).target?.name); // only a film with speaking parts has an agreement to name
+      return {
+        ...base,
+        layout: 'timeline',
+        facts: timelineFacts(p),
+        milestones: own.length ? own : derivedMilestones(p),
+        ...(closing ? { note: closing } : {}),
+        ...(tier ? { agreement: `Budgeted under the SAG-AFTRA ${tier} agreement.` } : {}),
+      };
     }
     case 'comps': {
-      const bars = pitch.comps.map(c => ({ c, m: compMultiple(c) })).filter((x): x is { c: typeof x.c; m: number } => x.m != null)
-        .sort((x, y) => y.m - x.m).slice(0, 6)
+      const bars = pitch.comps
+        .map(c => ({ c, m: compMultiple(c) }))
+        .filter((x): x is { c: typeof x.c; m: number } => x.m != null)
+        .sort((x, y) => y.m - x.m)
+        .slice(0, 6)
         .map(({ c, m }) => ({ label: c.title, value: m, ...(text(c.year) ? { note: c.year.trim() } : {}) }));
-      const groups = compGroups(pitch.comps).map(g => ({ group: g.group, rows: g.comps.map(c => ({ title: c.title, year: c.year, multiple: compMultiple(c) })) }));
+      const groups = compGroups(pitch.comps).map(g => ({
+        group: g.group,
+        rows: g.comps.map(c => ({ title: c.title, year: c.year, multiple: compMultiple(c) })),
+      }));
       const callout = closing || body;
-      return { ...base, layout: 'comps', bars, barsLabel: 'Worldwide gross over budget', groups, ...(callout ? { callout } : {}) };
+      return {
+        ...base,
+        layout: 'comps',
+        bars,
+        barsLabel: 'Worldwide gross over budget',
+        groups,
+        ...(callout ? { callout } : {}),
+      };
     }
-    case 'team': return { ...base, layout: 'team', members: (pitch.team ?? []).filter(t => t.name.trim()).map(t => ({ name: t.name.trim(), role: t.role ?? '', bio: t.bio ?? '' })), ...(s.aside ? { aside: { title: s.aside.title, lines: [...s.aside.lines], ...(s.aside.footnote ? { footnote: s.aside.footnote } : {}) } } : {}) };
-    case 'model': return { ...base, layout: 'model', body, steps: modelSteps(p), ...(closing ? { closing } : {}) };
-    case 'numbers': return { ...base, layout: 'numbers', body, caseNote: closing || numbersNote(p) };
+    case 'team':
+      return {
+        ...base,
+        layout: 'team',
+        members: (pitch.team ?? [])
+          .filter(t => t.name.trim())
+          .map(t => ({ name: t.name.trim(), role: t.role ?? '', bio: t.bio ?? '' })),
+        ...(s.aside
+          ? {
+              aside: {
+                title: s.aside.title,
+                lines: [...s.aside.lines],
+                ...(s.aside.footnote ? { footnote: s.aside.footnote } : {}),
+              },
+            }
+          : {}),
+      };
+    case 'model':
+      return { ...base, layout: 'model', body, steps: modelSteps(p), ...(closing ? { closing } : {}) };
+    case 'numbers':
+      return { ...base, layout: 'numbers', body, caseNote: closing || numbersNote(p) };
     case 'ask': {
-      const grants = sponsorNet(p.waterfall) > 0;   // with no grants in the project there is nothing for {grants} to say
-      return { ...base, layout: 'ask', withGrants: body || (grants ? ASK_WITH_GRANTS : ASK_NO_GRANTS), withoutGrants: body || (grants ? ASK_WITHOUT_GRANTS : ASK_NO_GRANTS), nextStep: (s.nextStep ?? '').trim(), contact: (s.contact ?? '').trim() };
+      const grants = sponsorNet(p.waterfall) > 0; // with no grants in the project there is nothing for {grants} to say
+      return {
+        ...base,
+        layout: 'ask',
+        withGrants: body || (grants ? ASK_WITH_GRANTS : ASK_NO_GRANTS),
+        withoutGrants: body || (grants ? ASK_WITHOUT_GRANTS : ASK_NO_GRANTS),
+        nextStep: (s.nextStep ?? '').trim(),
+        contact: (s.contact ?? '').trim(),
+      };
     }
-    case 'closing': return { ...base, layout: 'closing', title: p.name };
+    case 'closing':
+      return { ...base, layout: 'closing', title: p.name };
   }
 }
 
 function recipientsOf(all: Recipient[] | undefined): DeckRecipient[] {
-  const seen = new Set<string>(); const out: DeckRecipient[] = [];
+  const seen = new Set<string>();
+  const out: DeckRecipient[] = [];
   for (const r of (Array.isArray(all) ? all : []).filter(x => !!x && typeof x === 'object')) {
     const slug = slugify(text(r.slug));
-    if (!slug || seen.has(slug) || reservedSlug(slug)) continue;   // no link ending, one already taken (the first wins), or one the deck reads as a switch
+    if (!slug || seen.has(slug) || reservedSlug(slug)) continue; // no link ending, one already taken (the first wins), or one the deck reads as a switch
     seen.add(slug);
-    const rec: DeckRecipient = { slug, name: text(r.name), coverLine: text(r.coverLine), lead: r.lead === 'without-grants' ? 'without-grants' : 'with-grants' };
+    const rec: DeckRecipient = {
+      slug,
+      name: text(r.name),
+      coverLine: text(r.coverLine),
+      lead: r.lead === 'without-grants' ? 'without-grants' : 'with-grants',
+    };
     if (text(r.note)) rec.note = text(r.note);
     if (text(r.highlightCardId)) rec.highlightCardId = text(r.highlightCardId);
     out.push(rec);
@@ -430,15 +730,35 @@ function pathsOf(p: Project): DeckData['paths'] {
 }
 
 /** The look book's pictures that can be read at all: a hand-edited file can hold anything in that list. */
-const looks = (x: unknown): LookImage[] => (Array.isArray(x) ? x.filter((i): i is LookImage => isObj(i) && typeof i.id === 'string' && typeof i.dataUrl === 'string') : []);
+const looks = (x: unknown): LookImage[] =>
+  Array.isArray(x)
+    ? x.filter((i): i is LookImage => isObj(i) && typeof i.id === 'string' && typeof i.dataUrl === 'string')
+    : [];
 
 /** The deck as the runtime reads it. */
 export function deckData(p0: Project, opts: DeckDataOptions = {}): DeckData {
-  const p = withPitch(p0); const pitch = p.pitch!;
-  const pictures = new Map(looks(pitch.lookbook).filter(i => i.dataUrl).map(i => [i.id, i] as const));
-  const slides = cleanSlides(p).filter(s => !s.hidden).map(s => slideOf(p, s, pictures));
-  const usedIds = new Set(slides.flatMap(s => [s.imageId, s.motion?.marker?.imageId, ...(s.layout === 'look' ? s.pictures.map(x => x.imageId) : [])]).filter((id): id is string => !!id));   // a travelling picture goes in the file like any other
-  const images: DeckImage[] = [...pictures.values()].filter(i => usedIds.has(i.id)).map(i => ({ id: i.id, src: i.dataUrl, alt: text(i.caption) || 'Look book picture' }));
+  const p = withPitch(p0);
+  const pitch = p.pitch!;
+  const pictures = new Map(
+    looks(pitch.lookbook)
+      .filter(i => i.dataUrl)
+      .map(i => [i.id, i] as const),
+  );
+  const slides = cleanSlides(p)
+    .filter(s => !s.hidden)
+    .map(s => slideOf(p, s, pictures));
+  const usedIds = new Set(
+    slides
+      .flatMap(s => [
+        s.imageId,
+        s.motion?.marker?.imageId,
+        ...(s.layout === 'look' ? s.pictures.map(x => x.imageId) : []),
+      ])
+      .filter((id): id is string => !!id),
+  ); // a travelling picture goes in the file like any other
+  const images: DeckImage[] = [...pictures.values()]
+    .filter(i => usedIds.has(i.id))
+    .map(i => ({ id: i.id, src: i.dataUrl, alt: text(i.caption) || 'Look book picture' }));
   const data: DeckData = {
     version: DECK_DATA_VERSION,
     film: p.name,
@@ -453,62 +773,161 @@ export function deckData(p0: Project, opts: DeckDataOptions = {}): DeckData {
   };
   const motion = cleanDeckMotion(pitch.deckMotion);
   if (motion) data.motion = motion;
-  return JSON.parse(JSON.stringify(data)) as DeckData;   // plain JSON, whatever a hand-edited project file carried in
+  return JSON.parse(JSON.stringify(data)) as DeckData; // plain JSON, whatever a hand-edited project file carried in
 }
 
 /** One thing the author should fix. `slideId` is the slide it is on (`deck` and `design` for the whole deck and the
  *  design system, `recipient:<id>` for a person). `where` says what to open to fix it, so a page can link there:
  *  `revenue`, `deal`, `design`, `picture`, `marker`, `cards`, `lead`, `stat:<id>`, `recipient:<position in the list>`. */
-export interface DeckWarning { slideId: string; message: string; where?: string }
+export interface DeckWarning {
+  slideId: string;
+  message: string;
+  where?: string;
+}
 
 /** What the author should fix, one entry per problem. Nothing here assumes a well-formed file. */
 export function deckWarnings(p0: Project): DeckWarning[] {
-  const p = withPitch(p0); const pitch = p.pitch!;
+  const p = withPitch(p0);
+  const pitch = p.pitch!;
   const ids = new Set(looks(pitch.lookbook).map(i => i.id));
   const out: DeckWarning[] = [];
   const typed = slidesOf(p);
   const clean = (Array.isArray(typed) ? typed : []).map(cleanSpec);
   // a slide with an id and a layout this version has no drawing for; nonsense in the list is not a slide and is not counted
-  const dropped = (Array.isArray(typed) ? typed : []).filter((r: unknown) => isObj(r) && !!text(r.id) && !!text(r.layout) && !LAYOUTS.has(text(r.layout))).length;
-  if (dropped) out.push({ slideId: 'deck', message: `${dropped} slide${dropped === 1 ? ' was' : 's were'} made in a newer version of ProfitShare and cannot be shown here.` });
+  const dropped = (Array.isArray(typed) ? typed : []).filter(
+    (r: unknown) => isObj(r) && !!text(r.id) && !!text(r.layout) && !LAYOUTS.has(text(r.layout)),
+  ).length;
+  if (dropped)
+    out.push({
+      slideId: 'deck',
+      message: `${dropped} slide${dropped === 1 ? ' was' : 's were'} made in a newer version of ProfitShare and cannot be shown here.`,
+    });
   const paths = pathInputs(p);
   for (const s of clean) {
     if (!s || s.hidden) continue;
-    if (s.layout === 'numbers' && !paths.cases.some(c => c.gross > 0)) out.push({ slideId: s.id, where: 'revenue', message: 'No receipts are typed yet, so this slide shows what investors fund but not what comes back. Add low, mid and high receipts under What it could make.' });
-    if ((s.layout === 'numbers' || s.layout === 'ask') && paths.cashBudget > 0 && pathFor(paths).investors <= 0) out.push({ slideId: s.id, where: 'deal', message: 'Grants, credits and perks already cover the whole budget, so this slide asks investors for nothing. Check the amounts on the Deal tab.' });
+    if (s.layout === 'numbers' && !paths.cases.some(c => c.gross > 0))
+      out.push({
+        slideId: s.id,
+        where: 'revenue',
+        message:
+          'No receipts are typed yet, so this slide shows what investors fund but not what comes back. Add low, mid and high receipts under What it could make.',
+      });
+    if ((s.layout === 'numbers' || s.layout === 'ask') && paths.cashBudget > 0 && pathFor(paths).investors <= 0)
+      out.push({
+        slideId: s.id,
+        where: 'deal',
+        message:
+          'Grants, credits and perks already cover the whole budget, so this slide asks investors for nothing. Check the amounts on the Deal tab.',
+      });
     if (s.layout === 'stats') {
       // a number nobody has started typing is not a problem yet
-      if (s.lead && (text(s.lead.value) || text(s.lead.text)) && !sourced(s.lead)) out.push({ slideId: s.id, where: 'lead', message: `The big number${text(s.lead.value) ? ` "${s.lead.value.trim()}"` : ''} has no source, so it is left off the deck.` });
-      for (const x of s.stats ?? []) if ((text(x.value) || text(x.label)) && !sourced(x)) out.push({ slideId: s.id, where: `stat:${x.id}`, message: `The number${text(x.value) ? ` "${x.value.trim()}"` : ''} has no source, so it is left off the deck.` });
+      if (s.lead && (text(s.lead.value) || text(s.lead.text)) && !sourced(s.lead))
+        out.push({
+          slideId: s.id,
+          where: 'lead',
+          message: `The big number${text(s.lead.value) ? ` "${s.lead.value.trim()}"` : ''} has no source, so it is left off the deck.`,
+        });
+      for (const x of s.stats ?? [])
+        if ((text(x.value) || text(x.label)) && !sourced(x))
+          out.push({
+            slideId: s.id,
+            where: `stat:${x.id}`,
+            message: `The number${text(x.value) ? ` "${x.value.trim()}"` : ''} has no source, so it is left off the deck.`,
+          });
     }
-    if ((s.layout === 'cards' || s.layout === 'ways') && (s.cards?.length ?? 0) > MAX_CARDS) out.push({ slideId: s.id, where: 'cards', message: `This slide has ${s.cards!.length} cards; a slide holds ${MAX_CARDS} at most.` });
+    if ((s.layout === 'cards' || s.layout === 'ways') && (s.cards?.length ?? 0) > MAX_CARDS)
+      out.push({
+        slideId: s.id,
+        where: 'cards',
+        message: `This slide has ${s.cards!.length} cards; a slide holds ${MAX_CARDS} at most.`,
+      });
     if (s.layout === 'look') {
       const have = looks(pitch.lookbook).filter(i => i.dataUrl);
       const gone = (s.looks ?? []).filter(id => !ids.has(id)).length;
-      if (gone) out.push({ slideId: s.id, where: 'looks', message: `${gone} of the pictures chosen for this slide ${gone === 1 ? 'is' : 'are'} no longer in the look book, so ${gone === 1 ? 'it is' : 'they are'} left off.` });
-      if ((s.looks?.length ?? 0) > MAX_LOOKS) out.push({ slideId: s.id, where: 'looks', message: `This slide has ${s.looks!.length} pictures chosen; a slide holds ${MAX_LOOKS} at most, so the rest are left off.` });
-      if (!lookPictures(s, have).length) out.push({ slideId: s.id, where: 'looks', message: !have.length ? 'The look book has no pictures yet, so this slide is empty. Add some to the Look book.' : Array.isArray(s.looks) ? 'No pictures are chosen for this slide yet, so it is empty.' : 'The look book has no pictures in that section, so this slide is empty.' });
+      if (gone)
+        out.push({
+          slideId: s.id,
+          where: 'looks',
+          message: `${gone} of the pictures chosen for this slide ${gone === 1 ? 'is' : 'are'} no longer in the look book, so ${gone === 1 ? 'it is' : 'they are'} left off.`,
+        });
+      if ((s.looks?.length ?? 0) > MAX_LOOKS)
+        out.push({
+          slideId: s.id,
+          where: 'looks',
+          message: `This slide has ${s.looks!.length} pictures chosen; a slide holds ${MAX_LOOKS} at most, so the rest are left off.`,
+        });
+      if (!lookPictures(s, have).length)
+        out.push({
+          slideId: s.id,
+          where: 'looks',
+          message: !have.length
+            ? 'The look book has no pictures yet, so this slide is empty. Add some to the Look book.'
+            : Array.isArray(s.looks)
+              ? 'No pictures are chosen for this slide yet, so it is empty.'
+              : 'The look book has no pictures in that section, so this slide is empty.',
+        });
     }
-    if (s.layout !== 'look' && s.imageId && !ids.has(s.imageId)) out.push({ slideId: s.id, where: 'picture', message: 'The picture chosen for this slide is no longer in the look book.' });
-    if (s.motion?.marker && !ids.has(s.motion.marker.imageId)) out.push({ slideId: s.id, where: 'marker', message: 'The picture that travels along the timeline on this slide is no longer in the look book, so it is left off.' });
+    if (s.layout !== 'look' && s.imageId && !ids.has(s.imageId))
+      out.push({
+        slideId: s.id,
+        where: 'picture',
+        message: 'The picture chosen for this slide is no longer in the look book.',
+      });
+    if (s.motion?.marker && !ids.has(s.motion.marker.imageId))
+      out.push({
+        slideId: s.id,
+        where: 'marker',
+        message:
+          'The picture that travels along the timeline on this slide is no longer in the look book, so it is left off.',
+      });
   }
-  const fontSaid = new Set<string>();   // a family picked from Google Fonts is several files: what is wrong with it is said once
-  const fontNote = (message: string) => { if (!fontSaid.has(message)) { fontSaid.add(message); out.push({ slideId: 'design', where: 'design', message }); } };
+  const fontSaid = new Set<string>(); // a family picked from Google Fonts is several files: what is wrong with it is said once
+  const fontNote = (message: string) => {
+    if (!fontSaid.has(message)) {
+      fontSaid.add(message);
+      out.push({ slideId: 'design', where: 'design', message });
+    }
+  };
   for (const f of Array.isArray(pitch.design?.fontFiles) ? pitch.design!.fontFiles! : []) {
-    if (!isObj(f) || !text(f.id) || (f.role !== 'title' && f.role !== 'body')) continue;   // not a font file at all
-    const which = f.role === 'title' ? 'title' : 'body'; const data = typeof f.dataUrl === 'string' ? f.dataUrl : '';
-    if (!cleanFamily(f.family)) fontNote(`The ${which} font file has no name, so the deck cannot use it. Give it one under Design system.`);
-    else if (data && !data.startsWith('idb:') && !fontSrcOk(data)) fontNote(`The ${which} font file "${cleanFamily(f.family)}" is not a font this deck can read, so it is left out.`);
-    else if (!data) fontNote(f.source === 'google' ? `The ${which} font "${cleanFamily(f.family)}" is missing from this browser. Pick it again under Design system.` : `The ${which} font file "${cleanFamily(f.family)}" is missing from this browser. Attach it again under Design system.`);
+    if (!isObj(f) || !text(f.id) || (f.role !== 'title' && f.role !== 'body')) continue; // not a font file at all
+    const which = f.role === 'title' ? 'title' : 'body';
+    const data = typeof f.dataUrl === 'string' ? f.dataUrl : '';
+    if (!cleanFamily(f.family))
+      fontNote(`The ${which} font file has no name, so the deck cannot use it. Give it one under Design system.`);
+    else if (data && !data.startsWith('idb:') && !fontSrcOk(data))
+      fontNote(
+        `The ${which} font file "${cleanFamily(f.family)}" is not a font this deck can read, so it is left out.`,
+      );
+    else if (!data)
+      fontNote(
+        f.source === 'google'
+          ? `The ${which} font "${cleanFamily(f.family)}" is missing from this browser. Pick it again under Design system.`
+          : `The ${which} font file "${cleanFamily(f.family)}" is missing from this browser. Attach it again under Design system.`,
+      );
   }
   const seen = new Set<string>();
   (Array.isArray(pitch.recipients) ? pitch.recipients : []).forEach((r: unknown, at) => {
     if (!isObj(r)) return;
-    const slug = slugify(text(r.slug)); const who = text(r.name) || 'Someone you send it to';
-    const slideId = `recipient:${text(r.id)}`, where = `recipient:${at}`;
-    if (slug && reservedSlug(slug)) out.push({ slideId, where, message: `${who}'s link ending "${slug}" is reserved (the deck uses with and without to switch asks). Try another, such as ${slug}-film, or they get no link.` });
-    else if (!slug) { if (text(r.name) || text(r.coverLine) || text(r.note)) out.push({ slideId, where, message: `${who} has no link ending, so there is no deck link for them.` }); }   // a person nobody has started typing is not a problem yet
-    else if (seen.has(slug)) out.push({ slideId, where, message: `${who} has the same link ending as someone else ("${slug}"); only the first one gets it.` });
+    const slug = slugify(text(r.slug));
+    const who = text(r.name) || 'Someone you send it to';
+    const slideId = `recipient:${text(r.id)}`,
+      where = `recipient:${at}`;
+    if (slug && reservedSlug(slug))
+      out.push({
+        slideId,
+        where,
+        message: `${who}'s link ending "${slug}" is reserved (the deck uses with and without to switch asks). Try another, such as ${slug}-film, or they get no link.`,
+      });
+    else if (!slug) {
+      if (text(r.name) || text(r.coverLine) || text(r.note))
+        out.push({ slideId, where, message: `${who} has no link ending, so there is no deck link for them.` });
+    } // a person nobody has started typing is not a problem yet
+    else if (seen.has(slug))
+      out.push({
+        slideId,
+        where,
+        message: `${who} has the same link ending as someone else ("${slug}"); only the first one gets it.`,
+      });
     else seen.add(slug);
   });
   return out;

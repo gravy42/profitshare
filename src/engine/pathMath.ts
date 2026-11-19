@@ -6,18 +6,37 @@ import type { SplitTerms } from './split';
 
 /** One source of money that is not the investors'. `amount` is what it contributes when switched on (net, in
  *  dollars); `on` is whether it is switched on in the project as saved. */
-export interface PathSource { key: string; label: string; amount: number; on: boolean; note?: string }
+export interface PathSource {
+  key: string;
+  label: string;
+  amount: number;
+  on: boolean;
+  note?: string;
+}
 
 export interface PathInputs {
-  cashBudget: number;        // the budget to raise
-  deferred: number;          // fixed deferred pay, paid from first proceeds before any split
+  cashBudget: number; // the budget to raise
+  deferred: number; // fixed deferred pay, paid from first proceeds before any split
   sources: PathSource[];
-  waterfall: SplitTerms;     // model, recoupPct, poolPct, grossSharePct
-  cases: { label: string; gross: number }[];   // gross receipts per case, in order
-  feePct: number;            // fees off the top, percent of gross
+  waterfall: SplitTerms; // model, recoupPct, poolPct, grossSharePct
+  cases: { label: string; gross: number }[]; // gross receipts per case, in order
+  feePct: number; // fees off the top, percent of gross
 }
-interface PathCase { label: string; gross: number; fees: number; net: number; deferredPaid: number; toInvestors: number; toPool: number; multiple: number }
-export interface PathResult { switches: Record<string, boolean>; investors: number; cases: PathCase[] }
+interface PathCase {
+  label: string;
+  gross: number;
+  fees: number;
+  net: number;
+  deferredPaid: number;
+  toInvestors: number;
+  toPool: number;
+  multiple: number;
+}
+export interface PathResult {
+  switches: Record<string, boolean>;
+  investors: number;
+  cases: PathCase[];
+}
 
 /** One path. A source counts when its switch is true; a switch that is left out falls back to the source's saved `on`. */
 export function pathFor(inputs: PathInputs, switches: Record<string, boolean> = {}): PathResult {
@@ -29,13 +48,22 @@ export function pathFor(inputs: PathInputs, switches: Record<string, boolean> = 
     if (on) covered += s.amount;
   }
   const left = inputs.cashBudget - covered;
-  const investors = left < 0.005 ? 0 : left;   // under half a cent is nothing: a covered budget must not produce a multiple
+  const investors = left < 0.005 ? 0 : left; // under half a cent is nothing: a covered budget must not produce a multiple
   const cases = inputs.cases.map(c => {
-    const fees = c.gross * inputs.feePct / 100;
+    const fees = (c.gross * inputs.feePct) / 100;
     const net = c.gross - fees;
-    const { paid, rest } = afterDeferrals(inputs.deferred, net);   // deferred pay comes out of first proceeds, before the split
+    const { paid, rest } = afterDeferrals(inputs.deferred, net); // deferred pay comes out of first proceeds, before the split
     const toInvestors = investorsAt(inputs.waterfall, investors, rest);
-    return { label: c.label, gross: c.gross, fees, net, deferredPaid: paid, toInvestors, toPool: poolAt(inputs.waterfall, investors, rest), multiple: investors > 0 ? toInvestors / investors : 0 };
+    return {
+      label: c.label,
+      gross: c.gross,
+      fees,
+      net,
+      deferredPaid: paid,
+      toInvestors,
+      toPool: poolAt(inputs.waterfall, investors, rest),
+      multiple: investors > 0 ? toInvestors / investors : 0,
+    };
   });
   return { switches: resolved, investors, cases };
 }
@@ -48,7 +76,9 @@ export function allSwitches(sources: Pick<PathSource, 'key'>[]): Record<string, 
   const out: Record<string, boolean>[] = [];
   for (let i = 0; i < 2 ** n; i++) {
     const combo: Record<string, boolean> = {};
-    keys.forEach((k, j) => { combo[k] = Math.floor(i / 2 ** (n - 1 - j)) % 2 === 0; });
+    keys.forEach((k, j) => {
+      combo[k] = Math.floor(i / 2 ** (n - 1 - j)) % 2 === 0;
+    });
     out.push(combo);
   }
   return out;

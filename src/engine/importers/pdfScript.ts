@@ -13,19 +13,28 @@ export async function pdfScriptLines(data: ArrayBuffer): Promise<ScriptLine[]> {
 type PdfPageItems = { items: { x: number; y: number; w: number; s: string }[]; height: number };
 /** Every piece of text on every page with its place, as pdf.js reports it. Apart from the function above so a test
  *  can run it on a real PDF outside the browser and catch a new pdf.js that places or splits text differently. */
-export async function pdfPageItems(doc: { numPages: number; getPage(n: number): Promise<any> }): Promise<PdfPageItems[]> {
+export async function pdfPageItems(doc: {
+  numPages: number;
+  getPage(n: number): Promise<any>;
+}): Promise<PdfPageItems[]> {
   const pages: PdfPageItems[] = [];
   for (let p = 1; p <= doc.numPages; p++) {
     const page = await doc.getPage(p);
     const content = await page.getTextContent();
-    const items = content.items.flatMap((it: any) => it.str !== undefined && it.transform ? [{ x: it.transform[4], y: it.transform[5], w: it.width, s: it.str as string }] : []);
+    const items = content.items.flatMap((it: any) =>
+      it.str !== undefined && it.transform
+        ? [{ x: it.transform[4], y: it.transform[5], w: it.width, s: it.str as string }]
+        : [],
+    );
     pages.push({ items, height: page.view[3] - page.view[1] });
   }
   return pages;
 }
 
 /** Pure part, so it can be tested without pdf.js: group items into lines by page and baseline, order by x. */
-export function linesFromPdfItems(pages: { items: { x: number; y: number; w: number; s: string }[]; height: number }[]): ScriptLine[] {
+export function linesFromPdfItems(
+  pages: { items: { x: number; y: number; w: number; s: string }[]; height: number }[],
+): ScriptLine[] {
   const out: ScriptLine[] = [];
   const allLines: { page: number; y: number; x: number; text: string }[][] = [];
   for (let pi = 0; pi < pages.length; pi++) {
@@ -35,33 +44,54 @@ export function linesFromPdfItems(pages: { items: { x: number; y: number; w: num
       if (!it.s.trim()) continue;
       const key = Math.round(it.y / 3) * 3;
       const row = rows.get(key) ?? [];
-      row.push(it); rows.set(key, row);
+      row.push(it);
+      rows.set(key, row);
     }
-    const lines = [...rows.entries()].sort((a, b) => b[0] - a[0]).map(([y, row]) => {
-      row.sort((a, b) => a.x - b.x);
-      let text = '', end = -1;
-      for (const it of row) {
-        if (end >= 0 && it.x - end > 2 && !text.endsWith(' ') && !it.s.startsWith(' ')) text += ' ';
-        text += it.s; end = it.x + it.w;
-      }
-      return { page: pi, y, x: row[0].x, text: text.replace(/\s+/g, ' ').trim() };
-    }).filter(l => l.text);
+    const lines = [...rows.entries()]
+      .sort((a, b) => b[0] - a[0])
+      .map(([y, row]) => {
+        row.sort((a, b) => a.x - b.x);
+        let text = '',
+          end = -1;
+        for (const it of row) {
+          if (end >= 0 && it.x - end > 2 && !text.endsWith(' ') && !it.s.startsWith(' ')) text += ' ';
+          text += it.s;
+          end = it.x + it.w;
+        }
+        return { page: pi, y, x: row[0].x, text: text.replace(/\s+/g, ' ').trim() };
+      })
+      .filter(l => l.text);
     allLines.push(lines);
   }
   // the text block: where the body sits on the page, taken across the whole document so a short page
   // (end of a scene, then a page break) still counts as a full page
-  const ys = allLines.flat().filter(l => !/^\d{1,3}\.?$/.test(l.text)).map(l => l.y).sort((a, b) => a - b);
+  const ys = allLines
+    .flat()
+    .filter(l => !/^\d{1,3}\.?$/.test(l.text))
+    .map(l => l.y)
+    .sort((a, b) => a - b);
   if (!ys.length) return out;
-  const top = ys[Math.floor(ys.length * 0.995)], bottom = ys[Math.floor(ys.length * 0.005)];
+  const top = ys[Math.floor(ys.length * 0.995)],
+    bottom = ys[Math.floor(ys.length * 0.005)];
   const span = Math.max(top - bottom, 1);
   allLines.forEach((lines, pi) => {
     // the page number the script prints, if any (a bare number at the top of the page)
-    const label = lines.slice(0, 2).find(l => /^\d{1,3}\.?$/.test(l.text))?.text.replace('.', '') ?? String(pi + 1);
+    const label =
+      lines
+        .slice(0, 2)
+        .find(l => /^\d{1,3}\.?$/.test(l.text))
+        ?.text.replace('.', '') ?? String(pi + 1);
     let prevY = Infinity;
     for (const l of lines) {
       // a gap of more than one line height is a blank line, which the parser uses to find cue shapes
-      if (prevY !== Infinity && prevY - l.y > 18) out.push({ text: '', pos: pi + (top - l.y) / span, indent: 0, page: label });
-      out.push({ text: l.text, pos: pi + Math.min(1, Math.max(0, (top - l.y) / span)), indent: Math.round(l.x), page: label });
+      if (prevY !== Infinity && prevY - l.y > 18)
+        out.push({ text: '', pos: pi + (top - l.y) / span, indent: 0, page: label });
+      out.push({
+        text: l.text,
+        pos: pi + Math.min(1, Math.max(0, (top - l.y) / span)),
+        indent: Math.round(l.x),
+        page: label,
+      });
       prevY = l.y;
     }
   });

@@ -8,7 +8,30 @@ import { lineFringes, lineSubtotal, topSheet, setPayType, rollupCashTotal } from
 const rollupCash = (ts: ReturnType<typeof topSheet>) => rollupCashTotal(ts.subtotal);
 import { sagReport, rerateCast, qualifyingTier } from './sag';
 import { poolAt, waterfallReport, syncDaysFromBudget, participantPoints, totalPoints } from './waterfall';
-import { autoDayBreaks, moveStrips, moveDay, dayBlocks, dayOfIndex, boardElements, daysFollowing, daysWithElements, dood, insertDayBreak, moveStrip, shootDays, syncCastDaysFromBoard, totalEighths, splitStrip, unsplitScene, setPartEighths, stripPart, setSceneUnit, firstUnitEighths, parkedScenes, parkedStart } from './board';
+import {
+  autoDayBreaks,
+  moveStrips,
+  moveDay,
+  dayBlocks,
+  dayOfIndex,
+  boardElements,
+  daysFollowing,
+  daysWithElements,
+  dood,
+  insertDayBreak,
+  moveStrip,
+  shootDays,
+  syncCastDaysFromBoard,
+  totalEighths,
+  splitStrip,
+  unsplitScene,
+  setPartEighths,
+  stripPart,
+  setSceneUnit,
+  firstUnitEighths,
+  parkedScenes,
+  parkedStart,
+} from './board';
 import { parseSex } from './importers/sex';
 import { fdxHasTags, fdxTitle, parseFdx } from './importers/fdx';
 import { parseShamelXlsx } from './importers/shamelXlsx';
@@ -29,18 +52,21 @@ describe('budget engine', () => {
   });
   it('caps FUI and SUI at the first $7,000 of wages per line', () => {
     const dp = seed.lines.find(l => l.accountId === '2601' && l.description === 'Shoot')!;
-    const wages = lineSubtotal(dp);                       // 12 × 35.71 × 14 = 5,999.28 (under the cap)
+    const wages = lineSubtotal(dp); // 12 × 35.71 × 14 = 5,999.28 (under the cap)
     expect(wages).toBeCloseTo(5_999.28, 2);
     expect(lineFringes(dp, seed.fringes)).toBeCloseTo(wages * (0.062 + 0.0145 + 0.006 + 0.062 + 0.0448 + 0.0175), 1);
     const lp = seed.lines.find(l => l.accountId === '2101' && l.description === 'Prep')!; // 20 × 35.71 × 14 = 9,998.80 (over)
     const w2 = lineSubtotal(lp);
-    expect(lineFringes(lp, seed.fringes)).toBeCloseTo(w2 * (0.062 + 0.0145 + 0.0448 + 0.0175) + 7000 * (0.006 + 0.062), 1);
+    expect(lineFringes(lp, seed.fringes)).toBeCloseTo(
+      w2 * (0.062 + 0.0145 + 0.0448 + 0.0175) + 7000 * (0.006 + 0.062),
+      1,
+    );
   });
   it('moves money out of the cash budget when a line becomes points, and drops a SAG tier', () => {
     let p = seed;
     for (const l of p.lines) if (PROFIT_SHARE_PRESET_MATCH(l)) p = setPayType(p, l.id, 'points');
     const ts = topSheet(p);
-    expect(ts.pointsValue).toBe(105_000);                  // two producer fees, the script, the star allowance
+    expect(ts.pointsValue).toBe(105_000); // two producer fees, the script, the star allowance
     expect(ts.cashBudget).toBeCloseTo(689_812.06, 2);
     expect(sagReport(seed).qualifying.id).toBe('LBA');
     expect(sagReport(p).qualifying.id).toBe('MLB');
@@ -64,7 +90,7 @@ describe('SAG tiers', () => {
   });
   it('counts 33 performer days in the sample and reprices them', () => {
     const r = sagReport(seed);
-    expect(r.performerDays).toBe(33);                    // the days the stripboard gives the cast: 11 + 10 + 3 + 3 + 2 + 2 + 2
+    expect(r.performerDays).toBe(33); // the days the stripboard gives the cast: 11 + 10 + 3 + 3 + 2 + 2 + 2
     expect(r.castScaleCostAtTier.MLB).toBe(33 * 449);
     const p = rerateCast(seed, 'LBA');
     expect(sagReport(p).castScaleCostAtTier.LBA).toBe(33 * 834);
@@ -105,8 +131,8 @@ describe('board', () => {
   it('sample has 26 scenes totalling 69 6/8 pages, strips in shooting order', () => {
     expect(seed.board.scenes.length).toBe(26);
     expect(totalEighths(seed.board)).toBe(558);
-    expect(seed.board.strips[0]).toEqual({ type: 'scene', sceneId: 'sc3' });   // gas station first, not scene 1
-    expect(shootDays(seed.board).length).toBe(12);   // ships with its day breaks placed (Oct 9), so the board opens as a schedule
+    expect(seed.board.strips[0]).toEqual({ type: 'scene', sceneId: 'sc3' }); // gas station first, not scene 1
+    expect(shootDays(seed.board).length).toBe(12); // ships with its day breaks placed (Oct 9), so the board opens as a schedule
   });
   it('auto day breaks respect the target and DOOD counts days', () => {
     const b = autoDayBreaks(seed.board, 48);
@@ -130,10 +156,31 @@ describe('board', () => {
 });
 
 describe('a scene shot over two days', () => {
-  const sc = (id: string, eighths: number, cast: number[]): Scene => ({ id, number: id.slice(2), ie: 'EXT', set: 'STREET', tod: 'NIGHT', pages: '', eighths, synopsis: '', location: '', scriptDay: '', cast: cast.map(c => ({ id: c, name: `C${c}` })), elements: { Animals: ['Biscuit the cat'] } });
-  const board: Board = { castList: [1, 2, 8].map(id => ({ id, name: `C${id}` })), targetEighthsPerDay: 44,
+  const sc = (id: string, eighths: number, cast: number[]): Scene => ({
+    id,
+    number: id.slice(2),
+    ie: 'EXT',
+    set: 'STREET',
+    tod: 'NIGHT',
+    pages: '',
+    eighths,
+    synopsis: '',
+    location: '',
+    scriptDay: '',
+    cast: cast.map(c => ({ id: c, name: `C${c}` })),
+    elements: { Animals: ['Biscuit the cat'] },
+  });
+  const board: Board = {
+    castList: [1, 2, 8].map(id => ({ id, name: `C${id}` })),
+    targetEighthsPerDay: 44,
     scenes: [sc('sc74', 3, [1, 2]), sc('sc75', 64, [1, 2, 8]), sc('sc10', 1, [1])],
-    strips: [{ type: 'scene' as const, sceneId: 'sc74' }, { type: 'scene' as const, sceneId: 'sc75' }, { type: 'daybreak' as const, id: 'd1' }, { type: 'scene' as const, sceneId: 'sc10' }] };
+    strips: [
+      { type: 'scene' as const, sceneId: 'sc74' },
+      { type: 'scene' as const, sceneId: 'sc75' },
+      { type: 'daybreak' as const, id: 'd1' },
+      { type: 'scene' as const, sceneId: 'sc10' },
+    ],
+  };
 
   it('splits the pages in half and keeps the scene whole in the script', () => {
     const b = splitStrip(board, 1);
@@ -159,7 +206,10 @@ describe('a scene shot over two days', () => {
   });
 
   it('auto day breaks weigh a part by its own pages', () => {
-    const b = autoDayBreaks({ ...splitStrip(board, 1), strips: splitStrip(board, 1).strips.filter(x => x.type !== 'daybreak') }, 36);
+    const b = autoDayBreaks(
+      { ...splitStrip(board, 1), strips: splitStrip(board, 1).strips.filter(x => x.type !== 'daybreak') },
+      36,
+    );
     expect(shootDays(b).map(d => d.eighths)).toEqual([35, 33]);
   });
 });
@@ -172,7 +222,7 @@ describe('importers', () => {
     expect(b.scenes.find(s => s.number === '4')!.eighths).toBe(36);
     expect(b.scenes.find(s => s.number === '4')!.cast.map(c => c.name)).toEqual(['LENA', 'JUNE', 'WAITRESS']);
     expect(b.scenes.find(s => s.number === '3')!.elements.Vehicles).toEqual(['station wagon', 'tow truck']);
-    expect(b.strips.map(s => (s as any).sceneId).slice(0, 3)).toEqual(['sc3', 'sc5', 'sc20']);  // board order, not script order
+    expect(b.strips.map(s => (s as any).sceneId).slice(0, 3)).toEqual(['sc3', 'sc5', 'sc20']); // board order, not script order
     expect(b.castList.find(c => c.name === 'LENA')!.id).toBe(1);
   });
   it('parses a Shamel-layout .xlsx budget and reconciles it', () => {
@@ -200,7 +250,7 @@ describe('importers', () => {
     expect(fdxHasTags(xml)).toBe(true);
     expect(fdxTitle(xml)).toBe('SALT FLAT');
     const [s1, s2, s3] = parseFdx(xml).scenes;
-    expect(s1.scriptDay).toBe('1');                                              // D1 → 1, from the heading's tag
+    expect(s1.scriptDay).toBe('1'); // D1 → 1, from the heading's tag
     expect(s1.location).toBe('Wendover, UT');
     expect(s1.elements.Vehicles).toEqual(['DEAD STATION WAGON']);
     expect(s2.elements.Props).toEqual(['THE LETTER']);
@@ -208,7 +258,7 @@ describe('importers', () => {
     expect(s3.scriptDay).toBe('2');
     expect(s3.elements.Props).toEqual(['PIE & COFFEE']);
     expect(s3.elements['Background Actors']).toEqual(['6 DINER PATRONS']);
-    expect(s3.cast.map(c => c.name)).toContain('WALT');                          // "WALT (O.S.)" tagged in the action, never speaks
+    expect(s3.cast.map(c => c.name)).toContain('WALT'); // "WALT (O.S.)" tagged in the action, never speaks
     expect(s1.cast.map(c => c.name)).toEqual(expect.arrayContaining(['LENA', 'JUNE']));
   });
 });
@@ -217,7 +267,10 @@ import { parseBudgetFile } from './importers/budget';
 import { blankProject, standardChartOfAccounts } from '../data/seed';
 import { addAccount, addCategory, addLine, removeLine, toggleLineFringe, upsertFringe } from './budget';
 
-const toBuf = (f: string) => { const b = readFileSync(fx(f)); return b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength) as ArrayBuffer; };
+const toBuf = (f: string) => {
+  const b = readFileSync(fx(f));
+  return b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength) as ArrayBuffer;
+};
 
 describe('generic budget import (Movie Magic Budgeting / Excel / CSV exports)', () => {
   it('reads an MMB-style CSV with account header rows, hourly multipliers and fringe dollars', () => {
@@ -228,9 +281,19 @@ describe('generic budget import (Movie Magic Budgeting / Excel / CSV exports)', 
     expect(imp.accounts.find(a => a.number === '2102')!.name).toBe('1ST ASSISTANT DIRECTOR');
     expect(imp.categories.map(c => c.number)).toEqual(['1100', '1200', '2100', '4000']);
     const ad = imp.lines.find(l => l.description === '1st AD')!;
-    expect(ad.accountId).toBe('2102'); expect(ad.amount).toBe(25); expect(ad.multiplier).toBe(14); expect(ad.rate).toBe(35.29); expect(ad.unit).toBe('DAY');
+    expect(ad.accountId).toBe('2102');
+    expect(ad.amount).toBe(25);
+    expect(ad.multiplier).toBe(14);
+    expect(ad.rate).toBe(35.29);
+    expect(ad.unit).toBe('DAY');
     // fringe dollars with no names → synthetic fringe that reproduces the amount
-    const p = { ...blankProject({ chartOfAccounts: 'empty' }), categories: imp.categories, accounts: imp.accounts, fringes: imp.fringes, lines: imp.lines };
+    const p = {
+      ...blankProject({ chartOfAccounts: 'empty' }),
+      categories: imp.categories,
+      accounts: imp.accounts,
+      fringes: imp.fringes,
+      lines: imp.lines,
+    };
     expect(lineFringes(ad, p.fringes)).toBeCloseTo(1259.85, 0);
     const ts = topSheet(p);
     expect(rollupCash(ts)).toBeCloseTo(224_534.26, 0);
@@ -258,7 +321,9 @@ describe('generic budget import (Movie Magic Budgeting / Excel / CSV exports)', 
 describe('building a budget from scratch', () => {
   it('starts with the standard chart of accounts and no money', () => {
     const p = blankProject({ name: 'Test', shootDays: 12 });
-    expect(p.categories.length).toBe(32); expect(p.accounts.length).toBe(274); expect(p.lines).toEqual([]);
+    expect(p.categories.length).toBe(32);
+    expect(p.accounts.length).toBe(274);
+    expect(p.lines).toEqual([]);
     expect(topSheet(p).cashBudget).toBe(0);
   });
   it('adds categories, accounts, lines and fringes and rolls them up', () => {
@@ -270,7 +335,8 @@ describe('building a budget from scratch', () => {
     p = upsertFringe(p, { id: 'FLAT10', name: 'Flat 10', rate: 0.1, cap: null });
     p = toggleLineFringe(p, r.line.id, 'FLAT10');
     const ts = topSheet(p);
-    expect(ts.subtotal.cash).toBe(9880); expect(ts.subtotal.cashFringes).toBe(988);
+    expect(ts.subtotal.cash).toBe(9880);
+    expect(ts.subtotal.cashFringes).toBe(988);
     expect(ts.sections[1].categories[0].category.name).toBe('CAMERA');
     p = removeLine(p, r.line.id);
     expect(topSheet(p).cashBudget).toBe(0);
@@ -285,30 +351,37 @@ describe('fit day breaks', () => {
     const days = shootDays(b);
     expect(days.length).toBe(12);
     const heaviest = Math.max(...days.map(d => d.eighths));
-    expect(heaviest).toBeLessThanOrEqual(60);            // 7 4/8 pages; greedy-at-6 needed 16 days
-    expect(b.strips.filter(s => s.type === 'scene').map(s => (s as any).sceneId)).toEqual(bare.strips.map(s => (s as any).sceneId));
-    expect(b.strips.filter(s => s.type === 'scene').map(s => (s as any).sceneId)).toEqual(seed.board.strips.filter(s => s.type === 'scene').map(s => (s as any).sceneId));
+    expect(heaviest).toBeLessThanOrEqual(60); // 7 4/8 pages; greedy-at-6 needed 16 days
+    expect(b.strips.filter(s => s.type === 'scene').map(s => (s as any).sceneId)).toEqual(
+      bare.strips.map(s => (s as any).sceneId),
+    );
+    expect(b.strips.filter(s => s.type === 'scene').map(s => (s as any).sceneId)).toEqual(
+      seed.board.strips.filter(s => s.type === 'scene').map(s => (s as any).sceneId),
+    );
   });
 });
 
 import { everyoneAtScale, isPayrollLine, isSagPerformerLine } from './sag';
 describe('everyone at scale (the Sing Sing model)', () => {
   it('prices every wage line hourly off the 8-hour scale with overtime, gives producers wage lines, moves premiums to points', () => {
-    const p = everyoneAtScale(seed, 'MLB', { premiums: 'points' });   // 12-hour days: crew 14 paid hours, cast 15
-    const hourly = 56.13;                                               // 449 / 8
+    const p = everyoneAtScale(seed, 'MLB', { premiums: 'points' }); // 12-hour days: crew 14 paid hours, cast 15
+    const hourly = 56.13; // 449 / 8
     for (const l of p.lines.filter(l => isPayrollLine(l) && l.unit === 'DAY')) {
       expect(l.rate).toBe(hourly);
       expect([14, 15, 18]).toContain(l.multiplier);
     }
     const dp = p.lines.find(l => l.accountId === '2601' && l.description === 'Shoot')!;
-    expect(lineSubtotal(dp) / dp.amount).toBeCloseTo(785.82, 1);       // a 12-hour crew day
+    expect(lineSubtotal(dp) / dp.amount).toBeCloseTo(785.82, 1); // a 12-hour crew day
     const lena = p.lines.find(l => l.accountId === '1401' && l.unit === 'DAY' && l.amount === 11)!;
-    expect(lena.multiplier).toBe(15); expect(lineSubtotal(lena) / 11).toBeCloseTo(841.95, 1);   // a 12-hour SAG day
+    expect(lena.multiplier).toBe(15);
+    expect(lineSubtotal(lena) / 11).toBeCloseTo(841.95, 1); // a 12-hour SAG day
     const agent = p.lines.find(l => l.accountId === '1401' && /agent fee/i.test(l.description))!;
     expect(agent.rate).toBeCloseTo(lineSubtotal(lena), 2);
     const prod = p.lines.filter(l => l.accountId === '1201' && isPayrollLine(l));
     expect(prod).toHaveLength(2);
-    expect(prod[0].amount).toBe(52); expect(prod[0].rate).toBe(hourly); expect(prod[0].multiplier).toBe(14);
+    expect(prod[0].amount).toBe(52);
+    expect(prod[0].rate).toBe(hourly);
+    expect(prod[0].multiplier).toBe(14);
     expect(p.participants.find(x => x.id === 'p_producer_1')!.days).toBe(52);
     expect(p.lines.filter(l => /^Fee$/.test(l.description)).every(l => l.payType === 'points')).toBe(true);
     expect(topSheet(p).pointsValue).toBe(105_000);
@@ -327,7 +400,7 @@ describe('10- and 12-hour days', () => {
     const ten = setDayHours(scale, 10);
     const dp = ten.lines.find(l => l.accountId === '2601' && l.description === 'Shoot')!;
     expect(dp.multiplier).toBe(PAID_HOURS[10].day);
-    expect(lineSubtotal(dp) / dp.amount).toBeCloseTo(617.43, 1);      // 449 + 2 hours at 1.5x
+    expect(lineSubtotal(dp) / dp.amount).toBeCloseTo(617.43, 1); // 449 + 2 hours at 1.5x
     const lena = ten.lines.find(l => l.accountId === '1401' && l.unit === 'DAY' && l.amount === 11)!;
     expect(lena.multiplier).toBe(11);
     expect(topSheet(ten).cashBudget).toBeLessThan(topSheet(scale).cashBudget);
@@ -345,7 +418,7 @@ describe('crew on a different scale than cast', () => {
     const dp = p.lines.find(l => l.accountId === '2601' && l.description === 'Shoot')!;
     expect(dp.rate).toBe(56.13);
     const lena = p.lines.find(l => l.accountId === '1401' && l.unit === 'DAY' && l.amount === 11)!;
-    expect(lena.rate).toBe(104.25);   // 834 / 8
+    expect(lena.rate).toBe(104.25); // 834 / 8
     const prod = p.lines.find(l => l.accountId === '1201' && isPayrollLine(l))!;
     expect(prod.rate).toBe(56.13);
   });
@@ -357,15 +430,19 @@ describe('prep / wrap / post days at a cash floor', () => {
     const scale = everyoneAtScale(seed, 'LBA', { premiums: 'points' });
     const p = floorNonShootDays(scale, { cashHourly: 16.9, rest: 'points' });
     const prep = p.lines.find(l => l.accountId === '2601' && /^Prep \(cash floor\)/.test(l.description))!;
-    expect(prep.rate).toBe(16.9); expect(prep.amount).toBe(8); expect(prep.participantId).toBeTruthy();
+    expect(prep.rate).toBe(16.9);
+    expect(prep.amount).toBe(8);
+    expect(prep.participantId).toBeTruthy();
     const bal = p.lines.find(l => l.accountId === '2601' && /Prep balance/.test(l.description))!;
-    expect(bal.rate).toBeCloseTo(104.25 - 16.9, 2); expect(bal.payType).toBe('points'); expect(bal.participantId).toBeUndefined();
+    expect(bal.rate).toBeCloseTo(104.25 - 16.9, 2);
+    expect(bal.payType).toBe('points');
+    expect(bal.participantId).toBeUndefined();
     const shoot = p.lines.find(l => l.accountId === '2601' && l.description === 'Shoot')!;
-    expect(shoot.rate).toBe(104.25);                                            // shoot days untouched
+    expect(shoot.rate).toBe(104.25); // shoot days untouched
     const prod = p.lines.filter(l => l.accountId === '1201' && isPayrollLine(l) && l.payType === 'cash');
-    expect(prod.map(l => l.amount)).toEqual([12, 40, 12, 40]);                  // shoot at scale, 40 prep/post at the floor
+    expect(prod.map(l => l.amount)).toEqual([12, 40, 12, 40]); // shoot at scale, 40 prep/post at the floor
     expect(topSheet(p).cashBudget).toBeLessThan(topSheet(scale).cashBudget);
-    expect(syncDaysFromBudget(p).participants.find(x => x.id === 'p_producer_1')!.days).toBe(52);   // days unchanged
+    expect(syncDaysFromBudget(p).participants.find(x => x.id === 'p_producer_1')!.days).toBe(52); // days unchanged
     expect(floorNonShootDays(p, { cashHourly: 16.9, rest: 'points' }).lines.length).toBe(p.lines.length); // idempotent
   });
 });
@@ -375,8 +452,9 @@ describe('non-recoupable financing', () => {
   it('shrinks what investors recoup, so the pool flips sooner', () => {
     const half = { ...seed, waterfall: { ...seed.waterfall, nonRecoupable: 400_000 } };
     expect(recoupableBudget(half)).toBeCloseTo(topSheet(seed).cashBudget - 400_000, 2);
-    const a = waterfallReport(seed), b = waterfallReport(half);
-    expect(b.pools[1]).toBeGreaterThan(a.pools[1]);       // at $3M, more reaches the crew when less has to be recouped
+    const a = waterfallReport(seed),
+      b = waterfallReport(half);
+    expect(b.pools[1]).toBeGreaterThan(a.pools[1]); // at $3M, more reaches the crew when less has to be recouped
   });
 });
 
@@ -391,18 +469,48 @@ describe('the deal layer', () => {
   it('reproduces everyone-at-scale + premiums + floor from terms, and never touches the raw lines', () => {
     const p = withDeal(seed);
     // the Deal tab's "producer days" writes the figure onto every producer; a single producer can then be changed on the points schedule
-    const terms = { ...p, dayHours: 10 as const, participants: p.participants.map(x => x.id.startsWith('p_producer') ? { ...x, days: 30 } : x), deal: { ...p.deal!, pay: { ...p.deal!.pay, model: 'everyone-at-scale' as const, crewBasis: 'MLB' as const, premiums: { producers: 'points' as const, script: 'points' as const, allowances: 'delete' as const } }, producers: { count: 1, days: 30 }, nonShoot: { enabled: true, cashHourly: 16.9, rest: 'points' as const } } };
+    const terms = {
+      ...p,
+      dayHours: 10 as const,
+      participants: p.participants.map(x => (x.id.startsWith('p_producer') ? { ...x, days: 30 } : x)),
+      deal: {
+        ...p.deal!,
+        pay: {
+          ...p.deal!.pay,
+          model: 'everyone-at-scale' as const,
+          crewBasis: 'MLB' as const,
+          premiums: { producers: 'points' as const, script: 'points' as const, allowances: 'delete' as const },
+        },
+        producers: { count: 1, days: 30 },
+        nonShoot: { enabled: true, cashHourly: 16.9, rest: 'points' as const },
+      },
+    };
     const e = applyDeal(terms);
     // by hand, in the same order
     let h = setDayHours({ ...p, dayHours: 12 }, 10);
     const prods = h.participants.filter(x => x.id.startsWith('p_producer'));
-    h = { ...h, participants: [...h.participants.filter(x => !x.id.startsWith('p_producer')), { ...prods[0], days: 30 }] };
+    h = {
+      ...h,
+      participants: [...h.participants.filter(x => !x.id.startsWith('p_producer')), { ...prods[0], days: 30 }],
+    };
     h = everyoneAtScale(h, 'MLB', { premiums: 'keep', producerDays: 30, crewDayRate: 449 });
-    h = { ...h, lines: h.lines.flatMap(l => /ALLOWANCE$/.test(l.description) ? [] : (l.accountId === '1201' && /^Fee$/.test(l.description)) || (l.accountId === '1102' && /script purchase/i.test(l.description)) ? [{ ...l, payType: 'points' as const }] : [l]) };
+    h = {
+      ...h,
+      lines: h.lines.flatMap(l =>
+        /ALLOWANCE$/.test(l.description)
+          ? []
+          : (l.accountId === '1201' && /^Fee$/.test(l.description)) ||
+              (l.accountId === '1102' && /script purchase/i.test(l.description))
+            ? [{ ...l, payType: 'points' as const }]
+            : [l],
+      ),
+    };
     h = floorNonShootDays(h, { cashHourly: 16.9, rest: 'points' });
     expect(topSheet(e).cashBudget).toBeCloseTo(topSheet(h).cashBudget, 2);
-    expect(e.lines.filter(l => l.accountId === '1201' && isPayrollLine(l) && l.payType === 'cash').map(l => l.amount)).toEqual([12, 18]);  // one producer: 12 shoot + 18 floored
-    expect(terms.lines).toEqual(seed.lines);                                   // raw untouched
+    expect(
+      e.lines.filter(l => l.accountId === '1201' && isPayrollLine(l) && l.payType === 'cash').map(l => l.amount),
+    ).toEqual([12, 18]); // one producer: 12 shoot + 18 floored
+    expect(terms.lines).toEqual(seed.lines); // raw untouched
     expect(dealControlledIds(terms, e).size).toBeGreaterThan(20);
   });
   it('fills missing terms on an old project file', () => {
@@ -429,11 +537,12 @@ describe('screenplay importers', () => {
     expect(s1.cast.map(c => c.name).sort()).toEqual(['JUNE', 'LENA']);
     expect(s3.cast.map(c => c.name)).toContain('THE MECHANIC');
     expect(s4.set).toBe('GAS STATION DINER');
-    expect(s7.cast.map(c => c.name)).toEqual(['LENA']);                       // silent: named in action in Title Case
-    expect(s8.cast.map(c => c.name).sort()).toEqual(['JUNE', 'WALT']);       // WALT (CONT'D) folds into WALT
-    expect(r.board.castList.map(c => c.name)).toEqual(['JUNE', 'LENA', 'WALT', 'THE MECHANIC', 'WAITRESS', 'KID']);   // most scenes first
+    expect(s7.cast.map(c => c.name)).toEqual(['LENA']); // silent: named in action in Title Case
+    expect(s8.cast.map(c => c.name).sort()).toEqual(['JUNE', 'WALT']); // WALT (CONT'D) folds into WALT
+    expect(r.board.castList.map(c => c.name)).toEqual(['JUNE', 'LENA', 'WALT', 'THE MECHANIC', 'WAITRESS', 'KID']); // most scenes first
     const eighths = r.board.scenes.reduce((t, s) => t + s.eighths, 0);
-    expect(eighths).toBeGreaterThanOrEqual(20); expect(eighths).toBeLessThanOrEqual(28);   // about 3 pages
+    expect(eighths).toBeGreaterThanOrEqual(20);
+    expect(eighths).toBeLessThanOrEqual(28); // about 3 pages
     expect(s1.synopsis).toMatch(/^Two sisters push/);
     expect(r.board.strips).toHaveLength(9);
   });
@@ -472,14 +581,34 @@ Nothing.
   });
 
   it('reads pdftotext-style indented text and form-feed page breaks', () => {
-    const text = ['                                                            1.', '', 'INT. ROOM - DAY', '', 'A man, BOB, waits.', '', '                       BOB', '           Well.', '', '                       ANN (V.O.)', '           Hi.',
-      '\f                                                            2.', '', 'EXT. YARD - LATER', '', 'Bob leaves. NOT A CUE.', ''].join('\n');
+    const text = [
+      '                                                            1.',
+      '',
+      'INT. ROOM - DAY',
+      '',
+      'A man, BOB, waits.',
+      '',
+      '                       BOB',
+      '           Well.',
+      '',
+      '                       ANN (V.O.)',
+      '           Hi.',
+      '\f                                                            2.',
+      '',
+      'EXT. YARD - LATER',
+      '',
+      'Bob leaves. NOT A CUE.',
+      '',
+    ].join('\n');
     const r = parseScreenplayText(text);
     expect(r.board.scenes).toHaveLength(2);
     expect(r.board.scenes[0].cast.map(c => c.name)).toEqual(['BOB', 'ANN']);
     expect(r.board.scenes[1].cast.map(c => c.name)).toEqual(['BOB']);
     expect(r.board.scenes[1]).toMatchObject({ tod: 'LATER', pages: '2' });
-    const m = parseScreenplayText(['INT. A - DAY', '', 'Go.', '', '                       McCLANE', '           Yippee.', ''].join('\n') + '\n'.repeat(60));
+    const m = parseScreenplayText(
+      ['INT. A - DAY', '', 'Go.', '', '                       McCLANE', '           Yippee.', ''].join('\n') +
+        '\n'.repeat(60),
+    );
     expect(m.board.scenes[0].cast.map(c => c.name)).toEqual(['MCCLANE']);
     expect(linesFromText(text).lines.filter(l => l.text).length).toBeGreaterThan(8);
   });
@@ -487,29 +616,92 @@ Nothing.
   it('reads text copied out of a PDF: no indents, no blank lines, page numbers top and bottom', () => {
     const page = (n: number, body: string[]) => [`${n}.`, ...body, `${n}.`];
     const text = [
-      'SALT FLAT', 'Written by', 'Somebody', 'FADE IN:',
-      'EXT. DESERT HIGHWAY - DAWN', 'LENA (34) steers. JUNE (26) pushes the wagon from the back, sweating.', 'JUNE', "That's it. That's the whole plan.", 'LENA', 'The plan was Reno.', 'Lena looks at the horizon like it owes her money, then kicks the tire.',
-      'ON CARD: SHE WAITED AT THE WINDOW.', 'KNOCK, KNOCK, KNOCK!', 'Nobody answers the door of the wagon.',
-      ...page(2, ['INT. STATION WAGON - CONTINUOUS', 'June finds a letter. A photo of Walt falls out of it onto the seat.', 'JUNE', 'Lena.', 'LENA (O.S.)', 'Not now.', '(MORE)']),
-      ...page(3, ['LENA (CONT\'D)', 'Really not now.', 'TEN MINUTES LATER', 'June puts it back exactly where it was in the glovebox.', 'EXT. GAS STATION - DAY', 'The wagon on a flatbed. WALT wipes his hands on a rag.', 'WALT', 'Transmission.', 'EVERYONE', 'No!']),
+      'SALT FLAT',
+      'Written by',
+      'Somebody',
+      'FADE IN:',
+      'EXT. DESERT HIGHWAY - DAWN',
+      'LENA (34) steers. JUNE (26) pushes the wagon from the back, sweating.',
+      'JUNE',
+      "That's it. That's the whole plan.",
+      'LENA',
+      'The plan was Reno.',
+      'Lena looks at the horizon like it owes her money, then kicks the tire.',
+      'ON CARD: SHE WAITED AT THE WINDOW.',
+      'KNOCK, KNOCK, KNOCK!',
+      'Nobody answers the door of the wagon.',
+      ...page(2, [
+        'INT. STATION WAGON - CONTINUOUS',
+        'June finds a letter. A photo of Walt falls out of it onto the seat.',
+        'JUNE',
+        'Lena.',
+        'LENA (O.S.)',
+        'Not now.',
+        '(MORE)',
+      ]),
+      ...page(3, [
+        "LENA (CONT'D)",
+        'Really not now.',
+        'TEN MINUTES LATER',
+        'June puts it back exactly where it was in the glovebox.',
+        'EXT. GAS STATION - DAY',
+        'The wagon on a flatbed. WALT wipes his hands on a rag.',
+        'WALT',
+        'Transmission.',
+        'EVERYONE',
+        'No!',
+      ]),
     ].join('\n');
     const r = parseScreenplayText(text);
     expect(r.title).toBe('SALT FLAT');
     expect(r.pages).toBe(3);
     expect(r.board.scenes.map(s => s.pages)).toEqual(['1', '2-3', '3']);
-    expect(r.board.scenes[0].cast.map(c => c.name)).toEqual(['JUNE', 'LENA']);          // KNOCK, KNOCK, KNOCK! is not a cue
-    expect(r.board.scenes[1].cast.map(c => c.name)).toEqual(['JUNE', 'LENA']);          // "a photo of Walt" is a mention, not Walt
-    expect(r.board.scenes[2].cast.map(c => c.name)).toEqual(['WALT']);                  // EVERYONE is not a part
+    expect(r.board.scenes[0].cast.map(c => c.name)).toEqual(['JUNE', 'LENA']); // KNOCK, KNOCK, KNOCK! is not a cue
+    expect(r.board.scenes[1].cast.map(c => c.name)).toEqual(['JUNE', 'LENA']); // "a photo of Walt" is a mention, not Walt
+    expect(r.board.scenes[2].cast.map(c => c.name)).toEqual(['WALT']); // EVERYONE is not a part
     expect(r.board.scenes[2].synopsis).toMatch(/^The wagon on a flatbed/);
     expect(r.board.scenes[1].synopsis).toMatch(/^June finds a letter/);
   });
 
   it('turns positioned PDF text into lines with page labels, indents and blank-line gaps', () => {
-    const P = (items: [number, number, string][]) => ({ items: items.map(([x, y, s]) => ({ x, y, w: s.length * 7.2, s })), height: 792 });
-    const pages = [P([[540, 740, '1.'], [108, 700, 'INT. ROOM - DAY'], [108, 676, 'A room. '], [160, 676, 'BOB waits.'], [266, 640, 'BOB'], [180, 628, 'Well.'], [108, 100, 'The end of the page.']]),
-      P([[540, 740, '2.'], [108, 700, 'EXT. YARD - DAY'], [108, 676, 'Bob leaves.']])];
+    const P = (items: [number, number, string][]) => ({
+      items: items.map(([x, y, s]) => ({ x, y, w: s.length * 7.2, s })),
+      height: 792,
+    });
+    const pages = [
+      P([
+        [540, 740, '1.'],
+        [108, 700, 'INT. ROOM - DAY'],
+        [108, 676, 'A room. '],
+        [160, 676, 'BOB waits.'],
+        [266, 640, 'BOB'],
+        [180, 628, 'Well.'],
+        [108, 100, 'The end of the page.'],
+      ]),
+      P([
+        [540, 740, '2.'],
+        [108, 700, 'EXT. YARD - DAY'],
+        [108, 676, 'Bob leaves.'],
+      ]),
+    ];
     const lines = linesFromPdfItems(pages);
-    expect(lines.map(l => l.text)).toEqual(['1.', '', 'INT. ROOM - DAY', '', 'A room. BOB waits.', '', 'BOB', 'Well.', '', 'The end of the page.', '2.', '', 'EXT. YARD - DAY', '', 'Bob leaves.']);
+    expect(lines.map(l => l.text)).toEqual([
+      '1.',
+      '',
+      'INT. ROOM - DAY',
+      '',
+      'A room. BOB waits.',
+      '',
+      'BOB',
+      'Well.',
+      '',
+      'The end of the page.',
+      '2.',
+      '',
+      'EXT. YARD - DAY',
+      '',
+      'Bob leaves.',
+    ]);
     expect(lines[6]).toMatchObject({ indent: 266, page: '1' });
     expect(lines[12].page).toBe('2');
     const r = parseScreenplayLines(lines, { cueIndent: 90 });
@@ -524,18 +716,28 @@ import { autoTag, addElement, removeElement, addCast, autoTagBoard, namedAnimals
 
 describe('breakdown tagger', () => {
   it('reads a first pass of tags off the scene text, from action only', () => {
-    const scene: any = { id: 'sc1', set: "MARA'S CAR (DRIVING)", synopsis: '', cast: [{ id: 1, name: 'MARA' }], elements: {}, text: [
-      'MARA QUILL (41) rides her long board past her beat-up little green car. BISCUIT, an orange tabby cat, watches.',
-      "Mara's cell phone RINGS. A TEXT MESSAGE from COLIN stares back at her. No purse.",
-      'She trips on nothing and almost face-plants on the floor.',
-      '                    MARA', '          I miss my truck and my dog.', 'ON CARD: NOBODY ASKED THE SURVEYOR.', 'CLASSIC JAZZ blasts.',
-    ].join('\n') };
+    const scene: any = {
+      id: 'sc1',
+      set: "MARA'S CAR (DRIVING)",
+      synopsis: '',
+      cast: [{ id: 1, name: 'MARA' }],
+      elements: {},
+      text: [
+        'MARA QUILL (41) rides her long board past her beat-up little green car. BISCUIT, an orange tabby cat, watches.',
+        "Mara's cell phone RINGS. A TEXT MESSAGE from COLIN stares back at her. No purse.",
+        'She trips on nothing and almost face-plants on the floor.',
+        '                    MARA',
+        '          I miss my truck and my dog.',
+        'ON CARD: NOBODY ASKED THE SURVEYOR.',
+        'CLASSIC JAZZ blasts.',
+      ].join('\n'),
+    };
     const e = autoTag(scene, ['MARA', 'COLIN']);
-    expect(e.Vehicles).toEqual(['Little green car']);                    // "mara's car" from the heading folds into it
-    expect(e.Vehicles.join()).not.toMatch(/truck/);                       // dialogue is not on set
+    expect(e.Vehicles).toEqual(['Little green car']); // "mara's car" from the heading folds into it
+    expect(e.Vehicles.join()).not.toMatch(/truck/); // dialogue is not on set
     expect(e.Animals).toEqual(['Orange tabby cat']);
-    expect(e.Props).toEqual(['Long board', 'Cell phone']);                 // not the CARD in the insert
-    expect(e.Props.join()).not.toMatch(/purse/);                          // "No purse" is a negation
+    expect(e.Props).toEqual(['Long board', 'Cell phone']); // not the CARD in the insert
+    expect(e.Props.join()).not.toMatch(/purse/); // "No purse" is a negation
     expect(e.Sound).toEqual(['Rings']);
     expect(e['Visual Effects']).toEqual(expect.arrayContaining(['On card insert', 'phone screen: text message']));
     expect(e.Stunts).toEqual(['She trips on nothing and almost face-plants on the floor']);
@@ -544,24 +746,64 @@ describe('breakdown tagger', () => {
     expect(e['Background Actors'] ?? []).not.toContain('nobody asked the surveyor');
   });
   it('learns a named animal from its introduction and tags every scene whose action has it', () => {
-    const sc = (id: string, text: string): any => ({ id, number: id, ie: 'INT', set: 'ROOM', tod: 'DAY', pages: '1', eighths: 8, synopsis: '', location: '', scriptDay: '', cast: [{ id: 1, name: 'MARA' }], elements: {}, text });
-    const board: any = { castList: [{ id: 1, name: 'MARA' }], strips: [], targetEighthsPerDay: 44, scenes: [
-      sc('1', 'BISCUIT, a handsome orange tabby cat stares out one of the front windows. Mara waves.'),
-      sc('2', 'Biscuit sits on the dryer and watches Mara fold.'),
-      sc('3', "Mara fills Biscuit's bowl. She is alone.\n                    MARA\n          How's Biscuit?"),
-      sc('4', 'Mara and Biscuit come into the kitchen. The cat hops onto the counter.'),
-      sc('5', 'PETE (40s) walks in with a DOG on a leash.'),
-    ] };
+    const sc = (id: string, text: string): any => ({
+      id,
+      number: id,
+      ie: 'INT',
+      set: 'ROOM',
+      tod: 'DAY',
+      pages: '1',
+      eighths: 8,
+      synopsis: '',
+      location: '',
+      scriptDay: '',
+      cast: [{ id: 1, name: 'MARA' }],
+      elements: {},
+      text,
+    });
+    const board: any = {
+      castList: [{ id: 1, name: 'MARA' }],
+      strips: [],
+      targetEighthsPerDay: 44,
+      scenes: [
+        sc('1', 'BISCUIT, a handsome orange tabby cat stares out one of the front windows. Mara waves.'),
+        sc('2', 'Biscuit sits on the dryer and watches Mara fold.'),
+        sc('3', "Mara fills Biscuit's bowl. She is alone.\n                    MARA\n          How's Biscuit?"),
+        sc('4', 'Mara and Biscuit come into the kitchen. The cat hops onto the counter.'),
+        sc('5', 'PETE (40s) walks in with a DOG on a leash.'),
+      ],
+    };
     expect([...namedAnimals(board)]).toEqual([['BISCUIT', 'cat']]);
     const b = autoTagBoard(board);
-    expect(b.scenes[0].elements.Animals).toEqual(['Biscuit the cat']);        // the introduction, not "Orange tabby cat" as well
-    expect(b.scenes[1].elements.Animals).toEqual(['Biscuit the cat']);        // no animal word in the line at all
-    expect(b.scenes[2].elements.Animals).toBeUndefined();                  // his bowl and a line of dialogue: the cat is not on set
-    expect(b.scenes[3].elements.Animals).toEqual(['Biscuit the cat']);        // "the cat" folds into him
-    expect(b.scenes[4].elements.Animals).toEqual(['Dog']);                 // an unnamed animal still tags on its own
+    expect(b.scenes[0].elements.Animals).toEqual(['Biscuit the cat']); // the introduction, not "Orange tabby cat" as well
+    expect(b.scenes[1].elements.Animals).toEqual(['Biscuit the cat']); // no animal word in the line at all
+    expect(b.scenes[2].elements.Animals).toBeUndefined(); // his bowl and a line of dialogue: the cat is not on set
+    expect(b.scenes[3].elements.Animals).toEqual(['Biscuit the cat']); // "the cat" folds into him
+    expect(b.scenes[4].elements.Animals).toEqual(['Dog']); // an unnamed animal still tags on its own
   });
   it('keeps hand-made tags across auto-tag, and edits chips and cast', () => {
-    const board: any = { castList: [{ id: 1, name: 'MARA' }], scenes: [{ id: 'sc1', number: '1', ie: 'INT', set: 'ROOM', tod: 'DAY', pages: '1', eighths: 8, synopsis: '', location: '', scriptDay: '', cast: [{ id: 1, name: 'MARA' }], elements: { Props: ['hero mug'] }, text: 'Mara drinks coffee from a mug.' }], strips: [{ type: 'scene', sceneId: 'sc1' }], targetEighthsPerDay: 44 };
+    const board: any = {
+      castList: [{ id: 1, name: 'MARA' }],
+      scenes: [
+        {
+          id: 'sc1',
+          number: '1',
+          ie: 'INT',
+          set: 'ROOM',
+          tod: 'DAY',
+          pages: '1',
+          eighths: 8,
+          synopsis: '',
+          location: '',
+          scriptDay: '',
+          cast: [{ id: 1, name: 'MARA' }],
+          elements: { Props: ['hero mug'] },
+          text: 'Mara drinks coffee from a mug.',
+        },
+      ],
+      strips: [{ type: 'scene', sceneId: 'sc1' }],
+      targetEighthsPerDay: 44,
+    };
     const b1 = autoTagBoard(board);
     expect(b1.scenes[0].elements.Props).toContain('hero mug');
     const b2 = addElement(b1, 'sc1', 'Wardrobe', ' robe ');
@@ -574,12 +816,36 @@ describe('breakdown tagger', () => {
   });
 });
 
-import { renumberCast, castOrderByScenes, castOrderByAppearance, dropCastMember, unusedCast, adoptBoardDays } from './board';
+import {
+  renumberCast,
+  castOrderByScenes,
+  castOrderByAppearance,
+  dropCastMember,
+  unusedCast,
+  adoptBoardDays,
+} from './board';
 
 describe('cast numbering', () => {
   const mk = () => {
-    const r = parseScreenplayText(readFileSync(resolve(__dirname, '../../tools/fixtures/SaltFlat_Script.fountain'), 'utf8'));
-    const p: any = { ...sampleProject(), board: r.board, participants: [{ id: 'p_cast_3', name: 'WALT', role: 'x', group: 'cast', tierId: 'cast', days: 0, bonusMultiplier: 1, castId: 3 }] };
+    const r = parseScreenplayText(
+      readFileSync(resolve(__dirname, '../../tools/fixtures/SaltFlat_Script.fountain'), 'utf8'),
+    );
+    const p: any = {
+      ...sampleProject(),
+      board: r.board,
+      participants: [
+        {
+          id: 'p_cast_3',
+          name: 'WALT',
+          role: 'x',
+          group: 'cast',
+          tierId: 'cast',
+          days: 0,
+          bonusMultiplier: 1,
+          castId: 3,
+        },
+      ],
+    };
     return p;
   };
   it('orders by scene count or by first appearance, and renumbers scenes and participants together', () => {
@@ -589,10 +855,10 @@ describe('cast numbering', () => {
     const names = (q: any) => q.board.castList.map((c: any) => `${c.id} ${c.name}`);
     const q = renumberCast(p, byAppear);
     expect(names(q)).toEqual(['1 JUNE', '2 LENA', '3 THE MECHANIC', '4 WAITRESS', '5 KID', '6 WALT']);
-    expect(q.participants[0].castId).toBe(6);                                          // Walt's participant follows him
+    expect(q.participants[0].castId).toBe(6); // Walt's participant follows him
     const walt = q.board.scenes[7].cast.find((c: any) => c.name === 'WALT');
     expect(walt?.id).toBe(6);
-    const r = renumberCast(q, [6]);                                                    // Walt to #1, everyone else shifts
+    const r = renumberCast(q, [6]); // Walt to #1, everyone else shifts
     expect(names(r).slice(0, 2)).toEqual(['1 WALT', '2 JUNE']);
     expect(r.participants[0].castId).toBe(1);
   });
@@ -629,8 +895,10 @@ describe('days and wage lines agree under every deal', () => {
     expect(topSheet(applyDeal(p1)).cashBudget).toBeGreaterThan(before);
     // edit the line instead: the schedule follows
     const line = p0.lines.find(l => l.participantId === upm.id && (l.unit === 'DAY' || l.unit === 'WEEK'))!;
-    const p2 = { ...p0, lines: p0.lines.map(l => l.id === line.id ? { ...l, amount: l.amount + 2 } : l) };
-    expect(applyDeal(p2).participants.find(x => x.id === upm.id)!.days).toBe(upm.days + (line.unit === 'WEEK' ? 10 : 2));
+    const p2 = { ...p0, lines: p0.lines.map(l => (l.id === line.id ? { ...l, amount: l.amount + 2 } : l)) };
+    expect(applyDeal(p2).participants.find(x => x.id === upm.id)!.days).toBe(
+      upm.days + (line.unit === 'WEEK' ? 10 : 2),
+    );
   });
 });
 
@@ -645,10 +913,31 @@ describe('weeks to days', () => {
     const q = weeksToDays(p);
     expect(weeklyWageLines(q)).toHaveLength(0);
     expect(topSheet(q).cashBudget).toBeCloseTo(before, 0);
-    expect(q.lines.filter(l => l.unit === 'WEEK').every(l => !l.fringes.some(f => /FICA/i.test(f)) || /allowance/i.test(l.description) || l.accountId.startsWith('14'))).toBe(true);
-    const memo = weeksToDays({ ...p, lines: [...p.lines, { ...p.lines[0], id: 'memo', description: '2nd AD Weekly Rate: $1,558.90', amount: 0, rate: 0, unit: '-', fringes: [] }] }).lines.find(l => l.id === 'memo')!;
+    expect(
+      q.lines
+        .filter(l => l.unit === 'WEEK')
+        .every(
+          l =>
+            !l.fringes.some(f => /FICA/i.test(f)) || /allowance/i.test(l.description) || l.accountId.startsWith('14'),
+        ),
+    ).toBe(true);
+    const memo = weeksToDays({
+      ...p,
+      lines: [
+        ...p.lines,
+        {
+          ...p.lines[0],
+          id: 'memo',
+          description: '2nd AD Weekly Rate: $1,558.90',
+          amount: 0,
+          rate: 0,
+          unit: '-',
+          fringes: [],
+        },
+      ],
+    }).lines.find(l => l.id === 'memo')!;
     expect(memo.description).toBe('2nd AD Day Rate: $311.78');
-    expect(applyDeal(q).participants.map(x => x.days)).toEqual(applyDeal(p).participants.map(x => x.days));   // days unchanged
+    expect(applyDeal(q).participants.map(x => x.days)).toEqual(applyDeal(p).participants.map(x => x.days)); // days unchanged
   });
 });
 
@@ -661,9 +950,19 @@ describe('positions', () => {
     expect(suggestAccount(p, 'Stunt Coordinator')).toMatchObject({ number: '1501' });
     expect(suggestAccount(p, 'Studio Teacher')).toMatchObject({ number: '2112' });
     const before = topSheet(applyDeal(p)).cashBudget;
-    const { project: q, participant } = addPosition(p, { title: 'Stunt Coordinator', accountId: '1501', days: 3, note: '(skateboarding)' });
+    const { project: q, participant } = addPosition(p, {
+      title: 'Stunt Coordinator',
+      accountId: '1501',
+      days: 3,
+      note: '(skateboarding)',
+    });
     const line = q.lines.find(l => l.participantId === participant.id)!;
-    expect(line).toMatchObject({ accountId: '1501', unit: 'DAY', amount: 3, description: 'Stunt Coordinator (skateboarding)' });
+    expect(line).toMatchObject({
+      accountId: '1501',
+      unit: 'DAY',
+      amount: 3,
+      description: 'Stunt Coordinator (skateboarding)',
+    });
     expect(line.fringes.length).toBeGreaterThan(0);
     expect(q.accounts.some(a => a.number === '1501')).toBe(true);
     expect(q.categories.some(c => c.number === '1500')).toBe(true);
@@ -674,15 +973,23 @@ describe('positions', () => {
     const p = withDeal(sampleProject());
     const b = fitDayBreaks(p.board, 12);
     const p1 = { ...p, board: b };
-    const kid = b.castList.find(c => c.name === 'KID')!, waitress = b.castList.find(c => c.name === 'WAITRESS')!;
-    const { project: q, participant } = addPosition(p1, { title: 'Studio Teacher', accountId: '2112', days: 0, followsCastIds: [kid.id, waitress.id] });
+    const kid = b.castList.find(c => c.name === 'KID')!,
+      waitress = b.castList.find(c => c.name === 'WAITRESS')!;
+    const { project: q, participant } = addPosition(p1, {
+      title: 'Studio Teacher',
+      accountId: '2112',
+      days: 0,
+      followsCastIds: [kid.id, waitress.id],
+    });
     const expected = shootDays(b).filter(d => d.castIds.includes(kid.id) || d.castIds.includes(waitress.id)).length;
     expect(participant.days).toBe(expected);
     expect(q.lines.find(l => l.participantId === participant.id)!.description).toMatch(/days with KID, WAITRESS/);
     // move the board and push: the teacher's days follow
     const moved = { ...q, board: fitDayBreaks(q.board, 4) };
     const synced = syncCastDaysFromBoard(moved);
-    const now = shootDays(moved.board).filter(d => d.castIds.includes(kid.id) || d.castIds.includes(waitress.id)).length;
+    const now = shootDays(moved.board).filter(
+      d => d.castIds.includes(kid.id) || d.castIds.includes(waitress.id),
+    ).length;
     expect(synced.participants.find(x => x.id === participant.id)!.days).toBe(now);
     expect(synced.lines.find(l => l.participantId === participant.id)!.amount).toBe(now);
   });
@@ -691,11 +998,16 @@ describe('positions', () => {
     const b = fitDayBreaks(p.board, 12);
     const tags = boardElements(b);
     expect(tags.find(t => t.category === 'Vehicles' && t.item === 'station wagon')!.scenes).toBe(5);
-    const wagon = { category: 'Vehicles', item: 'Station Wagon' };   // case doesn't matter
-    const expected = shootDays(b).filter(d => d.scenes.some(s => (s.elements.Vehicles ?? []).includes('station wagon'))).length;
+    const wagon = { category: 'Vehicles', item: 'Station Wagon' }; // case doesn't matter
+    const expected = shootDays(b).filter(d =>
+      d.scenes.some(s => (s.elements.Vehicles ?? []).includes('station wagon')),
+    ).length;
     expect(expected).toBeGreaterThan(0);
     expect(daysWithElements(b, [wagon])).toBe(expected);
-    const { project: q, participant } = addPosition({ ...p, board: b }, { title: 'Picture Car Wrangler', accountId: '2107', days: 0, followsElements: [wagon] });
+    const { project: q, participant } = addPosition(
+      { ...p, board: b },
+      { title: 'Picture Car Wrangler', accountId: '2107', days: 0, followsElements: [wagon] },
+    );
     expect(participant.days).toBe(expected);
     expect(participant.followsElements).toEqual([wagon]);
     expect(q.lines.find(l => l.participantId === participant.id)!.description).toMatch(/days with Station Wagon/);
@@ -704,7 +1016,11 @@ describe('positions', () => {
     expect(synced.participants.find(x => x.id === participant.id)!.days).toBe(daysWithElements(moved.board, [wagon]));
     // cast and tags together: any day either brings them in
     const kid = b.castList.find(c => c.name === 'KID')!;
-    expect(daysFollowing(b, { followsCastIds: [kid.id], followsElements: [wagon] })).toBe(shootDays(b).filter(d => d.castIds.includes(kid.id) || d.scenes.some(s => (s.elements.Vehicles ?? []).includes('station wagon'))).length);
+    expect(daysFollowing(b, { followsCastIds: [kid.id], followsElements: [wagon] })).toBe(
+      shootDays(b).filter(
+        d => d.castIds.includes(kid.id) || d.scenes.some(s => (s.elements.Vehicles ?? []).includes('station wagon')),
+      ).length,
+    );
   });
 });
 
@@ -714,46 +1030,102 @@ describe('projects saved before the deal layer', () => {
   it('drops baked scale lines and floor splits, restoring the split line with the days it shows', () => {
     const p = withDeal(sampleProject());
     const l0 = p.lines.find(l => l.unit === 'DAY' && /prep/i.test(l.description) && l.fringes.length)!;
-    const baked = { ...p, lines: [
-      ...p.lines.filter(l => l.id !== l0.id),
-      { ...l0, id: `SPLIT:${l0.id}:cash`, description: `${l0.description} (cash floor)`, amount: 7, rate: 16.9 },
-      { ...l0, id: `SPLIT:${l0.id}:rest`, description: `${l0.description} balance to back end`, payType: 'points' as const, participantId: undefined },
-      { ...l0, id: 'L_scale_prod_1', accountId: '1201', description: 'Producer #1: scale, shoot', participantId: 'p_producer_1' },
-      { ...l0, id: 'SPLIT:L_scale_prod_1:cash', accountId: '1201', description: 'Producer #1: scale, prep / post (cash floor)', participantId: 'p_producer_1' },
-      { ...l0, id: 'SPLIT:L_scale_prod_1:rest', accountId: '1201', description: 'Producer #1: scale balance to back end', payType: 'points' as const, participantId: undefined },
-    ] };
+    const baked = {
+      ...p,
+      lines: [
+        ...p.lines.filter(l => l.id !== l0.id),
+        { ...l0, id: `SPLIT:${l0.id}:cash`, description: `${l0.description} (cash floor)`, amount: 7, rate: 16.9 },
+        {
+          ...l0,
+          id: `SPLIT:${l0.id}:rest`,
+          description: `${l0.description} balance to back end`,
+          payType: 'points' as const,
+          participantId: undefined,
+        },
+        {
+          ...l0,
+          id: 'L_scale_prod_1',
+          accountId: '1201',
+          description: 'Producer #1: scale, shoot',
+          participantId: 'p_producer_1',
+        },
+        {
+          ...l0,
+          id: 'SPLIT:L_scale_prod_1:cash',
+          accountId: '1201',
+          description: 'Producer #1: scale, prep / post (cash floor)',
+          participantId: 'p_producer_1',
+        },
+        {
+          ...l0,
+          id: 'SPLIT:L_scale_prod_1:rest',
+          accountId: '1201',
+          description: 'Producer #1: scale balance to back end',
+          payType: 'points' as const,
+          participantId: undefined,
+        },
+      ],
+    };
     const q = unbakeDerived(baked);
     expect(q.lines.some(l => /^(SPLIT:|L_scale_)/.test(l.id))).toBe(false);
     const back = q.lines.find(l => l.id === l0.id)!;
     expect(back).toMatchObject({ amount: 7, description: l0.description });
-    expect(withDeal(baked).lines.some(l => /^(SPLIT:|L_scale_)/.test(l.id))).toBe(false);   // withDeal does it on load
-    expect(unbakeDerived(p)).toBe(p);                                                          // a clean project is untouched
+    expect(withDeal(baked).lines.some(l => /^(SPLIT:|L_scale_)/.test(l.id))).toBe(false); // withDeal does it on load
+    expect(unbakeDerived(p)).toBe(p); // a clean project is untouched
   });
 });
 
 import { foldMemoLines, isMemoLine, memoLines } from './budget';
 import type { Board, LineItem, Project, Scene, Strip } from './types';
 describe('memo lines', () => {
-  const line = (id: string, accountId: string, description: string, amount = 0, rate = 0, extra: Partial<LineItem> = {}): LineItem =>
-    ({ id, accountId, description, amount, unit: rate ? 'DAY' : '-', rate, multiplier: 1, fringes: [], tags: [], payType: 'cash', ...extra });
-  const p = { ...blankProject(), lines: [
-    line('h', '1403', 'CAST #7: FRANK'), line('b', '1403', ''), line('s', '1403', 'Shoot', 2, 1283), line('hold', '1403', 'Hold', 0, 1283),
-    line('a', '2411', 'ALLOWANCE', 4, 1250), line('l', '2411', 'LIST'), line('p1', '2411', 'phone', 10), line('p2', '2411', 'typewriter', 4),
-    line('ot', '2111', 'OT', 0, 0, { fringes: ['FICA1'] }),
-    line('m1', '1101', 'Right Fees'), line('m2', '1101', 'Copyright Fees'),
-  ] } as Project;
+  const line = (
+    id: string,
+    accountId: string,
+    description: string,
+    amount = 0,
+    rate = 0,
+    extra: Partial<LineItem> = {},
+  ): LineItem => ({
+    id,
+    accountId,
+    description,
+    amount,
+    unit: rate ? 'DAY' : '-',
+    rate,
+    multiplier: 1,
+    fringes: [],
+    tags: [],
+    payType: 'cash',
+    ...extra,
+  });
+  const p = {
+    ...blankProject(),
+    lines: [
+      line('h', '1403', 'CAST #7: FRANK'),
+      line('b', '1403', ''),
+      line('s', '1403', 'Shoot', 2, 1283),
+      line('hold', '1403', 'Hold', 0, 1283),
+      line('a', '2411', 'ALLOWANCE', 4, 1250),
+      line('l', '2411', 'LIST'),
+      line('p1', '2411', 'phone', 10),
+      line('p2', '2411', 'typewriter', 4),
+      line('ot', '2111', 'OT', 0, 0, { fringes: ['FICA1'] }),
+      line('m1', '1101', 'Right Fees'),
+      line('m2', '1101', 'Copyright Fees'),
+    ],
+  } as Project;
   it('tells memo rows from zero-day placeholders', () => {
     expect(memoLines(p).map(l => l.id)).toEqual(['h', 'b', 'l', 'p1', 'p2', 'm1', 'm2']);
-    expect(isMemoLine(p.lines.find(l => l.id === 'hold')!)).toBe(false);   // has a rate: days can be typed in
-    expect(isMemoLine(p.lines.find(l => l.id === 'ot')!)).toBe(false);     // carries fringes
+    expect(isMemoLine(p.lines.find(l => l.id === 'hold')!)).toBe(false); // has a rate: days can be typed in
+    expect(isMemoLine(p.lines.find(l => l.id === 'ot')!)).toBe(false); // carries fringes
   });
   it('folds them into notes on the lines they belong to, same money', () => {
     const f = foldMemoLines(p);
     const by = Object.fromEntries(f.lines.map(l => [l.id, l]));
     expect(f.lines.map(l => l.id)).toEqual(['s', 'hold', 'a', 'ot', 'm1']);
-    expect(by.s.notes).toBe('CAST #7: FRANK');                    // a header goes on the line below it
-    expect(by.a.notes).toBe('phone ×10, typewriter ×4');          // a list under its allowance, LIST and the blank dropped
-    expect(by.m1.notes).toBe('Copyright Fees');                   // an account of pure memo keeps one line
+    expect(by.s.notes).toBe('CAST #7: FRANK'); // a header goes on the line below it
+    expect(by.a.notes).toBe('phone ×10, typewriter ×4'); // a list under its allowance, LIST and the blank dropped
+    expect(by.m1.notes).toBe('Copyright Fees'); // an account of pure memo keeps one line
     expect(topSheet(f).cashBudget).toBe(topSheet(p).cashBudget);
     expect(foldMemoLines(p, '2411').lines.map(l => l.id)).toEqual(['h', 'b', 's', 'hold', 'a', 'ot', 'm1', 'm2']);
   });
@@ -763,28 +1135,49 @@ import { mergeScriptIntoBoard } from './importers/merge';
 import { syncFollowersFromBoard } from './board';
 describe('script into an existing board', () => {
   it('keeps the schedule and the tags, adds text, cast and a first pass of tags, matched by scene number', () => {
-    const script = autoTagBoard(parseScreenplayText(readFileSync(resolve(__dirname, '../../tools/fixtures/SaltFlat_Script.fountain'), 'utf8')).board);
+    const script = autoTagBoard(
+      parseScreenplayText(readFileSync(resolve(__dirname, '../../tools/fixtures/SaltFlat_Script.fountain'), 'utf8'))
+        .board,
+    );
     // a board someone scheduled by hand (a .sex export): no text, its own tags, cast numbered its own way, day breaks in place
-    const plain = parseScreenplayText(readFileSync(resolve(__dirname, '../../tools/fixtures/SaltFlat_Script.fountain'), 'utf8')).board;
-    const board = fitDayBreaks({
-      ...plain,
-      castList: [{ id: 1, name: 'LENA' }, { id: 2, name: 'WALT' }],
-      scenes: plain.scenes.map(s => ({ ...s, text: undefined, cast: s.cast.filter(c => /LENA|WALT/.test(c.name)).map(c => ({ name: c.name, id: c.name === 'LENA' ? 1 : 2 })), elements: { Props: ['hero mug'] }, location: 'Wendover, UT' })),
-      strips: [...plain.strips].reverse(),
-    }, 3);
+    const plain = parseScreenplayText(
+      readFileSync(resolve(__dirname, '../../tools/fixtures/SaltFlat_Script.fountain'), 'utf8'),
+    ).board;
+    const board = fitDayBreaks(
+      {
+        ...plain,
+        castList: [
+          { id: 1, name: 'LENA' },
+          { id: 2, name: 'WALT' },
+        ],
+        scenes: plain.scenes.map(s => ({
+          ...s,
+          text: undefined,
+          cast: s.cast
+            .filter(c => /LENA|WALT/.test(c.name))
+            .map(c => ({ name: c.name, id: c.name === 'LENA' ? 1 : 2 })),
+          elements: { Props: ['hero mug'] },
+          location: 'Wendover, UT',
+        })),
+        strips: [...plain.strips].reverse(),
+      },
+      3,
+    );
     const before = shootDays(board).length;
     const { board: m, report } = mergeScriptIntoBoard(board, script);
     expect(report.matched).toBe(plain.scenes.length);
     expect(report.unmatched).toEqual([]);
     expect(report.headingMismatch).toEqual([]);
-    expect(shootDays(m).length).toBe(before);                                    // day breaks untouched
-    expect(m.strips.map(s => s.type === 'scene' ? s.sceneId : 'db')).toEqual(board.strips.map(s => s.type === 'scene' ? s.sceneId : 'db'));
+    expect(shootDays(m).length).toBe(before); // day breaks untouched
+    expect(m.strips.map(s => (s.type === 'scene' ? s.sceneId : 'db'))).toEqual(
+      board.strips.map(s => (s.type === 'scene' ? s.sceneId : 'db')),
+    );
     expect(m.scenes.every(s => s.text && s.location === 'Wendover, UT')).toBe(true);
-    expect(m.scenes.every(s => s.elements.Props?.includes('hero mug'))).toBe(true);   // hand-made tags stay
+    expect(m.scenes.every(s => s.elements.Props?.includes('hero mug'))).toBe(true); // hand-made tags stay
     expect(report.tagsAdded).toBeGreaterThan(20);
-    expect(m.castList.find(c => c.name === 'LENA')!.id).toBe(1);                  // cast numbers stay
+    expect(m.castList.find(c => c.name === 'LENA')!.id).toBe(1); // cast numbers stay
     expect(m.castList.find(c => c.name === 'WALT')!.id).toBe(2);
-    expect(report.newCast).toContain('JUNE');                                     // the script's other people join the list after the existing ones
+    expect(report.newCast).toContain('JUNE'); // the script's other people join the list after the existing ones
     expect(m.castList.find(c => c.name === 'JUNE')!.id).toBeGreaterThan(2);
     const sc1 = m.scenes.find(s => s.number === '1')!;
     expect(sc1.cast.map(c => c.name)).toEqual(expect.arrayContaining(['LENA', 'JUNE']));
@@ -792,18 +1185,31 @@ describe('script into an existing board', () => {
   });
   it('recounts only the positions that follow tags after the board changes', () => {
     const base = withDeal(sampleProject());
-    const { project: p, participant: wr } = addPosition(base, { title: 'Picture Car Wrangler', accountId: '2107', days: 0, followsElements: [{ category: 'Vehicles', item: 'station wagon' }] });
+    const { project: p, participant: wr } = addPosition(base, {
+      title: 'Picture Car Wrangler',
+      accountId: '2107',
+      days: 0,
+      followsElements: [{ category: 'Vehicles', item: 'station wagon' }],
+    });
     expect(wr.days).toBeGreaterThan(0);
     const stripped = { ...p, board: { ...p.board, scenes: p.board.scenes.map(s => ({ ...s, elements: {} })) } };
     const { project: q, changed } = syncFollowersFromBoard(stripped);
     expect(changed).toEqual([`Picture Car Wrangler ${wr.days} → 0`]);
     expect(q.participants.find(x => x.name === 'Picture Car Wrangler')!.days).toBe(0);
-    expect(q.participants.filter(x => x.castId != null).map(x => x.days)).toEqual(p.participants.filter(x => x.castId != null).map(x => x.days));   // cast-linked people untouched
+    expect(q.participants.filter(x => x.castId != null).map(x => x.days)).toEqual(
+      p.participants.filter(x => x.castId != null).map(x => x.days),
+    ); // cast-linked people untouched
     expect(syncFollowersFromBoard(p).changed).toEqual([]);
   });
-  it('reports scenes only one side has, and appends the script\'s extras at the end', () => {
-    const script = parseScreenplayText(readFileSync(resolve(__dirname, '../../tools/fixtures/SaltFlat_Script.fountain'), 'utf8')).board;
-    const board = { ...script, scenes: script.scenes.slice(0, 5).map(s => ({ ...s, text: undefined })), strips: script.strips.slice(0, 5) };
+  it("reports scenes only one side has, and appends the script's extras at the end", () => {
+    const script = parseScreenplayText(
+      readFileSync(resolve(__dirname, '../../tools/fixtures/SaltFlat_Script.fountain'), 'utf8'),
+    ).board;
+    const board = {
+      ...script,
+      scenes: script.scenes.slice(0, 5).map(s => ({ ...s, text: undefined })),
+      strips: script.strips.slice(0, 5),
+    };
     const { board: m, report } = mergeScriptIntoBoard(board, script);
     expect(report.matched).toBe(5);
     expect(report.added.length).toBe(script.scenes.length - 5);
@@ -815,35 +1221,57 @@ describe('script into an existing board', () => {
 import { californiaCredit, defaultIncentives, federalCredit, incentiveReport, withIncentives } from './incentives';
 describe('incentives', () => {
   // the sample film is under the programs' $1M floor; triple its rates so it qualifies
-  const base = (() => { const s = withDeal(sampleProject()); return { ...s, lines: s.lines.map(l => ({ ...l, rate: l.rate * 3 })) }; })();
-  const on = (p: Project, ca = true, fed = false): Project => { const d = defaultIncentives(p); return { ...p, incentives: { ...d, ca: { ...d.ca, enabled: ca }, federal: { ...d.federal, enabled: fed } } }; };
+  const base = (() => {
+    const s = withDeal(sampleProject());
+    return { ...s, lines: s.lines.map(l => ({ ...l, rate: l.rate * 3 })) };
+  })();
+  const on = (p: Project, ca = true, fed = false): Project => {
+    const d = defaultIncentives(p);
+    return { ...p, incentives: { ...d, ca: { ...d.ca, enabled: ca }, federal: { ...d.federal, enabled: fed } } };
+  };
   it('the California credit is 35% of below-the-line cash spend, less the cost of getting it, and comes off what investors put in', () => {
     const p = on(applyDeal(base));
     const inc = withIncentives(p);
     const r = californiaCredit(p, inc);
     expect(inc.ca.excludedCategories).toEqual(expect.arrayContaining(['1100', '1200', '1300', '1400']));
-    expect(inc.ca.excludedCategories).not.toContain('1500');                       // stunts qualify
+    expect(inc.ca.excludedCategories).not.toContain('1500'); // stunts qualify
     expect(r.eligible).toBe(true);
-    expect(californiaCredit(applyDeal(withDeal(sampleProject())), inc).net).toBe(0);   // under $1M: nothing, and a note says why
+    expect(californiaCredit(applyDeal(withDeal(sampleProject())), inc).net).toBe(0); // under $1M: nothing, and a note says why
     expect(r.qualifiedNonWage).toBeGreaterThan(0);
     expect(r.parts[0].amount).toBeCloseTo(r.qualified * 0.35, 2);
-    expect(r.gross).toBeCloseTo(r.qualified * 0.35, 2);                              // no uplifts by default
+    expect(r.gross).toBeCloseTo(r.qualified * 0.35, 2); // no uplifts by default
     const costs = r.costs.reduce((n, x) => n + x.amount, 0);
     expect(r.net).toBeCloseTo(r.gross - costs, 2);
-    expect(r.costs.map(c => c.label)).toEqual(expect.arrayContaining([expect.stringMatching(/90¢/), expect.stringMatching(/bridge/), 'CPA audit']));
+    expect(r.costs.map(c => c.label)).toEqual(
+      expect.arrayContaining([expect.stringMatching(/90¢/), expect.stringMatching(/bridge/), 'CPA audit']),
+    );
     expect(recoupableBudget(p)).toBeCloseTo(recoupableBudget(base) - r.net, 0);
-    expect(recoupableBudget({ ...p, incentives: { ...inc, ca: { ...inc.ca, enabled: false } } })).toBeCloseTo(recoupableBudget(base), 0);
+    expect(recoupableBudget({ ...p, incentives: { ...inc, ca: { ...inc.ca, enabled: false } } })).toBeCloseTo(
+      recoupableBudget(base),
+      0,
+    );
     // no ATL wages in the base: turning the writer's category back on adds it
-    const more = californiaCredit(p, { ...inc, ca: { ...inc.ca, excludedCategories: inc.ca.excludedCategories.filter(c => c !== '1300') } });
+    const more = californiaCredit(p, {
+      ...inc,
+      ca: { ...inc.ca, excludedCategories: inc.ca.excludedCategories.filter(c => c !== '1300') },
+    });
     expect(more.qualified).toBeGreaterThan(r.qualified);
   });
   it('uplifts and the refund election', () => {
     const p = on(applyDeal(base));
     const inc = withIncentives(p);
-    const zone = californiaCredit(p, { ...inc, ca: { ...inc.ca, outOfZonePct: 100, localHirePct: 50, trainees: 2, monetize: 'refund', bridge: false } });
-    expect(zone.parts.map(x => x.label)).toEqual([expect.stringMatching(/35%/), expect.stringMatching(/outside the LA zone/), expect.stringMatching(/local hire/), expect.stringMatching(/2 Career Pathways trainees/)]);
+    const zone = californiaCredit(p, {
+      ...inc,
+      ca: { ...inc.ca, outOfZonePct: 100, localHirePct: 50, trainees: 2, monetize: 'refund', bridge: false },
+    });
+    expect(zone.parts.map(x => x.label)).toEqual([
+      expect.stringMatching(/35%/),
+      expect.stringMatching(/outside the LA zone/),
+      expect.stringMatching(/local hire/),
+      expect.stringMatching(/2 Career Pathways trainees/),
+    ]);
     expect(zone.parts[1].amount).toBeCloseTo(zone.qualified * 0.05, 2);
-    expect(zone.parts[2].amount).toBeCloseTo((zone.qualifiedWages + zone.qualifiedFringes) * 0.5 * 0.10, 2);
+    expect(zone.parts[2].amount).toBeCloseTo((zone.qualifiedWages + zone.qualifiedFringes) * 0.5 * 0.1, 2);
     expect(zone.parts[3].amount).toBeCloseTo(zone.qualified * 0.01, 2);
     expect(zone.costs.find(c => /refund/.test(c.label))!.amount).toBeCloseTo(zone.gross * 0.05, 2);
     expect(zone.costs.some(c => /bridge/.test(c.label))).toBe(false);
@@ -857,7 +1285,7 @@ describe('incentives', () => {
     expect(btl.qualified).toBeLessThan(all.qualified);
     const r = incentiveReport(p);
     expect(r.total).toBeCloseTo(all.net, 2);
-    expect(r.duringProduction).toBe(0);                                              // not bridged by default
+    expect(r.duringProduction).toBe(0); // not bridged by default
     expect(r.afterDelivery).toBeCloseTo(all.net, 2);
   });
   it('picks the application window for the start date: a March 2027 shoot applies in January', () => {
@@ -867,12 +1295,17 @@ describe('incentives', () => {
     expect(r.window?.startBy).toBe('2027-08-21');
     expect(r.federalDateOk).toBe(true);
     const late = incentiveReport({ ...p, incentives: { ...withIncentives(p), startDate: '2027-02-01' } });
-    expect(late.window).toBeNull();                                                 // the Jan letter comes after Feb 1; the Aug 2026 window is closed
-    expect(incentiveReport({ ...p, incentives: { ...withIncentives(p), startDate: '2026-12-01' } }).federalDateOk).toBe(false);
+    expect(late.window).toBeNull(); // the Jan letter comes after Feb 1; the Aug 2026 window is closed
+    expect(incentiveReport({ ...p, incentives: { ...withIncentives(p), startDate: '2026-12-01' } }).federalDateOk).toBe(
+      false,
+    );
   });
   it('perks come off too, and an untouched project has none of this', () => {
     const p = on(applyDeal(base), false, false);
-    const r = incentiveReport({ ...p, incentives: { ...withIncentives(p), perks: { 'state-locations': 12_000, 'hotel-tax': 0 } } });
+    const r = incentiveReport({
+      ...p,
+      incentives: { ...withIncentives(p), perks: { 'state-locations': 12_000, 'hotel-tax': 0 } },
+    });
     expect(r.perks.length).toBe(2);
     expect(r.total).toBe(12_000);
     expect(r.duringProduction).toBe(12_000);
@@ -885,19 +1318,71 @@ describe('removing a character from the cast list', () => {
   const base = (): Project => {
     const p = sampleProject();
     const b = p.board;
-    const cast = [{ id: 1, name: 'A' }, { id: 2, name: 'B' }, { id: 3, name: 'GHOST' }];
-    const scenes: Scene[] = [
-      { id: 's1', number: '1', ie: 'INT', set: 'X', tod: 'DAY', pages: '1', eighths: 8, synopsis: '', location: '', scriptDay: '', cast: [cast[0], cast[1]], elements: {} },
-      { id: 's2', number: '2', ie: 'INT', set: 'Y', tod: 'DAY', pages: '2', eighths: 8, synopsis: '', location: '', scriptDay: '', cast: [cast[1]], elements: {} },
+    const cast = [
+      { id: 1, name: 'A' },
+      { id: 2, name: 'B' },
+      { id: 3, name: 'GHOST' },
     ];
-    return { ...p, board: { ...b, castList: cast, scenes, strips: [{ type: 'scene', sceneId: 's1' }, { type: 'scene', sceneId: 's2' }] },
+    const scenes: Scene[] = [
+      {
+        id: 's1',
+        number: '1',
+        ie: 'INT',
+        set: 'X',
+        tod: 'DAY',
+        pages: '1',
+        eighths: 8,
+        synopsis: '',
+        location: '',
+        scriptDay: '',
+        cast: [cast[0], cast[1]],
+        elements: {},
+      },
+      {
+        id: 's2',
+        number: '2',
+        ie: 'INT',
+        set: 'Y',
+        tod: 'DAY',
+        pages: '2',
+        eighths: 8,
+        synopsis: '',
+        location: '',
+        scriptDay: '',
+        cast: [cast[1]],
+        elements: {},
+      },
+    ];
+    return {
+      ...p,
+      board: {
+        ...b,
+        castList: cast,
+        scenes,
+        strips: [
+          { type: 'scene', sceneId: 's1' },
+          { type: 'scene', sceneId: 's2' },
+        ],
+      },
       participants: [
         { id: 'pa', name: 'A', role: 'cast', group: 'cast', tierId: 'cast', days: 1, bonusMultiplier: 1, castId: 1 },
         { id: 'pb', name: 'B', role: 'cast', group: 'cast', tierId: 'cast', days: 2, bonusMultiplier: 1, castId: 2 },
-        { id: 'pt', name: 'Teacher', role: 'crew', group: 'crew', tierId: 'crew', days: 0, bonusMultiplier: 1, followsCastIds: [2, 3] },
-      ] };
+        {
+          id: 'pt',
+          name: 'Teacher',
+          role: 'crew',
+          group: 'crew',
+          tierId: 'crew',
+          days: 0,
+          bonusMultiplier: 1,
+          followsCastIds: [2, 3],
+        },
+      ],
+    };
   };
-  it('lists the cast nobody tagged', () => { expect(unusedCast(base().board)).toEqual([3]); });
+  it('lists the cast nobody tagged', () => {
+    expect(unusedCast(base().board)).toEqual([3]);
+  });
   it('drops an unused name without touching anyone else', () => {
     const p = dropCastMember(base(), 3);
     expect(p.board.castList.map(c => c.id)).toEqual([1, 2]);
@@ -920,31 +1405,95 @@ describe('removing a character from the cast list', () => {
 describe('the board owns shoot days; rehearsal and fitting days live on their own line', () => {
   const fx = (): Project => {
     const p = sampleProject();
-    const cast = [{ id: 1, name: 'A' }, { id: 2, name: 'B' }];
-    const sc = (id: string, who: typeof cast): Scene => ({ id, number: id, ie: 'INT', set: 'X', tod: 'DAY', pages: '1', eighths: 8, synopsis: '', location: '', scriptDay: '', cast: who, elements: {} });
-    const board: Board = { ...p.board, castList: cast, scenes: [sc('s1', cast), sc('s2', [cast[1]]), sc('s3', [cast[1]])],
-      strips: [{ type: 'scene', sceneId: 's1' }, { type: 'daybreak', id: 'd1' }, { type: 'scene', sceneId: 's2' }, { type: 'daybreak', id: 'd2' }, { type: 'scene', sceneId: 's3' }] };
+    const cast = [
+      { id: 1, name: 'A' },
+      { id: 2, name: 'B' },
+    ];
+    const sc = (id: string, who: typeof cast): Scene => ({
+      id,
+      number: id,
+      ie: 'INT',
+      set: 'X',
+      tod: 'DAY',
+      pages: '1',
+      eighths: 8,
+      synopsis: '',
+      location: '',
+      scriptDay: '',
+      cast: who,
+      elements: {},
+    });
+    const board: Board = {
+      ...p.board,
+      castList: cast,
+      scenes: [sc('s1', cast), sc('s2', [cast[1]]), sc('s3', [cast[1]])],
+      strips: [
+        { type: 'scene', sceneId: 's1' },
+        { type: 'daybreak', id: 'd1' },
+        { type: 'scene', sceneId: 's2' },
+        { type: 'daybreak', id: 'd2' },
+        { type: 'scene', sceneId: 's3' },
+      ],
+    };
     const wage = { unit: 'DAY', rate: 100, multiplier: 10, fringes: ['FICA1'], tags: [], payType: 'cash' as const };
-    return { ...p, board,
+    return {
+      ...p,
+      board,
       participants: [
         { id: 'pa', name: 'A', role: 'cast', group: 'cast', tierId: 'cast', days: 3, bonusMultiplier: 1, castId: 1 },
         { id: 'pb', name: 'B', role: 'cast', group: 'cast', tierId: 'cast', days: 5, bonusMultiplier: 1, castId: 2 },
-        { id: 'pt', name: 'Teacher', role: 'crew', group: 'crew', tierId: 'crew', days: 9, bonusMultiplier: 1, followsCastIds: [1] },
+        {
+          id: 'pt',
+          name: 'Teacher',
+          role: 'crew',
+          group: 'crew',
+          tierId: 'crew',
+          days: 9,
+          bonusMultiplier: 1,
+          followsCastIds: [1],
+        },
         { id: 'pc', name: 'Gaffer', role: 'crew', group: 'crew', tierId: 'crew', days: 20, bonusMultiplier: 1 },
       ],
       lines: [
-        { id: 'a1', accountId: '1402', description: 'Shoot | Rehearsal | Fitting', amount: 3, participantId: 'pa', ...wage },
-        { id: 'b1', accountId: '1402', description: 'Shoot | Rehearsal | Fitting', amount: 5, participantId: 'pb', ...wage },
-        { id: 'b2', accountId: '1402', description: 'Agent fee', amount: 1, unit: 'ALLOW', rate: 500, multiplier: 0.1, fringes: [], tags: [], payType: 'cash', participantId: 'pb' },
+        {
+          id: 'a1',
+          accountId: '1402',
+          description: 'Shoot | Rehearsal | Fitting',
+          amount: 3,
+          participantId: 'pa',
+          ...wage,
+        },
+        {
+          id: 'b1',
+          accountId: '1402',
+          description: 'Shoot | Rehearsal | Fitting',
+          amount: 5,
+          participantId: 'pb',
+          ...wage,
+        },
+        {
+          id: 'b2',
+          accountId: '1402',
+          description: 'Agent fee',
+          amount: 1,
+          unit: 'ALLOW',
+          rate: 500,
+          multiplier: 0.1,
+          fringes: [],
+          tags: [],
+          payType: 'cash',
+          participantId: 'pb',
+        },
         { id: 't1', accountId: '2005', description: 'Studio teacher', amount: 9, participantId: 'pt', ...wage },
         { id: 'g1', accountId: '2701', description: 'Shoot', amount: 20, participantId: 'pc', ...wage },
-      ] };
+      ],
+    };
   };
   it('splits the combined line so the budget total is unchanged, then the board drives the shoot line', () => {
     const p = syncCastDaysFromBoard(adoptBoardDays(fx()));
     const L = (id: string) => p.lines.find(l => l.id === id)!;
-    expect(L('a1')).toMatchObject({ description: 'Shoot', amount: 1, daysFrom: 'board' });   // A works day 1 only
-    expect(L('a1_rf')).toMatchObject({ description: 'Rehearsal | Fitting', amount: 2 });       // 3 budgeted - 1 on the board
+    expect(L('a1')).toMatchObject({ description: 'Shoot', amount: 1, daysFrom: 'board' }); // A works day 1 only
+    expect(L('a1_rf')).toMatchObject({ description: 'Rehearsal | Fitting', amount: 2 }); // 3 budgeted - 1 on the board
     expect(L('b1')).toMatchObject({ description: 'Shoot', amount: 3, daysFrom: 'board' });
     expect(L('b1_rf').amount).toBe(2);
     expect(p.lines.map(l => l.id)).toEqual(['a1', 'a1_rf', 'b1', 'b1_rf', 'b2', 't1', 'g1']);
@@ -963,18 +1512,20 @@ describe('the board owns shoot days; rehearsal and fitting days live on their ow
     expect(adoptBoardDays(p1)).toBe(p1);
     expect(syncCastDaysFromBoard(p1)).toBe(p1);
     // tag A into scene 3 (day 3): shoot 1 -> 2, rehearsal stays 2, points days 3 -> 4
-    const b = p1.board; const scenes = b.scenes.map(s => s.id === 's3' ? { ...s, cast: [...s.cast, { id: 1, name: 'A' }] } : s);
+    const b = p1.board;
+    const scenes = b.scenes.map(s => (s.id === 's3' ? { ...s, cast: [...s.cast, { id: 1, name: 'A' }] } : s));
     const p2 = syncCastDaysFromBoard({ ...p1, board: { ...b, scenes } });
     expect(p2.lines.find(l => l.id === 'a1')!.amount).toBe(2);
     expect(p2.lines.find(l => l.id === 'a1_rf')!.amount).toBe(2);
     expect(p2.participants.find(x => x.id === 'pa')!.days).toBe(4);
     expect(p2.participants.find(x => x.id === 'pt')!.days).toBe(2);
     // editing the rehearsal line by hand is respected on the next sync
-    const p3 = syncCastDaysFromBoard({ ...p2, lines: p2.lines.map(l => l.id === 'a1_rf' ? { ...l, amount: 0 } : l) });
+    const p3 = syncCastDaysFromBoard({ ...p2, lines: p2.lines.map(l => (l.id === 'a1_rf' ? { ...l, amount: 0 } : l)) });
     expect(p3.participants.find(x => x.id === 'pa')!.days).toBe(2);
   });
   it('a plain Shoot line is adopted without a split', () => {
-    const f = fx(); f.lines = f.lines.map(l => l.id === 'a1' ? { ...l, description: 'Shoot' } : l);
+    const f = fx();
+    f.lines = f.lines.map(l => (l.id === 'a1' ? { ...l, description: 'Shoot' } : l));
     const p = syncCastDaysFromBoard(adoptBoardDays(f));
     expect(p.lines.filter(l => l.participantId === 'pa').map(l => l.id)).toEqual(['a1']);
     expect(p.lines.find(l => l.id === 'a1')).toMatchObject({ amount: 1, daysFrom: 'board' });
@@ -985,36 +1536,80 @@ describe('the board owns shoot days; rehearsal and fitting days live on their ow
 describe('moving several strips, and whole days', () => {
   const S = (id: string): Strip => ({ type: 'scene', sceneId: id });
   const D = (id: string): Strip => ({ type: 'daybreak', id });
-  const ids = (b: Board) => b.strips.map(s => s.type === 'scene' ? s.sceneId : `|${s.id}`).join(' ');
-  const base = (): Board => ({ ...sampleProject().board, scenes: [], castList: [],
-    strips: [S('a'), S('b'), D('d1'), S('c'), S('d'), D('d2'), S('e'), S('f')] });   // 3 days: ab | cd | ef
+  const ids = (b: Board) => b.strips.map(s => (s.type === 'scene' ? s.sceneId : `|${s.id}`)).join(' ');
+  const base = (): Board => ({
+    ...sampleProject().board,
+    scenes: [],
+    castList: [],
+    strips: [S('a'), S('b'), D('d1'), S('c'), S('d'), D('d2'), S('e'), S('f')],
+  }); // 3 days: ab | cd | ef
   it('carries a block in order to the drop point', () => {
-    expect(ids(moveStrips(base(), [0, 3], 7))).toBe('b |d1 d |d2 e a c f');       // a and c land before f
-    expect(ids(moveStrips(base(), [6, 7], 0))).toBe('e f a b |d1 c d |d2');       // to the top
-    expect(ids(moveStrips(base(), [1, 3], 8))).toBe('a |d1 d |d2 e f b c');       // append
-    const same = base(); expect(moveStrips(same, [3, 4], 4)).toBe(same);         // dropped on itself: no-op
-    expect(ids(moveStrips(base(), [1], 4))).toBe(ids(moveStrip(base(), 1, 4)));  // one strip = moveStrip
+    expect(ids(moveStrips(base(), [0, 3], 7))).toBe('b |d1 d |d2 e a c f'); // a and c land before f
+    expect(ids(moveStrips(base(), [6, 7], 0))).toBe('e f a b |d1 c d |d2'); // to the top
+    expect(ids(moveStrips(base(), [1, 3], 8))).toBe('a |d1 d |d2 e f b c'); // append
+    const same = base();
+    expect(moveStrips(same, [3, 4], 4)).toBe(same); // dropped on itself: no-op
+    expect(ids(moveStrips(base(), [1], 4))).toBe(ids(moveStrip(base(), 1, 4))); // one strip = moveStrip
   });
   it('splits the board into day blocks', () => {
     expect(dayBlocks(base()).map(b => b.length)).toEqual([3, 3, 2]);
     expect(dayBlocks({ ...base(), strips: [S('a'), D('d1')] }).map(b => b.length)).toEqual([2]);
-    expect(dayOfIndex(base(), 0)).toBe(1); expect(dayOfIndex(base(), 3)).toBe(2); expect(dayOfIndex(base(), 7)).toBe(3);
+    expect(dayOfIndex(base(), 0)).toBe(1);
+    expect(dayOfIndex(base(), 3)).toBe(2);
+    expect(dayOfIndex(base(), 7)).toBe(3);
   });
   it('lifts a day and drops it as another day number, keeping one break between days', () => {
-    expect(ids(moveDay(base(), 3, 1))).toBe('e f |d2 a b |d1 c d');                // last day to the top takes the break day 2 no longer needs
-    expect(ids(moveDay(base(), 1, 3))).toBe('c d |d2 e f |d1 a b');                // first day to the end: carries d1 along as the new middle break
-    expect(ids(moveDay(base(), 1, 2))).toBe('c d |d2 a b |d1 e f');               // each day keeps its own break
+    expect(ids(moveDay(base(), 3, 1))).toBe('e f |d2 a b |d1 c d'); // last day to the top takes the break day 2 no longer needs
+    expect(ids(moveDay(base(), 1, 3))).toBe('c d |d2 e f |d1 a b'); // first day to the end: carries d1 along as the new middle break
+    expect(ids(moveDay(base(), 1, 2))).toBe('c d |d2 a b |d1 e f'); // each day keeps its own break
     expect(dayBlocks(moveDay(base(), 3, 1)).length).toBe(3);
-    const b = base(); expect(moveDay(b, 2, 2)).toBe(b); expect(moveDay(b, 0, 2)).toBe(b); expect(moveDay(b, 1, 4)).toBe(b);
+    const b = base();
+    expect(moveDay(b, 2, 2)).toBe(b);
+    expect(moveDay(b, 0, 2)).toBe(b);
+    expect(moveDay(b, 1, 4)).toBe(b);
   });
 });
 
 import { usHolidays, shootDates, newEvent, stampBoardDates, toIcs, monthRange } from './calendar';
 import type { Calendar } from './types';
 describe('calendar', () => {
-  const board: Board = { castList: [], scenes: [{ id: 's1', number: '1', ie: 'INT', set: 'A', tod: 'DAY', pages: '1', eighths: 8, synopsis: '', location: 'LA', cast: [], elements: {} }],
-    strips: [{ type: 'scene', sceneId: 's1' }, { type: 'daybreak', id: 'd1' }, { type: 'scene', sceneId: 's1' }, { type: 'daybreak', id: 'd2' }, { type: 'scene', sceneId: 's1' }, { type: 'daybreak', id: 'd3' }, { type: 'scene', sceneId: 's1' }], targetEighthsPerDay: 40 } as any;
-  const cal = (over: Partial<Calendar> = {}): Calendar => ({ from: '2026-11', to: '2027-07', dayOne: '2026-11-25', workDays: [1, 2, 3, 4, 5], skipHolidays: true, events: [], ...over });
+  const board: Board = {
+    castList: [],
+    scenes: [
+      {
+        id: 's1',
+        number: '1',
+        ie: 'INT',
+        set: 'A',
+        tod: 'DAY',
+        pages: '1',
+        eighths: 8,
+        synopsis: '',
+        location: 'LA',
+        cast: [],
+        elements: {},
+      },
+    ],
+    strips: [
+      { type: 'scene', sceneId: 's1' },
+      { type: 'daybreak', id: 'd1' },
+      { type: 'scene', sceneId: 's1' },
+      { type: 'daybreak', id: 'd2' },
+      { type: 'scene', sceneId: 's1' },
+      { type: 'daybreak', id: 'd3' },
+      { type: 'scene', sceneId: 's1' },
+    ],
+    targetEighthsPerDay: 40,
+  } as any;
+  const cal = (over: Partial<Calendar> = {}): Calendar => ({
+    from: '2026-11',
+    to: '2027-07',
+    dayOne: '2026-11-25',
+    workDays: [1, 2, 3, 4, 5],
+    skipHolidays: true,
+    events: [],
+    ...over,
+  });
   it('knows the 2026 holidays a crew takes off', () => {
     const h = new Map(usHolidays(2026).map(x => [x.label, x.date]));
     expect(h.get('Thanksgiving')).toBe('2026-11-26');
@@ -1030,7 +1625,10 @@ describe('calendar', () => {
   it('a company day off pushes the schedule, a pinned day break wins', () => {
     const d = shootDates(board, cal({ events: [newEvent('2026-11-30', 'dark day', 'off')] }));
     expect(d.get(2)).toBe('2026-12-01');
-    const pinned = { ...board, strips: board.strips.map(s => s.type === 'daybreak' && s.id === 'd2' ? { ...s, date: '2026-12-10' } : s) };
+    const pinned = {
+      ...board,
+      strips: board.strips.map(s => (s.type === 'daybreak' && s.id === 'd2' ? { ...s, date: '2026-12-10' } : s)),
+    };
     const d2 = shootDates(pinned, cal());
     expect(d2.get(2)).toBe('2026-12-10');
     expect(d2.get(3)).toBe('2026-12-11');
@@ -1042,34 +1640,82 @@ describe('calendar', () => {
     // with a Day 1 too, the walk skips the hand-placed date
     const mixed = cal({ dayOne: '2027-03-26', events: [newEvent('2027-03-29', 'Shoot Day 3', 'shoot', undefined, 3)] });
     const d2 = shootDates(board, mixed);
-    expect(d2.get(1)).toBe('2027-03-26'); expect(d2.get(2)).toBe('2027-03-30'); expect(d2.get(3)).toBe('2027-03-29'); expect(d2.get(4)).toBe('2027-03-31');
+    expect(d2.get(1)).toBe('2027-03-26');
+    expect(d2.get(2)).toBe('2027-03-30');
+    expect(d2.get(3)).toBe('2027-03-29');
+    expect(d2.get(4)).toBe('2027-03-31');
     expect(monthRange('', '')).toEqual([]);
   });
   it('stamps the computed dates onto the day breaks and writes an .ics', () => {
     const p = stampBoardDates({ ...sampleProject(), board, calendar: cal() } as any);
-    expect(p.board.strips.filter(s => s.type === 'daybreak').map((s: any) => s.date)).toEqual(['2026-11-25', '2026-11-30', '2026-12-01']);
+    expect(p.board.strips.filter(s => s.type === 'daybreak').map((s: any) => s.date)).toEqual([
+      '2026-11-25',
+      '2026-11-30',
+      '2026-12-01',
+    ]);
     const ics = toIcs(p);
     expect(ics).toContain('DTSTART;VALUE=DATE:20261125');
     expect((ics.match(/BEGIN:VEVENT/g) || []).length).toBe(4);
   });
 });
 
-import { storyDayBreakdown, characterBreakdown, departmentBreakdown, sceneItems, trackElement, itemsIn, elementCategories } from './breakdowns';
+import {
+  storyDayBreakdown,
+  characterBreakdown,
+  departmentBreakdown,
+  sceneItems,
+  trackElement,
+  itemsIn,
+  elementCategories,
+} from './breakdowns';
 describe('breakdowns', () => {
-  const sc = (id: string, day: string, cast: number[], els: Record<string, string[]> = {}): Scene => ({ id, number: id.slice(2), ie: 'INT', set: 'X', tod: 'DAY', pages: '1', eighths: 8, synopsis: '', location: 'LA', scriptDay: day, cast: cast.map(c => ({ id: c, name: `C${c}` })), elements: els });
-  const board: Board = { castList: [{ id: 1, name: 'MARA' }, { id: 2, name: 'PETE' }],
-    scenes: [sc('sc1', '1', [1], { Animals: ['Biscuit the cat'], Wardrobe: ['hoodie'] }), sc('sc2', '12', [1, 2], { Animals: ['biscuit the cat'] }), sc('sc3', '12', [2])],
-    strips: [{ type: 'scene', sceneId: 'sc1' }, { type: 'scene', sceneId: 'sc2' }, { type: 'daybreak', id: 'd1' }, { type: 'scene', sceneId: 'sc3' }], targetEighthsPerDay: 40 } as any;
+  const sc = (id: string, day: string, cast: number[], els: Record<string, string[]> = {}): Scene => ({
+    id,
+    number: id.slice(2),
+    ie: 'INT',
+    set: 'X',
+    tod: 'DAY',
+    pages: '1',
+    eighths: 8,
+    synopsis: '',
+    location: 'LA',
+    scriptDay: day,
+    cast: cast.map(c => ({ id: c, name: `C${c}` })),
+    elements: els,
+  });
+  const board: Board = {
+    castList: [
+      { id: 1, name: 'MARA' },
+      { id: 2, name: 'PETE' },
+    ],
+    scenes: [
+      sc('sc1', '1', [1], { Animals: ['Biscuit the cat'], Wardrobe: ['hoodie'] }),
+      sc('sc2', '12', [1, 2], { Animals: ['biscuit the cat'] }),
+      sc('sc3', '12', [2]),
+    ],
+    strips: [
+      { type: 'scene', sceneId: 'sc1' },
+      { type: 'scene', sceneId: 'sc2' },
+      { type: 'daybreak', id: 'd1' },
+      { type: 'scene', sceneId: 'sc3' },
+    ],
+    targetEighthsPerDay: 40,
+  } as any;
   it('shows the story days a shoot day touches and flags the jump', () => {
     const s = storyDayBreakdown(board);
-    expect(s[0].storyDays).toEqual(['1', '12']); expect(s[1].storyDays).toEqual(['12']);
+    expect(s[0].storyDays).toEqual(['1', '12']);
+    expect(s[1].storyDays).toEqual(['12']);
     const c = characterBreakdown(board);
-    expect(c.find(x => x.name === 'MARA')!.jumps).toBe(1); expect(c.find(x => x.name === 'PETE')!.days.length).toBe(2);
+    expect(c.find(x => x.name === 'MARA')!.jumps).toBe(1);
+    expect(c.find(x => x.name === 'PETE')!.days.length).toBe(2);
   });
   it('lays a department out by day and tracks one element across the schedule', () => {
     expect(departmentBreakdown(board, 'Wardrobe')[0].items.map(x => x.item)).toEqual(['hoodie']);
     const t = trackElement(board, 'Animals', 'Biscuit the cat');
-    expect(t.length).toBe(1); expect(t[0].scenes.map(s => s.number)).toEqual(['1', '2']); expect(t[0].eighths).toBe(16); expect(t[0].cast).toEqual(['MARA', 'PETE']);
+    expect(t.length).toBe(1);
+    expect(t[0].scenes.map(s => s.number)).toEqual(['1', '2']);
+    expect(t[0].eighths).toBe(16);
+    expect(t[0].cast).toEqual(['MARA', 'PETE']);
     expect(itemsIn(board, 'Animals')).toEqual([{ item: 'Biscuit the cat', scenes: 2 }]);
     expect(elementCategories(board)[0]).toBe('Animals');
   });
@@ -1079,24 +1725,46 @@ import { projections, compStats, newComp, adoptProjectionsAsScenarios, withPitch
 describe('pitch', () => {
   it('runs three cases through the deal waterfall and can hand them to the Points tab', () => {
     const base = withPitch(sampleProject());
-    const p: Project = { ...base, pitch: { ...base.pitch!, feePct: 20, revenue: [{ id: 'a', source: 'dom', low: 100000, mid: 1000000, high: 5000000 }, { id: 'b', source: 'intl', low: 0, mid: 250000, high: 1000000 }] } };
+    const p: Project = {
+      ...base,
+      pitch: {
+        ...base.pitch!,
+        feePct: 20,
+        revenue: [
+          { id: 'a', source: 'dom', low: 100000, mid: 1000000, high: 5000000 },
+          { id: 'b', source: 'intl', low: 0, mid: 250000, high: 1000000 },
+        ],
+      },
+    };
     const pr = projections(p);
-    expect(pr.mid.gross).toBe(1250000); expect(pr.mid.fees).toBe(250000); expect(pr.mid.net).toBe(1000000);
+    expect(pr.mid.gross).toBe(1250000);
+    expect(pr.mid.fees).toBe(250000);
+    expect(pr.mid.net).toBe(1000000);
     expect(pr.mid.investors + pr.mid.pool).toBeCloseTo(1000000, 2);
     expect(pr.high.multiple).toBeGreaterThan(pr.low.multiple);
     expect(adoptProjectionsAsScenarios(p).waterfall.scenarios).toEqual([80000, 1000000, 4800000]);
   });
   it('comp stats take medians and skip unknowns', () => {
-    const s = compStats([newComp({ budget: 1000000, worldwide: 3000000 }), newComp({ budget: null, worldwide: 14000000 }), newComp({ budget: 2000000, worldwide: 14000000 })]);
-    expect(s.n).toBe(3); expect(s.medianMultiple).toBe(5); expect(s.medianWorldwide).toBe(14000000); expect(s.medianBudget).toBe(1500000);
+    const s = compStats([
+      newComp({ budget: 1000000, worldwide: 3000000 }),
+      newComp({ budget: null, worldwide: 14000000 }),
+      newComp({ budget: 2000000, worldwide: 14000000 }),
+    ]);
+    expect(s.n).toBe(3);
+    expect(s.medianMultiple).toBe(5);
+    expect(s.medianWorldwide).toBe(14000000);
+    expect(s.medianBudget).toBe(1500000);
   });
 });
 
 describe('track: what column', () => {
   it('lists every item of the category on a scene, the tracked one first', () => {
     const b = sampleProject().board;
-    const s = { ...b.scenes[0], elements: { ...b.scenes[0].elements, Vehicles: ['PETE\'S SUV', 'Mara\'s green car', "pete's suv"] } };
-    expect(sceneItems(s, 'Vehicles', "MARA'S GREEN CAR")).toEqual(['Mara\'s green car', 'PETE\'S SUV']);
+    const s = {
+      ...b.scenes[0],
+      elements: { ...b.scenes[0].elements, Vehicles: ["PETE'S SUV", "Mara's green car", "pete's suv"] },
+    };
+    expect(sceneItems(s, 'Vehicles', "MARA'S GREEN CAR")).toEqual(["Mara's green car", "PETE'S SUV"]);
     const b2 = { ...b, scenes: [s, ...b.scenes.slice(1)] };
     const t = trackElement(b2, 'Vehicles', "mara's green car");
     expect(t[0].items[0].toLowerCase()).toBe("mara's green car");
@@ -1108,12 +1776,21 @@ describe('renameElement', () => {
   it('renames a tag everywhere and folds it into an existing item without duplicates', () => {
     const b = sampleProject().board;
     const [a, c] = b.scenes;
-    const b2 = { ...b, scenes: b.scenes.map(s => s.id === a.id ? { ...s, elements: { ...s.elements, Vehicles: ['Mara\'s little green car', 'PETE\'S SUV'] } } : s.id === c.id ? { ...s, elements: { ...s.elements, Vehicles: ['MARA\'S GREEN CAR', 'mara\'s little green car'] } } : s) };
-    const r = renameElement(b2, 'Vehicles', 'Mara\'s little green car', 'MARA\'S GREEN CAR');
+    const b2 = {
+      ...b,
+      scenes: b.scenes.map(s =>
+        s.id === a.id
+          ? { ...s, elements: { ...s.elements, Vehicles: ["Mara's little green car", "PETE'S SUV"] } }
+          : s.id === c.id
+            ? { ...s, elements: { ...s.elements, Vehicles: ["MARA'S GREEN CAR", "mara's little green car"] } }
+            : s,
+      ),
+    };
+    const r = renameElement(b2, 'Vehicles', "Mara's little green car", "MARA'S GREEN CAR");
     expect(r.scenes).toBe(2);
-    expect(r.board.scenes.find(s => s.id === a.id)!.elements.Vehicles).toEqual(['MARA\'S GREEN CAR', 'PETE\'S SUV']);
-    expect(r.board.scenes.find(s => s.id === c.id)!.elements.Vehicles).toEqual(['MARA\'S GREEN CAR']);
-    expect(itemsIn(r.board, 'Vehicles').map(x => x.item)).not.toContain('Mara\'s little green car');
+    expect(r.board.scenes.find(s => s.id === a.id)!.elements.Vehicles).toEqual(["MARA'S GREEN CAR", "PETE'S SUV"]);
+    expect(r.board.scenes.find(s => s.id === c.id)!.elements.Vehicles).toEqual(["MARA'S GREEN CAR"]);
+    expect(itemsIn(r.board, 'Vehicles').map(x => x.item)).not.toContain("Mara's little green car");
   });
 });
 
@@ -1121,7 +1798,9 @@ describe('crew bump', () => {
   it('raises crew wage lines by the percent, leaves cast and premiums alone, keeps the ladder', () => {
     const p = withDeal(sampleProject());
     const atl = (l: { accountId: string }) => /^1[123]\d\d$/.test(l.accountId);
-    const crew = p.lines.filter(l => isPayrollLine(l) && !isSagPerformerLine(l) && !PROFIT_SHARE_PRESET_MATCH(l) && !atl(l));
+    const crew = p.lines.filter(
+      l => isPayrollLine(l) && !isSagPerformerLine(l) && !PROFIT_SHARE_PRESET_MATCH(l) && !atl(l),
+    );
     const cast = p.lines.filter(isSagPerformerLine);
     const director = p.lines.filter(l => isPayrollLine(l) && atl(l));
     expect(crew.length).toBeGreaterThan(1);
@@ -1129,10 +1808,13 @@ describe('crew bump', () => {
     const by = new Map(e.lines.map(l => [l.id, l]));
     for (const l of crew) expect(by.get(l.id)!.rate).toBeCloseTo(l.rate * 1.1, 1);
     for (const l of cast) expect(by.get(l.id)!.rate).toBe(l.rate);
-    for (const l of director) expect(by.get(l.id)!.rate).toBe(l.rate);   // the director's fee is a deal, not a crew rate
-    const [a, b] = crew; expect(by.get(a.id)!.rate / by.get(b.id)!.rate).toBeCloseTo(a.rate / b.rate, 3);
+    for (const l of director) expect(by.get(l.id)!.rate).toBe(l.rate); // the director's fee is a deal, not a crew rate
+    const [a, b] = crew;
+    expect(by.get(a.id)!.rate / by.get(b.id)!.rate).toBeCloseTo(a.rate / b.rate, 3);
     expect(topSheet(e).cashBudget).toBeGreaterThan(topSheet(applyDeal(p)).cashBudget);
-    expect(topSheet(applyDeal({ ...p, deal: { ...p.deal!, pay: { ...p.deal!.pay, crewBumpPct: 0 } } })).cashBudget).toBe(topSheet(applyDeal(p)).cashBudget);
+    expect(
+      topSheet(applyDeal({ ...p, deal: { ...p.deal!, pay: { ...p.deal!.pay, crewBumpPct: 0 } } })).cashBudget,
+    ).toBe(topSheet(applyDeal(p)).cashBudget);
   });
 });
 
@@ -1144,8 +1826,8 @@ describe('fixed points', () => {
     const fixed = { ...first, fixedPoints: 500 };
     expect(participantPoints(fixed, p.tiers)).toBe(500);
     expect(participantPoints({ ...fixed, fixedPoints: undefined }, p.tiers)).toBe(before);
-    expect(participantPoints({ ...fixed, fixedPoints: 0 }, p.tiers)).toBe(before);   // 0 means "not fixed"
-    const q = { ...p, participants: p.participants.map(x => x.id === first.id ? fixed : x) };
+    expect(participantPoints({ ...fixed, fixedPoints: 0 }, p.tiers)).toBe(before); // 0 means "not fixed"
+    const q = { ...p, participants: p.participants.map(x => (x.id === first.id ? fixed : x)) };
     expect(totalPoints(q)).toBeCloseTo(totalPoints(p) - before + 500, 6);
   });
 });
@@ -1159,15 +1841,21 @@ describe('scenes off the first unit', () => {
     const b1 = setSceneUnit(b0, sc.id, 'vfx');
     expect(b1.scenes.find(s => s.id === sc.id)!.unit).toBe('vfx');
     expect(b1.strips[b1.strips.length - 1]).toMatchObject({ type: 'scene', sceneId: sc.id });
-    expect(shootDays(b1).length).toBe(days0);                                   // the tail is not a day
-    expect(shootDays(b1).flatMap(d => d.scenes).some(s => s.id === sc.id)).toBe(false);
+    expect(shootDays(b1).length).toBe(days0); // the tail is not a day
+    expect(
+      shootDays(b1)
+        .flatMap(d => d.scenes)
+        .some(s => s.id === sc.id),
+    ).toBe(false);
     expect(firstUnitEighths(b1)).toBe(totalEighths(b1) - sc.eighths);
     expect(parkedScenes(b1).map(s => s.id)).toEqual([sc.id]);
     expect(parkedStart(b1)).toBe(b1.strips.length - 1);
-    for (const c of sc.cast) if (c.id != null) {
-      const before = dood(b0).find(r => r.castId === c.id)!.total, after = dood(b1).find(r => r.castId === c.id)!.total;
-      expect(after).toBeLessThanOrEqual(before);
-    }
+    for (const c of sc.cast)
+      if (c.id != null) {
+        const before = dood(b0).find(r => r.castId === c.id)!.total,
+          after = dood(b1).find(r => r.castId === c.id)!.total;
+        expect(after).toBeLessThanOrEqual(before);
+      }
     // day-break passes leave the tail where it is
     const fit = fitDayBreaks(b1, 10);
     expect(fit.strips[fit.strips.length - 1]).toMatchObject({ type: 'scene', sceneId: sc.id });
@@ -1176,7 +1864,8 @@ describe('scenes off the first unit', () => {
     const b2 = setSceneUnit(b1, sc.id, undefined);
     expect(b2.scenes.find(s => s.id === sc.id)!.unit).toBeUndefined();
     expect(parkedStart(b2)).toBe(b2.strips.length);
-    const ds = shootDays(b2); const lastDay = ds[ds.length - 1];
+    const ds = shootDays(b2);
+    const lastDay = ds[ds.length - 1];
     expect(lastDay.scenes[lastDay.scenes.length - 1].id).toBe(sc.id);
   });
 });

@@ -6,7 +6,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { build } from 'esbuild';   // a devDependency of its own (the same version Vite uses)
+import { build } from 'esbuild'; // a devDependency of its own (the same version Vite uses)
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const RUNTIME_DIR = resolve(root, 'src/deck-runtime');
@@ -26,21 +26,31 @@ export async function bundleDeckRuntime({ quiet = false } = {}) {
     target: 'es2020',
     platform: 'browser',
     legalComments: 'none',
-    charset: 'ascii',      // nothing outside ASCII in the script, so it reads the same whatever the page's encoding
+    charset: 'ascii', // nothing outside ASCII in the script, so it reads the same whatever the page's encoding
     write: false,
     metafile: true,
-    absWorkingDir: root,    // the paths in the metafile are relative to this, wherever the tool was started from
+    absWorkingDir: root, // the paths in the metafile are relative to this, wherever the tool was started from
     logLevel: quiet ? 'silent' : 'warning',
   });
   const cssPath = resolve(RUNTIME_DIR, 'deck.css');
   // the entry above is text, not a file: esbuild lists it under the name it was given, and a watcher handed a path that
   // is not on disk fails. Only real files are named.
-  const inputs = [...new Set([...Object.keys(out.metafile.inputs).map(f => resolve(root, f)), cssPath])].filter(f => existsSync(f));
+  const inputs = [...new Set([...Object.keys(out.metafile.inputs).map(f => resolve(root, f)), cssPath])].filter(f =>
+    existsSync(f),
+  );
   return { js: out.outputFiles[0].text, css: readFileSync(cssPath, 'utf8'), inputs };
 }
 
 /** The page assembler (`src/deck-runtime/exportHtml.ts`) as a module a Node tool can call. */
 export async function loadDeckExport() {
-  const out = await build({ entryPoints: [resolve(RUNTIME_DIR, 'exportHtml.ts')], bundle: true, format: 'esm', platform: 'neutral', target: 'es2020', write: false, logLevel: 'silent' });
+  const out = await build({
+    entryPoints: [resolve(RUNTIME_DIR, 'exportHtml.ts')],
+    bundle: true,
+    format: 'esm',
+    platform: 'neutral',
+    target: 'es2020',
+    write: false,
+    logLevel: 'silent',
+  });
   return import(`data:text/javascript;base64,${Buffer.from(out.outputFiles[0].text).toString('base64')}`);
 }

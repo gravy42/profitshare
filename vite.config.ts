@@ -10,10 +10,13 @@ import { pdfjsDecodersPlugin } from './tools/pdfjs-decoders.mjs';
 // module is asked for (dev, build, build:single and vitest all come through here), so there is no generated file
 // to go stale: the script that ships is always made from the sources the preview runs.
 export function deckRuntime(): Plugin {
-  const ID = 'virtual:deck-runtime', RESOLVED = '\0' + ID;
+  const ID = 'virtual:deck-runtime',
+    RESOLVED = '\0' + ID;
   return {
     name: 'profitshare-deck-runtime',
-    resolveId(id) { return id === ID ? RESOLVED : undefined; },
+    resolveId(id) {
+      return id === ID ? RESOLVED : undefined;
+    },
     async load(id) {
       if (id !== RESOLVED) return undefined;
       const { js, css, inputs } = await bundleDeckRuntime({ quiet: true });
@@ -39,6 +42,8 @@ export default defineConfig({
   base: './',
   // pdfjsDecodersPlugin: pdf.js's picture decoders, put beside the app as dist/pdfjs/ (tools/pdfjs-decoders.mjs)
   // cspPlugin: the built page's Content-Security-Policy (tools/csp.mjs); last, so it sees the page as it will be served
-  plugins: process.env.SINGLEFILE ? [react(), deckRuntime(), pdfjsDecodersPlugin({ oneFile: true }), viteSingleFile(), cspPlugin({ oneFile: true })] : [react(), deckRuntime(), pdfjsDecodersPlugin(), cspPlugin()],
+  plugins: process.env.SINGLEFILE
+    ? [react(), deckRuntime(), pdfjsDecodersPlugin({ oneFile: true }), viteSingleFile(), cspPlugin({ oneFile: true })]
+    : [react(), deckRuntime(), pdfjsDecodersPlugin(), cspPlugin()],
   test: { environment: 'jsdom', exclude: ['node_modules/**', 'scratch/**'] },
 } as any);

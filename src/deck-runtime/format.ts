@@ -1,21 +1,29 @@
 // Number formatting for the deck. Intl only; no engine imports. The locale is fixed so that a deck reads the
 // same on every reader's machine (the figures are part of the document, not of the reader's settings).
 const LOCALE = 'en-US';
-const NONE = '—';   // what a number that is not a number prints as
+const NONE = '—'; // what a number that is not a number prints as
 
 /** Whole units; anything under half a unit either way is nothing, so "-$0" can never print. */
 const whole = (n: number) => Math.round(Math.abs(n) < 0.5 ? 0 : n) || 0;
 
 function moneyFormat(currency: string): Intl.NumberFormat | null {
   try {
-    return new Intl.NumberFormat(LOCALE, { style: 'currency', currency: currency || 'USD', maximumFractionDigits: 0, minimumFractionDigits: 0 });
+    return new Intl.NumberFormat(LOCALE, {
+      style: 'currency',
+      currency: currency || 'USD',
+      maximumFractionDigits: 0,
+      minimumFractionDigits: 0,
+    });
   } catch {
     return null;
   }
 }
 const plain = (v: number) => new Intl.NumberFormat(LOCALE, { maximumFractionDigits: 0, useGrouping: true }).format(v);
 
-interface MoneyPart { text: string; symbol?: boolean }
+interface MoneyPart {
+  text: string;
+  symbol?: boolean;
+}
 
 /** A money amount in pieces, the currency symbol marked, so the deck can set the symbol in another typeface. */
 export function moneyParts(n: number, currency: string): MoneyPart[] {
@@ -36,13 +44,15 @@ export function moneyParts(n: number, currency: string): MoneyPart[] {
 
 /** "$627,758": whole units of the deck's currency. A code Intl does not know falls back to "XYZ 627,758". */
 export function money(n: number, currency: string): string {
-  return moneyParts(n, currency).map(p => p.text).join('');
+  return moneyParts(n, currency)
+    .map(p => p.text)
+    .join('');
 }
 
 /** "8.0x": a multiple, one decimal. Never "-0.0x", never exponent notation: past 999 it reads "999x+". */
 export function multiple(n: number): string {
   if (typeof n !== 'number' || !Number.isFinite(n)) return NONE;
-  const r = Math.round(n * 10) / 10 || 0;   // "|| 0" turns -0 into 0
+  const r = Math.round(n * 10) / 10 || 0; // "|| 0" turns -0 into 0
   if (Math.abs(r) >= 1000) return `${r < 0 ? '-' : ''}999x+`;
   return `${r.toFixed(1)}x`;
 }

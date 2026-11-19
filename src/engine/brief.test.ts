@@ -12,7 +12,7 @@ describe('the AI brief', () => {
     expect(brief).toMatch(/26 scenes/);
     expect(brief).toMatch(/12 shoot days/);
     expect(brief).toMatch(/SAG tier target/);
-    expect(brief).not.toMatch(/LOGLINE/);                             // nothing written yet, nothing claimed
+    expect(brief).not.toMatch(/LOGLINE/); // nothing written yet, nothing claimed
     const pr = draftPrompt('section', brief, 'Why women will show up');
     expect(pr).toMatch(/HEADING: Why women will show up/);
     expect(pr).toContain(brief);

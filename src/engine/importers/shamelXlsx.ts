@@ -7,8 +7,13 @@ import { CA_FRINGES_2026 } from '../caFringes';
  *  California 2026 set fitted to Shamel's own math and add unknown names at 0 % for you to fill in. */
 
 interface ShamelImport {
-  name: string; version: string; shootDays: number;
-  categories: Category[]; accounts: Account[]; fringes: FringeDef[]; lines: LineItem[];
+  name: string;
+  version: string;
+  shootDays: number;
+  categories: Category[];
+  accounts: Account[];
+  fringes: FringeDef[];
+  lines: LineItem[];
   reported: { grandTotal?: number; contingency?: number };
 }
 
@@ -20,7 +25,9 @@ const sectionOf = (num: string): Section => {
 export function parseShamelXlsx(src: ArrayBuffer | Workbook): ShamelImport {
   const wb = isWorkbook(src) ? src : readSpreadsheet(src, 'budget.xlsx');
   const need = ['TopSheet', 'Accounts', 'Details'];
-  for (const n of need) if (!sheetNamed(wb, n)) throw new Error(`This workbook has no sheet named "${n}". Is it a Shamel Studio budget export?`);
+  for (const n of need)
+    if (!sheetNamed(wb, n))
+      throw new Error(`This workbook has no sheet named "${n}". Is it a Shamel Studio budget export?`);
   const rows = (name: string): any[][] => sheetNamed(wb, name) ?? [];
 
   // a Map, not an object: the keys are text from the file
@@ -35,28 +42,57 @@ export function parseShamelXlsx(src: ArrayBuffer | Workbook): ShamelImport {
     else if (/contingency/i.test(String(r[1]))) reportedCont = Number(r[4]) || Number(r[2]);
     else if (/grand total/i.test(String(r[1]))) reportedGrand = Number(r[4]);
   }
-  const accounts: Account[] = rows('Accounts').slice(1)
+  const accounts: Account[] = rows('Accounts')
+    .slice(1)
     .filter(r => String(r[0]).trim())
-    .map(r => ({ number: String(r[0]).trim(), name: String(r[1]), categoryNumber: String(r[0]).trim().slice(0, 2) + '00' }));
+    .map(r => ({
+      number: String(r[0]).trim(),
+      name: String(r[1]),
+      categoryNumber: String(r[0]).trim().slice(0, 2) + '00',
+    }));
 
   const fringes = CA_FRINGES_2026.map(f => ({ ...f }));
   const known = new Set(fringes.map(f => f.id));
   const lines: LineItem[] = [];
-  rows('Details').slice(1).forEach((r, i) => {
-    const acct = String(r[0] ?? '').trim();
-    if (!acct) return;
-    const fr = String(r[3] ?? '').split(',').map(s => s.trim()).filter(Boolean);
-    for (const f of fr) if (!known.has(f)) { known.add(f); fringes.push({ id: f, name: f, rate: 0, cap: null }); }
-    lines.push({
-      id: `L${i + 1}`, accountId: acct, description: String(r[1] ?? ''),
-      amount: Number(r[5]) || 0, unit: String(r[6] || '-'), rate: Number(r[7]) || 0, multiplier: Number(r[9]) || 1,
-      fringes: fr, tags: String(r[4] ?? '').split(',').map(s => s.trim()).filter(Boolean),
-      payType: 'cash', notes: String(r[15] ?? ''),
+  rows('Details')
+    .slice(1)
+    .forEach((r, i) => {
+      const acct = String(r[0] ?? '').trim();
+      if (!acct) return;
+      const fr = String(r[3] ?? '')
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
+      for (const f of fr)
+        if (!known.has(f)) {
+          known.add(f);
+          fringes.push({ id: f, name: f, rate: 0, cap: null });
+        }
+      lines.push({
+        id: `L${i + 1}`,
+        accountId: acct,
+        description: String(r[1] ?? ''),
+        amount: Number(r[5]) || 0,
+        unit: String(r[6] || '-'),
+        rate: Number(r[7]) || 0,
+        multiplier: Number(r[9]) || 1,
+        fringes: fr,
+        tags: String(r[4] ?? '')
+          .split(',')
+          .map(s => s.trim())
+          .filter(Boolean),
+        payType: 'cash',
+        notes: String(r[15] ?? ''),
+      });
     });
-  });
   return {
-    name: String(meta.get('Project Name') ?? 'Untitled'), version: String(meta.get('Budget Name') ?? ''),
+    name: String(meta.get('Project Name') ?? 'Untitled'),
+    version: String(meta.get('Budget Name') ?? ''),
     shootDays: Number(meta.get('Location Shoot Days')) || 0,
-    categories, accounts, fringes, lines, reported: { grandTotal: reportedGrand, contingency: reportedCont },
+    categories,
+    accounts,
+    fringes,
+    lines,
+    reported: { grandTotal: reportedGrand, contingency: reportedCont },
   };
 }

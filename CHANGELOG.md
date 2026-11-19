@@ -38,6 +38,7 @@ Two independent reviews of the night's work found these, fixed the same morning:
 - **Smaller first load.** The file readers load when you bring a file in.
 - **Tidying.** Report deck leftovers, the old smoke scripts and unused code are gone; the compiler now refuses unused locals and parameters; the browser walk covers every way in from the start screen (63 steps).
 - **README caught up.** It now describes the tour and glossary, export, the save reminder and *Download all my projects*, and the start screen and top sheet screenshots were retaken.
+- **One code style.** Prettier now formats the TypeScript and the tools at 120 columns (`npm run format`). No behaviour changes; stylesheets are left as they were because tests read them.
 
 ## 2026-11-18
 

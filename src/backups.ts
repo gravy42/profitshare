@@ -4,7 +4,10 @@
 import { strFromU8, strToU8, unzipSync, zipSync, type Zippable } from 'fflate';
 import { downloadText, noteDownloaded, savedProjectList, savedProjectText, type KV } from './store';
 
-interface ProjectFile { name: string; text: string }
+interface ProjectFile {
+  name: string;
+  text: string;
+}
 
 /** "ProfitShare-projects-2026-11-18.zip": the day it was made, as the person's own clock has it. */
 export function allProjectsZipName(now: Date): string {
@@ -15,8 +18,9 @@ export function allProjectsZipName(now: Date): string {
 /** A .zip of the project files. Names come in already safe and unique (savedProjectList); one that is not is made so
  *  here all the same, since a name with a folder in it would be written as a folder. */
 export function projectsZip(files: ProjectFile[], now: Date = new Date()): Uint8Array {
-  const taken = new Set<string>(), tree: Zippable = {};
-  const mtime = now.getFullYear() >= 1980 && now.getFullYear() <= 2099 ? now : new Date(2000, 0, 1);   // all the format can hold
+  const taken = new Set<string>(),
+    tree: Zippable = {};
+  const mtime = now.getFullYear() >= 1980 && now.getFullYear() <= 2099 ? now : new Date(2000, 0, 1); // all the format can hold
   for (const f of files) {
     const clean = f.name.replace(/[\\/:*?"<>|\u0000-\u001f]+/g, '_').replace(/^\.+/, '') || 'project.profitshare.json';
     const dot = /\.profitshare\.json$/i.test(clean) ? clean.length - '.profitshare.json'.length : clean.length;
@@ -35,14 +39,18 @@ const isProjectName = (path: string) => /\.json$/i.test(path) && !/(^|\/)(__MACO
 /** The project files inside a .zip, as text, in the order they are in it. Folders are looked into; anything that is
  *  not a .json is passed over. Throws, in plain words, when it is not a .zip or holds more than the limits. */
 export function readProjectsZip(bytes: Uint8Array, limits = ZIP_LIMITS): ProjectFile[] {
-  let count = 0, total = 0;
+  let count = 0,
+    total = 0;
   let files: Record<string, Uint8Array>;
-  const tooBig = new Error('This .zip holds more than ProfitShare will unpack at once. Unzip it on your computer and open the project files from the folder.');
+  const tooBig = new Error(
+    'This .zip holds more than ProfitShare will unpack at once. Unzip it on your computer and open the project files from the folder.',
+  );
   try {
     files = unzipSync(bytes, {
       filter: f => {
         if (!isProjectName(f.name)) return false;
-        count++; total += f.originalSize;
+        count++;
+        total += f.originalSize;
         if (count > limits.files || f.originalSize > limits.fileBytes || total > limits.totalBytes) throw tooBig;
         return true;
       },
@@ -56,7 +64,10 @@ export function readProjectsZip(bytes: Uint8Array, limits = ZIP_LIMITS): Project
 
 /** Every saved project, downloaded: one .zip, or with a single project just its file. Each one that went in is noted
  *  as saved to a file. Says what happened in a sentence. */
-export async function downloadAllProjects(kv?: KV | null, now: Date = new Date()): Promise<{ count: number; fileName: string; said: string }> {
+export async function downloadAllProjects(
+  kv?: KV | null,
+  now: Date = new Date(),
+): Promise<{ count: number; fileName: string; said: string }> {
   const files: (ProjectFile & { id: string })[] = [];
   for (const p of kv === undefined ? savedProjectList() : savedProjectList(kv)) {
     const text = kv === undefined ? await savedProjectText(p.id) : await savedProjectText(p.id, kv);
@@ -66,8 +77,16 @@ export async function downloadAllProjects(kv?: KV | null, now: Date = new Date()
   const fileName = files.length === 1 ? files[0].name : allProjectsZipName(now);
   if (files.length === 1) downloadText(files[0].text, fileName);
   else downloadText(projectsZip(files, now), fileName, 'application/zip');
-  for (const f of files) { if (kv === undefined) noteDownloaded(f.id); else noteDownloaded(f.id, kv, now.getTime()); }
-  return { count: files.length, fileName, said: files.length === 1
-    ? `1 project downloaded as ${fileName}. Keep it somewhere safe.`
-    : `${files.length} projects downloaded in ${fileName}. Keep it somewhere safe.` };
+  for (const f of files) {
+    if (kv === undefined) noteDownloaded(f.id);
+    else noteDownloaded(f.id, kv, now.getTime());
+  }
+  return {
+    count: files.length,
+    fileName,
+    said:
+      files.length === 1
+        ? `1 project downloaded as ${fileName}. Keep it somewhere safe.`
+        : `${files.length} projects downloaded in ${fileName}. Keep it somewhere safe.`,
+  };
 }

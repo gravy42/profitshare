@@ -1,8 +1,16 @@
 // Getting around the Pitch tab: the panels have ids, and a link anywhere on the tab can scroll to one and put the
 // keyboard there.
 export const PANEL = {
-  write: 'pitch-write', comps: 'pitch-comps', revenue: 'pitch-revenue', lookbook: 'pitch-lookbook', design: 'pitch-design', team: 'pitch-team',
-  deck: 'pitch-deck', people: 'pitch-people', send: 'pitch-send', ai: 'pitch-ai',
+  write: 'pitch-write',
+  comps: 'pitch-comps',
+  revenue: 'pitch-revenue',
+  lookbook: 'pitch-lookbook',
+  design: 'pitch-design',
+  team: 'pitch-team',
+  deck: 'pitch-deck',
+  people: 'pitch-people',
+  send: 'pitch-send',
+  ai: 'pitch-ai',
 } as const;
 export type PanelKey = keyof typeof PANEL;
 
@@ -30,4 +38,7 @@ export function focusSoon(selector: string, scroll = true): void {
 }
 
 /** The Undo shortcut as this machine's keyboard has it. */
-export const UNDO_KEY: string = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/i.test(navigator.platform || navigator.userAgent || '') ? '⌘Z' : 'Ctrl+Z';
+export const UNDO_KEY: string =
+  typeof navigator !== 'undefined' && /Mac|iPhone|iPad/i.test(navigator.platform || navigator.userAgent || '')
+    ? '⌘Z'
+    : 'Ctrl+Z';

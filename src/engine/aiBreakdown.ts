@@ -89,10 +89,15 @@ export const BREAKDOWN_TOOL = {
 export function labelsInUse(done: AiSceneTags[], cap = 400): Record<string, string[]> {
   const out: Record<string, string[]> = {};
   let n = 0;
-  for (const t of done) for (const [cat, items] of Object.entries(t.elements)) for (const it of items) {
-    const list = (out[cat] ??= []);
-    if (n < cap && !list.some(x => same(x, it))) { list.push(it); n++; }
-  }
+  for (const t of done)
+    for (const [cat, items] of Object.entries(t.elements))
+      for (const it of items) {
+        const list = (out[cat] ??= []);
+        if (n < cap && !list.some(x => same(x, it))) {
+          list.push(it);
+          n++;
+        }
+      }
   return out;
 }
 
@@ -106,7 +111,9 @@ export function breakdownPrompt(board: Board, batch: Scene[], done: AiSceneTags[
     `CAST LIST: ${board.castList.map(c => c.name).join(', ') || '(none yet)'}`,
     `CATEGORIES: ${AI_CATEGORIES.join(', ')}`,
     Object.keys(labels).length
-      ? `LABELS ALREADY IN USE (reuse word for word when it is the same thing):\n${Object.entries(labels).map(([k, v]) => `${k}: ${v.join(' | ')}`).join('\n')}`
+      ? `LABELS ALREADY IN USE (reuse word for word when it is the same thing):\n${Object.entries(labels)
+          .map(([k, v]) => `${k}: ${v.join(' | ')}`)
+          .join('\n')}`
       : 'LABELS ALREADY IN USE: none yet, this is the start of the script.',
     recent.length
       ? `STORY SO FAR (the scenes just before these; the last one is on script day ${lastDay}):\n${recent.map(t => `Scene ${sceneOf.get(t.sceneId)?.number ?? '?'} (day ${t.scriptDay}): ${t.synopsis}`).join('\n')}`
@@ -128,12 +135,16 @@ export function parseBreakdownReply(input: unknown, batch: Scene[], board: Board
     const scene = wanted.get(str(r?.id));
     if (!scene || out.has(scene.id)) continue;
     const speaking = new Set(scene.cast.map(c => c.name.toUpperCase()));
-    const named: string[] = (Array.isArray(r.silent_cast) ? r.silent_cast : []).map((x: unknown) => str(x).toUpperCase());
+    const named: string[] = (Array.isArray(r.silent_cast) ? r.silent_cast : []).map((x: unknown) =>
+      str(x).toUpperCase(),
+    );
     const cast = [...new Set(named)].filter(n => castNames.has(n) && !speaking.has(n));
     const elements: Record<string, string[]> = {};
     for (const t of Array.isArray(r.tags) ? r.tags : []) {
-      const cat = str(t?.category), label = str(t?.label).replace(/[.;,]+$/, '');
-      if (!AI_CATEGORIES.includes(cat) || label.length < 2 || label.length > 90 || castNames.has(label.toUpperCase())) continue;
+      const cat = str(t?.category),
+        label = str(t?.label).replace(/[.;,]+$/, '');
+      if (!AI_CATEGORIES.includes(cat) || label.length < 2 || label.length > 90 || castNames.has(label.toUpperCase()))
+        continue;
       const list = (elements[cat] ??= []);
       if (!list.some(x => same(x, label))) list.push(label);
     }
@@ -147,7 +158,10 @@ export function parseBreakdownReply(input: unknown, batch: Scene[], board: Board
     });
   }
   const missing = batch.filter(s => !out.has(s.id));
-  if (missing.length) throw new Error(`the reply left out scene${missing.length > 1 ? 's' : ''} ${missing.map(s => s.number).join(', ')}`);
+  if (missing.length)
+    throw new Error(
+      `the reply left out scene${missing.length > 1 ? 's' : ''} ${missing.map(s => s.number).join(', ')}`,
+    );
   return batch.map(s => out.get(s.id)!);
 }
 
@@ -173,24 +187,33 @@ export const pickKey = {
 /** Fold the accepted parts of a proposal into the board. Adds by default: nothing the scene has is taken away.
  *  `replace` swaps the covered scenes' tags for the accepted ones (cast is never removed). A VFX-only pick parks the
  *  scene off the first unit the way the strip's unit button does. Unticked keys in `rejected` are left out. */
-export function applyAiBreakdown(board: Board, proposals: AiSceneTags[], rejected: Set<string> = new Set(), opts: { replace?: boolean } = {}): Board {
+export function applyAiBreakdown(
+  board: Board,
+  proposals: AiSceneTags[],
+  rejected: Set<string> = new Set(),
+  opts: { replace?: boolean } = {},
+): Board {
   let b = board;
   for (const t of proposals) {
     const scene = b.scenes.find(s => s.id === t.sceneId);
     if (!scene) continue;
-    const elements: Record<string, string[]> = opts.replace ? {} : Object.fromEntries(Object.entries(scene.elements).map(([k, v]) => [k, [...v]]));
-    for (const [cat, items] of Object.entries(t.elements)) for (const it of items) {
-      if (rejected.has(pickKey.tag(t.sceneId, cat, it))) continue;
-      const list = (elements[cat] ??= []);
-      if (!list.some(x => same(x, it))) list.push(it);
-    }
+    const elements: Record<string, string[]> = opts.replace
+      ? {}
+      : Object.fromEntries(Object.entries(scene.elements).map(([k, v]) => [k, [...v]]));
+    for (const [cat, items] of Object.entries(t.elements))
+      for (const it of items) {
+        if (rejected.has(pickKey.tag(t.sceneId, cat, it))) continue;
+        const list = (elements[cat] ??= []);
+        if (!list.some(x => same(x, it))) list.push(it);
+      }
     for (const k of Object.keys(elements)) if (!elements[k].length) delete elements[k];
     const next: Scene = {
-      ...scene, elements,
+      ...scene,
+      elements,
       scriptDay: t.scriptDay && !rejected.has(pickKey.day(t.sceneId)) ? t.scriptDay : scene.scriptDay,
       synopsis: t.synopsis && !rejected.has(pickKey.synopsis(t.sceneId)) ? t.synopsis : scene.synopsis,
     };
-    b = { ...b, scenes: b.scenes.map(s => s.id === scene.id ? next : s) };
+    b = { ...b, scenes: b.scenes.map(s => (s.id === scene.id ? next : s)) };
     for (const name of t.cast) if (!rejected.has(pickKey.cast(t.sceneId, name))) b = addCast(b, t.sceneId, name);
     if (t.vfxOnly && !scene.unit && !rejected.has(pickKey.vfx(t.sceneId))) b = setSceneUnit(b, t.sceneId, 'vfx');
   }

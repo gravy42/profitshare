@@ -1,0 +1,12 @@
+dist
+dist-single
+dist-deck
+node_modules
+package-lock.json
+public
+tools/fixtures
+src/data/sample-project.json
+src/data/*.json
+*.md
+*.html
+.github

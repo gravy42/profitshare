@@ -4,7 +4,14 @@ import { topSheet, PAID_HOURS } from '../engine/budget';
 import { applyDeal, crewDayRateOf, withDeal } from '../engine/deal';
 import { useMemo } from 'react';
 import { recoupableBudget, sponsorFee, sponsorNet } from '../engine/waterfall';
-import { MIN_WAGE_PRESETS, highestMinWage, locationDays, locationsOf, newLocation, outOfZonePctFromLocations } from '../engine/locations';
+import {
+  MIN_WAGE_PRESETS,
+  highestMinWage,
+  locationDays,
+  locationsOf,
+  newLocation,
+  outOfZonePctFromLocations,
+} from '../engine/locations';
 import type { ShootLocation } from '../engine/types';
 import { incentiveProceeds } from '../engine/incentives';
 import { PRESET_GROUPS } from '../engine/deal';
@@ -13,45 +20,161 @@ import { SagRatesNotice } from './RatesNotice';
 
 type Set = (f: (p: Project) => Project) => void;
 
-const PREMIUM_LABEL: Record<PremiumChoice, string> = { cash: 'up front, as budgeted', points: 'points (contingent)', deferred: 'deferred (fixed IOU, counts for SAG)', delete: 'gone: delete the lines' };
+const PREMIUM_LABEL: Record<PremiumChoice, string> = {
+  cash: 'up front, as budgeted',
+  points: 'points (contingent)',
+  deferred: 'deferred (fixed IOU, counts for SAG)',
+  delete: 'gone: delete the lines',
+};
 
 /** Every tier under both pay models, side by side, from the same raw budget. Clicking a cell applies that combination. */
 function TierMatrix({ raw, setProject, today }: { raw: Project; setProject: Set; today?: Date }) {
   const d = withDeal(raw).deal!;
   // the two bump columns: the budget's own rates plus a percent, so a hybrid (better than usual pay, plus the back end) sits beside the pure models
   const BUMPS = [10, 15];
-  const rows = useMemo(() => SAG_TIERS.map(t => {
-    const at = (model: Deal['pay']['model'], bump = 0) => {
-      const p: Project = { ...raw, sag: { ...raw.sag, targetTier: t.id }, deal: { ...d, pay: { ...d.pay, model, rerateCast: true, crewBasis: t.id, crewBumpPct: bump } } };
-      const e = applyDeal(p); const ts = topSheet(e); const r = sagReport(e);
-      return { cash: ts.cashBudget, points: ts.pointsValue, fits: r.fits, headroom: r.headroom, cap: r.targetCap };
-    };
-    return { t, budgeted: at('as-budgeted'), bumps: BUMPS.map(b => at('as-budgeted', b)), scale: at('everyone-at-scale') };
-  }), [raw]);
-  const pick = (tier: SagTierId, model: Deal['pay']['model'], bump = 0) => setProject(p => { const q = withDeal(p); return { ...q, sag: { ...q.sag, targetTier: tier }, deal: { ...q.deal!, pay: { ...q.deal!.pay, model, rerateCast: true, crewBasis: tier, crewBumpPct: bump } } }; });
-  const cur = (tier: SagTierId, model: Deal['pay']['model'], bump = 0) => raw.sag.targetTier === tier && d.pay.model === model && (model === 'as-budgeted' ? (d.pay.crewBumpPct ?? 0) === bump : d.pay.crewBasis === tier);
-  const cell = (tier: SagTierId, model: Deal['pay']['model'], x: { cash: number; points: number; fits: boolean; headroom: number; cap: number | null }, bump = 0) => (
-    <td key={`${model}-${bump}`} className={`cell ${cur(tier, model, bump) ? 'cur' : ''} ${x.fits ? 'ok' : 'over'}`} role="button" tabIndex={0} aria-pressed={cur(tier, model, bump)} aria-label={`${sagTier(tier).name}, ${model === 'as-budgeted' ? (bump ? `budget plus ${bump} percent` : 'as budgeted') : 'everyone at scale'}: ${money(x.cash)}, ${x.cap === null ? 'no cap' : x.fits ? 'fits' : 'over the cap'}`} onClick={() => pick(tier, model, bump)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(tier, model, bump); } }} title="Apply this tier and pay model (Enter or Space from the keyboard)">
-      <div className="big">{money(x.cash)}{cur(tier, model, bump) && <span className="you" title="The cell your terms match. Every cell here re-rates the cast at its tier, so this figure can differ from the sentence above when Re-rate cast lines is off.">your film</span>}</div>
-      <div className="sub">{x.cap === null ? 'no cap' : x.fits ? `fits · ${money(x.headroom)} under` : `over by ${money(-x.headroom)}`} · back end {money(x.points)}</div>
-    </td>);
+  const rows = useMemo(
+    () =>
+      SAG_TIERS.map(t => {
+        const at = (model: Deal['pay']['model'], bump = 0) => {
+          const p: Project = {
+            ...raw,
+            sag: { ...raw.sag, targetTier: t.id },
+            deal: { ...d, pay: { ...d.pay, model, rerateCast: true, crewBasis: t.id, crewBumpPct: bump } },
+          };
+          const e = applyDeal(p);
+          const ts = topSheet(e);
+          const r = sagReport(e);
+          return { cash: ts.cashBudget, points: ts.pointsValue, fits: r.fits, headroom: r.headroom, cap: r.targetCap };
+        };
+        return {
+          t,
+          budgeted: at('as-budgeted'),
+          bumps: BUMPS.map(b => at('as-budgeted', b)),
+          scale: at('everyone-at-scale'),
+        };
+      }),
+    [raw],
+  );
+  const pick = (tier: SagTierId, model: Deal['pay']['model'], bump = 0) =>
+    setProject(p => {
+      const q = withDeal(p);
+      return {
+        ...q,
+        sag: { ...q.sag, targetTier: tier },
+        deal: { ...q.deal!, pay: { ...q.deal!.pay, model, rerateCast: true, crewBasis: tier, crewBumpPct: bump } },
+      };
+    });
+  const cur = (tier: SagTierId, model: Deal['pay']['model'], bump = 0) =>
+    raw.sag.targetTier === tier &&
+    d.pay.model === model &&
+    (model === 'as-budgeted' ? (d.pay.crewBumpPct ?? 0) === bump : d.pay.crewBasis === tier);
+  const cell = (
+    tier: SagTierId,
+    model: Deal['pay']['model'],
+    x: { cash: number; points: number; fits: boolean; headroom: number; cap: number | null },
+    bump = 0,
+  ) => (
+    <td
+      key={`${model}-${bump}`}
+      className={`cell ${cur(tier, model, bump) ? 'cur' : ''} ${x.fits ? 'ok' : 'over'}`}
+      role="button"
+      tabIndex={0}
+      aria-pressed={cur(tier, model, bump)}
+      aria-label={`${sagTier(tier).name}, ${model === 'as-budgeted' ? (bump ? `budget plus ${bump} percent` : 'as budgeted') : 'everyone at scale'}: ${money(x.cash)}, ${x.cap === null ? 'no cap' : x.fits ? 'fits' : 'over the cap'}`}
+      onClick={() => pick(tier, model, bump)}
+      onKeyDown={e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          pick(tier, model, bump);
+        }
+      }}
+      title="Apply this tier and pay model (Enter or Space from the keyboard)"
+    >
+      <div className="big">
+        {money(x.cash)}
+        {cur(tier, model, bump) && (
+          <span
+            className="you"
+            title="The cell your terms match. Every cell here re-rates the cast at its tier, so this figure can differ from the sentence above when Re-rate cast lines is off."
+          >
+            your film
+          </span>
+        )}
+      </div>
+      <div className="sub">
+        {x.cap === null ? 'no cap' : x.fits ? `fits · ${money(x.headroom)} under` : `over by ${money(-x.headroom)}`} ·
+        back end {money(x.points)}
+      </div>
+    </td>
+  );
   return (
     <div className="panel">
       <h2>Where the film could sit</h2>
-      <div className="scrollx"><table className="matrix" style={{ maxWidth: 1100 }}>
-        <thead><tr><th className="l">SAG tier</th><th className="l">As budgeted<span className="hint">crew at the rates on the lines, cast re-rated at the tier</span></th>{BUMPS.map(b => <th key={b} className="l">Budget +{b}%<span className="hint">every crew wage line {b}% over its budgeted rate, cast at the tier</span></th>)}<th className="l">Everyone at scale<span className="hint">crew and cast both at the tier's rate ÷ 8</span></th></tr></thead>
-        <tbody>{rows.map(({ t, budgeted, bumps, scale }) => (
-          <tr key={t.id}><td className="l"><b>{t.name}</b><div className="sub">${t.dayRate}/day · cap {t.cap ? money(raw.sag.dic && t.dicCap ? t.dicCap : t.cap) : 'none'}{raw.sag.dic && t.dicCap && t.cap !== t.dicCap ? ' with DIC' : ''}</div></td>{cell(t.id, 'as-budgeted', budgeted)}{bumps.map((x, i) => cell(t.id, 'as-budgeted', x, BUMPS[i]))}{cell(t.id, 'everyone-at-scale', scale)}</tr>
-        ))}</tbody>
-      </table></div>
+      <div className="scrollx">
+        <table className="matrix" style={{ maxWidth: 1100 }}>
+          <thead>
+            <tr>
+              <th className="l">SAG tier</th>
+              <th className="l">
+                As budgeted<span className="hint">crew at the rates on the lines, cast re-rated at the tier</span>
+              </th>
+              {BUMPS.map(b => (
+                <th key={b} className="l">
+                  Budget +{b}%
+                  <span className="hint">every crew wage line {b}% over its budgeted rate, cast at the tier</span>
+                </th>
+              ))}
+              <th className="l">
+                Everyone at scale<span className="hint">crew and cast both at the tier's rate ÷ 8</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(({ t, budgeted, bumps, scale }) => (
+              <tr key={t.id}>
+                <td className="l">
+                  <b>{t.name}</b>
+                  <div className="sub">
+                    ${t.dayRate}/day · cap {t.cap ? money(raw.sag.dic && t.dicCap ? t.dicCap : t.cap) : 'none'}
+                    {raw.sag.dic && t.dicCap && t.cap !== t.dicCap ? ' with DIC' : ''}
+                  </div>
+                </td>
+                {cell(t.id, 'as-budgeted', budgeted)}
+                {bumps.map((x, i) => cell(t.id, 'as-budgeted', x, BUMPS[i]))}
+                {cell(t.id, 'everyone-at-scale', scale)}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
       <SagRatesNotice today={today} />
-<details className="why"><summary>why</summary><p className="help small">Same budget, same premiums and non-shoot floor, only the tier and the pay model change. The +% columns are the hybrid: everyone paid a little better than the budget says, and everyone on the back end. The cell marked "your film" is where it sits now; click another to move it. "Fits" is total production cost against that tier's cap (with the Diversity in Casting cap when that box is on).</p></details>
+      <details className="why">
+        <summary>why</summary>
+        <p className="help small">
+          Same budget, same premiums and non-shoot floor, only the tier and the pay model change. The +% columns are the
+          hybrid: everyone paid a little better than the budget says, and everyone on the back end. The cell marked
+          "your film" is where it sits now; click another to move it. "Fits" is total production cost against that
+          tier's cap (with the Diversity in Casting cap when that box is on).
+        </p>
+      </details>
     </div>
   );
 }
 
 /** One page for every term of the deal. `raw` is what the user typed or imported; `eff` is the budget with the terms applied. */
-export function DealView({ raw, eff, setProject, fresh, today }: { raw: Project; eff: Project; setProject: Set; fresh?: boolean; today?: Date }) {
+export function DealView({
+  raw,
+  eff,
+  setProject,
+  fresh,
+  today,
+}: {
+  raw: Project;
+  eff: Project;
+  setProject: Set;
+  fresh?: boolean;
+  today?: Date;
+}) {
   const d = withDeal(raw).deal!;
   const ts = topSheet(eff);
   const r = sagReport(eff);
@@ -60,14 +183,30 @@ export function DealView({ raw, eff, setProject, fresh, today }: { raw: Project;
   const setPay = (patch: Partial<Deal['pay']>) => setDeal(x => ({ ...x, pay: { ...x.pay, ...patch } }));
   const setSag = (patch: Partial<Project['sag']>) => set(p => ({ ...p, sag: { ...p.sag, ...patch } }));
   const setW = (patch: Partial<Project['waterfall']>) => set(p => ({ ...p, waterfall: { ...p.waterfall, ...patch } }));
-  const locs = locationsOf(raw); const locDays = locationDays(raw); const zonePct = outOfZonePctFromLocations(raw); const minWage = highestMinWage(raw);
-  const patchLoc = (id: string, patch: Partial<ShootLocation>) => setProject(p => ({ ...p, locations: locationsOf(p).map(l => l.id === id ? { ...l, ...patch } : l) }));
+  const locs = locationsOf(raw);
+  const locDays = locationDays(raw);
+  const zonePct = outOfZonePctFromLocations(raw);
+  const minWage = highestMinWage(raw);
+  const patchLoc = (id: string, patch: Partial<ShootLocation>) =>
+    setProject(p => ({ ...p, locations: locationsOf(p).map(l => (l.id === id ? { ...l, ...patch } : l)) }));
   const hours = PAID_HOURS[raw.dayHours ?? 12];
   const crewRate = crewDayRateOf(raw);
-  const perDay = (base: number, h: number) => Math.round(base / 8 * 100) / 100 * h;
+  const perDay = (base: number, h: number) => (Math.round((base / 8) * 100) / 100) * h;
   const rawProducers = raw.participants.filter(x => x.group === 'producer' && x.id.startsWith('p_producer')).length;
-  const nonShootDays = eff.lines.filter(l => isPayrollLine(l) && !isSagPerformerLine(l) && l.unit === 'DAY' && (NON_SHOOT.test(l.description) || /scale/i.test(l.description)) && !/balance to back end/.test(l.description))
-    .reduce((n, l) => n + (l.accountId === '1201' && /scale/i.test(l.description) ? Math.max(0, l.amount - raw.shootDays) : l.amount), 0);
+  const nonShootDays = eff.lines
+    .filter(
+      l =>
+        isPayrollLine(l) &&
+        !isSagPerformerLine(l) &&
+        l.unit === 'DAY' &&
+        (NON_SHOOT.test(l.description) || /scale/i.test(l.description)) &&
+        !/balance to back end/.test(l.description),
+    )
+    .reduce(
+      (n, l) =>
+        n + (l.accountId === '1201' && /scale/i.test(l.description) ? Math.max(0, l.amount - raw.shootDays) : l.amount),
+      0,
+    );
   const groupTotals = (Object.keys(PRESET_GROUPS) as PremiumGroup[]).map(g => {
     const ls = raw.lines.filter(PRESET_GROUPS[g].match);
     return { g, count: ls.length, total: ls.reduce((t, l) => t + l.amount * l.rate * l.multiplier, 0) };
@@ -75,26 +214,87 @@ export function DealView({ raw, eff, setProject, fresh, today }: { raw: Project;
 
   return (
     <div>
-      {fresh && <div className="notice">Set the terms of the film here. Everything on the other tabs is computed from your budget plus these terms, live, and you can come back and change any of them at any time.</div>}
+      {fresh && (
+        <div className="notice">
+          Set the terms of the film here. Everything on the other tabs is computed from your budget plus these terms,
+          live, and you can come back and change any of them at any time.
+        </div>
+      )}
       <div className="lede panel">
         <p className="sentence">
-          <b>{raw.name || 'This film'}</b> costs <a href="#the-film" className="num">{money(ts.cashBudget)}</a> to raise{incentiveProceeds(eff) > 0 ? <> ({money(incentiveProceeds(eff))} of it comes back in incentives)</> : null},{' '}
-          {r.targetCap === null
-            ? <>is on the <a href="#sag">Basic Agreement</a> with no cap,</>
-            : r.fits
-              ? <>fits the <a href="#sag">{r.target.name}</a> cap with {money(r.headroom)} to spare,</>
-              : <>is <span className="over">over the <a href="#sag">{r.target.name}</a> cap by {money(-r.headroom)}</span>{r.qualifying.id !== r.target.id ? <> and qualifies as <b>{r.qualifying.name}</b> as drawn,</> : ','}</>}
-          {' '}and {ts.pointsValue > 0
-            ? <>puts <a href="#atl" className="num">{money(ts.pointsValue)}</a> on the back end for {eff.participants.length} participants.</>
-            : <>puts <a href="#atl" className="num">nothing</a> on the back end yet (everyone is paid up front; the {eff.participants.length} participants still split the pool by points).</>}
+          <b>{raw.name || 'This film'}</b> costs{' '}
+          <a href="#the-film" className="num">
+            {money(ts.cashBudget)}
+          </a>{' '}
+          to raise
+          {incentiveProceeds(eff) > 0 ? (
+            <> ({money(incentiveProceeds(eff))} of it comes back in incentives)</>
+          ) : null},{' '}
+          {r.targetCap === null ? (
+            <>
+              is on the <a href="#sag">Basic Agreement</a> with no cap,
+            </>
+          ) : r.fits ? (
+            <>
+              fits the <a href="#sag">{r.target.name}</a> cap with {money(r.headroom)} to spare,
+            </>
+          ) : (
+            <>
+              is{' '}
+              <span className="over">
+                over the <a href="#sag">{r.target.name}</a> cap by {money(-r.headroom)}
+              </span>
+              {r.qualifying.id !== r.target.id ? (
+                <>
+                  {' '}
+                  and qualifies as <b>{r.qualifying.name}</b> as drawn,
+                </>
+              ) : (
+                ','
+              )}
+            </>
+          )}{' '}
+          and{' '}
+          {ts.pointsValue > 0 ? (
+            <>
+              puts{' '}
+              <a href="#atl" className="num">
+                {money(ts.pointsValue)}
+              </a>{' '}
+              on the back end for {eff.participants.length} participants.
+            </>
+          ) : (
+            <>
+              puts{' '}
+              <a href="#atl" className="num">
+                nothing
+              </a>{' '}
+              on the back end yet (everyone is paid up front; the {eff.participants.length} participants still split the
+              pool by points).
+            </>
+          )}
         </p>
         {!r.fits && r.targetCap !== null && (
           <div className="row next">
-            {r.qualifying.id !== r.target.id && r.qualifying.cap !== null && <button className="btn small primary" onClick={() => setSag({ targetTier: r.qualifying.id })}>Set target to {r.qualifying.name}</button>}
-            <span className="small">or bring total production cost down by {money(-r.headroom)}: the cheapest way is usually the <a href="#atl">above-scale ATL money</a>, then days on the Stripboard. The table below prices every tier.</span>
+            {r.qualifying.id !== r.target.id && r.qualifying.cap !== null && (
+              <button className="btn small primary" onClick={() => setSag({ targetTier: r.qualifying.id })}>
+                Set target to {r.qualifying.name}
+              </button>
+            )}
+            <span className="small">
+              or bring total production cost down by {money(-r.headroom)}: the cheapest way is usually the{' '}
+              <a href="#atl">above-scale ATL money</a>, then days on the Stripboard. The table below prices every tier.
+            </span>
           </div>
         )}
-        <p className="help small">Each number is a link to the terms that move it. Budget to raise is what investors fund{incentiveProceeds(eff) > 0 ? '' : ' (grants and incentives come off it under Financing below and on the Incentives tab)'}; the cap is SAG-AFTRA's total production cost test for the tier you are aiming at; the back end is the value traded for points.</p>
+        <p className="help small">
+          Each number is a link to the terms that move it. Budget to raise is what investors fund
+          {incentiveProceeds(eff) > 0
+            ? ''
+            : ' (grants and incentives come off it under Financing below and on the Incentives tab)'}
+          ; the cap is SAG-AFTRA's total production cost test for the tier you are aiming at; the back end is the value
+          traded for points.
+        </p>
       </div>
 
       <TierMatrix raw={raw} setProject={setProject} today={today} />
@@ -102,136 +302,603 @@ export function DealView({ raw, eff, setProject, fresh, today }: { raw: Project;
       <div className="panel" id="the-film">
         <h2>The film</h2>
         <div className="row" style={{ alignItems: 'flex-end' }}>
-          <div className="ctl"><label>Title</label><input value={raw.name} onChange={e => set(p => ({ ...p, name: e.target.value }))} /></div>
-          <div className="ctl" style={{ minWidth: 80 }}><label>Version</label><input value={raw.version} onChange={e => set(p => ({ ...p, version: e.target.value }))} style={{ width: 90 }} /></div>
-          <div className="ctl" style={{ minWidth: 80 }}><label>Shoot days</label><input type="number" min={1} value={raw.shootDays} onChange={e => set(p => ({ ...p, shootDays: Math.max(1, +e.target.value || 1) }))} style={{ width: 80 }} /></div>
-          <div className="ctl"><label>Shooting day</label>
-            <div className="row" style={{ gap: 4 }}>{([10, 12] as const).map(h => <button key={h} className={`btn small ${(raw.dayHours ?? 12) === h ? 'primary' : ''}`} onClick={() => set(p => ({ ...p, dayHours: h }))}>{h} hr</button>)}</div>
-            <span className="hint">crew {hours.day} paid hrs · cast {hours.sag} · long days {hours.long}</span></div>
-          <div className="ctl" style={{ minWidth: 80 }}><label>Contingency %</label><input type="number" step={0.5} value={raw.contingencyPct} onChange={e => set(p => ({ ...p, contingencyPct: +e.target.value || 0 }))} style={{ width: 80 }} /></div>
+          <div className="ctl">
+            <label>Title</label>
+            <input value={raw.name} onChange={e => set(p => ({ ...p, name: e.target.value }))} />
+          </div>
+          <div className="ctl" style={{ minWidth: 80 }}>
+            <label>Version</label>
+            <input
+              value={raw.version}
+              onChange={e => set(p => ({ ...p, version: e.target.value }))}
+              style={{ width: 90 }}
+            />
+          </div>
+          <div className="ctl" style={{ minWidth: 80 }}>
+            <label>Shoot days</label>
+            <input
+              type="number"
+              min={1}
+              value={raw.shootDays}
+              onChange={e => set(p => ({ ...p, shootDays: Math.max(1, +e.target.value || 1) }))}
+              style={{ width: 80 }}
+            />
+          </div>
+          <div className="ctl">
+            <label>Shooting day</label>
+            <div className="row" style={{ gap: 4 }}>
+              {([10, 12] as const).map(h => (
+                <button
+                  key={h}
+                  className={`btn small ${(raw.dayHours ?? 12) === h ? 'primary' : ''}`}
+                  onClick={() => set(p => ({ ...p, dayHours: h }))}
+                >
+                  {h} hr
+                </button>
+              ))}
+            </div>
+            <span className="hint">
+              crew {hours.day} paid hrs · cast {hours.sag} · long days {hours.long}
+            </span>
+          </div>
+          <div className="ctl" style={{ minWidth: 80 }}>
+            <label>Contingency %</label>
+            <input
+              type="number"
+              step={0.5}
+              value={raw.contingencyPct}
+              onChange={e => set(p => ({ ...p, contingencyPct: +e.target.value || 0 }))}
+              style={{ width: 80 }}
+            />
+          </div>
         </div>
-<details className="why"><summary>why</summary><p className="help small">Hourly lines in the budget are read as 12-hour-day hours (14 paid for crew, 18 for long days, 15 for SAG day players). Pick 10 hr and every one of them is re-hoursed: crew 11, long days 14, cast 11. Hourly rates don't change, so the budget gets cheaper by exactly the overtime you're not paying.</p></details>
+        <details className="why">
+          <summary>why</summary>
+          <p className="help small">
+            Hourly lines in the budget are read as 12-hour-day hours (14 paid for crew, 18 for long days, 15 for SAG day
+            players). Pick 10 hr and every one of them is re-hoursed: crew 11, long days 14, cast 11. Hourly rates don't
+            change, so the budget gets cheaper by exactly the overtime you're not paying.
+          </p>
+        </details>
       </div>
 
       <div className="panel" id="locations">
-        <h2>Where you shoot <span className="hint">{locs.length ? `${locDays} of ${raw.shootDays} shoot days placed${zonePct ? ` · ${zonePct}% outside the LA zone` : ''}` : 'one place'}</span></h2>
-        {locs.length > 0 && <div className="scrollx"><table className="atl" style={{ maxWidth: 820 }}>
-          <thead><tr><th className="l">Place</th><th>Shoot days</th><th className="l">Outside the LA zone</th><th className="l">Minimum wage</th><th></th></tr></thead>
-          <tbody>{locs.map(l => (
-            <tr key={l.id}>
-              <td className="l"><input value={l.name} placeholder="Los Angeles" aria-label="Place" onChange={e => patchLoc(l.id, { name: e.target.value })} /></td>
-              <td><input type="number" min={0} value={l.days} aria-label={`Shoot days in ${l.name || 'this place'}`} onChange={e => patchLoc(l.id, { days: Math.max(0, +e.target.value || 0) })} style={{ width: 70 }} /></td>
-              <td className="l"><label className="check"><input type="checkbox" checked={l.outsideLaZone} onChange={e => patchLoc(l.id, { outsideLaZone: e.target.checked })} /> more than 30 miles out</label></td>
-              <td className="l"><select aria-label={`Minimum wage in ${l.name || 'this place'}`} value={MIN_WAGE_PRESETS.find(m => m.rate === l.minWage)?.id ?? 'custom'} onChange={e => { const m = MIN_WAGE_PRESETS.find(x => x.id === e.target.value); if (m) patchLoc(l.id, { minWage: m.rate }); }}>
-                {MIN_WAGE_PRESETS.map(m => <option key={m.id} value={m.id}>{m.label} · ${m.rate.toFixed(2)}</option>)}<option value="custom">another rate</option>
-              </select> <input type="number" step={0.01} min={0} value={l.minWage} aria-label="Minimum wage, dollars an hour" onChange={e => patchLoc(l.id, { minWage: Math.max(0, +e.target.value || 0) })} style={{ width: 80 }} /></td>
-              <td><button type="button" className="btn small" onClick={() => setProject(p => ({ ...p, locations: locationsOf(p).filter(x => x.id !== l.id) }))}>remove</button></td>
-            </tr>))}</tbody>
-        </table></div>}
+        <h2>
+          Where you shoot{' '}
+          <span className="hint">
+            {locs.length
+              ? `${locDays} of ${raw.shootDays} shoot days placed${zonePct ? ` · ${zonePct}% outside the LA zone` : ''}`
+              : 'one place'}
+          </span>
+        </h2>
+        {locs.length > 0 && (
+          <div className="scrollx">
+            <table className="atl" style={{ maxWidth: 820 }}>
+              <thead>
+                <tr>
+                  <th className="l">Place</th>
+                  <th>Shoot days</th>
+                  <th className="l">Outside the LA zone</th>
+                  <th className="l">Minimum wage</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {locs.map(l => (
+                  <tr key={l.id}>
+                    <td className="l">
+                      <input
+                        value={l.name}
+                        placeholder="Los Angeles"
+                        aria-label="Place"
+                        onChange={e => patchLoc(l.id, { name: e.target.value })}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        min={0}
+                        value={l.days}
+                        aria-label={`Shoot days in ${l.name || 'this place'}`}
+                        onChange={e => patchLoc(l.id, { days: Math.max(0, +e.target.value || 0) })}
+                        style={{ width: 70 }}
+                      />
+                    </td>
+                    <td className="l">
+                      <label className="check">
+                        <input
+                          type="checkbox"
+                          checked={l.outsideLaZone}
+                          onChange={e => patchLoc(l.id, { outsideLaZone: e.target.checked })}
+                        />{' '}
+                        more than 30 miles out
+                      </label>
+                    </td>
+                    <td className="l">
+                      <select
+                        aria-label={`Minimum wage in ${l.name || 'this place'}`}
+                        value={MIN_WAGE_PRESETS.find(m => m.rate === l.minWage)?.id ?? 'custom'}
+                        onChange={e => {
+                          const m = MIN_WAGE_PRESETS.find(x => x.id === e.target.value);
+                          if (m) patchLoc(l.id, { minWage: m.rate });
+                        }}
+                      >
+                        {MIN_WAGE_PRESETS.map(m => (
+                          <option key={m.id} value={m.id}>
+                            {m.label} · ${m.rate.toFixed(2)}
+                          </option>
+                        ))}
+                        <option value="custom">another rate</option>
+                      </select>{' '}
+                      <input
+                        type="number"
+                        step={0.01}
+                        min={0}
+                        value={l.minWage}
+                        aria-label="Minimum wage, dollars an hour"
+                        onChange={e => patchLoc(l.id, { minWage: Math.max(0, +e.target.value || 0) })}
+                        style={{ width: 80 }}
+                      />
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        className="btn small"
+                        onClick={() =>
+                          setProject(p => ({ ...p, locations: locationsOf(p).filter(x => x.id !== l.id) }))
+                        }
+                      >
+                        remove
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
         <div className="row" style={{ marginTop: 8, gap: 8 }}>
-          <button type="button" className="btn small" onClick={() => setProject(p => ({ ...p, locations: [...locationsOf(p), newLocation(locationsOf(p).length ? {} : { name: 'Los Angeles', days: p.shootDays, minWage: 18.42 })] }))}>+ Add a location</button>
-          {locs.length > 0 && locDays !== raw.shootDays && <span className="small warn">The places add up to {locDays} days; the shoot is {raw.shootDays}.</span>}
+          <button
+            type="button"
+            className="btn small"
+            onClick={() =>
+              setProject(p => ({
+                ...p,
+                locations: [
+                  ...locationsOf(p),
+                  newLocation(locationsOf(p).length ? {} : { name: 'Los Angeles', days: p.shootDays, minWage: 18.42 }),
+                ],
+              }))
+            }
+          >
+            + Add a location
+          </button>
+          {locs.length > 0 && locDays !== raw.shootDays && (
+            <span className="small warn">
+              The places add up to {locDays} days; the shoot is {raw.shootDays}.
+            </span>
+          )}
         </div>
-<details className="why"><summary>why</summary><p className="help small">A film that shoots in more than one place has two numbers that depend on where. The California credit pays 5% more on the share of the shoot outside the Los Angeles 30-mile zone, so the Incentives tab takes that share from this list. And each city sets its own minimum wage, so the floor for prep, wrap and post days is checked against the highest one here. A city can be its own place for wages and still sit inside the zone: check the zone map at film.ca.gov.</p></details>
+        <details className="why">
+          <summary>why</summary>
+          <p className="help small">
+            A film that shoots in more than one place has two numbers that depend on where. The California credit pays
+            5% more on the share of the shoot outside the Los Angeles 30-mile zone, so the Incentives tab takes that
+            share from this list. And each city sets its own minimum wage, so the floor for prep, wrap and post days is
+            checked against the highest one here. A city can be its own place for wages and still sit inside the zone:
+            check the zone map at film.ca.gov.
+          </p>
+        </details>
       </div>
 
       <div className="panel" id="sag">
         <h2>SAG-AFTRA agreement</h2>
         <div className="row" style={{ alignItems: 'flex-end' }}>
-          <div className="ctl"><label>Target tier</label>
+          <div className="ctl">
+            <label>Target tier</label>
             <select value={raw.sag.targetTier} onChange={e => setSag({ targetTier: e.target.value as SagTierId })}>
-              {SAG_TIERS.map(t => <option key={t.id} value={t.id}>{t.name} · ${t.dayRate}/day · cap {t.cap ? money(t.cap) : 'none'}</option>)}
-            </select></div>
-          <label className="row" style={{ gap: 6 }}><input type="checkbox" checked={raw.sag.dic} onChange={e => setSag({ dic: e.target.checked })} /> Diversity in Casting incentive</label>
-          <label className="row" style={{ gap: 6 }}><input type="checkbox" checked={raw.sag.includeContingency} onChange={e => setSag({ includeContingency: e.target.checked })} /> Count contingency in total production cost</label>
+              {SAG_TIERS.map(t => (
+                <option key={t.id} value={t.id}>
+                  {t.name} · ${t.dayRate}/day · cap {t.cap ? money(t.cap) : 'none'}
+                </option>
+              ))}
+            </select>
+          </div>
+          <label className="row" style={{ gap: 6 }}>
+            <input type="checkbox" checked={raw.sag.dic} onChange={e => setSag({ dic: e.target.checked })} /> Diversity
+            in Casting incentive
+          </label>
+          <label className="row" style={{ gap: 6 }}>
+            <input
+              type="checkbox"
+              checked={raw.sag.includeContingency}
+              onChange={e => setSag({ includeContingency: e.target.checked })}
+            />{' '}
+            Count contingency in total production cost
+          </label>
         </div>
         <SagRatesNotice today={today} />
-<details className="why"><summary>why</summary><p className="help small">The tier sets the bar the budget has to clear and the scale the cast get. It doesn't lower anything by itself. The SAG tab shows the full table.</p></details>
+        <details className="why">
+          <summary>why</summary>
+          <p className="help small">
+            The tier sets the bar the budget has to clear and the scale the cast get. It doesn't lower anything by
+            itself. The SAG tab shows the full table.
+          </p>
+        </details>
       </div>
 
       <div className="panel">
         <h2>How people are paid</h2>
         <div className="row" style={{ alignItems: 'flex-start', gap: 20 }}>
-          <label className="row" style={{ gap: 6 }}><input type="radio" checked={d.pay.model === 'as-budgeted'} onChange={() => setPay({ model: 'as-budgeted' })} /> <span><b>As budgeted.</b> Crew at their own rates, cast at scale if re-rated, ATL premiums handled below.</span></label>
-          <label className="row" style={{ gap: 6 }}><input type="radio" checked={d.pay.model === 'everyone-at-scale'} onChange={() => setPay({ model: 'everyone-at-scale' })} /> <span><b>Everyone at scale (the <i>Sing Sing</i> deal).</b> One hourly for everyone, above and below the line, overtime on top; the upside split by points.</span></label>
+          <label className="row" style={{ gap: 6 }}>
+            <input
+              type="radio"
+              checked={d.pay.model === 'as-budgeted'}
+              onChange={() => setPay({ model: 'as-budgeted' })}
+            />{' '}
+            <span>
+              <b>As budgeted.</b> Crew at their own rates, cast at scale if re-rated, ATL premiums handled below.
+            </span>
+          </label>
+          <label className="row" style={{ gap: 6 }}>
+            <input
+              type="radio"
+              checked={d.pay.model === 'everyone-at-scale'}
+              onChange={() => setPay({ model: 'everyone-at-scale' })}
+            />{' '}
+            <span>
+              <b>
+                Everyone at scale (the <i>Sing Sing</i> deal).
+              </b>{' '}
+              One hourly for everyone, above and below the line, overtime on top; the upside split by points.
+            </span>
+          </label>
         </div>
         {d.pay.model === 'as-budgeted' && (
           <div className="row" style={{ alignItems: 'flex-end', marginTop: 12 }}>
-            <label className="row" style={{ gap: 6, alignSelf: 'center' }}><input type="checkbox" checked={d.pay.rerateCast} onChange={e => setPay({ rerateCast: e.target.checked })} /> Re-rate cast lines at {sagTier(raw.sag.targetTier).name} scale</label>
-            <div className="ctl"><label>Crew rates over budget</label>
-              <div className="row" style={{ gap: 4 }}>{[0, 5, 10, 15].map(b => <button key={b} type="button" className={`btn small ${(d.pay.crewBumpPct ?? 0) === b ? 'primary' : ''}`} onClick={() => setPay({ crewBumpPct: b })}>{b === 0 ? 'as budgeted' : `+${b}%`}</button>)}
-                <input type="number" min={0} step={1} aria-label="Crew rates over budget, percent" value={d.pay.crewBumpPct ?? 0} onChange={e => setPay({ crewBumpPct: Math.max(0, +e.target.value || 0) })} style={{ width: 70 }} /><span>%</span></div>
-              <span className="hint">{(d.pay.crewBumpPct ?? 0) ? `every crew wage line at its budgeted rate + ${d.pay.crewBumpPct}%; the budget's own ladder is kept` : 'crew exactly as budgeted; set a percent to pay everyone a little better than the budget says'}</span></div>
+            <label className="row" style={{ gap: 6, alignSelf: 'center' }}>
+              <input
+                type="checkbox"
+                checked={d.pay.rerateCast}
+                onChange={e => setPay({ rerateCast: e.target.checked })}
+              />{' '}
+              Re-rate cast lines at {sagTier(raw.sag.targetTier).name} scale
+            </label>
+            <div className="ctl">
+              <label>Crew rates over budget</label>
+              <div className="row" style={{ gap: 4 }}>
+                {[0, 5, 10, 15].map(b => (
+                  <button
+                    key={b}
+                    type="button"
+                    className={`btn small ${(d.pay.crewBumpPct ?? 0) === b ? 'primary' : ''}`}
+                    onClick={() => setPay({ crewBumpPct: b })}
+                  >
+                    {b === 0 ? 'as budgeted' : `+${b}%`}
+                  </button>
+                ))}
+                <input
+                  type="number"
+                  min={0}
+                  step={1}
+                  aria-label="Crew rates over budget, percent"
+                  value={d.pay.crewBumpPct ?? 0}
+                  onChange={e => setPay({ crewBumpPct: Math.max(0, +e.target.value || 0) })}
+                  style={{ width: 70 }}
+                />
+                <span>%</span>
+              </div>
+              <span className="hint">
+                {(d.pay.crewBumpPct ?? 0)
+                  ? `every crew wage line at its budgeted rate + ${d.pay.crewBumpPct}%; the budget's own ladder is kept`
+                  : 'crew exactly as budgeted; set a percent to pay everyone a little better than the budget says'}
+              </span>
+            </div>
           </div>
         )}
         {d.pay.model === 'everyone-at-scale' && (
           <div className="row" style={{ alignItems: 'flex-end', marginTop: 12 }}>
-            <div className="ctl"><label>Crew &amp; producers' 8-hour rate</label>
+            <div className="ctl">
+              <label>Crew &amp; producers' 8-hour rate</label>
               <select value={d.pay.crewBasis} onChange={e => setPay({ crewBasis: e.target.value as any })}>
-                {SAG_TIERS.map(t => <option key={t.id} value={t.id}>{t.name} scale · ${t.dayRate}</option>)}
+                {SAG_TIERS.map(t => (
+                  <option key={t.id} value={t.id}>
+                    {t.name} scale · ${t.dayRate}
+                  </option>
+                ))}
                 <option value="custom">custom…</option>
               </select>
-              {d.pay.crewBasis === 'custom' && <input type="number" value={d.pay.crewCustomRate} onChange={e => setPay({ crewCustomRate: +e.target.value || 0 })} style={{ width: 110 }} />}
-              <span className="hint">${(crewRate / 8).toFixed(2)}/hr → {money(perDay(crewRate, hours.day))} per {raw.dayHours ?? 12}-hr crew day · cast at {sagTier(raw.sag.targetTier).name}: {money(perDay(sagTier(raw.sag.targetTier).dayRate, hours.sag))}</span></div>
-            <div className="ctl" style={{ minWidth: 90 }}><label>Producers</label><input type="number" min={0} value={d.producers.count ?? rawProducers} onChange={e => setDeal(x => ({ ...x, producers: { ...x.producers, count: Math.max(0, +e.target.value || 0) } }))} style={{ width: 80 }} /><span className="hint">{d.producers.count === null ? `as budgeted (${rawProducers})` : 'paid at the crew rate'}</span></div>
-            <div className="ctl" style={{ minWidth: 90 }}><label>Producer days</label><input type="number" min={0} value={d.producers.days} title="Sets every producer's days; a single producer can be changed on the points schedule afterwards" onChange={e => { const days = Math.max(0, +e.target.value || 0); setDeal(x => ({ ...x, producers: { ...x.producers, days } })); setProject(q => ({ ...q, participants: q.participants.map(pt => pt.group === 'producer' && pt.id.startsWith('p_producer') ? { ...pt, days } : pt) })); }} style={{ width: 80 }} /><span className="hint">shoot + prep / wrap / post, for every producer</span></div>
+              {d.pay.crewBasis === 'custom' && (
+                <input
+                  type="number"
+                  value={d.pay.crewCustomRate}
+                  onChange={e => setPay({ crewCustomRate: +e.target.value || 0 })}
+                  style={{ width: 110 }}
+                />
+              )}
+              <span className="hint">
+                ${(crewRate / 8).toFixed(2)}/hr → {money(perDay(crewRate, hours.day))} per {raw.dayHours ?? 12}-hr crew
+                day · cast at {sagTier(raw.sag.targetTier).name}:{' '}
+                {money(perDay(sagTier(raw.sag.targetTier).dayRate, hours.sag))}
+              </span>
+            </div>
+            <div className="ctl" style={{ minWidth: 90 }}>
+              <label>Producers</label>
+              <input
+                type="number"
+                min={0}
+                value={d.producers.count ?? rawProducers}
+                onChange={e =>
+                  setDeal(x => ({ ...x, producers: { ...x.producers, count: Math.max(0, +e.target.value || 0) } }))
+                }
+                style={{ width: 80 }}
+              />
+              <span className="hint">
+                {d.producers.count === null ? `as budgeted (${rawProducers})` : 'paid at the crew rate'}
+              </span>
+            </div>
+            <div className="ctl" style={{ minWidth: 90 }}>
+              <label>Producer days</label>
+              <input
+                type="number"
+                min={0}
+                value={d.producers.days}
+                title="Sets every producer's days; a single producer can be changed on the points schedule afterwards"
+                onChange={e => {
+                  const days = Math.max(0, +e.target.value || 0);
+                  setDeal(x => ({ ...x, producers: { ...x.producers, days } }));
+                  setProject(q => ({
+                    ...q,
+                    participants: q.participants.map(pt =>
+                      pt.group === 'producer' && pt.id.startsWith('p_producer') ? { ...pt, days } : pt,
+                    ),
+                  }));
+                }}
+                style={{ width: 80 }}
+              />
+              <span className="hint">shoot + prep / wrap / post, for every producer</span>
+            </div>
           </div>
         )}
-<details className="why"><summary>why</summary><p className="help small">SAG scale covers an 8-hour day. Under everyone-at-scale, crew hourly is that rate ÷ 8 with California overtime (1.5× after 8, 2× after 12); cast get the target tier's rate ÷ 8 with SAG overtime (1.5× hours 9–10, 2× after). Cast can't be paid below the tier the film lands in, so equal pay means bringing crew up, never cast down.</p></details>
+        <details className="why">
+          <summary>why</summary>
+          <p className="help small">
+            SAG scale covers an 8-hour day. Under everyone-at-scale, crew hourly is that rate ÷ 8 with California
+            overtime (1.5× after 8, 2× after 12); cast get the target tier's rate ÷ 8 with SAG overtime (1.5× hours
+            9–10, 2× after). Cast can't be paid below the tier the film lands in, so equal pay means bringing crew up,
+            never cast down.
+          </p>
+        </details>
       </div>
 
       <div className="panel" id="atl">
         <h2>Above-scale ATL money</h2>
-        <p className="help">The three places above-scale money usually sits. Each can stay up front, go to points, go to deferred, or come off the budget entirely.</p>
-        <div className="scrollx"><table className="atl" style={{ maxWidth: 820 }}>
-          <thead><tr><th className="l">Group</th><th>Lines</th><th>Value</th><th className="l">Becomes</th></tr></thead>
-          <tbody>
-            {groupTotals.map(({ g, count, total }) => (
-              <tr key={g}>
-                <td className="l">{PRESET_GROUPS[g].label}</td><td>{count}</td><td>{money(total)}</td>
-                <td className="l"><select id={`deal-pay-${g}`} value={d.pay.premiums[g]} onChange={e => {
-                  const c = e.target.value as PremiumChoice;
-                  if (c === 'delete' && !window.confirm(`Take ${count} line${count === 1 ? '' : 's'} worth ${money(total)} off the budget? (${PRESET_GROUPS[g].label}. The lines stay in the file; pick another choice here to bring them back.)`)) return;
-                  setPay({ premiums: { ...d.pay.premiums, [g]: c } });
-                }}>
-                  {(Object.keys(PREMIUM_LABEL) as PremiumChoice[]).map(c => <option key={c} value={c}>{PREMIUM_LABEL[c]}</option>)}
-                </select></td>
+        <p className="help">
+          The three places above-scale money usually sits. Each can stay up front, go to points, go to deferred, or come
+          off the budget entirely.
+        </p>
+        <div className="scrollx">
+          <table className="atl" style={{ maxWidth: 820 }}>
+            <thead>
+              <tr>
+                <th className="l">Group</th>
+                <th>Lines</th>
+                <th>Value</th>
+                <th className="l">Becomes</th>
               </tr>
-            ))}
-          </tbody>
-        </table></div>
+            </thead>
+            <tbody>
+              {groupTotals.map(({ g, count, total }) => (
+                <tr key={g}>
+                  <td className="l">{PRESET_GROUPS[g].label}</td>
+                  <td>{count}</td>
+                  <td>{money(total)}</td>
+                  <td className="l">
+                    <select
+                      id={`deal-pay-${g}`}
+                      value={d.pay.premiums[g]}
+                      onChange={e => {
+                        const c = e.target.value as PremiumChoice;
+                        if (
+                          c === 'delete' &&
+                          !window.confirm(
+                            `Take ${count} line${count === 1 ? '' : 's'} worth ${money(total)} off the budget? (${PRESET_GROUPS[g].label}. The lines stay in the file; pick another choice here to bring them back.)`,
+                          )
+                        )
+                          return;
+                        setPay({ premiums: { ...d.pay.premiums, [g]: c } });
+                      }}
+                    >
+                      {(Object.keys(PREMIUM_LABEL) as PremiumChoice[]).map(c => (
+                        <option key={c} value={c}>
+                          {PREMIUM_LABEL[c]}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <details className="panel fold" open={d.nonShoot.enabled}>
-        <summary><h2>Prep, wrap and post days <span className="hint">{d.nonShoot.enabled ? `floor $${d.nonShoot.cashHourly.toFixed(2)}/hr, balance to ${d.nonShoot.rest}` : 'paid as budgeted'}</span></h2></summary>
+        <summary>
+          <h2>
+            Prep, wrap and post days{' '}
+            <span className="hint">
+              {d.nonShoot.enabled
+                ? `floor $${d.nonShoot.cashHourly.toFixed(2)}/hr, balance to ${d.nonShoot.rest}`
+                : 'paid as budgeted'}
+            </span>
+          </h2>
+        </summary>
         <div className="row" style={{ alignItems: 'flex-end' }}>
-          <label className="row" style={{ gap: 6 }}><input type="checkbox" checked={d.nonShoot.enabled} onChange={e => setDeal(x => ({ ...x, nonShoot: { ...x.nonShoot, enabled: e.target.checked } }))} /> Pay non-shoot days at a floor rate, balance to the back end</label>
-          {d.nonShoot.enabled && <>
-            <div className="ctl" style={{ minWidth: 90 }}><label>Floor, $/hour</label><input type="number" step="0.05" value={d.nonShoot.cashHourly} onChange={e => setDeal(x => ({ ...x, nonShoot: { ...x.nonShoot, cashHourly: +e.target.value || 0 } }))} style={{ width: 100 }} /></div>
-            <div className="ctl"><label>Balance becomes</label>
-              <select value={d.nonShoot.rest} onChange={e => setDeal(x => ({ ...x, nonShoot: { ...x.nonShoot, rest: e.target.value as any } }))}><option value="points">points (contingent)</option><option value="deferred">deferred (counts for SAG)</option></select></div>
-          </>}
+          <label className="row" style={{ gap: 6 }}>
+            <input
+              type="checkbox"
+              checked={d.nonShoot.enabled}
+              onChange={e => setDeal(x => ({ ...x, nonShoot: { ...x.nonShoot, enabled: e.target.checked } }))}
+            />{' '}
+            Pay non-shoot days at a floor rate, balance to the back end
+          </label>
+          {d.nonShoot.enabled && (
+            <>
+              <div className="ctl" style={{ minWidth: 90 }}>
+                <label>Floor, $/hour</label>
+                <input
+                  type="number"
+                  step="0.05"
+                  value={d.nonShoot.cashHourly}
+                  onChange={e =>
+                    setDeal(x => ({ ...x, nonShoot: { ...x.nonShoot, cashHourly: +e.target.value || 0 } }))
+                  }
+                  style={{ width: 100 }}
+                />
+              </div>
+              <div className="ctl">
+                <label>Balance becomes</label>
+                <select
+                  value={d.nonShoot.rest}
+                  onChange={e => setDeal(x => ({ ...x, nonShoot: { ...x.nonShoot, rest: e.target.value as any } }))}
+                >
+                  <option value="points">points (contingent)</option>
+                  <option value="deferred">deferred (counts for SAG)</option>
+                </select>
+              </div>
+            </>
+          )}
         </div>
-        {d.nonShoot.enabled && d.nonShoot.cashHourly < minWage && <div className="notice" style={{ marginTop: 8 }}>The floor is under the highest minimum wage where you work (${minWage.toFixed(2)}/hr{locs.length ? '' : ', the California rate; add your locations above for the local one'}). <button type="button" className="btn small" onClick={() => setDeal(x => ({ ...x, nonShoot: { ...x.nonShoot, cashHourly: minWage } }))}>Raise the floor to ${minWage.toFixed(2)}</button></div>}
-        <p className="help small" style={{ marginTop: 8 }}>{nonShootDays} non-shoot crew and producer days in the budget right now.</p>
-        <details className="why"><summary>why</summary><p className="help small">Shoot days are never touched; the days still count as worked, so nobody's points change. The floor isn't zero because a worked day at $0 is a wage-law problem for a W-2 crew member (California's minimum is $17.40 from January 2027; the City of Los Angeles is $18.42 and moves every July 1, so a post schedule that runs past June wants a little room). List where you shoot above and the floor is checked against the highest local rate. Check with your payroll company and attorney.</p></details>
+        {d.nonShoot.enabled && d.nonShoot.cashHourly < minWage && (
+          <div className="notice" style={{ marginTop: 8 }}>
+            The floor is under the highest minimum wage where you work (${minWage.toFixed(2)}/hr
+            {locs.length ? '' : ', the California rate; add your locations above for the local one'}).{' '}
+            <button
+              type="button"
+              className="btn small"
+              onClick={() => setDeal(x => ({ ...x, nonShoot: { ...x.nonShoot, cashHourly: minWage } }))}
+            >
+              Raise the floor to ${minWage.toFixed(2)}
+            </button>
+          </div>
+        )}
+        <p className="help small" style={{ marginTop: 8 }}>
+          {nonShootDays} non-shoot crew and producer days in the budget right now.
+        </p>
+        <details className="why">
+          <summary>why</summary>
+          <p className="help small">
+            Shoot days are never touched; the days still count as worked, so nobody's points change. The floor isn't
+            zero because a worked day at $0 is a wage-law problem for a W-2 crew member (California's minimum is $17.40
+            from January 2027; the City of Los Angeles is $18.42 and moves every July 1, so a post schedule that runs
+            past June wants a little room). List where you shoot above and the floor is checked against the highest
+            local rate. Check with your payroll company and attorney.
+          </p>
+        </details>
       </details>
 
       <details className="panel fold" open={(raw.waterfall.nonRecoupable ?? 0) > 0}>
-        <summary><h2>Financing and the waterfall <span className="hint">{raw.waterfall.model === 'off-the-gross' ? `off the gross, pool ${raw.waterfall.grossSharePct}%` : 'recoup first'} · investors recoup {money(recoupableBudget(eff))}{(raw.waterfall.nonRecoupable ?? 0) > 0 ? ` after ${money(sponsorNet(raw.waterfall))} in grants` : ''}</span></h2></summary>
+        <summary>
+          <h2>
+            Financing and the waterfall{' '}
+            <span className="hint">
+              {raw.waterfall.model === 'off-the-gross'
+                ? `off the gross, pool ${raw.waterfall.grossSharePct}%`
+                : 'recoup first'}{' '}
+              · investors recoup {money(recoupableBudget(eff))}
+              {(raw.waterfall.nonRecoupable ?? 0) > 0 ? ` after ${money(sponsorNet(raw.waterfall))} in grants` : ''}
+            </span>
+          </h2>
+        </summary>
         <div className="row" style={{ alignItems: 'flex-end' }}>
-          <div className="ctl"><label>Grants / fiscal sponsorship ($)</label><input type="number" step={10000} value={raw.waterfall.nonRecoupable ?? 0} onChange={e => setW({ nonRecoupable: Math.max(0, +e.target.value || 0) })} /><div className="hint">never paid back; investors put in the other {money(recoupableBudget(eff))}</div></div>
-          <div className="ctl" style={{ minWidth: 90 }}><label>Sponsor's fee %</label><input type="number" min={0} max={100} step={0.5} value={raw.waterfall.sponsorFeePct ?? 0} onChange={e => setW({ sponsorFeePct: Math.max(0, Math.min(100, +e.target.value || 0)) })} style={{ width: 80 }} /><div className="hint">{sponsorFee(raw.waterfall) > 0 ? `${money(sponsorFee(raw.waterfall))} stays with the sponsor; ${money(sponsorNet(raw.waterfall))} reaches the film` : 'what a fiscal sponsor keeps of each donation'}</div></div>
-          <div className="ctl"><label>Model</label>
+          <div className="ctl">
+            <label>Grants / fiscal sponsorship ($)</label>
+            <input
+              type="number"
+              step={10000}
+              value={raw.waterfall.nonRecoupable ?? 0}
+              onChange={e => setW({ nonRecoupable: Math.max(0, +e.target.value || 0) })}
+            />
+            <div className="hint">never paid back; investors put in the other {money(recoupableBudget(eff))}</div>
+          </div>
+          <div className="ctl" style={{ minWidth: 90 }}>
+            <label>Sponsor's fee %</label>
+            <input
+              type="number"
+              min={0}
+              max={100}
+              step={0.5}
+              value={raw.waterfall.sponsorFeePct ?? 0}
+              onChange={e => setW({ sponsorFeePct: Math.max(0, Math.min(100, +e.target.value || 0)) })}
+              style={{ width: 80 }}
+            />
+            <div className="hint">
+              {sponsorFee(raw.waterfall) > 0
+                ? `${money(sponsorFee(raw.waterfall))} stays with the sponsor; ${money(sponsorNet(raw.waterfall))} reaches the film`
+                : 'what a fiscal sponsor keeps of each donation'}
+            </div>
+          </div>
+          <div className="ctl">
+            <label>Model</label>
             <select value={raw.waterfall.model} onChange={e => setW({ model: e.target.value as WaterfallModel })}>
-              <option value="off-the-gross">Off the gross (Sing Sing)</option><option value="recoup-first">Recoup first</option>
-            </select></div>
-          <div className="ctl" style={{ minWidth: 90 }}><label>Investor recoup %</label><input type="number" step={5} value={raw.waterfall.recoupPct} onChange={e => setW({ recoupPct: +e.target.value })} style={{ width: 80 }} /></div>
-          {raw.waterfall.model === 'off-the-gross' && <div className="ctl" style={{ minWidth: 90 }}><label>Pool share of gross %</label><input type="number" step={5} value={raw.waterfall.grossSharePct} onChange={e => setW({ grossSharePct: +e.target.value })} style={{ width: 80 }} /></div>}
-          <div className="ctl" style={{ minWidth: 90 }}><label>Pool share after recoup %</label><input type="number" step={5} value={raw.waterfall.poolPct} onChange={e => setW({ poolPct: +e.target.value })} style={{ width: 80 }} /></div>
-          <div className="ctl"><label>Revenue scenarios ($)</label><input value={raw.waterfall.scenarios.join(', ')} onChange={e => setW({ scenarios: e.target.value.split(',').map(s => +s.replace(/[^\d.]/g, '')).filter(n => n > 0) })} /></div>
+              <option value="off-the-gross">Off the gross (Sing Sing)</option>
+              <option value="recoup-first">Recoup first</option>
+            </select>
+          </div>
+          <div className="ctl" style={{ minWidth: 90 }}>
+            <label>Investor recoup %</label>
+            <input
+              type="number"
+              step={5}
+              value={raw.waterfall.recoupPct}
+              onChange={e => setW({ recoupPct: +e.target.value })}
+              style={{ width: 80 }}
+            />
+          </div>
+          {raw.waterfall.model === 'off-the-gross' && (
+            <div className="ctl" style={{ minWidth: 90 }}>
+              <label>Pool share of gross %</label>
+              <input
+                type="number"
+                step={5}
+                value={raw.waterfall.grossSharePct}
+                onChange={e => setW({ grossSharePct: +e.target.value })}
+                style={{ width: 80 }}
+              />
+            </div>
+          )}
+          <div className="ctl" style={{ minWidth: 90 }}>
+            <label>Pool share after recoup %</label>
+            <input
+              type="number"
+              step={5}
+              value={raw.waterfall.poolPct}
+              onChange={e => setW({ poolPct: +e.target.value })}
+              style={{ width: 80 }}
+            />
+          </div>
+          <div className="ctl">
+            <label>Revenue scenarios ($)</label>
+            <input
+              value={raw.waterfall.scenarios.join(', ')}
+              onChange={e =>
+                setW({
+                  scenarios: e.target.value
+                    .split(',')
+                    .map(s => +s.replace(/[^\d.]/g, ''))
+                    .filter(n => n > 0),
+                })
+              }
+            />
+          </div>
         </div>
-<details className="why"><summary>why</summary><p className="help small">The Points tab shows who gets what at each scenario. Tier multipliers and per-person bonuses live there too.</p></details>
+        <details className="why">
+          <summary>why</summary>
+          <p className="help small">
+            The Points tab shows who gets what at each scenario. Tier multipliers and per-person bonuses live there too.
+          </p>
+        </details>
       </details>
     </div>
   );

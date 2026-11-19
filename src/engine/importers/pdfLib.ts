@@ -24,7 +24,10 @@ async function pdfjsLib() {
  *  where 'pdfjs/' alone means nothing) and is the app's own folder, so nothing is asked of any other site. In the
  *  one-file build there is no such folder: WebAssembly decoding is switched off, and a JPEG 2000 or JBIG2 picture is
  *  left out of the page (the rest of the page is still drawn) rather than asked for from somewhere it is not. */
-export function pdfDecoderOptions(baseURI: string = document.baseURI, dir: string = __PDFJS_DECODERS__): { wasmUrl: string } | { useWasm: false } {
+export function pdfDecoderOptions(
+  baseURI: string = document.baseURI,
+  dir: string = __PDFJS_DECODERS__,
+): { wasmUrl: string } | { useWasm: false } {
   return dir ? { wasmUrl: new URL(dir, baseURI).href } : { useWasm: false };
 }
 

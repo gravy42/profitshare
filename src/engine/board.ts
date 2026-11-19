@@ -2,24 +2,25 @@ import type { Board, BoardElement, LineItem, Project, Scene, SceneUnit, Strip } 
 import { newId } from './budget';
 
 export const eighthsToText = (e: number) => {
-  const whole = Math.floor(e / 8), rem = e % 8;
+  const whole = Math.floor(e / 8),
+    rem = e % 8;
   if (whole && rem) return `${whole} ${rem}/8`;
   if (whole) return `${whole}`;
   return `${rem}/8`;
 };
 
 export interface ShootDay {
-  index: number;            // 1-based
+  index: number; // 1-based
   label?: string;
   date?: string;
-  scenes: Scene[];          // a scene shot across days appears in each of them
+  scenes: Scene[]; // a scene shot across days appears in each of them
   eighths: number;
   castIds: number[];
 }
 
 /** Pages a strip carries: its own share when the scene is split across days, else the whole scene. */
 export const stripEighths = (board: Board, strip: Strip, byId = new Map(board.scenes.map(s => [s.id, s]))): number =>
-  strip.type !== 'scene' ? 0 : strip.eighths ?? byId.get(strip.sceneId)?.eighths ?? 0;
+  strip.type !== 'scene' ? 0 : (strip.eighths ?? byId.get(strip.sceneId)?.eighths ?? 0);
 
 /** Which part of its scene a strip is (1-based) and how many parts there are; 1 of 1 for an unsplit scene. */
 export function stripPart(board: Board, index: number): { part: number; parts: number } {
@@ -34,8 +35,16 @@ export const UNIT_SHORT: Record<SceneUnit, string> = { vfx: 'VFX', second: '2nd'
 /** Scenes not on the first unit's schedule, in strip order. */
 export const parkedScenes = (board: Board): Scene[] => {
   const byId = new Map(board.scenes.map(s => [s.id, s]));
-  const seen = new Set<string>(); const out: Scene[] = [];
-  for (const st of board.strips) if (st.type === 'scene') { const s = byId.get(st.sceneId); if (s?.unit && !seen.has(s.id)) { seen.add(s.id); out.push(s); } }
+  const seen = new Set<string>();
+  const out: Scene[] = [];
+  for (const st of board.strips)
+    if (st.type === 'scene') {
+      const s = byId.get(st.sceneId);
+      if (s?.unit && !seen.has(s.id)) {
+        seen.add(s.id);
+        out.push(s);
+      }
+    }
   return out;
 };
 /** Pages the first unit shoots (parked scenes left out). */
@@ -44,24 +53,37 @@ export const firstUnitEighths = (board: Board) => board.scenes.reduce((n, s) => 
 export function parkedStart(board: Board): number {
   const byId = new Map(board.scenes.map(s => [s.id, s]));
   let i = board.strips.length;
-  while (i > 0) { const st = board.strips[i - 1]; if (st.type === 'scene' && byId.get(st.sceneId)?.unit) i--; else break; }
+  while (i > 0) {
+    const st = board.strips[i - 1];
+    if (st.type === 'scene' && byId.get(st.sceneId)?.unit) i--;
+    else break;
+  }
   return i;
 }
 /** The schedule proper and the parked tail, so day-break passes leave the tail alone. */
-const splitParked = (board: Board): { head: Board; tail: Strip[] } => { const cut = parkedStart(board); return { head: { ...board, strips: board.strips.slice(0, cut) }, tail: board.strips.slice(cut) }; };
+const splitParked = (board: Board): { head: Board; tail: Strip[] } => {
+  const cut = parkedStart(board);
+  return { head: { ...board, strips: board.strips.slice(0, cut) }, tail: board.strips.slice(cut) };
+};
 /** Hand a scene to another unit (or back to the first). Parked strips move to the tail, past the last day break, so the
  *  day count, the DOOD and the breakdowns stop seeing them; a scene coming back lands at the end of the last day. */
 export function setSceneUnit(board: Board, sceneId: string, unit: SceneUnit | undefined): Board {
-  const scenes = board.scenes.map(s => s.id === sceneId ? (unit ? { ...s, unit } : (({ unit: _u, ...rest }) => rest)(s)) : s);
+  const scenes = board.scenes.map(s =>
+    s.id === sceneId ? (unit ? { ...s, unit } : (({ unit: _u, ...rest }) => rest)(s)) : s,
+  );
   const mine = board.strips.filter(st => st.type === 'scene' && st.sceneId === sceneId);
   const rest = board.strips.filter(st => !(st.type === 'scene' && st.sceneId === sceneId));
   let strips: Strip[];
   if (unit) strips = [...rest, ...mine];
   else {
     const b2 = { ...board, scenes, strips: rest };
-    const at = parkedStart(b2);                       // just before the parked tail
-    const lastBreak = (() => { let k = -1; for (let i = 0; i < at; i++) if (rest[i].type === 'daybreak') k = i; return k; })();
-    const to = lastBreak === at - 1 ? lastBreak : at;  // the schedule ends on a day bar: slip in before it; otherwise the last day is open-ended, so append
+    const at = parkedStart(b2); // just before the parked tail
+    const lastBreak = (() => {
+      let k = -1;
+      for (let i = 0; i < at; i++) if (rest[i].type === 'daybreak') k = i;
+      return k;
+    })();
+    const to = lastBreak === at - 1 ? lastBreak : at; // the schedule ends on a day bar: slip in before it; otherwise the last day is open-ended, so append
     strips = [...rest.slice(0, to), ...mine, ...rest.slice(to)];
   }
   return { ...board, scenes, strips };
@@ -75,7 +97,8 @@ export function shootDays(board: Board): ShootDay[] {
   let cur: ShootDay = { index: 1, scenes: [], eighths: 0, castIds: [] };
   for (const strip of board.strips) {
     if (strip.type === 'daybreak') {
-      cur.label = strip.label; cur.date = strip.date;
+      cur.label = strip.label;
+      cur.date = strip.date;
       days.push(cur);
       cur = { index: days.length + 1, scenes: [], eighths: 0, castIds: [] };
     } else if (strip.type === 'scene') {
@@ -91,7 +114,13 @@ export function shootDays(board: Board): ShootDay[] {
 }
 
 /** Day-out-of-days: for each cast member, which shoot days they work. */
-interface DoodRow { castId: number; name: string; workDays: number[]; total: number; span: number }
+interface DoodRow {
+  castId: number;
+  name: string;
+  workDays: number[];
+  total: number;
+  span: number;
+}
 
 export function dood(board: Board): DoodRow[] {
   const days = shootDays(board);
@@ -119,7 +148,7 @@ export function moveStrips(board: Board, indices: number[], to: number): Board {
   const set = new Set(pick);
   const block = pick.map(i => board.strips[i]);
   const rest = board.strips.filter((_, i) => !set.has(i));
-  const at = to - pick.filter(i => i < to).length;   // where `to` sits once the block is lifted out
+  const at = to - pick.filter(i => i < to).length; // where `to` sits once the block is lifted out
   const strips = [...rest.slice(0, at), ...block, ...rest.slice(at)];
   if (strips.every((x, i) => x === board.strips[i])) return board;
   return { ...board, strips };
@@ -132,7 +161,7 @@ export function dayBlocks(board: Board): Strip[][] {
     blocks[blocks.length - 1].push(s);
     if (s.type === 'daybreak') blocks.push([]);
   }
-  if (blocks.length > 1 && blocks[blocks.length - 1].length === 0) blocks.pop();   // the board ends on a day break
+  if (blocks.length > 1 && blocks[blocks.length - 1].length === 0) blocks.pop(); // the board ends on a day break
   return blocks;
 }
 
@@ -146,7 +175,7 @@ export function moveDay(board: Board, fromDay: number, toDay: number): Board {
   const [b] = order.splice(fromDay - 1, 1);
   order.splice(toDay - 1, 0, b);
   const strips: Strip[] = [];
-  const spare = order[order.length - 1].find(s => s.type === 'daybreak');   // the new last day sheds its break; a day that needs one takes it
+  const spare = order[order.length - 1].find(s => s.type === 'daybreak'); // the new last day sheds its break; a day that needs one takes it
   order.forEach((block, i) => {
     const last = i === order.length - 1;
     strips.push(...block.filter(s => s.type !== 'daybreak'));
@@ -180,7 +209,8 @@ export function splitStrip(board: Board, index: number): Board {
   const s = board.strips[index];
   if (!s || s.type !== 'scene') return board;
   const e = stripEighths(board, s);
-  const first = Math.ceil(e / 2), second = e - first;
+  const first = Math.ceil(e / 2),
+    second = e - first;
   const strips = board.strips.slice();
   strips.splice(index, 1, { ...s, eighths: first }, { type: 'scene', sceneId: s.sceneId, eighths: second });
   return { ...board, strips };
@@ -200,7 +230,9 @@ export function setPartEighths(board: Board, index: number, eighths: number): Bo
   const s = board.strips[index];
   if (!s || s.type !== 'scene') return board;
   const total = board.scenes.find(x => x.id === s.sceneId)?.eighths ?? 0;
-  const others = board.strips.map((x, i) => (i !== index && x.type === 'scene' && x.sceneId === s.sceneId ? i : -1)).filter(i => i >= 0);
+  const others = board.strips
+    .map((x, i) => (i !== index && x.type === 'scene' && x.sceneId === s.sceneId ? i : -1))
+    .filter(i => i >= 0);
   if (!others.length) return board;
   const mine = Math.max(0, Math.min(total, Math.round(eighths)));
   const was = others.map(i => stripEighths(board, board.strips[i]));
@@ -209,7 +241,7 @@ export function setPartEighths(board: Board, index: number, eighths: number): Bo
   const strips = board.strips.slice();
   strips[index] = { ...s, eighths: mine };
   others.forEach((i, k) => {
-    const share = k === others.length - 1 ? left : Math.round((total - mine) * (was[k] || 1) / wasSum);
+    const share = k === others.length - 1 ? left : Math.round(((total - mine) * (was[k] || 1)) / wasSum);
     strips[i] = { ...(strips[i] as Extract<Strip, { type: 'scene' }>), eighths: Math.max(0, share) };
     left -= Math.max(0, share);
   });
@@ -223,15 +255,20 @@ export function clearDayBreaks(board: Board): Board {
 /** Drop a day break whenever the running page count would pass the target. Keeps your scene order. */
 export function autoDayBreaks(board: Board, targetEighths = board.targetEighthsPerDay): Board {
   const { head, tail } = splitParked(board);
-  if (tail.length) return { ...autoDayBreaks(head, targetEighths), strips: [...autoDayBreaks(head, targetEighths).strips, ...tail] };
+  if (tail.length)
+    return { ...autoDayBreaks(head, targetEighths), strips: [...autoDayBreaks(head, targetEighths).strips, ...tail] };
   const byId = new Map(board.scenes.map(s => [s.id, s]));
   const out: Strip[] = [];
   let run = 0;
   for (const strip of board.strips) {
     if (strip.type === 'daybreak') continue;
     const e = stripEighths(board, strip, byId);
-    if (run > 0 && run + e > targetEighths) { out.push({ type: 'daybreak', id: newId('db') }); run = 0; }
-    out.push(strip); run += e;
+    if (run > 0 && run + e > targetEighths) {
+      out.push({ type: 'daybreak', id: newId('db') });
+      run = 0;
+    }
+    out.push(strip);
+    run += e;
   }
   return { ...board, strips: out };
 }
@@ -240,33 +277,69 @@ export function autoDayBreaks(board: Board, targetEighths = board.targetEighthsP
  *  possible (linear partition: binary search on the max day, greedy feasibility check). */
 export function fitDayBreaks(board: Board, days: number): Board {
   const { head, tail } = splitParked(board);
-  if (tail.length) { const r = fitDayBreaks(head, days); return { ...r, strips: [...r.strips, ...tail] }; }
+  if (tail.length) {
+    const r = fitDayBreaks(head, days);
+    return { ...r, strips: [...r.strips, ...tail] };
+  }
   const byId = new Map(board.scenes.map(s => [s.id, s]));
   const items = board.strips.filter(s => s.type !== 'daybreak');
   const w = items.map(s => stripEighths(board, s, byId));
   const n = Math.max(1, Math.min(Math.floor(days), items.length));
-  const fits = (cap: number) => { let used = 1, run = 0; for (const e of w) { if (run + e > cap && run > 0) { used++; run = 0; } run += e; } return used <= n; };
-  let lo = Math.max(...w, 0), hi = w.reduce((a, b) => a + b, 0);
-  while (lo < hi) { const mid = Math.floor((lo + hi) / 2); if (fits(mid)) hi = mid; else lo = mid + 1; }
+  const fits = (cap: number) => {
+    let used = 1,
+      run = 0;
+    for (const e of w) {
+      if (run + e > cap && run > 0) {
+        used++;
+        run = 0;
+      }
+      run += e;
+    }
+    return used <= n;
+  };
+  let lo = Math.max(...w, 0),
+    hi = w.reduce((a, b) => a + b, 0);
+  while (lo < hi) {
+    const mid = Math.floor((lo + hi) / 2);
+    if (fits(mid)) hi = mid;
+    else lo = mid + 1;
+  }
   // lay out at that cap as groups of strip indexes
   const groups: number[][] = [[]];
   let run = 0;
   w.forEach((e, i) => {
-    if (run > 0 && run + e > lo) { groups.push([]); run = 0; }
-    groups[groups.length - 1].push(i); run += e;
+    if (run > 0 && run + e > lo) {
+      groups.push([]);
+      run = 0;
+    }
+    groups[groups.length - 1].push(i);
+    run += e;
   });
   // the greedy pass can come in under n days; split the heaviest splittable day at its most balanced point until we have n
   const sum = (g: number[]) => g.reduce((t, i) => t + w[i], 0);
   while (groups.length < n) {
-    const candidates = groups.map((g, gi) => ({ gi, e: sum(g) })).filter(x => groups[x.gi].length > 1).sort((x, y) => y.e - x.e);
+    const candidates = groups
+      .map((g, gi) => ({ gi, e: sum(g) }))
+      .filter(x => groups[x.gi].length > 1)
+      .sort((x, y) => y.e - x.e);
     if (!candidates.length) break;
     const g = groups[candidates[0].gi];
-    let best = 1, bestDiff = Infinity;
-    for (let k = 1; k < g.length; k++) { const d = Math.abs(sum(g.slice(0, k)) - sum(g.slice(k))); if (d < bestDiff) { bestDiff = d; best = k; } }
+    let best = 1,
+      bestDiff = Infinity;
+    for (let k = 1; k < g.length; k++) {
+      const d = Math.abs(sum(g.slice(0, k)) - sum(g.slice(k)));
+      if (d < bestDiff) {
+        bestDiff = d;
+        best = k;
+      }
+    }
     groups.splice(candidates[0].gi, 1, g.slice(0, best), g.slice(best));
   }
   const out: Strip[] = [];
-  groups.forEach((g, gi) => { if (gi > 0) out.push({ type: 'daybreak', id: newId('db') }); for (const i of g) out.push(items[i]); });
+  groups.forEach((g, gi) => {
+    if (gi > 0) out.push({ type: 'daybreak', id: newId('db') });
+    for (const i of g) out.push(items[i]);
+  });
   return { ...board, strips: out };
 }
 
@@ -288,15 +361,19 @@ export function syncCastDaysFromBoard(p: Project): Project {
     if (l.daysFrom !== 'board' || !l.participantId || !boardDays.has(l.participantId)) return l;
     const amount = boardDays.get(l.participantId)!;
     if (l.amount === amount) return l;
-    touched = true; return { ...l, amount };
+    touched = true;
+    return { ...l, amount };
   });
   const dayTotals = new Map<string, number>();
-  for (const l of lines) if (l.participantId && l.unit === 'DAY' && boardDays.has(l.participantId)) dayTotals.set(l.participantId, (dayTotals.get(l.participantId) ?? 0) + l.amount);
+  for (const l of lines)
+    if (l.participantId && l.unit === 'DAY' && boardDays.has(l.participantId))
+      dayTotals.set(l.participantId, (dayTotals.get(l.participantId) ?? 0) + l.amount);
   const participants = p.participants.map(pt => {
     if (!boardDays.has(pt.id)) return pt;
     const days = dayTotals.has(pt.id) ? dayTotals.get(pt.id)! : boardDays.get(pt.id)!;
     if (days === pt.days) return pt;
-    touched = true; return { ...pt, days };
+    touched = true;
+    return { ...pt, days };
   });
   return touched ? { ...p, participants, lines } : p;
 }
@@ -311,8 +388,13 @@ export function adoptBoardDays(p: Project): Project {
   const owned = new Set<string>();
   const boardDays = new Map<string, number>();
   for (const pt of p.participants) {
-    if (pt.castId != null) { owned.add(pt.id); if (daysByCast.has(pt.castId)) boardDays.set(pt.id, daysByCast.get(pt.castId)!); }
-    else if (pt.followsCastIds?.length || pt.followsElements?.length) { owned.add(pt.id); boardDays.set(pt.id, daysFollowing(p.board, pt)); }
+    if (pt.castId != null) {
+      owned.add(pt.id);
+      if (daysByCast.has(pt.castId)) boardDays.set(pt.id, daysByCast.get(pt.castId)!);
+    } else if (pt.followsCastIds?.length || pt.followsElements?.length) {
+      owned.add(pt.id);
+      boardDays.set(pt.id, daysFollowing(p.board, pt));
+    }
   }
   if (!owned.size) return p;
   const flagged = new Set(p.lines.filter(l => l.daysFrom === 'board' && l.participantId).map(l => l.participantId!));
@@ -323,16 +405,35 @@ export function adoptBoardDays(p: Project): Project {
   const done = new Set<string>();
   for (const l of p.lines) {
     const pid = l.participantId;
-    if (!pid || l.unit !== 'DAY' || !owned.has(pid) || flagged.has(pid) || done.has(pid)) { out.push(l); continue; }
+    if (!pid || l.unit !== 'DAY' || !owned.has(pid) || flagged.has(pid) || done.has(pid)) {
+      out.push(l);
+      continue;
+    }
     // the first eligible DAY line for this person: a "Shoot" line wins, otherwise whichever comes first
     const firstShoot = p.lines.find(x => x.participantId === pid && x.unit === 'DAY' && combined.test(x.description));
-    if (firstShoot && firstShoot !== l) { out.push(l); continue; }
-    done.add(pid); changed = true;
+    if (firstShoot && firstShoot !== l) {
+      out.push(l);
+      continue;
+    }
+    done.add(pid);
+    changed = true;
     if (combined.test(l.description) && extra.test(l.description)) {
       const shoot = boardDays.get(pid);
       const rest = shoot == null ? 0 : Math.max(0, l.amount - shoot);
-      out.push({ ...l, description: l.description.replace(/\s*\|\s*rehearsal\s*\|\s*fitting/i, '').replace(/^shoot.*$/i, 'Shoot'), daysFrom: 'board' });
-      out.push({ ...l, id: `${l.id}_rf`, description: 'Rehearsal | Fitting', amount: rest, daysFrom: undefined, notes: 'Days off the board: rehearsals, fittings, a wardrobe test. Edit freely; the Shoot line above follows the stripboard.' });
+      out.push({
+        ...l,
+        description: l.description.replace(/\s*\|\s*rehearsal\s*\|\s*fitting/i, '').replace(/^shoot.*$/i, 'Shoot'),
+        daysFrom: 'board',
+      });
+      out.push({
+        ...l,
+        id: `${l.id}_rf`,
+        description: 'Rehearsal | Fitting',
+        amount: rest,
+        daysFrom: undefined,
+        notes:
+          'Days off the board: rehearsals, fittings, a wardrobe test. Edit freely; the Shoot line above follows the stripboard.',
+      });
     } else {
       out.push({ ...l, daysFrom: 'board' });
     }
@@ -350,12 +451,22 @@ export function syncFollowersFromBoard(p: Project): { project: Project; changed:
     return { ...pt, days: d };
   });
   if (!changed.length) return { project: p, changed };
-  const daysOf = new Map(participants.filter(x => x.followsCastIds?.length || x.followsElements?.length).map(x => [x.id, x.days]));
-  const lines = p.lines.map(l => (!l.participantId || l.unit !== 'DAY' || !daysOf.has(l.participantId)) ? l : { ...l, amount: daysOf.get(l.participantId)! });
+  const daysOf = new Map(
+    participants.filter(x => x.followsCastIds?.length || x.followsElements?.length).map(x => [x.id, x.days]),
+  );
+  const lines = p.lines.map(l =>
+    !l.participantId || l.unit !== 'DAY' || !daysOf.has(l.participantId)
+      ? l
+      : { ...l, amount: daysOf.get(l.participantId)! },
+  );
   return { project: { ...p, participants, lines }, changed };
 }
 
-const normEl = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+const normEl = (s: string) =>
+  s
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
 const sceneHasElement = (s: Scene, els: BoardElement[]) =>
   els.some(e => (s.elements[e.category] ?? []).some(item => normEl(item) === normEl(e.item)));
 
@@ -366,21 +477,32 @@ export function daysWithElements(board: Board, els: BoardElement[]): number {
 }
 
 /** Days for someone who follows cast and/or tags: any day either brings them in. */
-export function daysFollowing(board: Board, who: { followsCastIds?: number[]; followsElements?: BoardElement[] }): number {
-  const cast = who.followsCastIds ?? [], els = who.followsElements ?? [];
+export function daysFollowing(
+  board: Board,
+  who: { followsCastIds?: number[]; followsElements?: BoardElement[] },
+): number {
+  const cast = who.followsCastIds ?? [],
+    els = who.followsElements ?? [];
   if (!cast.length && !els.length) return 0;
-  return shootDays(board).filter(d => d.castIds.some(id => cast.includes(id)) || d.scenes.some(s => sceneHasElement(s, els))).length;
+  return shootDays(board).filter(
+    d => d.castIds.some(id => cast.includes(id)) || d.scenes.some(s => sceneHasElement(s, els)),
+  ).length;
 }
 
 /** Every tag on the board, once each, with how many scenes carry it; for picking what a position follows. */
 export function boardElements(board: Board): (BoardElement & { scenes: number })[] {
   const m = new Map<string, BoardElement & { scenes: number }>();
-  for (const s of board.scenes) for (const [category, items] of Object.entries(s.elements)) for (const item of items) {
-    const k = category + '\u0000' + normEl(item);
-    const hit = m.get(k);
-    if (hit) hit.scenes++; else m.set(k, { category, item, scenes: 1 });
-  }
-  return [...m.values()].sort((a, b) => a.category.localeCompare(b.category) || b.scenes - a.scenes || a.item.localeCompare(b.item));
+  for (const s of board.scenes)
+    for (const [category, items] of Object.entries(s.elements))
+      for (const item of items) {
+        const k = category + '\u0000' + normEl(item);
+        const hit = m.get(k);
+        if (hit) hit.scenes++;
+        else m.set(k, { category, item, scenes: 1 });
+      }
+  return [...m.values()].sort(
+    (a, b) => a.category.localeCompare(b.category) || b.scenes - a.scenes || a.item.localeCompare(b.item),
+  );
 }
 
 export const totalEighths = (board: Board) => board.scenes.reduce((n, s) => n + s.eighths, 0);
@@ -397,10 +519,18 @@ export function castSceneCounts(board: Board): Map<number, number> {
 export function renumberCast(p: Project, order: number[]): Project {
   const b = p.board;
   const seen = new Set<number>();
-  const ids = [...order.filter(id => b.castList.some(c => c.id === id) && !seen.has(id) && (seen.add(id), true)), ...b.castList.map(c => c.id).filter(id => !seen.has(id))];
+  const ids = [
+    ...order.filter(id => b.castList.some(c => c.id === id) && !seen.has(id) && (seen.add(id), true)),
+    ...b.castList.map(c => c.id).filter(id => !seen.has(id)),
+  ];
   const map = new Map(ids.map((old, i) => [old, i + 1]));
   const castList = ids.map(old => ({ ...b.castList.find(c => c.id === old)!, id: map.get(old)! }));
-  const scenes = b.scenes.map(s => ({ ...s, cast: s.cast.map(c => c.id != null ? { ...c, id: map.get(c.id) ?? c.id } : c).sort((x, y) => (x.id ?? 0) - (y.id ?? 0)) }));
+  const scenes = b.scenes.map(s => ({
+    ...s,
+    cast: s.cast
+      .map(c => (c.id != null ? { ...c, id: map.get(c.id) ?? c.id } : c))
+      .sort((x, y) => (x.id ?? 0) - (y.id ?? 0)),
+  }));
   const participants = p.participants.map(pt => ({
     ...pt,
     ...(pt.castId != null && map.has(pt.castId) ? { castId: map.get(pt.castId)! } : {}),
@@ -415,11 +545,17 @@ export function dropCastMember(p: Project, castId: number): Project {
   const b = p.board;
   if (!b.castList.some(c => c.id === castId)) return p;
   const castList = b.castList.filter(c => c.id !== castId);
-  const scenes = b.scenes.map(s => s.cast.some(c => c.id === castId) ? { ...s, cast: s.cast.filter(c => c.id !== castId) } : s);
+  const scenes = b.scenes.map(s =>
+    s.cast.some(c => c.id === castId) ? { ...s, cast: s.cast.filter(c => c.id !== castId) } : s,
+  );
   const participants = p.participants.map(pt => {
     let out = pt;
-    if (pt.castId === castId) { const { castId: _drop, ...rest } = pt; out = rest; }
-    if (pt.followsCastIds?.includes(castId)) out = { ...out, followsCastIds: pt.followsCastIds.filter(id => id !== castId) };
+    if (pt.castId === castId) {
+      const { castId: _drop, ...rest } = pt;
+      out = rest;
+    }
+    if (pt.followsCastIds?.includes(castId))
+      out = { ...out, followsCastIds: pt.followsCastIds.filter(id => id !== castId) };
     return out;
   });
   return { ...p, board: { ...b, castList, scenes }, participants };
@@ -438,6 +574,8 @@ export const castOrderByScenes = (board: Board): number[] => {
 /** Order of first appearance in the script. */
 export const castOrderByAppearance = (board: Board): number[] => {
   const first = new Map<number, number>();
-  board.scenes.forEach((s, i) => { for (const c of s.cast) if (c.id != null && !first.has(c.id)) first.set(c.id, i); });
+  board.scenes.forEach((s, i) => {
+    for (const c of s.cast) if (c.id != null && !first.has(c.id)) first.set(c.id, i);
+  });
   return board.castList.map(c => c.id).sort((a, b) => (first.get(a) ?? 1e9) - (first.get(b) ?? 1e9) || a - b);
 };

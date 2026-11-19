@@ -10,15 +10,22 @@ export function readTheme(): ThemeChoice {
   try {
     const v = localStorage.getItem(THEME_KEY);
     return v === 'light' || v === 'dark' || v === 'system' ? v : 'system';
-  } catch { return 'system'; }
+  } catch {
+    return 'system';
+  }
 }
 
 export function applyTheme(t: ThemeChoice): void {
   const el = document.documentElement;
-  if (t === 'system') el.removeAttribute('data-theme'); else el.setAttribute('data-theme', t);
+  if (t === 'system') el.removeAttribute('data-theme');
+  else el.setAttribute('data-theme', t);
 }
 
 export function saveTheme(t: ThemeChoice): void {
-  try { localStorage.setItem(THEME_KEY, t); } catch { /* private window: the choice lasts for the session */ }
+  try {
+    localStorage.setItem(THEME_KEY, t);
+  } catch {
+    /* private window: the choice lasts for the session */
+  }
   applyTheme(t);
 }

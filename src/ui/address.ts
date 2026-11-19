@@ -8,7 +8,11 @@
 export function webLink(v: unknown): string | null {
   if (typeof v !== 'string') return null;
   let url: URL;
-  try { url = new URL(v.trim()); } catch { return null; }   // no base given: a relative or //host address does not parse
+  try {
+    url = new URL(v.trim());
+  } catch {
+    return null;
+  } // no base given: a relative or //host address does not parse
   return url.protocol === 'http:' || url.protocol === 'https:' ? url.href : null;
 }
 

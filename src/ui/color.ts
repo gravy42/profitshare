@@ -5,6 +5,7 @@ const PLAIN = /^(#[0-9a-f]{3,8}|[a-z]{3,30}|(rgb|rgba|hsl|hsla|oklch|oklab|lab|l
 const NOT_COLOURS = /^(url|var|inherit|initial|unset|revert|image|element|attr|env|calc)$/i;
 
 /** True for a hex, an rgb()/hsl()-style function of numbers, or a colour name: nothing that could name a file. */
-export const isPlainColor = (v: unknown): v is string => typeof v === 'string' && PLAIN.test(v.trim()) && !NOT_COLOURS.test(v.trim());
+export const isPlainColor = (v: unknown): v is string =>
+  typeof v === 'string' && PLAIN.test(v.trim()) && !NOT_COLOURS.test(v.trim());
 /** The colour if it is a plain one, else the fallback. */
 export const plainColor = (v: unknown, fallback = 'transparent'): string => (isPlainColor(v) ? v.trim() : fallback);

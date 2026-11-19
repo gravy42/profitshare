@@ -15,7 +15,9 @@
     "sample": "node tools/make-sample.mjs",
     "browsers": "node tools/browsers.mjs",
     "deck:scratch": "node tools/deck-scratch.mjs",
-    "fonts:catalogue": "node tools/make-font-catalogue.mjs"
+    "fonts:catalogue": "node tools/make-font-catalogue.mjs",
+    "format": "prettier --write \"src/**/*.{ts,tsx}\" \"tools/**/*.mjs\" \"*.{ts,mjs}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx}\" \"tools/**/*.mjs\" \"*.{ts,mjs}\""
   },
   "dependencies": {
     "@fontsource/caveat": "^5.3.0",
@@ -36,6 +38,7 @@
     "esbuild": "^0.28.2",
     "jsdom": "^31.0.1",
     "playwright": "^1.63.0",
+    "prettier": "3.10.1",
     "typescript": "^7.0.2",
     "vite": "^8.3.8",
     "vite-plugin-singlefile": "^2.3.4",

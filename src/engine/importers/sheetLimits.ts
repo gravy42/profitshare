@@ -2,12 +2,20 @@
  *  A cell is text, a number, true/false, or '' when it is empty (null only for Excel's #NULL! error, as before).
  *  Every row of a sheet has the same width; blank rows inside the sheet are kept so row numbers still line up. */
 export type Cell = string | number | boolean | null;
-export interface SheetRows { name: string; rows: Cell[][] }
-export interface Workbook { sheets: SheetRows[] }
+export interface SheetRows {
+  name: string;
+  rows: Cell[][];
+}
+export interface Workbook {
+  sheets: SheetRows[];
+}
 
 /** An error whose message is written for the person who dropped the file, not for a programmer. */
 export class SpreadsheetError extends Error {
-  constructor(message: string) { super(message); this.name = 'SpreadsheetError'; }
+  constructor(message: string) {
+    super(message);
+    this.name = 'SpreadsheetError';
+  }
 }
 
 /** Hard ceilings, so a file built to exhaust memory (a "zip bomb", a sheet claiming a billion rows) is refused
@@ -33,22 +41,51 @@ export const LIMITS = {
 } as const;
 
 const mb = (n: number) => `${Math.round(n / 1024 / 1024)} MB`;
-const count = (n: number) => String(n).replace(/\B(?=(\d{3})+$)/g, ',');   // 200000 -> 200,000 (anchored, linear)
+const count = (n: number) => String(n).replace(/\B(?=(\d{3})+$)/g, ','); // 200000 -> 200,000 (anchored, linear)
 
 export const tooBig = {
-  file: (bytes: number) => new SpreadsheetError(`This file is ${mb(bytes)}, and ProfitShare reads spreadsheets up to ${mb(LIMITS.fileBytes)}. Save a copy with only the budget sheets in it and drop that.`),
-  unzipped: () => new SpreadsheetError(`This spreadsheet unpacks to more than ${mb(LIMITS.unzippedBytes)}, which is far bigger than any budget. It was not opened. Save a copy with only the budget sheets in it and drop that.`),
-  sheets: (n: number) => new SpreadsheetError(`This workbook has ${count(n)} sheets, and ProfitShare reads up to ${count(LIMITS.sheets)}. Save a copy with only the budget sheets in it and drop that.`),
-  rows: (sheet: string) => new SpreadsheetError(`${where(sheet)} goes past row ${count(LIMITS.rows)}, which is more than ProfitShare reads. Delete the unused rows at the bottom, or save a copy with only the budget in it, and drop that.`),
-  columns: (sheet: string) => new SpreadsheetError(`${where(sheet)} goes past ${count(LIMITS.columns)} columns, which is more than ProfitShare reads. Delete the unused columns on the right, or save a copy with only the budget in it, and drop that.`),
-  cells: () => new SpreadsheetError(`This spreadsheet has more than ${count(LIMITS.cells)} filled cells, which is more than ProfitShare reads. Save a copy with only the budget sheets in it and drop that.`),
-  text: () => new SpreadsheetError('This spreadsheet holds far more text than a budget does, so it was not opened. Save a copy with only the budget sheets in it and drop that.'),
-  grid: (sheet: string) => new SpreadsheetError(`${where(sheet)} is spread over too large an area to read (more than ${count(LIMITS.gridCells)} cells, counting the blank ones). Delete the unused rows and columns, or save a copy with only the budget in it, and drop that.`),
+  file: (bytes: number) =>
+    new SpreadsheetError(
+      `This file is ${mb(bytes)}, and ProfitShare reads spreadsheets up to ${mb(LIMITS.fileBytes)}. Save a copy with only the budget sheets in it and drop that.`,
+    ),
+  unzipped: () =>
+    new SpreadsheetError(
+      `This spreadsheet unpacks to more than ${mb(LIMITS.unzippedBytes)}, which is far bigger than any budget. It was not opened. Save a copy with only the budget sheets in it and drop that.`,
+    ),
+  sheets: (n: number) =>
+    new SpreadsheetError(
+      `This workbook has ${count(n)} sheets, and ProfitShare reads up to ${count(LIMITS.sheets)}. Save a copy with only the budget sheets in it and drop that.`,
+    ),
+  rows: (sheet: string) =>
+    new SpreadsheetError(
+      `${where(sheet)} goes past row ${count(LIMITS.rows)}, which is more than ProfitShare reads. Delete the unused rows at the bottom, or save a copy with only the budget in it, and drop that.`,
+    ),
+  columns: (sheet: string) =>
+    new SpreadsheetError(
+      `${where(sheet)} goes past ${count(LIMITS.columns)} columns, which is more than ProfitShare reads. Delete the unused columns on the right, or save a copy with only the budget in it, and drop that.`,
+    ),
+  cells: () =>
+    new SpreadsheetError(
+      `This spreadsheet has more than ${count(LIMITS.cells)} filled cells, which is more than ProfitShare reads. Save a copy with only the budget sheets in it and drop that.`,
+    ),
+  text: () =>
+    new SpreadsheetError(
+      'This spreadsheet holds far more text than a budget does, so it was not opened. Save a copy with only the budget sheets in it and drop that.',
+    ),
+  grid: (sheet: string) =>
+    new SpreadsheetError(
+      `${where(sheet)} is spread over too large an area to read (more than ${count(LIMITS.gridCells)} cells, counting the blank ones). Delete the unused rows and columns, or save a copy with only the budget in it, and drop that.`,
+    ),
 };
-const where = (sheet: string) => sheet ? `The sheet "${sheet.length > 40 ? sheet.slice(0, 40) + '…' : sheet}"` : 'This file';
+const where = (sheet: string) =>
+  sheet ? `The sheet "${sheet.length > 40 ? sheet.slice(0, 40) + '…' : sheet}"` : 'This file';
 
 /** Shared across the sheets of one file so the ceilings apply to the file, not to each sheet. */
-export interface Budget { cells: number; gridCells: number; chars: number }
+export interface Budget {
+  cells: number;
+  gridCells: number;
+  chars: number;
+}
 export const newBudget = (): Budget => ({ cells: 0, gridCells: 0, chars: 0 });
 
 /** Check a grid of `rows` × `columns` against the ceilings and charge it to the file's budget. */

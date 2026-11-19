@@ -14,7 +14,14 @@ import { dirname, join } from 'node:path';
 /** The folder, relative to the page, that src/engine/importers/pdfLib.ts tells pdf.js to ask. */
 export const PDFJS_DECODER_DIR = 'pdfjs/';
 /** What is shipped: the two decoders, and every licence that covers them. */
-export const PDFJS_DECODER_FILES = ['openjpeg.wasm', 'jbig2.wasm', 'LICENSE_OPENJPEG', 'LICENSE_PDFJS_OPENJPEG', 'LICENSE_JBIG2', 'LICENSE_PDFJS_JBIG2'];
+export const PDFJS_DECODER_FILES = [
+  'openjpeg.wasm',
+  'jbig2.wasm',
+  'LICENSE_OPENJPEG',
+  'LICENSE_PDFJS_OPENJPEG',
+  'LICENSE_JBIG2',
+  'LICENSE_PDFJS_JBIG2',
+];
 
 const TYPES = { wasm: 'application/wasm' };
 /** Where pdfjs-dist keeps them. */
@@ -31,7 +38,8 @@ export function pdfjsDecodersPlugin({ oneFile = false } = {}) {
     config: () => ({ define: { __PDFJS_DECODERS__: JSON.stringify(oneFile ? '' : PDFJS_DECODER_DIR) } }),
     generateBundle() {
       if (oneFile) return;
-      for (const name of PDFJS_DECODER_FILES) this.emitFile({ type: 'asset', fileName: PDFJS_DECODER_DIR + name, source: readFileSync(join(from, name)) });
+      for (const name of PDFJS_DECODER_FILES)
+        this.emitFile({ type: 'asset', fileName: PDFJS_DECODER_DIR + name, source: readFileSync(join(from, name)) });
     },
     configureServer(server) {
       server.middlewares.use((req, res, next) => {

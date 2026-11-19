@@ -43,9 +43,24 @@ describe('reading a brand system', () => {
   it('names colours by the role beside them, splits night from day, finds the faces and the name', () => {
     const b = parseBrandText(DOC, 'fallback');
     expect(b.name).toBe('Salt Flat Universe');
-    expect(b.night).toMatchObject({ bg: '#092827', ink: '#91A9D9', accent: '#F2B705', accent2: '#D27C0E', muted: '#8C9FC2', line: '#3D697A', inkBright: '#F4EDDC', card: '#F4EDDC' });
-    expect(b.day).toMatchObject({ bg: '#F4EDDC', ink: '#092827', accent2: '#A2130B', muted: '#3D697A', line: '#D8CDB5' });
-    expect(b.colors.bg).toBe('#092827');                 // the deck takes night
+    expect(b.night).toMatchObject({
+      bg: '#092827',
+      ink: '#91A9D9',
+      accent: '#F2B705',
+      accent2: '#D27C0E',
+      muted: '#8C9FC2',
+      line: '#3D697A',
+      inkBright: '#F4EDDC',
+      card: '#F4EDDC',
+    });
+    expect(b.day).toMatchObject({
+      bg: '#F4EDDC',
+      ink: '#092827',
+      accent2: '#A2130B',
+      muted: '#3D697A',
+      line: '#D8CDB5',
+    });
+    expect(b.colors.bg).toBe('#092827'); // the deck takes night
     expect(b.fonts).toEqual({ title: 'Special Elite', body: 'Work Sans' });
     expect(b.faces).toContain('Bebas Neue');
     expect(b.swatches.length).toBeGreaterThan(15);
@@ -53,23 +68,28 @@ describe('reading a brand system', () => {
   it('labels on the line after the hex and a single-theme document work too; the darkest and lightest stand in for missing roles', () => {
     const b = parseBrandText('Palette\n#111111\nnavy\n#EEEEEE\nchalk\n#FF6B35\norange', 'x');
     expect(namedColors(['#111111', 'navy'])[0]).toMatchObject({ name: 'navy', hex: '#111111' });
-    expect(b.colors.bg).toBe('#111111'); expect(b.colors.ink).toBe('#EEEEEE');
+    expect(b.colors.bg).toBe('#111111');
+    expect(b.colors.ink).toBe('#EEEEEE');
     expect(b.night).toBeUndefined();
   });
   it('applies to a design without trampling what the person set', () => {
     const d = { ...defaultDesign(), name: 'Mine', colors: { ...defaultDesign().colors, muted: '#123456' } };
     const out = applyBrand(d, parseBrandText(DOC));
     expect(out.name).toBe('Mine');
-    expect(out.colors.bg).toBe('#092827'); expect(out.colors.muted).toBe('#8C9FC2');   // the document names a muted, so it wins
-    expect(out.colors.accent2).toBe('#F4EDDC');                                        // ink-bright over signal for the second accent
-    expect(out.fonts.title).toMatch(/^"Special Elite"/); expect(out.line).toBe('#3D697A');
+    expect(out.colors.bg).toBe('#092827');
+    expect(out.colors.muted).toBe('#8C9FC2'); // the document names a muted, so it wins
+    expect(out.colors.accent2).toBe('#F4EDDC'); // ink-bright over signal for the second accent
+    expect(out.fonts.title).toMatch(/^"Special Elite"/);
+    expect(out.line).toBe('#3D697A');
   });
 });
 
 describe('slide rules in words', () => {
-  it('reads the sign-off, and no longer the report deck\'s split layout, bleed and eyebrows', async () => {
+  it("reads the sign-off, and no longer the report deck's split layout, bleed and eyebrows", async () => {
     const { deckRulesFromText } = await import('./brand');
-    const r = deckRulesFromText('DECKSLIDE · SPLIT LAYOUT, ALWAYS NIGHT. Photo bleeds 50 to 60%, text column right with a 48px outer margin. One eyebrow per slide; the slide\'s first word is the eyebrow. The sign-off tag, from the world of SALT FLAT, goes on anything that is not already the film.');
+    const r = deckRulesFromText(
+      "DECKSLIDE · SPLIT LAYOUT, ALWAYS NIGHT. Photo bleeds 50 to 60%, text column right with a 48px outer margin. One eyebrow per slide; the slide's first word is the eyebrow. The sign-off tag, from the world of SALT FLAT, goes on anything that is not already the film.",
+    );
     expect(r).toEqual({ signoff: 'from the world of SALT FLAT' });
     expect(deckRulesFromText('Colours and type only.')).toEqual({});
   });

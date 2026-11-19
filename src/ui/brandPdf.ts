@@ -8,10 +8,26 @@ export async function pdfText(data: ArrayBuffer): Promise<string> {
   for (let p = 1; p <= doc.numPages; p++) {
     const page = await doc.getPage(p);
     const content = await page.getTextContent();
-    const items = content.items.flatMap((it: any) => it.str !== undefined && it.transform ? [{ x: it.transform[4] as number, y: it.transform[5] as number, s: it.str as string }] : []);
+    const items = content.items.flatMap((it: any) =>
+      it.str !== undefined && it.transform
+        ? [{ x: it.transform[4] as number, y: it.transform[5] as number, s: it.str as string }]
+        : [],
+    );
     const rows = new Map<number, { x: number; s: string }[]>();
-    for (const it of items) { if (!it.s.trim()) continue; const k = Math.round(it.y / 3) * 3; (rows.get(k) ?? rows.set(k, []).get(k)!).push(it); }
-    for (const [, row] of [...rows.entries()].sort((a, b) => b[0] - a[0])) out.push(row.sort((a, b) => a.x - b.x).map(r => r.s).join(' ').replace(/\s+/g, ' ').trim());
+    for (const it of items) {
+      if (!it.s.trim()) continue;
+      const k = Math.round(it.y / 3) * 3;
+      (rows.get(k) ?? rows.set(k, []).get(k)!).push(it);
+    }
+    for (const [, row] of [...rows.entries()].sort((a, b) => b[0] - a[0]))
+      out.push(
+        row
+          .sort((a, b) => a.x - b.x)
+          .map(r => r.s)
+          .join(' ')
+          .replace(/\s+/g, ' ')
+          .trim(),
+      );
     out.push('');
   }
   return out.join('\n');
@@ -25,7 +41,9 @@ export async function pdfPages(data: ArrayBuffer, width = 1600, max = 20): Promi
     const page = await doc.getPage(p);
     const v1 = page.getViewport({ scale: 1 });
     const viewport = page.getViewport({ scale: width / v1.width });
-    const c = document.createElement('canvas'); c.width = Math.round(viewport.width); c.height = Math.round(viewport.height);
+    const c = document.createElement('canvas');
+    c.width = Math.round(viewport.width);
+    c.height = Math.round(viewport.height);
     await page.render({ canvas: c, canvasContext: c.getContext('2d')!, viewport }).promise;
     out.push(c.toDataURL('image/jpeg', 0.8));
   }

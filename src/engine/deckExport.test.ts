@@ -6,7 +6,28 @@ import { sampleProject } from '../data/seed';
 import { applyDeal } from './deal';
 import { withPitch } from './pitch';
 import type { Project } from './types';
-import { BIG_DOWNLOAD_BYTES, ENDING_MAX, FILE_NAME_MAX, HEAVY_FILE_BYTES, PDF_SLIDE_BYTES, PICTURE_MAX_EDGE, ZIP_NAME_MAX_BYTES, biggestPictures, crc32, dataUrlMime, deckFileName, estimateEverything, estimateText, fitWithin, fontsLeftOut, heavyFileWarning, pictureFormat, sendSummary, zipName, zipStore } from './deckExport';
+import {
+  BIG_DOWNLOAD_BYTES,
+  ENDING_MAX,
+  FILE_NAME_MAX,
+  HEAVY_FILE_BYTES,
+  PDF_SLIDE_BYTES,
+  PICTURE_MAX_EDGE,
+  ZIP_NAME_MAX_BYTES,
+  biggestPictures,
+  crc32,
+  dataUrlMime,
+  deckFileName,
+  estimateEverything,
+  estimateText,
+  fitWithin,
+  fontsLeftOut,
+  heavyFileWarning,
+  pictureFormat,
+  sendSummary,
+  zipName,
+  zipStore,
+} from './deckExport';
 import { fileSize } from './deckEdit';
 
 const bytes = (text: string) => new TextEncoder().encode(text);
@@ -16,11 +37,17 @@ describe('file names', () => {
     expect(deckFileName('Salt Flat', 'html')).toBe('salt-flat-deck.html');
     expect(deckFileName('Salt Flat', 'html', { ending: 'ada-example' })).toBe('salt-flat-deck-ada-example.html');
     expect(deckFileName('Salt Flat', 'pdf')).toBe('salt-flat-deck.pdf');
-    expect(deckFileName('Salt Flat', 'pdf', { ask: 'with-grants' })).toBe('salt-flat-deck-with-grants.pdf');   // with two asks, a PDF's name always says which
-    expect(deckFileName('Salt Flat', 'pdf', { ending: 'ada-example', ask: 'with-grants' })).toBe('salt-flat-deck-ada-example-with-grants.pdf');
+    expect(deckFileName('Salt Flat', 'pdf', { ask: 'with-grants' })).toBe('salt-flat-deck-with-grants.pdf'); // with two asks, a PDF's name always says which
+    expect(deckFileName('Salt Flat', 'pdf', { ending: 'ada-example', ask: 'with-grants' })).toBe(
+      'salt-flat-deck-ada-example-with-grants.pdf',
+    );
     expect(deckFileName('Salt Flat', 'pdf', { ask: 'without-grants' })).toBe('salt-flat-deck-without-grants.pdf');
-    expect(deckFileName('Salt Flat', 'pdf', { ending: 'placeholder-fund', ask: 'without-grants' })).toBe('salt-flat-deck-placeholder-fund-without-grants.pdf');
-    expect(deckFileName('Salt Flat', 'html', { ending: 'ada-example', ask: 'without-grants' })).toBe('salt-flat-deck-ada-example.html');   // a web deck switches asks itself
+    expect(deckFileName('Salt Flat', 'pdf', { ending: 'placeholder-fund', ask: 'without-grants' })).toBe(
+      'salt-flat-deck-placeholder-fund-without-grants.pdf',
+    );
+    expect(deckFileName('Salt Flat', 'html', { ending: 'ada-example', ask: 'without-grants' })).toBe(
+      'salt-flat-deck-ada-example.html',
+    ); // a web deck switches asks itself
     expect(deckFileName('Salt Flat', 'zip')).toBe('salt-flat-deck-files.zip');
   });
   it('are safe whatever the film is called', () => {
@@ -33,7 +60,9 @@ describe('file names', () => {
     const long = deckFileName('f'.repeat(300), 'pdf', { ending: 'e'.repeat(300), ask: 'without-grants' });
     expect(long).toBe(`${'f'.repeat(35)}-deck-${'e'.repeat(60)}-without-grants.pdf`);
     expect(long.length).toBe(FILE_NAME_MAX);
-    expect(deckFileName('Salt Flat', 'html', { ending: `${'e'.repeat(59)}-x` })).toBe(`salt-flat-deck-${'e'.repeat(59)}.html`);   // never ends on a hyphen
+    expect(deckFileName('Salt Flat', 'html', { ending: `${'e'.repeat(59)}-x` })).toBe(
+      `salt-flat-deck-${'e'.repeat(59)}.html`,
+    ); // never ends on a hyphen
     expect(ENDING_MAX).toBe(60);
   });
 });
@@ -67,7 +96,12 @@ describe('pictures', () => {
 
 describe('a heavy file', () => {
   const img = (id: string, alt: string, n: number) => ({ id, alt, src: `data:image/jpeg;base64,${'A'.repeat(n)}` });
-  const images = [img('a', 'Look book picture', 4_000_000), img('b', 'The flat at dawn', 12_000_000), img('c', 'Dusk', 400), img('d', 'Noon', 8_000_000)];
+  const images = [
+    img('a', 'Look book picture', 4_000_000),
+    img('b', 'The flat at dawn', 12_000_000),
+    img('c', 'Dusk', 400),
+    img('d', 'Noon', 8_000_000),
+  ];
   it('is said in megabytes, with the biggest pictures named, largest first', () => {
     expect(heavyFileWarning(HEAVY_FILE_BYTES, images)).toBe('');
     expect(heavyFileWarning(1_100_000, images)).toBe('');
@@ -91,17 +125,50 @@ describe('what is said before a file is made', () => {
   const base = (): Project => withPitch(applyDeal(sampleProject()));
   it("names the font files that travel, the app's own typefaces the theme uses, and the files left behind", () => {
     const p = base();
-    const q: Project = { ...p, waterfall: { ...p.waterfall, nonRecoupable: 50_000 }, pitch: { ...p.pitch!, lookbook: [{ id: 'x', dataUrl: 'data:image/png;base64,AAAA', caption: '', section: 'tone' }],
-      design: { ...p.pitch!.design!, fonts: { title: '', body: 'Georgia, serif' }, fontFiles: [{ id: 'f1', role: 'title', family: 'Licensed Face', dataUrl: FONT, embedOk: true }, { id: 'f2', role: 'body', family: 'Unlicensed Face', dataUrl: FONT, embedOk: false }] } } };
+    const q: Project = {
+      ...p,
+      waterfall: { ...p.waterfall, nonRecoupable: 50_000 },
+      pitch: {
+        ...p.pitch!,
+        lookbook: [{ id: 'x', dataUrl: 'data:image/png;base64,AAAA', caption: '', section: 'tone' }],
+        design: {
+          ...p.pitch!.design!,
+          fonts: { title: '', body: 'Georgia, serif' },
+          fontFiles: [
+            { id: 'f1', role: 'title', family: 'Licensed Face', dataUrl: FONT, embedOk: true },
+            { id: 'f2', role: 'body', family: 'Unlicensed Face', dataUrl: FONT, embedOk: false },
+          ],
+        },
+      },
+    };
     const s = sendSummary(q);
-    expect(s.inside).toEqual(['Licensed Face (your title font file)']);   // the title has its own file, and the body's list ends on a font every computer has
-    expect(sendSummary({ ...q, name: 'S\u00f3l P\u0142aski' }).inside).toEqual(['Licensed Face (your title font file)', 'Special Elite']);   // letters the file may lack: the app's face goes too
+    expect(s.inside).toEqual(['Licensed Face (your title font file)']); // the title has its own file, and the body's list ends on a font every computer has
+    expect(sendSummary({ ...q, name: 'S\u00f3l P\u0142aski' }).inside).toEqual([
+      'Licensed Face (your title font file)',
+      'Special Elite',
+    ]); // letters the file may lack: the app's face goes too
     expect(fontsLeftOut(q)).toEqual([{ family: 'Unlicensed Face', role: 'body' }]);
-    expect(fontsLeftOut({ ...q, pitch: { ...q.pitch!, design: { ...q.pitch!.design!, fontFiles: [null, 7, { id: 'x', role: 'body', family: '', dataUrl: FONT }, { id: 'y', role: 'title', family: 'Gone', dataUrl: 'idb:' }] as never } } })).toEqual([]);
+    expect(
+      fontsLeftOut({
+        ...q,
+        pitch: {
+          ...q.pitch!,
+          design: {
+            ...q.pitch!.design!,
+            fontFiles: [
+              null,
+              7,
+              { id: 'x', role: 'body', family: '', dataUrl: FONT },
+              { id: 'y', role: 'title', family: 'Gone', dataUrl: 'idb:' },
+            ] as never,
+          },
+        },
+      }),
+    ).toEqual([]);
     expect(s.leftOut).toEqual(['Unlicensed Face (your body font file)']);
     expect(s.twoAsks).toBe(true);
     expect(s.slides).toBeGreaterThan(3);
-    expect(q.pitch!.lookbook).toHaveLength(1);   // nothing in the project is touched to work it out
+    expect(q.pitch!.lookbook).toHaveLength(1); // nothing in the project is touched to work it out
   });
   it('says one ask when there are no grants, and survives a project with no pitch', () => {
     const p = base();
@@ -116,7 +183,9 @@ describe('how big "Download everything" will be', () => {
   const img = (n: number) => ({ id: 'i', alt: '', src: `data:image/jpeg;base64,${'A'.repeat(n)}` });
   it('is each web deck, and each PDF as its slides and one copy of every picture', () => {
     expect(estimateEverything(1_000_000, 3, 6, 7, [])).toBe(3_000_000 + 6 * 7 * PDF_SLIDE_BYTES);
-    expect(estimateEverything(1_000_000, 1, 1, 2, [img(400_000), img(800_000)])).toBe(1_000_000 + 2 * PDF_SLIDE_BYTES + 300_000 + 600_000);
+    expect(estimateEverything(1_000_000, 1, 1, 2, [img(400_000), img(800_000)])).toBe(
+      1_000_000 + 2 * PDF_SLIDE_BYTES + 300_000 + 600_000,
+    );
     expect(estimateEverything(NaN, 3, -1, 7, undefined as never)).toBe(0);
   });
   it('is said in words, with a warning over 50 MB', () => {
@@ -140,24 +209,39 @@ describe('CRC-32', () => {
 });
 
 /** Reads an archive the way an unzip tool does: the end record, then the directory, then each file where the directory says it is. */
-function unzip(zip: Uint8Array): { name: string; data: Uint8Array; crc: number; method: number; flags: number; date: number; time: number }[] {
+function unzip(
+  zip: Uint8Array,
+): { name: string; data: Uint8Array; crc: number; method: number; flags: number; date: number; time: number }[] {
   const v = new DataView(zip.buffer, zip.byteOffset, zip.byteLength);
   const end = zip.length - 22;
   expect(v.getUint32(end, true)).toBe(0x06054b50);
-  const count = v.getUint16(end + 10, true), dirSize = v.getUint32(end + 12, true), dirAt = v.getUint32(end + 16, true);
+  const count = v.getUint16(end + 10, true),
+    dirSize = v.getUint32(end + 12, true),
+    dirAt = v.getUint32(end + 16, true);
   expect(v.getUint16(end + 8, true)).toBe(count);
   expect(dirAt + dirSize).toBe(end);
-  const out = []; let at = dirAt; const text = new TextDecoder();
+  const out = [];
+  let at = dirAt;
+  const text = new TextDecoder();
   for (let i = 0; i < count; i++) {
     expect(v.getUint32(at, true)).toBe(0x02014b50);
-    const flags = v.getUint16(at + 8, true), method = v.getUint16(at + 10, true), time = v.getUint16(at + 12, true), date = v.getUint16(at + 14, true);
-    const crc = v.getUint32(at + 16, true), packed = v.getUint32(at + 20, true), size = v.getUint32(at + 24, true);
-    const nameLen = v.getUint16(at + 28, true), extra = v.getUint16(at + 30, true), comment = v.getUint16(at + 32, true), local = v.getUint32(at + 42, true);
+    const flags = v.getUint16(at + 8, true),
+      method = v.getUint16(at + 10, true),
+      time = v.getUint16(at + 12, true),
+      date = v.getUint16(at + 14, true);
+    const crc = v.getUint32(at + 16, true),
+      packed = v.getUint32(at + 20, true),
+      size = v.getUint32(at + 24, true);
+    const nameLen = v.getUint16(at + 28, true),
+      extra = v.getUint16(at + 30, true),
+      comment = v.getUint16(at + 32, true),
+      local = v.getUint32(at + 42, true);
     const name = text.decode(zip.subarray(at + 46, at + 46 + nameLen));
     expect(v.getUint32(local, true)).toBe(0x04034b50);
     expect(v.getUint32(local + 14, true)).toBe(crc);
     expect(v.getUint32(local + 18, true)).toBe(packed);
-    const lName = v.getUint16(local + 26, true), lExtra = v.getUint16(local + 28, true);
+    const lName = v.getUint16(local + 26, true),
+      lExtra = v.getUint16(local + 28, true);
     expect(text.decode(zip.subarray(local + 30, local + 30 + lName))).toBe(name);
     const start = local + 30 + lName + lExtra;
     const raw = zip.subarray(start, start + packed);
@@ -184,7 +268,7 @@ describe('the ZIP writer', () => {
       expect([...f.data]).toEqual([...files[i].data]);
       expect(f.crc).toBe(crc32(files[i].data));
       expect(f.method).toBe(0);
-      expect(f.flags & 0x0800).toBe(0x0800);   // names are UTF-8
+      expect(f.flags & 0x0800).toBe(0x0800); // names are UTF-8
     });
   });
   it('is the same archive for the same files, and carries the date it is given', () => {
@@ -206,12 +290,26 @@ describe('the ZIP writer', () => {
     expect(new TextEncoder().encode(long).length).toBeLessThanOrEqual(ZIP_NAME_MAX_BYTES);
     expect(long).toMatch(/^\u017c+\.html$/);
     expect(zipName(`${'\ud83c\udfac'.repeat(100)}.pdf`, '-2')).toMatch(/^(\ud83c\udfac)+-2\.pdf$/);
-    const twins = unzip(zipStore([{ name: `${'\u017c'.repeat(400)}.html`, data: bytes('1') }, { name: `${'\u017c'.repeat(400)}.html`, data: bytes('2') }, { name: 'n'.repeat(70_000), data: bytes('3') }]));
+    const twins = unzip(
+      zipStore([
+        { name: `${'\u017c'.repeat(400)}.html`, data: bytes('1') },
+        { name: `${'\u017c'.repeat(400)}.html`, data: bytes('2') },
+        { name: 'n'.repeat(70_000), data: bytes('3') },
+      ]),
+    );
     expect(twins.map(f => new TextEncoder().encode(f.name).length <= ZIP_NAME_MAX_BYTES)).toEqual([true, true, true]);
     expect(new Set(twins.map(f => f.name)).size).toBe(3);
     expect(twins[1].name).toMatch(/-2\.html$/);
     expect(twins.map(f => new TextDecoder().decode(f.data))).toEqual(['1', '2', '3']);
-    const back = unzip(zipStore([{ name: 'a.html', data: bytes('1') }, { name: 'A.html', data: bytes('2') }, { name: 'a.html', data: bytes('3') }, { name: 'noext', data: bytes('4') }, { name: 'noext', data: bytes('5') }]));
+    const back = unzip(
+      zipStore([
+        { name: 'a.html', data: bytes('1') },
+        { name: 'A.html', data: bytes('2') },
+        { name: 'a.html', data: bytes('3') },
+        { name: 'noext', data: bytes('4') },
+        { name: 'noext', data: bytes('5') },
+      ]),
+    );
     expect(back.map(f => f.name)).toEqual(['a.html', 'A-2.html', 'a-3.html', 'noext', 'noext-2']);
     expect(back.map(f => new TextDecoder().decode(f.data))).toEqual(['1', '2', '3', '4', '5']);
   });

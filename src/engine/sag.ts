@@ -9,18 +9,36 @@ export const scaleHourly = (dayRate: number) => Math.round((dayRate / 8) * 100) 
  *  brought up to date, move both dates on a year and the notice goes quiet again. Dates are year-month-day. */
 export const SAG_RATES = { asOf: '2026-07-01', nextChange: '2027-07-01' } as const;
 
-const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const MONTHS = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
 /** '2026-07-01' as '1 July 2026', spelled out so nobody reads the month and day the other way round. */
-export const longDate = (ymd: string) => { const [y, m, d] = ymd.split('-').map(Number); return `${d} ${MONTHS[m - 1]} ${y}`; };
+export const longDate = (ymd: string) => {
+  const [y, m, d] = ymd.split('-').map(Number);
+  return `${d} ${MONTHS[m - 1]} ${y}`;
+};
 /** The calendar day where the person is, as year-month-day, so it compares with the dates above as plain text. */
-const localDay = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const localDay = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 /** Have the rates in this file passed the day they were due to rise? `today` can be handed in, so tests can set it. */
 export const sagRatesOutOfDate = (today: Date = new Date()) => localDay(today) >= SAG_RATES.nextChange;
 /** What to tell the person once that day has come; nothing before it. */
-export const sagRatesNotice = (today: Date = new Date()): string | null => sagRatesOutOfDate(today)
-  ? `These SAG-AFTRA rates took effect ${longDate(SAG_RATES.asOf)} and were due to rise on ${longDate(SAG_RATES.nextChange)}. Check the current rates before you rely on these.`
-  : null;
+export const sagRatesNotice = (today: Date = new Date()): string | null =>
+  sagRatesOutOfDate(today)
+    ? `These SAG-AFTRA rates took effect ${longDate(SAG_RATES.asOf)} and were due to rise on ${longDate(SAG_RATES.nextChange)}. Check the current rates before you rely on these.`
+    : null;
 
 /** SAG-AFTRA theatrical minimums. Low-budget rates effective 7/1/2026 (3 %/yr through 2030).
  *  Caps: ULB ≤ $300K, MLB ≤ $700K (DIC → $1.05M), LBA ≤ $2M (DIC → $3.75M). Basic Agreement above that.
@@ -28,10 +46,46 @@ export const sagRatesNotice = (today: Date = new Date()): string | null => sagRa
  *  Sources: sagindie.org 2026 contract notice; SAG-AFTRA MLB agreement text.
  *  Check sagaftra.org before you sign anything; these numbers move every July. */
 export const SAG_TIERS: SagTier[] = [
-  { id: 'ULB',   name: 'Ultra Low Budget',    dayRate: 257,  weeklyRate: null, cap: 300_000,   dicCap: 300_000,   phRate: 0.22, effective: SAG_RATES.asOf },
-  { id: 'MLB',   name: 'Moderate Low Budget', dayRate: 449,  weeklyRate: 1560, cap: 700_000,   dicCap: 1_050_000, phRate: 0.22, effective: SAG_RATES.asOf },
-  { id: 'LBA',   name: 'Low Budget',          dayRate: 834,  weeklyRate: 2896, cap: 2_000_000, dicCap: 3_750_000, phRate: 0.22, effective: SAG_RATES.asOf },
-  { id: 'BASIC', name: 'Theatrical Basic',    dayRate: 1321, weeklyRate: 4585, cap: null,      dicCap: null,      phRate: 0.22, effective: SAG_RATES.asOf },
+  {
+    id: 'ULB',
+    name: 'Ultra Low Budget',
+    dayRate: 257,
+    weeklyRate: null,
+    cap: 300_000,
+    dicCap: 300_000,
+    phRate: 0.22,
+    effective: SAG_RATES.asOf,
+  },
+  {
+    id: 'MLB',
+    name: 'Moderate Low Budget',
+    dayRate: 449,
+    weeklyRate: 1560,
+    cap: 700_000,
+    dicCap: 1_050_000,
+    phRate: 0.22,
+    effective: SAG_RATES.asOf,
+  },
+  {
+    id: 'LBA',
+    name: 'Low Budget',
+    dayRate: 834,
+    weeklyRate: 2896,
+    cap: 2_000_000,
+    dicCap: 3_750_000,
+    phRate: 0.22,
+    effective: SAG_RATES.asOf,
+  },
+  {
+    id: 'BASIC',
+    name: 'Theatrical Basic',
+    dayRate: 1321,
+    weeklyRate: 4585,
+    cap: null,
+    dicCap: null,
+    phRate: 0.22,
+    effective: SAG_RATES.asOf,
+  },
 ];
 
 export const sagTier = (id: SagTierId) => SAG_TIERS.find(t => t.id === id)!;
@@ -55,15 +109,15 @@ export function isSagPerformerLine(l: LineItem): boolean {
 }
 
 interface SagReport {
-  totalProductionCost: number;   // what SAG measures: cash + deferred + contingency
+  totalProductionCost: number; // what SAG measures: cash + deferred + contingency
   cashBudget: number;
   deferredTotal: number;
   dic: boolean;
   target: SagTier;
   targetCap: number | null;
   fits: boolean;
-  headroom: number;              // cap − TPC (negative = over)
-  qualifying: SagTier;           // cheapest tier the current numbers qualify for
+  headroom: number; // cap − TPC (negative = over)
+  qualifying: SagTier; // cheapest tier the current numbers qualify for
   performerDays: number;
   castScaleCostAtTier: Record<SagTierId, number>; // scale wages only (no P&H/agent) at each tier's day rate
   notes: string[];
@@ -74,39 +128,77 @@ export function sagReport(p: Project): SagReport {
   const tpc = p.sag.includeContingency ? ts.totalProductionCost : ts.totalProductionCost - ts.contingency;
   const target = sagTier(p.sag.targetTier);
   const cap = tierCap(target, p.sag.dic);
-  const performerDays = p.lines.filter(isSagPerformerLine).reduce((n, l) => n + (l.unit === 'WEEK' ? l.amount * 5 : l.amount), 0);
-  const castScaleCostAtTier = Object.fromEntries(SAG_TIERS.map(t => [t.id, performerDays * t.dayRate])) as Record<SagTierId, number>;
+  const performerDays = p.lines
+    .filter(isSagPerformerLine)
+    .reduce((n, l) => n + (l.unit === 'WEEK' ? l.amount * 5 : l.amount), 0);
+  const castScaleCostAtTier = Object.fromEntries(SAG_TIERS.map(t => [t.id, performerDays * t.dayRate])) as Record<
+    SagTierId,
+    number
+  >;
   const notes: string[] = [];
-  if (ts.deferredTotal > 0) notes.push(`$${ts.deferredTotal.toLocaleString()} of deferred pay counts toward total production cost. Convert fixed deferments to points if you need to get under a cap.`);
-  if (ts.pointsValue > 0) notes.push(`$${ts.pointsValue.toLocaleString()} of cash value has been converted to points and is outside the budget.`);
+  if (ts.deferredTotal > 0)
+    notes.push(
+      `$${ts.deferredTotal.toLocaleString()} of deferred pay counts toward total production cost. Convert fixed deferments to points if you need to get under a cap.`,
+    );
+  if (ts.pointsValue > 0)
+    notes.push(
+      `$${ts.pointsValue.toLocaleString()} of cash value has been converted to points and is outside the budget.`,
+    );
   // base (8-hour) day rate the cast lines are priced at, ignoring overtime hours on lines that carry them
-  const baseWages = p.lines.filter(isSagPerformerLine).reduce((n, l) => n + (l.unit === 'WEEK' ? l.amount * 5 * (l.multiplier > 1 ? l.rate * 8 / 5 : l.rate / 5) : l.amount * (l.multiplier > 1 ? l.rate * 8 : l.rate)), 0);
+  const baseWages = p.lines
+    .filter(isSagPerformerLine)
+    .reduce(
+      (n, l) =>
+        n +
+        (l.unit === 'WEEK'
+          ? l.amount * 5 * (l.multiplier > 1 ? (l.rate * 8) / 5 : l.rate / 5)
+          : l.amount * (l.multiplier > 1 ? l.rate * 8 : l.rate)),
+      0,
+    );
   if (baseWages > 0 && Math.abs(baseWages / Math.max(1, performerDays) - target.dayRate) > 1)
-    notes.push(`Cast lines are priced at about $${Math.round(baseWages / Math.max(1, performerDays))}/day base but the target tier scale is $${target.dayRate}/day. Use "Re-rate cast" to reprice.`);
+    notes.push(
+      `Cast lines are priced at about $${Math.round(baseWages / Math.max(1, performerDays))}/day base but the target tier scale is $${target.dayRate}/day. Use "Re-rate cast" to reprice.`,
+    );
   const ph = p.fringes.find(f => /^SAG.?AFTRA$/i.test(f.id));
   if (ph && Math.abs(ph.rate - target.phRate) > 0.0001)
-    notes.push(`The budget's SAG-AFTRA pension & health fringe is ${Math.round(ph.rate * 1000) / 10}%; the ${target.name} rate is ${Math.round(target.phRate * 1000) / 10}%. Change the fringe on the top sheet so the cast lines carry the right rate.`);
+    notes.push(
+      `The budget's SAG-AFTRA pension & health fringe is ${Math.round(ph.rate * 1000) / 10}%; the ${target.name} rate is ${Math.round(target.phRate * 1000) / 10}%. Change the fringe on the top sheet so the cast lines carry the right rate.`,
+    );
   return {
-    totalProductionCost: tpc, cashBudget: ts.cashBudget, deferredTotal: ts.deferredTotal, dic: p.sag.dic,
-    target, targetCap: cap, fits: cap === null || tpc <= cap, headroom: cap === null ? Infinity : cap - tpc,
-    qualifying: qualifyingTier(tpc, p.sag.dic), performerDays, castScaleCostAtTier, notes,
+    totalProductionCost: tpc,
+    cashBudget: ts.cashBudget,
+    deferredTotal: ts.deferredTotal,
+    dic: p.sag.dic,
+    target,
+    targetCap: cap,
+    fits: cap === null || tpc <= cap,
+    headroom: cap === null ? Infinity : cap - tpc,
+    qualifying: qualifyingTier(tpc, p.sag.dic),
+    performerDays,
+    castScaleCostAtTier,
+    notes,
   };
 }
 
 /** Reprice every SAG performer day/week line at a tier's minimum. Returns a new project. */
 export function rerateCast(p: Project, tierId: SagTierId): Project {
   const t = sagTier(tierId);
-  let performerWages = 0;   // wages since the last agent fee: shoot days plus a rehearsal / fitting line of their own
+  let performerWages = 0; // wages since the last agent fee: shoot days plus a rehearsal / fitting line of their own
   const lines = p.lines.map(l => {
     if (isSagPerformerLine(l)) {
       // a line with an hours multiplier is priced hourly off the 8-hour scale; a plain line is the flat day/week rate
-      const rate = l.unit === 'WEEK' ? (t.weeklyRate ?? t.dayRate * 5) : l.multiplier > 1 ? scaleHourly(t.dayRate) : t.dayRate;
+      const rate =
+        l.unit === 'WEEK' ? (t.weeklyRate ?? t.dayRate * 5) : l.multiplier > 1 ? scaleHourly(t.dayRate) : t.dayRate;
       const nl = { ...l, rate };
       performerWages += lineSubtotal(nl);
       return nl;
     }
     // Agent fee lines are modelled as ALLOW × wages × 0.1; keep them pinned to the repriced wages.
-    if (/agent fee/i.test(l.description) && l.unit === 'ALLOW') { const r = performerWages; performerWages = 0; return { ...l, rate: r }; }
+    if (/agent fee/i.test(l.description) && l.unit === 'ALLOW') {
+      const r = performerWages;
+      performerWages = 0;
+      return { ...l, rate: r };
+    }
     return l;
   });
   return { ...p, sag: { ...p.sag, targetTier: tierId }, lines };
@@ -121,7 +213,11 @@ export const isPayrollLine = (l: LineItem) =>
 /** The fringe set the budget already uses on ordinary (non-SAG) payroll lines, so new wage lines match it. */
 export function payrollFringeSet(p: Project): string[] {
   const counts = new Map<string, number>();
-  for (const l of p.lines) if (isPayrollLine(l) && !isSagPerformerLine(l)) { const k = l.fringes.join('|'); counts.set(k, (counts.get(k) ?? 0) + 1); }
+  for (const l of p.lines)
+    if (isPayrollLine(l) && !isSagPerformerLine(l)) {
+      const k = l.fringes.join('|');
+      counts.set(k, (counts.get(k) ?? 0) + 1);
+    }
   const best = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
   return best ? best.split('|') : p.fringes.filter(f => !/SAG/i.test(f.id)).map(f => f.id);
 }
@@ -147,17 +243,25 @@ export function everyoneAtScale(p: Project, tierId: SagTierId, opts: EveryoneAtS
   const hourly = scaleHourly(opts.crewDayRate ?? t.dayRate);
   const fr = payrollFringeSet(p);
   // cast DAY lines become hourly with SAG overtime hours; then rerateCast prices them (and pins agent fees)
-  let out = rerateCast({ ...p, lines: p.lines.map(l => isSagPerformerLine(l) && l.unit === 'DAY' ? { ...l, multiplier: hours.sag } : l) }, tierId);
+  let out = rerateCast(
+    {
+      ...p,
+      lines: p.lines.map(l => (isSagPerformerLine(l) && l.unit === 'DAY' ? { ...l, multiplier: hours.sag } : l)),
+    },
+    tierId,
+  );
   const premiums = (l: LineItem) =>
     (l.accountId === '1201' && /^Fee$/i.test(l.description)) ||
     (l.accountId === '1102' && /script purchase/i.test(l.description)) ||
     /^(STAR|CAST) ALLOWANCE$/i.test(l.description);
 
   let lines = out.lines.flatMap(l => {
-    if (premiums(l)) return opts.premiums === 'keep' ? [l] : opts.premiums === 'delete' ? [] : [{ ...l, payType: opts.premiums }];
+    if (premiums(l))
+      return opts.premiums === 'keep' ? [l] : opts.premiums === 'delete' ? [] : [{ ...l, payType: opts.premiums }];
     if (isPayrollLine(l) && !isSagPerformerLine(l)) {
       // a weekly line becomes five days at the day rate: everyone on the same day rate reads as days, not weeks
-      if (l.unit === 'WEEK') return [{ ...l, unit: 'DAY' as const, amount: l.amount * 5, rate: hourly, multiplier: hours.day }];
+      if (l.unit === 'WEEK')
+        return [{ ...l, unit: 'DAY' as const, amount: l.amount * 5, rate: hourly, multiplier: hours.day }];
       const m = l.multiplier === hours.long ? hours.long : hours.day;
       return [{ ...l, rate: hourly, multiplier: m }];
     }
@@ -169,20 +273,49 @@ export function everyoneAtScale(p: Project, tierId: SagTierId, opts: EveryoneAtS
   const producers = p.participants.filter(x => x.group === 'producer' && x.id.startsWith('p_producer'));
   const hasWage = (pid: string) => lines.some(l => l.participantId === pid && isPayrollLine(l));
   const addAfter = (accountId: string, line: LineItem) => {
-    let at = -1; lines.forEach((l, i) => { if (l.accountId === accountId) at = i; });
+    let at = -1;
+    lines.forEach((l, i) => {
+      if (l.accountId === accountId) at = i;
+    });
     lines = [...lines.slice(0, at + 1), line, ...lines.slice(at + 1)];
   };
   producers.forEach((pt, i) => {
     if (hasWage(pt.id)) return;
-    addAfter('1201', { id: `L_scale_prod_${i + 1}`, accountId: '1201', description: `${pt.name}: scale, prep / shoot / post`, amount: pt.days || producerDays,
-      unit: 'DAY', rate: hourly, multiplier: hours.day, fringes: fr, tags: ['ATL'], payType: 'cash', participantId: pt.id });
+    addAfter('1201', {
+      id: `L_scale_prod_${i + 1}`,
+      accountId: '1201',
+      description: `${pt.name}: scale, prep / shoot / post`,
+      amount: pt.days || producerDays,
+      unit: 'DAY',
+      rate: hourly,
+      multiplier: hours.day,
+      fringes: fr,
+      tags: ['ATL'],
+      payType: 'cash',
+      participantId: pt.id,
+    });
   });
   // A writer who is not already paid as director gets a wage line too.
   const director = p.participants.find(x => x.id.startsWith('p_1301'));
   const scriptLine = p.lines.find(l => l.accountId === '1102' && /script purchase/i.test(l.description));
-  if (scriptLine && !(director && hasWage(director.id)) && !lines.some(l => l.accountId === '1102' && isPayrollLine(l))) {
-    addAfter('1102', { id: 'L_scale_writer', accountId: '1102', description: 'Writer: scale, prep', amount: 10, unit: 'DAY', rate: hourly,
-      multiplier: hours.day, fringes: fr, tags: ['ATL'], payType: 'cash', participantId: scriptLine.participantId });
+  if (
+    scriptLine &&
+    !(director && hasWage(director.id)) &&
+    !lines.some(l => l.accountId === '1102' && isPayrollLine(l))
+  ) {
+    addAfter('1102', {
+      id: 'L_scale_writer',
+      accountId: '1102',
+      description: 'Writer: scale, prep',
+      amount: 10,
+      unit: 'DAY',
+      rate: hourly,
+      multiplier: hours.day,
+      fringes: fr,
+      tags: ['ATL'],
+      payType: 'cash',
+      participantId: scriptLine.participantId,
+    });
   }
   return daysFromLines({ ...out, lines });
 }
@@ -198,28 +331,53 @@ export const NON_SHOOT = /prep|wrap|post|edit|scout|rehears/i;
 export function floorNonShootDays(p: Project, opts: { cashHourly: number; rest: 'points' | 'deferred' }): Project {
   const lines: LineItem[] = [];
   for (const l of p.lines) {
-    const wage = isPayrollLine(l) && !isSagPerformerLine(l) && l.unit === 'DAY' && l.multiplier > 1 && !/^SPLIT:/.test(l.id);
+    const wage =
+      isPayrollLine(l) && !isSagPerformerLine(l) && l.unit === 'DAY' && l.multiplier > 1 && !/^SPLIT:/.test(l.id);
     const producerScale = wage && l.accountId === '1201' && /scale/i.test(l.description);
-    if (!wage || l.rate <= opts.cashHourly || !(NON_SHOOT.test(l.description) || producerScale)) { lines.push(l); continue; }
+    if (!wage || l.rate <= opts.cashHourly || !(NON_SHOOT.test(l.description) || producerScale)) {
+      lines.push(l);
+      continue;
+    }
     // a producer's scale line covers shoot days too; only the days beyond the shoot get floored
     const days = producerScale ? Math.max(0, l.amount - p.shootDays) : l.amount;
-    if (days <= 0) { lines.push(l); continue; }
+    if (days <= 0) {
+      lines.push(l);
+      continue;
+    }
     const balance = Math.round((l.rate - opts.cashHourly) * 100) / 100;
     if (producerScale) {
-      lines.push({ ...l, amount: p.shootDays, description: l.description.replace(/,?\s*prep \/ shoot \/ post/i, ', shoot') });
-      lines.push({ ...l, id: `SPLIT:${l.id}:cash`, amount: days, rate: opts.cashHourly, description: l.description.replace(/,?\s*prep \/ shoot \/ post/i, ', prep / post (cash floor)') });
+      lines.push({
+        ...l,
+        amount: p.shootDays,
+        description: l.description.replace(/,?\s*prep \/ shoot \/ post/i, ', shoot'),
+      });
+      lines.push({
+        ...l,
+        id: `SPLIT:${l.id}:cash`,
+        amount: days,
+        rate: opts.cashHourly,
+        description: l.description.replace(/,?\s*prep \/ shoot \/ post/i, ', prep / post (cash floor)'),
+      });
     } else {
       lines.push({ ...l, rate: opts.cashHourly, description: `${l.description} (cash floor)` });
     }
-    lines.push({ ...l, id: `SPLIT:${l.id}:rest`, amount: days, rate: balance, payType: opts.rest, participantId: undefined,
-      description: `${l.description.replace(/,?\s*prep \/ shoot \/ post/i, '')} balance to back end`, tags: [...l.tags, 'SPLIT'] });
+    lines.push({
+      ...l,
+      id: `SPLIT:${l.id}:rest`,
+      amount: days,
+      rate: balance,
+      payType: opts.rest,
+      participantId: undefined,
+      description: `${l.description.replace(/,?\s*prep \/ shoot \/ post/i, '')} balance to back end`,
+      tags: [...l.tags, 'SPLIT'],
+    });
   }
   return { ...p, lines };
 }
 
 /** A line that carries someone's days: a wage line, not an allowance. */
 const isDaysLine = (l: LineItem) => isPayrollLine(l) && !/allowance/i.test(l.description);
-export const lineDays = (l: LineItem) => l.unit === 'WEEK' ? l.amount * 5 : l.amount;
+export const lineDays = (l: LineItem) => (l.unit === 'WEEK' ? l.amount * 5 : l.amount);
 
 /** Participants whose pay is on wage lines take their days from those lines, so the top sheet and the points
  *  schedule always agree; a participant with no wage line keeps the days typed on the schedule. */
@@ -240,23 +398,36 @@ export function setParticipantDays(p: Project, participantId: string, days: numb
   let lines = p.lines;
   if (linked.length === 1) {
     const l = linked[0];
-    lines = p.lines.map(x => x.id !== l.id ? x : { ...x, amount: l.unit === 'WEEK' ? Math.round(d / 5 * 10) / 10 : d });
+    lines = p.lines.map(x =>
+      x.id !== l.id ? x : { ...x, amount: l.unit === 'WEEK' ? Math.round((d / 5) * 10) / 10 : d },
+    );
   } else if (linked.length > 1) {
     const cur = linked.reduce((n, l) => n + lineDays(l), 0);
     const ratio = cur > 0 ? d / cur : 0;
     let assigned = 0;
     const next = new Map<string, number>();
     linked.forEach((l, i) => {
-      const share = i === linked.length - 1 ? d - assigned : cur > 0 ? Math.round(lineDays(l) * ratio) : Math.round(d / linked.length);
-      assigned += share; next.set(l.id, share);
+      const share =
+        i === linked.length - 1
+          ? d - assigned
+          : cur > 0
+            ? Math.round(lineDays(l) * ratio)
+            : Math.round(d / linked.length);
+      assigned += share;
+      next.set(l.id, share);
     });
-    lines = p.lines.map(x => next.has(x.id) ? { ...x, amount: x.unit === 'WEEK' ? Math.round(next.get(x.id)! / 5 * 10) / 10 : next.get(x.id)! } : x);
+    lines = p.lines.map(x =>
+      next.has(x.id)
+        ? { ...x, amount: x.unit === 'WEEK' ? Math.round((next.get(x.id)! / 5) * 10) / 10 : next.get(x.id)! }
+        : x,
+    );
   }
-  return { ...p, lines, participants: p.participants.map(pt => pt.id === participantId ? { ...pt, days: d } : pt) };
+  return { ...p, lines, participants: p.participants.map(pt => (pt.id === participantId ? { ...pt, days: d } : pt)) };
 }
 
 /** The crew and staff wage lines a budget carries in weeks. */
-export const weeklyWageLines = (p: Project) => p.lines.filter(l => l.unit === 'WEEK' && isPayrollLine(l) && !isSagPerformerLine(l));
+export const weeklyWageLines = (p: Project) =>
+  p.lines.filter(l => l.unit === 'WEEK' && isPayrollLine(l) && !isSagPerformerLine(l));
 
 /** Rewrite weekly crew and staff wage lines as days: five days to the week, rate ÷ 5, same money. SAG weekly
  *  performer deals are a different contract and are left alone; so are weekly rentals. A memo line such as
@@ -264,9 +435,22 @@ export const weeklyWageLines = (p: Project) => p.lines.filter(l => l.unit === 'W
 export function weeksToDays(p: Project): Project {
   const ids = new Set(weeklyWageLines(p).map(l => l.id));
   const lines = p.lines.map(l => {
-    if (ids.has(l.id)) return { ...l, unit: 'DAY' as const, amount: Math.round(l.amount * 5 * 100) / 100, rate: Math.round(l.rate / 5 * 100) / 100 };
+    if (ids.has(l.id))
+      return {
+        ...l,
+        unit: 'DAY' as const,
+        amount: Math.round(l.amount * 5 * 100) / 100,
+        rate: Math.round((l.rate / 5) * 100) / 100,
+      };
     const m = /^(.*?)\s*weekly rate:?\s*\$?\s*([\d,]+(?:\.\d+)?)(.*)$/i.exec(l.description);
-    if (m && l.amount === 0) { const day = parseFloat(m[2].replace(/,/g, '')) / 5; return { ...l, description: `${m[1]} Day Rate: $${day.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${m[3]}`.trim() }; }
+    if (m && l.amount === 0) {
+      const day = parseFloat(m[2].replace(/,/g, '')) / 5;
+      return {
+        ...l,
+        description:
+          `${m[1]} Day Rate: $${day.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${m[3]}`.trim(),
+      };
+    }
     return l;
   });
   return { ...p, lines };

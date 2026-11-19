@@ -13,6 +13,7 @@ npm ci                 # install exactly what the lockfile says
 npm run dev            # the app at http://localhost:5173
 npm test               # the unit tests
 npx tsc --noEmit -p .  # the type check
+npm run format         # Prettier, 120 columns (stylesheets are left alone)
 npm run build          # the static site, in dist/
 ```
 

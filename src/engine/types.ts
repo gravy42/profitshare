@@ -14,26 +14,34 @@ export type PayType = 'cash' | 'deferred' | 'points';
 export interface FringeDef {
   id: string;
   name: string;
-  rate: number;      // 0.062 = 6.2 %
+  rate: number; // 0.062 = 6.2 %
   cap?: number | null; // wage base the rate applies to, per line (e.g. FUI/SUI $7,000). null = uncapped
 }
 
-export interface Category { number: string; name: string; section: Section }
-export interface Account  { number: string; name: string; categoryNumber: string }
+export interface Category {
+  number: string;
+  name: string;
+  section: Section;
+}
+export interface Account {
+  number: string;
+  name: string;
+  categoryNumber: string;
+}
 
 export interface LineItem {
   id: string;
-  accountId: string;        // Account.number
+  accountId: string; // Account.number
   description: string;
-  amount: number;           // units (days, weeks, allowances...)
-  unit: string;             // DAY | WEEK | ALLOW | ITEM | MONTH | HOUR | '-'
+  amount: number; // units (days, weeks, allowances...)
+  unit: string; // DAY | WEEK | ALLOW | ITEM | MONTH | HOUR | '-'
   rate: number;
-  multiplier: number;       // hours per day for hourly crew (14 = 12-hr day at 8+4x1.5), 0.1 for agent fees, etc.
-  fringes: string[];        // FringeDef ids applied to this line
+  multiplier: number; // hours per day for hourly crew (14 = 12-hr day at 8+4x1.5), 0.1 for agent fees, etc.
+  fringes: string[]; // FringeDef ids applied to this line
   tags: string[];
   payType: PayType;
-  participantId?: string;   // links this line's days to a person in the points schedule
-  daysFrom?: 'board';       // the stripboard owns this line's day count (a cast member's shoot days, a follower's days)
+  participantId?: string; // links this line's days to a person in the points schedule
+  daysFrom?: 'board'; // the stripboard owns this line's day count (a cast member's shoot days, a follower's days)
   notes?: string;
 }
 
@@ -41,32 +49,39 @@ export interface LineItem {
 export interface Participant {
   id: string;
   name: string;
-  role: string;             // "Lead", "DP", "Production Assistant"...
+  role: string; // "Lead", "DP", "Production Assistant"...
   group: 'cast' | 'crew' | 'producer' | 'other';
-  tierId: string;           // PointsTier.id
-  days: number;             // days worked (drives points). Can be synced from the board or budget lines.
-  bonusMultiplier: number;  // per-person nudge on top of the tier (1 = none)
-  fixedPoints?: number;     // a fixed block of points set by the deal (a name actor's premium, a producer's fee), instead of days × tier × bonus
-  castId?: number;          // cast number on the board, for syncing days from the DOOD
+  tierId: string; // PointsTier.id
+  days: number; // days worked (drives points). Can be synced from the board or budget lines.
+  bonusMultiplier: number; // per-person nudge on top of the tier (1 = none)
+  fixedPoints?: number; // a fixed block of points set by the deal (a name actor's premium, a producer's fee), instead of days × tier × bonus
+  castId?: number; // cast number on the board, for syncing days from the DOOD
   followsCastIds?: number[]; // works whenever any of these cast members work (a studio teacher with the minors)
   followsElements?: BoardElement[]; // works whenever a scene carries one of these tags (an animal wrangler with the cat, a picture-car wrangler)
 }
 
 /** One breakdown tag on the board, by category and item: { category: 'Animals', item: 'cat' }. */
-export interface BoardElement { category: string; item: string }
+export interface BoardElement {
+  category: string;
+  item: string;
+}
 
-export interface PointsTier { id: string; name: string; multiplier: number }
+export interface PointsTier {
+  id: string;
+  name: string;
+  multiplier: number;
+}
 
 export type WaterfallModel = 'recoup-first' | 'off-the-gross';
 
 export interface Waterfall {
   model: WaterfallModel;
-  recoupPct: number;      // investors get this % of budget back before the pool (110 = 110 %)
+  recoupPct: number; // investors get this % of budget back before the pool (110 = 110 %)
   nonRecoupable?: number; // grants, fiscal-sponsorship donations, tax credits: money that never has to be paid back
   sponsorFeePct?: number; // the fiscal sponsor's fee on that money (8 = 8%); only what is left reaches the film
-  poolPct: number;        // share of post-recoup profits that goes to the pool (50 = 50/50)
-  grossSharePct: number;  // off-the-gross only: pool's share of dollar one until investors recoup
-  scenarios: number[];    // revenue levels shown in the tables
+  poolPct: number; // share of post-recoup profits that goes to the pool (50 = 50/50)
+  grossSharePct: number; // off-the-gross only: pool's share of dollar one until investors recoup
+  scenarios: number[]; // revenue levels shown in the tables
 }
 
 export type SagTierId = 'ULB' | 'MLB' | 'LBA' | 'BASIC';
@@ -76,48 +91,54 @@ export interface SagTier {
   name: string;
   dayRate: number;
   weeklyRate: number | null;
-  cap: number | null;        // total production cost ceiling, null = no ceiling
-  dicCap: number | null;     // ceiling with the Diversity in Casting incentive
-  phRate: number;            // pension & health
+  cap: number | null; // total production cost ceiling, null = no ceiling
+  dicCap: number | null; // ceiling with the Diversity in Casting incentive
+  phRate: number; // pension & health
   effective: string;
 }
 
 interface SagSettings {
-  targetTier: SagTierId;     // which agreement the cast is costed at
-  dic: boolean;              // Diversity in Casting incentive qualified
+  targetTier: SagTierId; // which agreement the cast is costed at
+  dic: boolean; // Diversity in Casting incentive qualified
   includeContingency: boolean; // count contingency inside total production cost (conservative default: yes)
 }
 
 // ---------- schedule ----------
 
-interface SceneCast { id?: number | null; name: string }
+interface SceneCast {
+  id?: number | null;
+  name: string;
+}
 
 export interface Scene {
   id: string;
   number: string;
   ie: 'INT' | 'EXT' | 'I/E';
   set: string;
-  tod: string;              // MORNING, NIGHT, ...
-  pages: string;            // script page range as text
-  eighths: number;          // length in eighths of a page
+  tod: string; // MORNING, NIGHT, ...
+  pages: string; // script page range as text
+  eighths: number; // length in eighths of a page
   synopsis: string;
   location: string;
   scriptDay: string;
   cast: SceneCast[];
   elements: Record<string, string[]>; // breakdown category -> items
-  text?: string;            // the scene as written, for the tagger: action flush left, cues and dialogue indented
-  unit?: SceneUnit;         // who shoots it; unset = first unit, on the schedule. VFX-only, second unit and omitted scenes sit off the day count
+  text?: string; // the scene as written, for the tagger: action flush left, cues and dialogue indented
+  unit?: SceneUnit; // who shoots it; unset = first unit, on the schedule. VFX-only, second unit and omitted scenes sit off the day count
 }
 
 /** A scene that is not the first unit's to shoot: an EXT. SPACE that is all visual effects, a second-unit insert day, a scene cut from the script. */
 export type SceneUnit = 'vfx' | 'second' | 'omit';
 
 export type Strip =
-  | { type: 'scene'; sceneId: string; eighths?: number }  // eighths set = this strip is one part of a scene shot across days
+  | { type: 'scene'; sceneId: string; eighths?: number } // eighths set = this strip is one part of a scene shot across days
   | { type: 'daybreak'; id: string; label?: string; date?: string }
   | { type: 'banner'; id: string; text: string };
 
-export interface CastMember { id: number; name: string }
+export interface CastMember {
+  id: number;
+  name: string;
+}
 
 export interface Board {
   castList: CastMember[];
@@ -135,13 +156,13 @@ export type PremiumChoice = 'cash' | 'points' | 'deferred' | 'delete';
 export interface Deal {
   pay: {
     model: 'as-budgeted' | 'everyone-at-scale';
-    rerateCast: boolean;                  // as-budgeted only: put SAG performer lines on the target tier's scale
-    crewBasis: SagTierId | 'custom';      // everyone-at-scale: the 8-hour rate crew and producers share
+    rerateCast: boolean; // as-budgeted only: put SAG performer lines on the target tier's scale
+    crewBasis: SagTierId | 'custom'; // everyone-at-scale: the 8-hour rate crew and producers share
     crewCustomRate: number;
-    crewBumpPct?: number;                 // as-budgeted only: raise every crew wage line by this percent (0 = the rates on the lines)
-    premiums: Record<PremiumGroup, PremiumChoice>;   // producer fees, script purchase, star / cast allowances
+    crewBumpPct?: number; // as-budgeted only: raise every crew wage line by this percent (0 = the rates on the lines)
+    premiums: Record<PremiumGroup, PremiumChoice>; // producer fees, script purchase, star / cast allowances
   };
-  producers: { count: number | null; days: number };   // count null = as many as the budget has Fee lines for
+  producers: { count: number | null; days: number }; // count null = as many as the budget has Fee lines for
   nonShoot: { enabled: boolean; cashHourly: number; rest: 'points' | 'deferred' };
 }
 
@@ -150,40 +171,40 @@ export interface Deal {
 export interface ShootLocation {
   id: string;
   name: string;
-  days: number;              // shoot days here
-  outsideLaZone: boolean;    // outside the Los Angeles 30-mile zone, for the California credit
-  minWage: number;           // local minimum wage, $/hour
+  days: number; // shoot days here
+  outsideLaZone: boolean; // outside the Los Angeles 30-mile zone, for the California credit
+  minWage: number; // local minimum wage, $/hour
 }
 
 /** Production incentives the film may qualify for. Each is a toggle; the money they bring back reduces what
  *  investors have to put in (and recoup), the way grants do. */
 export interface Incentives {
-  startDate: string;                 // planned first day of principal photography, YYYY-MM-DD
+  startDate: string; // planned first day of principal photography, YYYY-MM-DD
   ca: {
     enabled: boolean;
-    excludedCategories: string[];    // category numbers whose spend doesn't qualify (writer, producers, director, cast, publicity...)
-    caSharePct: number;              // share of non-wage spend bought from California vendors
-    outOfZonePct: number;            // share of shoot days outside the Los Angeles 30-mile zone
-    localHirePct: number;            // share of qualified wages to residents outside the zone working outside it
-    vfx: boolean;                    // VFX uplift (75% of VFX in California, or $10M of it)
-    trainees: number;                // Career Pathways trainees hired, 0–4
+    excludedCategories: string[]; // category numbers whose spend doesn't qualify (writer, producers, director, cast, publicity...)
+    caSharePct: number; // share of non-wage spend bought from California vendors
+    outOfZonePct: number; // share of shoot days outside the Los Angeles 30-mile zone
+    localHirePct: number; // share of qualified wages to residents outside the zone working outside it
+    vfx: boolean; // VFX uplift (75% of VFX in California, or $10M of it)
+    trainees: number; // Career Pathways trainees hired, 0–4
     monetize: 'transfer' | 'refund' | 'own-tax';
-    transferCents: number;           // sold at this many cents on the dollar
-    bridge: boolean;                 // borrow against the credit so the money is in the bank for the shoot
-    bridgeCostPct: number;           // interest and fees on that loan, as a % of the credit
-    auditCost: number;               // the CPA audit the program requires
-    countPreLetter?: boolean;        // true = count prep before the allocation letter as qualified (it is not; default false)
+    transferCents: number; // sold at this many cents on the dollar
+    bridge: boolean; // borrow against the credit so the money is in the bank for the shoot
+    bridgeCostPct: number; // interest and fees on that loan, as a % of the credit
+    auditCost: number; // the CPA audit the program requires
+    countPreLetter?: boolean; // true = count prep before the allocation letter as qualified (it is not; default false)
   };
   federal: {
-    enabled: boolean;                // the Motion Picture, Television, and Entertainment Revitalization Act, if it passes
-    includeAtl: boolean;             // count above-the-line wages as labor
-    independent: boolean;            // +5% independent production bonus
-    rural: boolean;                  // +5% for 30% of days in rural opportunity zones or disaster areas
+    enabled: boolean; // the Motion Picture, Television, and Entertainment Revitalization Act, if it passes
+    includeAtl: boolean; // count above-the-line wages as labor
+    independent: boolean; // +5% independent production bonus
+    rural: boolean; // +5% for 30% of days in rural opportunity zones or disaster areas
     transferCents: number;
     bridge: boolean;
     bridgeCostPct: number;
   };
-  perks: Record<string, number>;     // local perks switched on, by id → dollars saved (0 = on, no estimate yet)
+  perks: Record<string, number>; // local perks switched on, by id → dollars saved (0 = on, no estimate yet)
 }
 
 // ---------- production calendar ----------
@@ -192,19 +213,19 @@ export type CalEventKind = 'prep' | 'shoot' | 'test' | 'wrap' | 'post' | 'travel
 
 export interface CalEvent {
   id: string;
-  date: string;             // 'YYYY-MM-DD'
-  end?: string;             // inclusive, for a span
+  date: string; // 'YYYY-MM-DD'
+  end?: string; // inclusive, for a span
   label: string;
   kind: CalEventKind;
-  dayIndex?: number;        // a 'shoot' event can pin one of the board's shoot days to this date
+  dayIndex?: number; // a 'shoot' event can pin one of the board's shoot days to this date
 }
 
 export interface Calendar {
-  from: string;             // first month shown, 'YYYY-MM' ('' until the user picks one)
-  to: string;               // last month shown
-  dayOne?: string;          // optional: auto-place the board's shoot days forward from this date over work days
-  workDays: number[];       // 0 = Sunday … 6 = Saturday
-  skipHolidays: boolean;    // shoot days jump over US holidays
+  from: string; // first month shown, 'YYYY-MM' ('' until the user picks one)
+  to: string; // last month shown
+  dayOne?: string; // optional: auto-place the board's shoot days forward from this date over work days
+  workDays: number[]; // 0 = Sunday … 6 = Saturday
+  skipHolidays: boolean; // shoot days jump over US holidays
   events: CalEvent[];
 }
 
@@ -215,51 +236,64 @@ export interface Comp {
   title: string;
   year: string;
   distributor: string;
-  budget: number | null;      // production budget, null when unknown
+  budget: number | null; // production budget, null when unknown
   domestic: number | null;
   worldwide: number | null;
-  note: string;               // how it was released or sold
-  source: string;             // URL
-  group?: string;             // which argument the comp belongs to: 'Festival path', 'Creator-led path', 'Women showed up'…
+  note: string; // how it was released or sold
+  source: string; // URL
+  group?: string; // which argument the comp belongs to: 'Festival path', 'Creator-led path', 'Women showed up'…
 }
 
-export interface RevenueLine { id: string; source: string; low: number; mid: number; high: number }
+export interface RevenueLine {
+  id: string;
+  source: string;
+  low: number;
+  mid: number;
+  high: number;
+}
 
 /** A heading and a few paragraphs of argument, in the filmmaker's words: the thesis, the path to market, the audience. */
-export interface PitchSection { id: string; heading: string; body: string }
+export interface PitchSection {
+  id: string;
+  heading: string;
+  body: string;
+}
 
 export interface Pitch {
   logline: string;
-  why: string;                // why this film, why now, in the filmmaker's words
+  why: string; // why this film, why now, in the filmmaker's words
   audience: { primary: string; secondary: string; notes: string };
-  sections: PitchSection[];   // the argument, in order
+  sections: PitchSection[]; // the argument, in order
   comps: Comp[];
-  revenue: RevenueLine[];     // gross receipts to the film by source, three cases
-  feePct: number;             // sales agent / distribution fees and expenses taken off the top, as a % of gross
-  deck: string;               // link or file name of the pitch deck
-  sources: string[];          // market research links
-  design?: PitchDesign;       // the look of the deck: colours, type, a logo
-  lookbook?: LookImage[];     // the film in pictures: tone, world, character, references
-  research?: ResearchItem[];  // market, audience and comp research, pasted in
+  revenue: RevenueLine[]; // gross receipts to the film by source, three cases
+  feePct: number; // sales agent / distribution fees and expenses taken off the top, as a % of gross
+  deck: string; // link or file name of the pitch deck
+  sources: string[]; // market research links
+  design?: PitchDesign; // the look of the deck: colours, type, a logo
+  lookbook?: LookImage[]; // the film in pictures: tone, world, character, references
+  research?: ResearchItem[]; // market, audience and comp research, pasted in
   team?: TeamMember[];
-  ask?: string;               // the ask, in the filmmaker's words: what you are raising, on what terms, how to reach you
-  slides?: SlideSpec[];       // the authored pitch deck, in order; empty or absent = build the default from the fields above
-  recipients?: Recipient[];   // people the pitch deck is tailored for, each with a link ending of their own
-  deckMotion?: DeckMotion;    // movement for the whole deck: calm or brisk, and whether parts rise, fade or simply appear
+  ask?: string; // the ask, in the filmmaker's words: what you are raising, on what terms, how to reach you
+  slides?: SlideSpec[]; // the authored pitch deck, in order; empty or absent = build the default from the fields above
+  recipients?: Recipient[]; // people the pitch deck is tailored for, each with a link ending of their own
+  deckMotion?: DeckMotion; // movement for the whole deck: calm or brisk, and whether parts rise, fade or simply appear
 }
 
 // ---------- the authored pitch deck ----------
 
 /** Movement, as the deck's contract has it (src/deck-runtime/data.ts holds the same shapes; a test keeps the two in
  *  step). Words from fixed lists and clamped numbers only: `cleanMotion()` in deck-runtime/motion.ts is the one door in. */
-export interface DeckMotion { pace: 'calm' | 'brisk'; entrance: 'rise' | 'fade' | 'none' }
+export interface DeckMotion {
+  pace: 'calm' | 'brisk';
+  entrance: 'rise' | 'fade' | 'none';
+}
 export interface SlideMotion {
   entrance?: 'rise' | 'fade' | 'drop' | 'slide-left' | 'slide-right' | 'none';
   order?: 'together' | 'one-by-one' | 'reverse';
-  stagger?: number;          // milliseconds between one part and the next, 0 to 400
+  stagger?: number; // milliseconds between one part and the next, 0 to 400
   headline?: 'none' | 'type';
   count?: boolean;
-  marker?: { imageId: string; path: 'timeline'; end: 'stop' | 'settle'; size?: number };   // a look book picture that travels along the plan's timeline
+  marker?: { imageId: string; path: 'timeline'; end: 'stop' | 'settle'; size?: number }; // a look book picture that travels along the plan's timeline
 }
 
 /** How a card is drawn: flat, or as one of four papers (src/deck-runtime/paper.ts holds the list). */
@@ -267,76 +301,140 @@ export type PaperStyle = 'plain' | 'postcard' | 'letter' | 'notebook' | 'torn';
 /** The tone a paper is drawn in: the design system's card colour ('theme'), or a paper of a fixed tone. */
 export type PaperShade = 'theme' | 'white' | 'cream' | 'aged' | 'kraft' | 'newsprint';
 
-export type SlideLayout = 'cover' | 'photo' | 'look' | 'cards' | 'stats' | 'timeline' | 'text' | 'comps' | 'team' | 'model' | 'ways' | 'numbers' | 'ask' | 'closing';
+export type SlideLayout =
+  | 'cover'
+  | 'photo'
+  | 'look'
+  | 'cards'
+  | 'stats'
+  | 'timeline'
+  | 'text'
+  | 'comps'
+  | 'team'
+  | 'model'
+  | 'ways'
+  | 'numbers'
+  | 'ask'
+  | 'closing';
 
 /** One slide as the author wrote it. The layout decides which fields are read; `deckData()` fills in what the
  *  project already knows (the comps, the team, the plan, the split, the numbers). */
 export interface SlideSpec {
-  id: string; layout: SlideLayout;
-  eyebrow?: string; headline?: string; punch?: string; body?: string;
-  imageId?: string;        // a look book picture (LookImage.id)
-  scrim?: number;          // 0 to 1
-  cards?: SlideCard[]; stats?: SlideStat[]; milestones?: SlideMilestone[];
-  lead?: { value: string; text: string; source: string };   // stats layout: one big number with a sentence
+  id: string;
+  layout: SlideLayout;
+  eyebrow?: string;
+  headline?: string;
+  punch?: string;
+  body?: string;
+  imageId?: string; // a look book picture (LookImage.id)
+  scrim?: number; // 0 to 1
+  cards?: SlideCard[];
+  stats?: SlideStat[];
+  milestones?: SlideMilestone[];
+  lead?: { value: string; text: string; source: string }; // stats layout: one big number with a sentence
   quote?: { text: string; by: string };
-  closing?: string;        // a last line under the slide's main content
+  closing?: string; // a last line under the slide's main content
   footnote?: string;
-  byline?: string;         // cover: who made it, under the title
-  columns?: { label: string; lines: string[] }[];   // text: small labelled columns under the paragraphs
-  aside?: { title: string; lines: string[]; footnote?: string };   // team: a card beside the list (who you hope to cast, say)
-  looks?: string[];        // look: the look book pictures chosen by hand, in order (six at most); left out, the slide takes them from the look book itself
-  lookSection?: LookImage['section'];   // look: with no pictures chosen by hand, the section they come from; left out, the whole look book
-  captions?: boolean;      // look: false leaves the captions and credits off
-  agreement?: boolean;     // timeline (the plan): false leaves the SAG-AFTRA agreement off
-  nextStep?: string;       // ask: what you want the reader to do next
-  contact?: string;        // ask: how to reach you
+  byline?: string; // cover: who made it, under the title
+  columns?: { label: string; lines: string[] }[]; // text: small labelled columns under the paragraphs
+  aside?: { title: string; lines: string[]; footnote?: string }; // team: a card beside the list (who you hope to cast, say)
+  looks?: string[]; // look: the look book pictures chosen by hand, in order (six at most); left out, the slide takes them from the look book itself
+  lookSection?: LookImage['section']; // look: with no pictures chosen by hand, the section they come from; left out, the whole look book
+  captions?: boolean; // look: false leaves the captions and credits off
+  agreement?: boolean; // timeline (the plan): false leaves the SAG-AFTRA agreement off
+  nextStep?: string; // ask: what you want the reader to do next
+  contact?: string; // ask: how to reach you
   hidden?: boolean;
-  motion?: SlideMotion;    // how this slide moves: words from the fixed list in deck-runtime/motion.ts, never code
-  paper?: PaperStyle | 'mixed';   // the paper this slide's cards are drawn on ('mixed': a different one each, in a fixed order); left out, the deck's
+  motion?: SlideMotion; // how this slide moves: words from the fixed list in deck-runtime/motion.ts, never code
+  paper?: PaperStyle | 'mixed'; // the paper this slide's cards are drawn on ('mixed': a different one each, in a fixed order); left out, the deck's
   paperShade?: PaperShade; // the tone of this slide's papers ('theme': the design system's card colour); left out, the deck's
 }
-export interface SlideCard { id: string; kicker?: string; title: string; body: string; footnote?: string }
-export interface SlideStat { id: string; value: string; label: string; source: string }
-export interface SlideMilestone { id: string; when: string; what: string }
+export interface SlideCard {
+  id: string;
+  kicker?: string;
+  title: string;
+  body: string;
+  footnote?: string;
+}
+export interface SlideStat {
+  id: string;
+  value: string;
+  label: string;
+  source: string;
+}
+export interface SlideMilestone {
+  id: string;
+  when: string;
+  what: string;
+}
 /** Someone the deck is sent to: `slug` is their link ending, `lead` is which ask they read first. */
-export interface Recipient { id: string; slug: string; name: string; coverLine: string; note?: string; lead: 'with-grants' | 'without-grants'; highlightCardId?: string }
+export interface Recipient {
+  id: string;
+  slug: string;
+  name: string;
+  coverLine: string;
+  note?: string;
+  lead: 'with-grants' | 'without-grants';
+  highlightCardId?: string;
+}
 
 export interface PitchDesign {
-  name: string;               // "Salt Flat Universe"
+  name: string; // "Salt Flat Universe"
   colors: { bg: string; ink: string; accent: string; accent2: string; muted: string };
-  fonts: { title: string; body: string };   // CSS font-family stacks; the deck falls back to the app's own
-  logoDataUrl?: string;       // a small image, embedded
-  notes: string;              // rules of the system in a sentence or two, for whoever edits the deck
-  line?: string;              // hairlines and dividers, when the system names one
-  card?: string;              // the colour of the cards' paper, when the system has one
-  paper?: PaperStyle;         // the paper the pitch deck's cards are drawn on; left out, a plain card
-  paperShade?: PaperShade;    // the tone of the papers: left out, the card colour above; else a paper of a fixed tone (white, cream, aged, kraft, newsprint)
-  hand?: boolean;             // card titles and quotes in the handwriting face
-  tilt?: boolean;             // each card a fraction of a degree off straight
-  deck?: DeckRules;           // how the slides are laid out
-  fontFiles?: FontFile[];     // font files for the title and body faces: one attached file a role, or the files of one family picked from Google Fonts (a weight each)
+  fonts: { title: string; body: string }; // CSS font-family stacks; the deck falls back to the app's own
+  logoDataUrl?: string; // a small image, embedded
+  notes: string; // rules of the system in a sentence or two, for whoever edits the deck
+  line?: string; // hairlines and dividers, when the system names one
+  card?: string; // the colour of the cards' paper, when the system has one
+  paper?: PaperStyle; // the paper the pitch deck's cards are drawn on; left out, a plain card
+  paperShade?: PaperShade; // the tone of the papers: left out, the card colour above; else a paper of a fixed tone (white, cream, aged, kraft, newsprint)
+  hand?: boolean; // card titles and quotes in the handwriting face
+  tilt?: boolean; // each card a fraction of a degree off straight
+  deck?: DeckRules; // how the slides are laid out
+  fontFiles?: FontFile[]; // font files for the title and body faces: one attached file a role, or the files of one family picked from Google Fonts (a weight each)
 }
 /** A font file the filmmaker attached. `dataUrl` is the file itself (kept in the browser's big store, and inside the
  *  .json on Save, the way look book pictures are). `embedOk` is their word that the licence lets the file travel
  *  inside a deck they send; without it the face is used in the in-app preview only. */
 export interface FontFile {
-  id: string; role: 'title' | 'body'; family: string; dataUrl: string; embedOk: boolean;
+  id: string;
+  role: 'title' | 'body';
+  family: string;
+  dataUrl: string;
+  embedOk: boolean;
   /** Which weight of the family this file is: one number, or the lightest and heaviest a variable file holds. A file
    *  with neither this nor `style` is a whole face on its own (what an attached file is): the role has no other. */
   weight?: number | [number, number];
   style?: 'normal' | 'italic';
-  source?: 'google';          // picked from Google Fonts and downloaded into the project; left out for an attached file
-  licence?: string;           // the open licence a picked font came under: OFL, Apache or UFL
+  source?: 'google'; // picked from Google Fonts and downloaded into the project; left out for an attached file
+  licence?: string; // the open licence a picked font came under: OFL, Apache or UFL
 }
 /** What a brand system sets for the deck's first and last slides. */
 export interface DeckRules {
-  coverImageId?: string;      // a look book picture for the cover slide: it fills the slide (the art carries the title), the logline on a band at the foot
-  closingImageId?: string;    // a look book picture for the closing slide
-  signoff: string;            // "from the world of SALT FLAT": the closing slide's tag; empty for the film's own name
+  coverImageId?: string; // a look book picture for the cover slide: it fills the slide (the art carries the title), the logline on a band at the foot
+  closingImageId?: string; // a look book picture for the closing slide
+  signoff: string; // "from the world of SALT FLAT": the closing slide's tag; empty for the film's own name
 }
-export interface LookImage { id: string; dataUrl: string; caption: string; section: 'tone' | 'world' | 'character' | 'reference'; credit?: string }
-export interface ResearchItem { id: string; kind: 'market' | 'audience' | 'comp' | 'press' | 'other'; title: string; body: string; url?: string }
-export interface TeamMember { id: string; name: string; role: string; bio: string }
+export interface LookImage {
+  id: string;
+  dataUrl: string;
+  caption: string;
+  section: 'tone' | 'world' | 'character' | 'reference';
+  credit?: string;
+}
+export interface ResearchItem {
+  id: string;
+  kind: 'market' | 'audience' | 'comp' | 'press' | 'other';
+  title: string;
+  body: string;
+  url?: string;
+}
+export interface TeamMember {
+  id: string;
+  name: string;
+  role: string;
+  bio: string;
+}
 
 // ---------- the whole project ----------
 
@@ -346,7 +444,7 @@ export interface Project {
   version: string;
   currency: string;
   shootDays: number;
-  dayHours?: 10 | 12;       // length of a shooting day for hourly crew (default 12: 8 straight + 4 at 1.5x = 14 paid hours)
+  dayHours?: 10 | 12; // length of a shooting day for hourly crew (default 12: 8 straight + 4 at 1.5x = 14 paid hours)
   contingencyPct: number;
   categories: Category[];
   accounts: Account[];
@@ -362,7 +460,7 @@ export interface Project {
   locations?: ShootLocation[]; // where the shoot days are; empty = one place, the percentages typed on the Incentives tab stand
   calendar?: Calendar;
   pitch?: Pitch;
-  callSheets?: CallSheets;  // locations, contacts, default calls and what each shoot day's sheet says
+  callSheets?: CallSheets; // locations, contacts, default calls and what each shoot day's sheet says
   notes?: string;
 }
 
@@ -370,35 +468,86 @@ export interface Project {
 
 /** A place the film shoots: which sets on the board are there, the address, where to park, the nearest hospital,
  *  and coordinates so the sheet can give sunrise and sunset without asking the network. */
-export interface Location { id: string; name: string; sets: string; address: string; parking: string; hospital: string; notes: string; lat?: number; lng?: number }
+export interface Location {
+  id: string;
+  name: string;
+  sets: string;
+  address: string;
+  parking: string;
+  hospital: string;
+  notes: string;
+  lat?: number;
+  lng?: number;
+}
 
-export interface CallContact { role: string; name: string; phone: string }
+export interface CallContact {
+  role: string;
+  name: string;
+  phone: string;
+}
 
 /** A stunt performer, stand-in, photo double or background group on a day's sheet. */
-export interface CallExtra { id: string; kind: 'stunt' | 'standin' | 'background'; name: string; role: string; call: string; onSet: string; note: string }
+export interface CallExtra {
+  id: string;
+  kind: 'stunt' | 'standin' | 'background';
+  name: string;
+  role: string;
+  call: string;
+  onSet: string;
+  note: string;
+}
 
 /** What one shoot day's sheet says beyond the defaults: every field optional, so a sheet is never blank. Times are "HH:MM". */
 export interface CallSheetDay {
-  crewCall?: string; shootingCall?: string; rehearsal?: string; lunch?: string; wrap?: string;
-  weather?: string; notes?: string; safety?: string; meals?: string;
-  parking?: string; basecamp?: string; bathrooms?: string; lunchAt?: string; trucks?: string; hospital?: string;   // the logistics strip; parking and hospital default to the day's first location
-  bulletins?: string;              // safety bulletins for today's work
-  quote?: string;                  // quote of the day on the back
-  instructions?: string;           // special instructions typed, one a line, "Camera: freedom mounts"; the scene tags supply the rest
-  cast: Record<number, { status?: string; pickup?: string; call?: string; makeup?: string; wardrobe?: string; onSet?: string; note?: string }>;   // by cast number
-  depts: Record<string, string>;   // department → call time
-  crew?: Record<string, string>;   // participant id → that person's call, or "O/C" for on call
+  crewCall?: string;
+  shootingCall?: string;
+  rehearsal?: string;
+  lunch?: string;
+  wrap?: string;
+  weather?: string;
+  notes?: string;
+  safety?: string;
+  meals?: string;
+  parking?: string;
+  basecamp?: string;
+  bathrooms?: string;
+  lunchAt?: string;
+  trucks?: string;
+  hospital?: string; // the logistics strip; parking and hospital default to the day's first location
+  bulletins?: string; // safety bulletins for today's work
+  quote?: string; // quote of the day on the back
+  instructions?: string; // special instructions typed, one a line, "Camera: freedom mounts"; the scene tags supply the rest
+  cast: Record<
+    number,
+    {
+      status?: string;
+      pickup?: string;
+      call?: string;
+      makeup?: string;
+      wardrobe?: string;
+      onSet?: string;
+      note?: string;
+    }
+  >; // by cast number
+  depts: Record<string, string>; // department → call time
+  crew?: Record<string, string>; // participant id → that person's call, or "O/C" for on call
   extras?: CallExtra[];
 }
 
 export interface CallSheets {
   company: string;
-  contacts: CallContact[];         // UPM, 1st AD, 2nd AD, producer: who the header lists
+  contacts: CallContact[]; // UPM, 1st AD, 2nd AD, producer: who the header lists
   locations: Location[];
-  crewCall: string; shootingCall: string; lunch: string; wrap: string;   // the defaults every day starts from
+  crewCall: string;
+  shootingCall: string;
+  lunch: string;
+  wrap: string; // the defaults every day starts from
   rehearsal?: string;
-  banner?: string;                 // the line under the header: the safety-meeting rule, no forced calls, no visitors
-  basecamp?: string; bathrooms?: string; lunchAt?: string; trucks?: string;   // logistics defaults
-  brand?: boolean;                 // style the sheet with the pitch's design system (colours, type, logo)
-  days: Record<number, CallSheetDay>;   // by shoot day index
+  banner?: string; // the line under the header: the safety-meeting rule, no forced calls, no visitors
+  basecamp?: string;
+  bathrooms?: string;
+  lunchAt?: string;
+  trucks?: string; // logistics defaults
+  brand?: boolean; // style the sheet with the pitch's design system (colours, type, logo)
+  days: Record<number, CallSheetDay>; // by shoot day index
 }

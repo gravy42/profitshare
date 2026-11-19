@@ -18,6 +18,8 @@ applyTheme(readTheme());
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     {/* if drawing the page fails, a plain screen with ways on stands in for a white page */}
-    <AppBoundary><App /></AppBoundary>
+    <AppBoundary>
+      <App />
+    </AppBoundary>
   </React.StrictMode>,
 );

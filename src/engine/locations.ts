@@ -8,7 +8,7 @@
 // wagesla.lacity.gov · dcba.lacounty.gov
 import type { Project, ShootLocation } from './types';
 
-export const CA_MIN_WAGE = 17.40;
+export const CA_MIN_WAGE = 17.4;
 export const MIN_WAGE_PRESETS: { id: string; label: string; rate: number }[] = [
   { id: 'ca', label: 'California (state rate)', rate: CA_MIN_WAGE },
   { id: 'la-city', label: 'City of Los Angeles', rate: 18.42 },
@@ -16,8 +16,14 @@ export const MIN_WAGE_PRESETS: { id: string; label: string; rate: number }[] = [
 ];
 
 let n = 0;
-export const newLocation = (partial: Partial<ShootLocation> = {}): ShootLocation =>
-  ({ id: `loc_${Date.now().toString(36)}_${(n++).toString(36)}`, name: '', days: 0, outsideLaZone: false, minWage: CA_MIN_WAGE, ...partial });
+export const newLocation = (partial: Partial<ShootLocation> = {}): ShootLocation => ({
+  id: `loc_${Date.now().toString(36)}_${(n++).toString(36)}`,
+  name: '',
+  days: 0,
+  outsideLaZone: false,
+  minWage: CA_MIN_WAGE,
+  ...partial,
+});
 
 export const locationsOf = (p: Project): ShootLocation[] => p.locations ?? [];
 export const locationDays = (p: Project): number => locationsOf(p).reduce((s, l) => s + Math.max(0, l.days || 0), 0);
@@ -27,7 +33,7 @@ export function outOfZonePctFromLocations(p: Project): number | null {
   const total = locationDays(p);
   if (total <= 0) return null;
   const out = locationsOf(p).reduce((s, l) => s + (l.outsideLaZone ? Math.max(0, l.days || 0) : 0), 0);
-  return Math.round(out / total * 1000) / 10;
+  return Math.round((out / total) * 1000) / 10;
 }
 
 /** The highest minimum wage among the places the film works; the state rate when no places are listed. */

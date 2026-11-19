@@ -32,12 +32,23 @@ import { lineFringes, lineSubtotal, topSheet } from './budget';
 import { isPayrollLine, isSagPerformerLine } from './sag';
 import { outOfZonePctFromLocations } from './locations';
 
-const CA_BASE = 0.35, CA_OUT_OF_ZONE = 0.05, CA_LOCAL_HIRE = 0.10, CA_VFX = 0.05, CA_TRAINEE = 0.005, CA_TRAINEE_MAX = 4;
-export const CA_QUALIFIED_CAP = 20_000_000, CA_MIN_BUDGET = 1_000_000, CA_REFUND_SHARE = 0.95, CA_REFUND_YEARS = 2;   // SB 186 (Sept 2026)
-const CA_CAREER_PATHWAYS_FEE = 0.0025;                 // of the allocation
-export const CA_DAYS_TO_START = 180;                           // from the CAL
-const FED_BASE = 0.20, FED_BONUS = 0.05, FED_MAX = 0.30, FED_MIN_BUDGET = 1_000_000;
-export const FED_FIRST_START = '2027-01-01';                   // productions beginning in taxable years after Dec 31, 2026
+const CA_BASE = 0.35,
+  CA_OUT_OF_ZONE = 0.05,
+  CA_LOCAL_HIRE = 0.1,
+  CA_VFX = 0.05,
+  CA_TRAINEE = 0.005,
+  CA_TRAINEE_MAX = 4;
+export const CA_QUALIFIED_CAP = 20_000_000,
+  CA_MIN_BUDGET = 1_000_000,
+  CA_REFUND_SHARE = 0.95,
+  CA_REFUND_YEARS = 2; // SB 186 (Sept 2026)
+const CA_CAREER_PATHWAYS_FEE = 0.0025; // of the allocation
+export const CA_DAYS_TO_START = 180; // from the CAL
+const FED_BASE = 0.2,
+  FED_BONUS = 0.05,
+  FED_MAX = 0.3,
+  FED_MIN_BUDGET = 1_000_000;
+export const FED_FIRST_START = '2027-01-01'; // productions beginning in taxable years after Dec 31, 2026
 
 /** FY 2026–27 application windows for feature films (independent films apply in the same windows). */
 const CA_WINDOWS = [
@@ -47,24 +58,61 @@ const CA_WINDOWS = [
 ];
 
 export const LOCAL_PERKS = [
-  { id: 'state-locations', label: 'State property: free permits, no location fees', hint: 'beaches, parks, roads, state buildings; you pay the monitor' },
+  {
+    id: 'state-locations',
+    label: 'State property: free permits, no location fees',
+    hint: 'beaches, parks, roads, state buildings; you pay the monitor',
+  },
   { id: 'la-locations', label: 'Los Angeles city-owned locations, free', hint: 'FilmLA still charges the permit' },
   { id: 'hotel-tax', label: 'No state hotel tax on crew housing', hint: 'most cities waive theirs after 30 days' },
-  { id: 'santa-clarita', label: 'Santa Clarita permit subsidy and hotel-tax refund', hint: 'for productions in the state tax credit program' },
-  { id: 'la-business-tax', label: 'LA city production tax capped', hint: '$145 on the first $5M, then $1.30 per $1,000' },
+  {
+    id: 'santa-clarita',
+    label: 'Santa Clarita permit subsidy and hotel-tax refund',
+    hint: 'for productions in the state tax credit program',
+  },
+  {
+    id: 'la-business-tax',
+    label: 'LA city production tax capped',
+    hint: '$145 on the first $5M, then $1.30 per $1,000',
+  },
 ];
 
 /** Categories that don't qualify for the California credit by default: the qualified-individual list (writers,
  *  producers, directors, principal cast and their travel) plus publicity. Stunts (1500) stay in: stunt performers
  *  and coordinators qualify. Everything is a checkbox on the tab. */
 const CA_DEFAULT_EXCLUDED = (p: Project) =>
-  p.categories.filter(c => (c.section === 'ATL' && !/STUNT/i.test(c.name)) || /PUBLICITY|MARKETING|DISTRIBUTION|FINANC/i.test(c.name)).map(c => c.number);
+  p.categories
+    .filter(
+      c => (c.section === 'ATL' && !/STUNT/i.test(c.name)) || /PUBLICITY|MARKETING|DISTRIBUTION|FINANC/i.test(c.name),
+    )
+    .map(c => c.number);
 
 export function defaultIncentives(p: Project): Incentives {
   return {
     startDate: '2027-03-01',
-    ca: { enabled: false, excludedCategories: CA_DEFAULT_EXCLUDED(p), caSharePct: 100, outOfZonePct: 0, localHirePct: 0, vfx: false, trainees: 0, monetize: 'transfer', transferCents: 90, bridge: true, bridgeCostPct: 8, auditCost: 15_000 },
-    federal: { enabled: false, includeAtl: true, independent: true, rural: false, transferCents: 90, bridge: false, bridgeCostPct: 8 },
+    ca: {
+      enabled: false,
+      excludedCategories: CA_DEFAULT_EXCLUDED(p),
+      caSharePct: 100,
+      outOfZonePct: 0,
+      localHirePct: 0,
+      vfx: false,
+      trainees: 0,
+      monetize: 'transfer',
+      transferCents: 90,
+      bridge: true,
+      bridgeCostPct: 8,
+      auditCost: 15_000,
+    },
+    federal: {
+      enabled: false,
+      includeAtl: true,
+      independent: true,
+      rural: false,
+      transferCents: 90,
+      bridge: false,
+      bridgeCostPct: 8,
+    },
     perks: {},
   };
 }
@@ -72,44 +120,62 @@ export function defaultIncentives(p: Project): Incentives {
 export const withIncentives = (p: Project): Incentives => {
   const d = defaultIncentives(p);
   const i = p.incentives;
-  return i ? { ...d, ...i, ca: { ...d.ca, ...i.ca }, federal: { ...d.federal, ...i.federal }, perks: { ...(i.perks ?? {}) } } : d;
+  return i
+    ? { ...d, ...i, ca: { ...d.ca, ...i.ca }, federal: { ...d.federal, ...i.federal }, perks: { ...(i.perks ?? {}) } }
+    : d;
 };
 
-export interface Line { label: string; amount: number }
+export interface Line {
+  label: string;
+  amount: number;
+}
 export interface CreditReport {
   enabled: boolean;
-  eligible: boolean;             // meets the program's floor
-  qualifiedWages: number;        // wages that count, before fringes
+  eligible: boolean; // meets the program's floor
+  qualifiedWages: number; // wages that count, before fringes
   qualifiedFringes: number;
-  qualifiedNonWage: number;      // vendors, rentals, locations, post: the non-payroll spend that counts
-  qualified: number;             // the base the credit is figured on, after any cap
-  preLetter?: number;            // prep and test spend before the allocation letter, left out of the base
+  qualifiedNonWage: number; // vendors, rentals, locations, post: the non-payroll spend that counts
+  qualified: number; // the base the credit is figured on, after any cap
+  preLetter?: number; // prep and test spend before the allocation letter, left out of the base
   capped: boolean;
-  parts: Line[];                 // base credit and each uplift
-  gross: number;                 // the credit as certified
-  costs: Line[];                 // what it costs to get and turn into cash
-  net: number;                   // what lands in the film's account
-  rate: number;                  // net ÷ budget to raise
+  parts: Line[]; // base credit and each uplift
+  gross: number; // the credit as certified
+  costs: Line[]; // what it costs to get and turn into cash
+  net: number; // what lands in the film's account
+  rate: number; // net ÷ budget to raise
   notes: string[];
 }
-interface WindowFit { apply: string; cal: string; startBy: string; fits: boolean; closed: boolean }
+interface WindowFit {
+  apply: string;
+  cal: string;
+  startBy: string;
+  fits: boolean;
+  closed: boolean;
+}
 interface IncentiveReport {
   ca: CreditReport;
   federal: CreditReport;
   perks: Line[];
   perksTotal: number;
-  total: number;                 // everything that comes back
-  duringProduction: number;      // in the bank for the shoot (bridged credits and perks)
-  afterDelivery: number;         // arrives after the audit and the tax filing
+  total: number; // everything that comes back
+  duringProduction: number; // in the bank for the shoot (bridged credits and perks)
+  afterDelivery: number; // arrives after the audit and the tax filing
   windows: WindowFit[];
-  window: WindowFit | null;      // the one to apply in for the planned start
-  startsBeforeLetter: boolean;   // California is on and no letter can arrive before the planned start
-  unbridged: number;             // credit money counted off the investor raise that only arrives after delivery
+  window: WindowFit | null; // the one to apply in for the planned start
+  startsBeforeLetter: boolean; // California is on and no letter can arrive before the planned start
+  unbridged: number; // credit money counted off the investor raise that only arrives after delivery
   federalDateOk: boolean;
 }
 
-const addDays = (iso: string, days: number) => { const d = new Date(iso + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + days); return d.toISOString().slice(0, 10); };
-const isWage = (l: Project['lines'][number]) => isPayrollLine(l) || isSagPerformerLine(l) || ((l.unit === 'DAY' || l.unit === 'WEEK' || l.unit === 'HOUR') && l.fringes.length > 0);
+const addDays = (iso: string, days: number) => {
+  const d = new Date(iso + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+};
+const isWage = (l: Project['lines'][number]) =>
+  isPayrollLine(l) ||
+  isSagPerformerLine(l) ||
+  ((l.unit === 'DAY' || l.unit === 'WEEK' || l.unit === 'HOUR') && l.fringes.length > 0);
 
 /** Cash spend by category, split into wages, their fringes, and everything else. Deferred and points don't count:
  *  nothing was paid. Contingency doesn't count either. `keep` says what share of a line counts (1 = all of it);
@@ -122,9 +188,13 @@ function spendByCategory(p: Project, keep: (l: Project['lines'][number]) => numb
     const cat = catOf.get(l.accountId) ?? l.accountId.slice(0, 2) + '00';
     const r = out.get(cat) ?? { wages: 0, fringes: 0, other: 0, dropped: 0 };
     const k = Math.max(0, Math.min(1, keep(l)));
-    const sub = lineSubtotal(l) * k, fr = lineFringes(l, p.fringes) * k;
+    const sub = lineSubtotal(l) * k,
+      fr = lineFringes(l, p.fringes) * k;
     r.dropped += (lineSubtotal(l) + lineFringes(l, p.fringes)) * (1 - k);
-    if (isWage(l)) { r.wages += sub; r.fringes += fr; } else r.other += sub + fr;
+    if (isWage(l)) {
+      r.wages += sub;
+      r.fringes += fr;
+    } else r.other += sub + fr;
     out.set(cat, r);
   }
   return out;
@@ -136,15 +206,25 @@ export function letterFor(startDate: string): WindowFit | null {
   const fits = windowFits(startDate, '0000-00-00').filter(w => w.fits);
   return fits.length ? fits[fits.length - 1] : null;
 }
-const windowFits = (startDate: string, today: string): WindowFit[] => CA_WINDOWS.map(w => {
-  const startBy = addDays(w.cal, CA_DAYS_TO_START);
-  return { apply: w.apply, cal: w.cal, startBy, closed: w.close < today, fits: startDate >= w.cal && startDate <= startBy };
-});
+const windowFits = (startDate: string, today: string): WindowFit[] =>
+  CA_WINDOWS.map(w => {
+    const startBy = addDays(w.cal, CA_DAYS_TO_START);
+    return {
+      apply: w.apply,
+      cal: w.cal,
+      startBy,
+      closed: w.close < today,
+      fits: startDate >= w.cal && startDate <= startBy,
+    };
+  });
 
 /** Weekdays from the allocation letter up to (not including) the first day of photography: the prep days that can qualify. */
 export function prepDaysAfterLetter(cal: string, startDate: string): number {
   let n = 0;
-  for (let d = cal; d < startDate; d = addDays(d, 1)) { const wd = new Date(d + 'T00:00:00Z').getUTCDay(); if (wd !== 0 && wd !== 6) n++; }
+  for (let d = cal; d < startDate; d = addDays(d, 1)) {
+    const wd = new Date(d + 'T00:00:00Z').getUTCDay();
+    if (wd !== 0 && wd !== 6) n++;
+  }
   return n;
 }
 
@@ -160,15 +240,28 @@ export function preLetterKeep(p: Project, cal: string, startDate: string): (l: P
   const testBefore = (p.calendar?.events ?? []).some(e => e.kind === 'test' && e.date < cal);
   return l => {
     if (TEST_LINE.test(l.description)) return testBefore ? 0 : 1;
-    if (l.unit !== 'DAY' || l.amount <= 0 || !PREP_LINE.test(l.description) || /shoot/i.test(l.description)) return 1;   // a line that mixes shoot days with prep is left whole
+    if (l.unit !== 'DAY' || l.amount <= 0 || !PREP_LINE.test(l.description) || /shoot/i.test(l.description)) return 1; // a line that mixes shoot days with prep is left whole
     return Math.min(l.amount, after) / l.amount;
   };
 }
 
-const monetized = (gross: number, cents: number, bridge: boolean, bridgeCostPct: number, mode: 'transfer' | 'refund' | 'own-tax', costs: Line[]) => {
-  if (mode === 'transfer' && cents < 100) costs.push({ label: `sold at ${cents}¢ on the dollar`, amount: gross * (1 - cents / 100) });
-  if (mode === 'refund') costs.push({ label: `refund election: ${Math.round(CA_REFUND_SHARE * 100)}% over ${CA_REFUND_YEARS} years`, amount: gross * (1 - CA_REFUND_SHARE) });
-  if (bridge && bridgeCostPct > 0) costs.push({ label: `bridge loan, ${bridgeCostPct}% interest and fees`, amount: gross * bridgeCostPct / 100 });
+const monetized = (
+  gross: number,
+  cents: number,
+  bridge: boolean,
+  bridgeCostPct: number,
+  mode: 'transfer' | 'refund' | 'own-tax',
+  costs: Line[],
+) => {
+  if (mode === 'transfer' && cents < 100)
+    costs.push({ label: `sold at ${cents}¢ on the dollar`, amount: gross * (1 - cents / 100) });
+  if (mode === 'refund')
+    costs.push({
+      label: `refund election: ${Math.round(CA_REFUND_SHARE * 100)}% over ${CA_REFUND_YEARS} years`,
+      amount: gross * (1 - CA_REFUND_SHARE),
+    });
+  if (bridge && bridgeCostPct > 0)
+    costs.push({ label: `bridge loan, ${bridgeCostPct}% interest and fees`, amount: (gross * bridgeCostPct) / 100 });
 };
 
 export function californiaCredit(p: Project, inc: Incentives): CreditReport {
@@ -180,39 +273,90 @@ export function californiaCredit(p: Project, inc: Incentives): CreditReport {
   const spend = spendByCategory(p, cutoff ? preLetterKeep(p, win.cal, inc.startDate) : undefined);
   const excluded = new Set(i.excludedCategories);
   const outOfZonePct = outOfZonePctFromLocations(p) ?? i.outOfZonePct;
-  let wages = 0, fringes = 0, other = 0, vfx = 0, preLetter = 0;
+  let wages = 0,
+    fringes = 0,
+    other = 0,
+    vfx = 0,
+    preLetter = 0;
   for (const [cat, r] of spend) {
     if (excluded.has(cat)) continue;
     preLetter += r.dropped;
-    wages += r.wages; fringes += r.fringes; other += r.other * i.caSharePct / 100;
-    if (/VISUAL EFFECTS|VFX/i.test(p.categories.find(c => c.number === cat)?.name ?? '')) vfx += r.wages + r.fringes + r.other * i.caSharePct / 100;
+    wages += r.wages;
+    fringes += r.fringes;
+    other += (r.other * i.caSharePct) / 100;
+    if (/VISUAL EFFECTS|VFX/i.test(p.categories.find(c => c.number === cat)?.name ?? ''))
+      vfx += r.wages + r.fringes + (r.other * i.caSharePct) / 100;
   }
   const raw = wages + fringes + other;
   const capped = raw > CA_QUALIFIED_CAP;
   const qualified = Math.min(raw, CA_QUALIFIED_CAP);
   const scale = raw > 0 ? qualified / raw : 0;
   const parts: Line[] = [{ label: `${Math.round(CA_BASE * 100)}% of qualified spend`, amount: qualified * CA_BASE }];
-  if (outOfZonePct > 0) parts.push({ label: `+${Math.round(CA_OUT_OF_ZONE * 100)}% on the ${outOfZonePct}% shot outside the LA zone`, amount: qualified * outOfZonePct / 100 * CA_OUT_OF_ZONE });
-  if (i.localHirePct > 0) parts.push({ label: `+${Math.round(CA_LOCAL_HIRE * 100)}% local hire on ${i.localHirePct}% of wages`, amount: (wages + fringes) * scale * i.localHirePct / 100 * CA_LOCAL_HIRE });
-  if (i.vfx && vfx > 0) parts.push({ label: `+${Math.round(CA_VFX * 100)}% on visual effects`, amount: vfx * scale * CA_VFX });
+  if (outOfZonePct > 0)
+    parts.push({
+      label: `+${Math.round(CA_OUT_OF_ZONE * 100)}% on the ${outOfZonePct}% shot outside the LA zone`,
+      amount: ((qualified * outOfZonePct) / 100) * CA_OUT_OF_ZONE,
+    });
+  if (i.localHirePct > 0)
+    parts.push({
+      label: `+${Math.round(CA_LOCAL_HIRE * 100)}% local hire on ${i.localHirePct}% of wages`,
+      amount: (((wages + fringes) * scale * i.localHirePct) / 100) * CA_LOCAL_HIRE,
+    });
+  if (i.vfx && vfx > 0)
+    parts.push({ label: `+${Math.round(CA_VFX * 100)}% on visual effects`, amount: vfx * scale * CA_VFX });
   const trainees = Math.max(0, Math.min(CA_TRAINEE_MAX, Math.round(i.trainees)));
-  if (trainees > 0) parts.push({ label: `+${trainees * 0.5}% for ${trainees} Career Pathways trainee${trainees === 1 ? '' : 's'}`, amount: qualified * trainees * CA_TRAINEE });
+  if (trainees > 0)
+    parts.push({
+      label: `+${trainees * 0.5}% for ${trainees} Career Pathways trainee${trainees === 1 ? '' : 's'}`,
+      amount: qualified * trainees * CA_TRAINEE,
+    });
   const gross = parts.reduce((n, x) => n + x.amount, 0);
   const costs: Line[] = [];
   if (gross > 0) {
-    costs.push({ label: 'Career Pathways contribution (0.25% of the allocation)', amount: gross * CA_CAREER_PATHWAYS_FEE });
+    costs.push({
+      label: 'Career Pathways contribution (0.25% of the allocation)',
+      amount: gross * CA_CAREER_PATHWAYS_FEE,
+    });
     if (i.auditCost > 0) costs.push({ label: 'CPA audit', amount: i.auditCost });
     monetized(gross, i.transferCents, i.bridge, i.bridgeCostPct, i.monetize, costs);
   }
   const net = Math.max(0, gross - costs.reduce((n, x) => n + x.amount, 0));
   const eligible = ts.cashBudget >= CA_MIN_BUDGET;
-  if (!eligible) notes.push(`Independent films need a budget of at least $${(CA_MIN_BUDGET / 1e6).toFixed(0)}M; this one is under.`);
-  if (capped) notes.push('Qualified spend is over the $20M an independent film can claim on; the credit is figured on $20M.');
-  notes.push('75% of principal photography days (or of the budget) must be in California; above-the-line wages never qualify.');
-  if (cutoff && preLetter > 0) notes.push(`$${Math.round(preLetter).toLocaleString('en-US')} of prep and test spending falls before the allocation letter (${fmtDate(win.cal)}) and is left out: spending before the letter is allowed but never qualifies.`);
-  if (!win) notes.push('No open window puts an allocation letter before this start date. Rolling camera in California before the letter disqualifies the film, so the credit is shown but not safe to count.');
-  if (i.monetize === 'own-tax') notes.push('Using the credit against the film’s own California tax only works if there is tax to use it against; most independents sell it.');
-  return { enabled: i.enabled, eligible, qualifiedWages: wages * scale, qualifiedFringes: fringes * scale, qualifiedNonWage: other * scale, qualified, capped, preLetter: cutoff ? preLetter : 0, parts, gross, costs, net: i.enabled && eligible ? net : 0, rate: ts.cashBudget ? net / ts.cashBudget : 0, notes };
+  if (!eligible)
+    notes.push(`Independent films need a budget of at least $${(CA_MIN_BUDGET / 1e6).toFixed(0)}M; this one is under.`);
+  if (capped)
+    notes.push('Qualified spend is over the $20M an independent film can claim on; the credit is figured on $20M.');
+  notes.push(
+    '75% of principal photography days (or of the budget) must be in California; above-the-line wages never qualify.',
+  );
+  if (cutoff && preLetter > 0)
+    notes.push(
+      `$${Math.round(preLetter).toLocaleString('en-US')} of prep and test spending falls before the allocation letter (${fmtDate(win.cal)}) and is left out: spending before the letter is allowed but never qualifies.`,
+    );
+  if (!win)
+    notes.push(
+      'No open window puts an allocation letter before this start date. Rolling camera in California before the letter disqualifies the film, so the credit is shown but not safe to count.',
+    );
+  if (i.monetize === 'own-tax')
+    notes.push(
+      'Using the credit against the film’s own California tax only works if there is tax to use it against; most independents sell it.',
+    );
+  return {
+    enabled: i.enabled,
+    eligible,
+    qualifiedWages: wages * scale,
+    qualifiedFringes: fringes * scale,
+    qualifiedNonWage: other * scale,
+    qualified,
+    capped,
+    preLetter: cutoff ? preLetter : 0,
+    parts,
+    gross,
+    costs,
+    net: i.enabled && eligible ? net : 0,
+    rate: ts.cashBudget ? net / ts.cashBudget : 0,
+    notes,
+  };
 }
 
 export function federalCredit(p: Project, inc: Incentives): CreditReport {
@@ -220,36 +364,80 @@ export function federalCredit(p: Project, inc: Incentives): CreditReport {
   const ts = topSheet(p);
   const spend = spendByCategory(p);
   const atl = new Set(p.categories.filter(c => c.section === 'ATL').map(c => c.number));
-  let wages = 0, fringes = 0;
-  for (const [cat, r] of spend) { if (!i.includeAtl && atl.has(cat)) continue; wages += r.wages; fringes += r.fringes; }
+  let wages = 0,
+    fringes = 0;
+  for (const [cat, r] of spend) {
+    if (!i.includeAtl && atl.has(cat)) continue;
+    wages += r.wages;
+    fringes += r.fringes;
+  }
   const qualified = wages + fringes;
   let rate = FED_BASE;
-  const parts: Line[] = [{ label: `${Math.round(FED_BASE * 100)}% of labor for American workers`, amount: qualified * FED_BASE }];
-  if (i.independent && rate < FED_MAX) { rate += FED_BONUS; parts.push({ label: '+5% independent production', amount: qualified * FED_BONUS }); }
-  if (i.rural && rate < FED_MAX) { rate += FED_BONUS; parts.push({ label: '+5% rural opportunity zone / disaster area days', amount: qualified * FED_BONUS }); }
+  const parts: Line[] = [
+    { label: `${Math.round(FED_BASE * 100)}% of labor for American workers`, amount: qualified * FED_BASE },
+  ];
+  if (i.independent && rate < FED_MAX) {
+    rate += FED_BONUS;
+    parts.push({ label: '+5% independent production', amount: qualified * FED_BONUS });
+  }
+  if (i.rural && rate < FED_MAX) {
+    rate += FED_BONUS;
+    parts.push({ label: '+5% rural opportunity zone / disaster area days', amount: qualified * FED_BONUS });
+  }
   const gross = parts.reduce((n, x) => n + x.amount, 0);
   const costs: Line[] = [];
   if (gross > 0) monetized(gross, i.transferCents, i.bridge, i.bridgeCostPct, 'transfer', costs);
   const net = Math.max(0, gross - costs.reduce((n, x) => n + x.amount, 0));
   const eligible = ts.cashBudget >= FED_MIN_BUDGET;
-  const notes = ['Introduced Sept 24, 2026; not law. Applies to productions beginning in taxable years after Dec 31, 2026, with 75% of photography days in the US. The bill text will say exactly which labor counts; until then this reads it as every wage line.'];
+  const notes = [
+    'Introduced Sept 24, 2026; not law. Applies to productions beginning in taxable years after Dec 31, 2026, with 75% of photography days in the US. The bill text will say exactly which labor counts; until then this reads it as every wage line.',
+  ];
   if (!eligible) notes.push('Productions have to cost over $1M.');
-  return { enabled: i.enabled, eligible, qualifiedWages: wages, qualifiedFringes: fringes, qualifiedNonWage: 0, qualified, capped: false, parts, gross, costs, net: i.enabled && eligible ? net : 0, rate: ts.cashBudget ? net / ts.cashBudget : 0, notes };
+  return {
+    enabled: i.enabled,
+    eligible,
+    qualifiedWages: wages,
+    qualifiedFringes: fringes,
+    qualifiedNonWage: 0,
+    qualified,
+    capped: false,
+    parts,
+    gross,
+    costs,
+    net: i.enabled && eligible ? net : 0,
+    rate: ts.cashBudget ? net / ts.cashBudget : 0,
+    notes,
+  };
 }
 
 export function incentiveReport(p: Project): IncentiveReport {
   const inc = withIncentives(p);
   const ca = californiaCredit(p, inc);
   const federal = federalCredit(p, inc);
-  const perks = LOCAL_PERKS.filter(k => k.id in inc.perks).map(k => ({ label: k.label, amount: Math.max(0, inc.perks[k.id] || 0) }));
+  const perks = LOCAL_PERKS.filter(k => k.id in inc.perks).map(k => ({
+    label: k.label,
+    amount: Math.max(0, inc.perks[k.id] || 0),
+  }));
   const perksTotal = perks.reduce((n, x) => n + x.amount, 0);
   const total = ca.net + federal.net + perksTotal;
   const duringProduction = (inc.ca.bridge ? ca.net : 0) + (inc.federal.bridge ? federal.net : 0) + perksTotal;
   const today = new Date().toISOString().slice(0, 10);
   const windows = windowFits(inc.startDate, today);
   const window = windows.find(w => w.fits && !w.closed) ?? null;
-  return { ca, federal, perks, perksTotal, total, duringProduction, afterDelivery: total - duringProduction, windows, window,
-    startsBeforeLetter: inc.ca.enabled && !letterFor(inc.startDate), unbridged: total - duringProduction, federalDateOk: inc.startDate >= FED_FIRST_START };
+  return {
+    ca,
+    federal,
+    perks,
+    perksTotal,
+    total,
+    duringProduction,
+    afterDelivery: total - duringProduction,
+    windows,
+    window,
+    startsBeforeLetter: inc.ca.enabled && !letterFor(inc.startDate),
+    unbridged: total - duringProduction,
+    federalDateOk: inc.startDate >= FED_FIRST_START,
+  };
 }
 
 /** What comes off the money investors put in: every credit and perk that is switched on and eligible. */
@@ -258,4 +446,10 @@ export function incentiveProceeds(p: Project): number {
   return incentiveReport(p).total;
 }
 
-export const fmtDate = (iso: string) => new Date(iso + 'T00:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+export const fmtDate = (iso: string) =>
+  new Date(iso + 'T00:00:00Z').toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });

@@ -13,17 +13,23 @@ export { base64, sha256, utf8 };
 
 /** A typeface as a data URL, for an @font-face in a page: one the app itself ships (Work Sans, Special Elite, Caveat),
  *  or a font file the deck carries. `weight` is one number, or the lightest and heaviest of a variable file. */
-export interface PageFont { family: string; weight: number | [number, number]; style?: 'normal' | 'italic'; src: string; unicodeRange?: string }
+export interface PageFont {
+  family: string;
+  weight: number | [number, number];
+  style?: 'normal' | 'italic';
+  src: string;
+  unicodeRange?: string;
+}
 interface DeckParts {
-  runtimeJs: string;       // the runtime bundle: an IIFE that defines window.ProfitShareDeck
-  css: string;             // deck.css
-  title?: string;          // the page title; left out, the film's name and "Investor deck"
-  lang?: string;           // the page language (default en)
-  fonts?: PageFont[];      // the app's own typefaces the deck's theme uses
+  runtimeJs: string; // the runtime bundle: an IIFE that defines window.ProfitShareDeck
+  css: string; // deck.css
+  title?: string; // the page title; left out, the film's name and "Investor deck"
+  lang?: string; // the page language (default en)
+  fonts?: PageFont[]; // the app's own typefaces the deck's theme uses
 }
 interface DeckHtmlOptions {
-  recipient?: string;      // a link ending: the file is made for this one person and holds nobody else
-  static?: boolean;        // every slide in its final state, one under the other, nothing to press (for print)
+  recipient?: string; // a link ending: the file is made for this one person and holds nobody else
+  static?: boolean; // every slide in its final state, one under the other, nothing to press (for print)
 }
 
 // ---------- text that is safe where it goes ----------
@@ -32,20 +38,29 @@ interface DeckHtmlOptions {
  *  ends are written as \u escapes, so no text in it can close the element, open a comment or break a string.
  *  A value with no JSON of its own (undefined, a function) is written as null. */
 export function safeJson(value: unknown): string {
-  return (JSON.stringify(value) ?? 'null').replace(/[<>&\u2028\u2029]/g, ch => `\\u${ch.charCodeAt(0).toString(16).padStart(4, '0')}`);
+  return (JSON.stringify(value) ?? 'null').replace(
+    /[<>&\u2028\u2029]/g,
+    ch => `\\u${ch.charCodeAt(0).toString(16).padStart(4, '0')}`,
+  );
 }
 /** Text for an element's content or a double-quoted attribute. */
 export const escapeHtml = (text: string): string =>
-  String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 /** A script's source with nothing in it that the HTML parser could take for the end of the element or the start of
  *  a comment (`</script`, `<!--`): inside JavaScript `<\/` and `<\!` mean what `</` and `<!` mean. */
 export const safeScript = (js: string): string => js.replace(/<\/(script)/gi, '<\\/$1').replace(/<!--/g, '<\\!--');
 
 // ---------- the app's own typefaces: only what the theme uses ----------
 
-const GENERIC = /^(serif|sans-serif|monospace|cursive|fantasy|system-ui|ui-serif|ui-sans-serif|ui-monospace|ui-rounded|math|emoji|fangsong)$/i;
+const GENERIC =
+  /^(serif|sans-serif|monospace|cursive|fantasy|system-ui|ui-serif|ui-sans-serif|ui-monospace|ui-rounded|math|emoji|fangsong)$/i;
 export const BUNDLED_FAMILIES = ['Work Sans', 'Special Elite', HAND_FAMILY] as const;
-type BundledFamily = typeof BUNDLED_FAMILIES[number];
+type BundledFamily = (typeof BUNDLED_FAMILIES)[number];
 // what the runtime puts after every stack (runtime.ts: TITLE_FALLBACK, BODY_FALLBACK)
 const ROLE_FALLBACK: Record<'title' | 'body', BundledFamily> = { title: 'Special Elite', body: 'Work Sans' };
 
@@ -54,7 +69,15 @@ const ROLE_FALLBACK: Record<'title' | 'body', BundledFamily> = { title: 'Special
  *  the search ends there; any other name may or may not be installed, so the search goes on, and at the end of the
  *  author's list stands the role's fallback, which is one of the app's. */
 export function bundledFamilyOf(stack: unknown, role: 'title' | 'body'): BundledFamily | null {
-  const names = (typeof stack === 'string' ? stack : '').split(',').map(x => x.trim().replace(/^["']|["']$/g, '').trim()).filter(Boolean);
+  const names = (typeof stack === 'string' ? stack : '')
+    .split(',')
+    .map(x =>
+      x
+        .trim()
+        .replace(/^["']|["']$/g, '')
+        .trim(),
+    )
+    .filter(Boolean);
   for (const name of names) {
     const own = BUNDLED_FAMILIES.find(f => f.toLowerCase() === name.toLowerCase());
     if (own) return own;
@@ -63,7 +86,11 @@ export function bundledFamilyOf(stack: unknown, role: 'title' | 'body'): Bundled
   return ROLE_FALLBACK[role];
 }
 
-export interface FaceNeed { family: BundledFamily; weight: number; style: 'normal' | 'italic' }
+export interface FaceNeed {
+  family: BundledFamily;
+  weight: number;
+  style: 'normal' | 'italic';
+}
 /** The faces of the app's own typefaces a deck draws with: the weights the stylesheet asks of each role (titles are
  *  set at 400; body text at 400 and 600, and in italics only for a recipient's note). A role that carries a font file
  *  of its own does without them, unless the deck's text has letters outside basic Latin, which that file may lack.
@@ -73,37 +100,53 @@ export function bundledFacesNeeded(data: DeckData): FaceNeed[] {
   const fonts = data?.theme?.fonts ?? { title: '', body: '' };
   const files = Array.isArray(data?.theme?.fontFaces) ? data.theme.fontFaces : [];
   const wide = needsLatinExt(data);
-  const covered = (role: 'title' | 'body') => !wide && files.some(f => f && f.role === role && !!cleanFamily(f.family) && fontSrcOk(f.src));
+  const covered = (role: 'title' | 'body') =>
+    !wide && files.some(f => f && f.role === role && !!cleanFamily(f.family) && fontSrcOk(f.src));
   const out = new Map<string, FaceNeed>();
   const add = (family: BundledFamily | null, weight: number, style: 'normal' | 'italic' = 'normal') => {
     if (!family) return;
-    const w = family === 'Special Elite' ? 400 : family === HAND_FAMILY ? HAND_WEIGHT : weight;   // one weight is all those faces have (or all the app carries)
+    const w = family === 'Special Elite' ? 400 : family === HAND_FAMILY ? HAND_WEIGHT : weight; // one weight is all those faces have (or all the app carries)
     const st = family === 'Work Sans' ? style : 'normal';
     out.set(`${family}|${w}|${st}`, { family, weight: w, style: st });
   };
   if (!covered('title')) add(bundledFamilyOf(fonts.title, 'title'), 400);
   if (!covered('body')) {
     const body = bundledFamilyOf(fonts.body, 'body');
-    add(body, 400); add(body, 600);
-    if (Array.isArray(data?.recipients) && data.recipients.some(r => r && typeof r.note === 'string' && r.note.trim())) add(body, 400, 'italic');
+    add(body, 400);
+    add(body, 600);
+    if (Array.isArray(data?.recipients) && data.recipients.some(r => r && typeof r.note === 'string' && r.note.trim()))
+      add(body, 400, 'italic');
   }
   if (data?.theme?.hand === true && hasCards(data)) add(HAND_FAMILY, HAND_WEIGHT);
-  return [...out.values()].sort((a, b) => a.family.localeCompare(b.family) || a.weight - b.weight || a.style.localeCompare(b.style));
+  return [...out.values()].sort(
+    (a, b) => a.family.localeCompare(b.family) || a.weight - b.weight || a.style.localeCompare(b.style),
+  );
 }
 /** Whether any slide draws a card: a cover, a row of cards, a quote, the card beside the team. */
 export function hasCards(data: DeckData): boolean {
   const text = (v: unknown) => typeof v === 'string' && v.trim() !== '';
-  return (Array.isArray(data?.slides) ? data.slides : []).some(s => !!s && typeof s === 'object' && (
-    s.layout === 'cover'
-    || ((s.layout === 'cards' || s.layout === 'ways') && Array.isArray(s.cards) && s.cards.some(c => !!c && (text(c.title) || text(c.body))))
-    || (s.layout === 'stats' && text(s.quote?.text))
-    || (s.layout === 'team' && !!s.aside && (text(s.aside.title) || (Array.isArray(s.aside.lines) && s.aside.lines.some(text))))));
+  return (Array.isArray(data?.slides) ? data.slides : []).some(
+    s =>
+      !!s &&
+      typeof s === 'object' &&
+      (s.layout === 'cover' ||
+        ((s.layout === 'cards' || s.layout === 'ways') &&
+          Array.isArray(s.cards) &&
+          s.cards.some(c => !!c && (text(c.title) || text(c.body)))) ||
+        (s.layout === 'stats' && text(s.quote?.text)) ||
+        (s.layout === 'team' &&
+          !!s.aside &&
+          (text(s.aside.title) || (Array.isArray(s.aside.lines) && s.aside.lines.some(text))))),
+  );
 }
 
 /** The characters the "latin-ext" files of the app's typefaces cover: a deck with none of them does not carry those files. */
-const LATIN_EXT = /[\u0100-\u02ba\u02bd-\u02c5\u02c7-\u02cc\u02ce-\u02d7\u02dd-\u02ff\u1d00-\u1dbf\u1e00-\u1e9f\u1ef2-\u1eff\u2020\u20a0-\u20ab\u20ad-\u20c0\u2113\u2c60-\u2c7f\ua720-\ua7ff]/;
-export const LATIN_RANGE = 'U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD';
-export const LATIN_EXT_RANGE = 'U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF';
+const LATIN_EXT =
+  /[\u0100-\u02ba\u02bd-\u02c5\u02c7-\u02cc\u02ce-\u02d7\u02dd-\u02ff\u1d00-\u1dbf\u1e00-\u1e9f\u1ef2-\u1eff\u2020\u20a0-\u20ab\u20ad-\u20c0\u2113\u2c60-\u2c7f\ua720-\ua7ff]/;
+export const LATIN_RANGE =
+  'U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD';
+export const LATIN_EXT_RANGE =
+  'U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF';
 /** Whether any text in the deck (pictures and font files aside) has a letter outside basic Latin. */
 export function needsLatinExt(data: DeckData): boolean {
   const { images: _i, theme, ...rest } = data ?? ({} as DeckData);
@@ -117,13 +160,23 @@ export function fontFaceCss(fonts: PageFont[] | undefined): string {
   for (const f of Array.isArray(fonts) ? fonts : []) {
     const family = cleanFamily(f?.family);
     // a weight outside what a stylesheet takes is a face left out, not one moved to the nearest it does take
-    const whole = (v: unknown) => { const n = Math.round(Number(v)); return n >= 1 && n <= 1000 ? n : undefined; };
+    const whole = (v: unknown) => {
+      const n = Math.round(Number(v));
+      return n >= 1 && n <= 1000 ? n : undefined;
+    };
     const raw: unknown = f?.weight;
-    const weight = Array.isArray(raw) ? (raw.length === 2 && raw.every(v => whole(v) !== undefined) ? cleanWeight(raw.map(whole)) : undefined) : whole(raw);
+    const weight = Array.isArray(raw)
+      ? raw.length === 2 && raw.every(v => whole(v) !== undefined)
+        ? cleanWeight(raw.map(whole))
+        : undefined
+      : whole(raw);
     if (!family || !fontSrcOk(f?.src) || weight === undefined) continue;
-    const range = typeof f.unicodeRange === 'string' && RANGE_OK.test(f.unicodeRange) ? `;unicode-range:${f.unicodeRange}` : '';
+    const range =
+      typeof f.unicodeRange === 'string' && RANGE_OK.test(f.unicodeRange) ? `;unicode-range:${f.unicodeRange}` : '';
     const format = /^data:font\/woff2/i.test(f.src) ? ' format("woff2")' : '';
-    out.push(`@font-face{font-family:"${family}";font-weight:${weightText(weight)};font-style:${f.style === 'italic' ? 'italic' : 'normal'};font-display:block;src:url(${f.src})${format}${range}}`);
+    out.push(
+      `@font-face{font-family:"${family}";font-weight:${weightText(weight)};font-style:${f.style === 'italic' ? 'italic' : 'normal'};font-display:block;src:url(${f.src})${format}${range}}`,
+    );
   }
   return out.join('\n');
 }
@@ -140,7 +193,8 @@ export function dataFor(data: DeckData, recipient?: string): DeckData {
 }
 
 export const deckTitle = (film: string): string => (film.trim() ? `${film.trim()}: Investor deck` : 'Investor deck');
-const NOSCRIPT = 'This deck draws its slides with JavaScript, which is switched off here. Open the file in a web browser with JavaScript on, or ask for the PDF.';
+const NOSCRIPT =
+  'This deck draws its slides with JavaScript, which is switched off here. Open the file in a web browser with JavaScript on, or ask for the PDF.';
 const HEX = /^#[0-9a-f]{3,8}$/i;
 
 /** The script that starts the deck. The recipient is fixed when the file is written: a link ending (#without,
@@ -164,8 +218,8 @@ export function deckHtml(data: DeckData, parts: DeckParts, opts: DeckHtmlOptions
   const csp = [
     "default-src 'none'",
     `script-src 'sha256-${base64(sha256(utf8(script)))}'`,
-    "style-src 'unsafe-inline'",     // the deck's stylesheet goes into its own shadow tree as a style element
-    'img-src data:',                 // every picture is inside the file
+    "style-src 'unsafe-inline'", // the deck's stylesheet goes into its own shadow tree as a style element
+    'img-src data:', // every picture is inside the file
     'font-src data:',
     "base-uri 'none'",
     "form-action 'none'",

@@ -18,7 +18,8 @@ describe('index.html link preview and icons', () => {
     expect(meta('theme-color')).toBe('#092827');
   });
   it('gives the preview picture as a full address, to a file that is in public/', () => {
-    for (const key of ['og:image', 'twitter:image']) expect(meta(key)).toBe('https://profitshare.alonegirlmovie.com/social.png');
+    for (const key of ['og:image', 'twitter:image'])
+      expect(meta(key)).toBe('https://profitshare.alonegirlmovie.com/social.png');
     expect(existsSync('public/social.png')).toBe(true);
   });
   it('takes its icons from its own files, which the policy allows', () => {

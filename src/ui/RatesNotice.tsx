@@ -5,5 +5,9 @@ import { sagRatesNotice } from '../engine/sag';
 /** `today` is only handed in by tests; the app leaves it to the clock. */
 export function SagRatesNotice({ today }: { today?: Date }) {
   const text = sagRatesNotice(today);
-  return text ? <p className="help small ratesdue" role="note">{text}</p> : null;
+  return text ? (
+    <p className="help small ratesdue" role="note">
+      {text}
+    </p>
+  ) : null;
 }

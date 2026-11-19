@@ -26,8 +26,16 @@ export function fundingSources(p: Project): PathSource[] {
   // a credit's net is 0 while it is switched off, so each is figured on a copy with it forced on
   const ca = incentiveReport({ ...p, incentives: { ...inc, ca: { ...inc.ca, enabled: true } } }).ca.net;
   if (ca > 0) out.push({ key: 'ca', label: 'California tax credit', amount: ca, on: inc.ca.enabled });
-  const federal = incentiveReport({ ...p, incentives: { ...inc, federal: { ...inc.federal, enabled: true } } }).federal.net;
-  if (federal > 0) out.push({ key: 'federal', label: 'Federal production credit', amount: federal, on: inc.federal.enabled, note: 'proposed, not yet law' });
+  const federal = incentiveReport({ ...p, incentives: { ...inc, federal: { ...inc.federal, enabled: true } } }).federal
+    .net;
+  if (federal > 0)
+    out.push({
+      key: 'federal',
+      label: 'Federal production credit',
+      amount: federal,
+      on: inc.federal.enabled,
+      note: 'proposed, not yet law',
+    });
   const perks = incentiveReport(p).perksTotal;
   if (perks > 0) out.push({ key: 'perks', label: 'Local perks', amount: perks, on: true });
   return out;
@@ -47,10 +55,15 @@ export function pathInputs(p: Project): PathInputs {
   };
 }
 
-interface FundingPath extends PathResult { current: boolean }
+interface FundingPath extends PathResult {
+  current: boolean;
+}
 
 /** Every path, all sources on first. Exactly one is `current`: the one whose switches are the project as saved. */
 export function fundingPaths(p: Project): FundingPath[] {
   const inputs = pathInputs(p);
-  return allSwitches(inputs.sources).map(sw => ({ ...pathFor(inputs, sw), current: inputs.sources.every(s => sw[s.key] === s.on) }));
+  return allSwitches(inputs.sources).map(sw => ({
+    ...pathFor(inputs, sw),
+    current: inputs.sources.every(s => sw[s.key] === s.on),
+  }));
 }

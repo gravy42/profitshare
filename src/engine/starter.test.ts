@@ -10,7 +10,12 @@ const board = () => clearDayBreaks(sampleProject().board);
 
 describe('starter budget from a script', () => {
   it('sizes days to the pages, prices cast at the tier, crews up and fills allowances', () => {
-    const { project: p, report } = starterProject(board(), { title: 'TEST FILM', tier: 'MLB', rates: 'ballpark', pagesPerDay: 6 });
+    const { project: p, report } = starterProject(board(), {
+      title: 'TEST FILM',
+      tier: 'MLB',
+      rates: 'ballpark',
+      pagesPerDay: 6,
+    });
     expect(report.shootDays).toBe(Math.ceil(report.pages / 6));
     expect(shootDays(p.board).length).toBe(report.shootDays);
     expect(p.shootDays).toBe(report.shootDays);
@@ -44,7 +49,10 @@ describe('starter budget from a script', () => {
   });
   it('everyone at scale puts every crew line on the tier rate; the board owns the cast days after normalising', () => {
     const { project: p } = starterProject(board(), { title: 'T', tier: 'LBA', rates: 'scale', pagesPerDay: 5 });
-    for (const l of p.lines.filter(l => isPayrollLine(l) && !isSagPerformerLine(l) && !/background/i.test(l.description) && l.accountId !== '1301')) expect(l.rate).toBeCloseTo(834 / 8, 1);
+    for (const l of p.lines.filter(
+      l => isPayrollLine(l) && !isSagPerformerLine(l) && !/background/i.test(l.description) && l.accountId !== '1301',
+    ))
+      expect(l.rate).toBeCloseTo(834 / 8, 1);
     const n = syncCastDaysFromBoard(adoptBoardDays(withDeal(p)));
     const lead = n.participants.find(x => x.tierId === 'lead')!;
     const shoot = n.lines.find(l => l.participantId === lead.id && l.description === 'Shoot')!;
@@ -53,25 +61,42 @@ describe('starter budget from a script', () => {
   });
   it('tags add the people they imply', () => {
     const b = board();
-    b.scenes[0] = { ...b.scenes[0], elements: { ...b.scenes[0].elements, Animals: ['cat'], Stunts: ['fall from the roof'] } };
+    b.scenes[0] = {
+      ...b.scenes[0],
+      elements: { ...b.scenes[0].elements, Animals: ['cat'], Stunts: ['fall from the roof'] },
+    };
     const { project: p, report } = starterProject(b, { title: 'T', tier: 'MLB', rates: 'scale', pagesPerDay: 5 });
     expect(report.extras.join(' ')).toMatch(/stunt coordinator/);
     expect(report.extras.join(' ')).toMatch(/animal wrangler/);
-    expect(p.participants.find(x => x.name === 'Animal Wrangler')!.followsElements).toEqual([{ category: 'Animals', item: 'cat' }]);
+    expect(p.participants.find(x => x.name === 'Animal Wrangler')!.followsElements).toEqual([
+      { category: 'Animals', item: 'cat' },
+    ]);
     expect(p.lines.some(l => l.accountId === '1501' && l.daysFrom === 'board')).toBe(true);
   });
 });
 
 describe('starter into an existing project', () => {
-  it('keeps the board\'s own day breaks, the name and the day length, and adds the accounts the template needs', () => {
+  it("keeps the board's own day breaks, the name and the day length, and adds the accounts the template needs", () => {
     const s = sampleProject();
-    const base = { ...blankProject({ name: 'MY FILM', version: 'Blue', chartOfAccounts: 'empty' }), board: s.board, dayHours: 10 as const };
-    const { project: p, report } = applyStarter(base, { title: 'ignored', tier: 'LBA', rates: 'ballpark', pagesPerDay: 3, crew: 'full' });
-    expect(report.shootDays).toBe(shootDays(s.board).length);   // the 12 breaks the sample ships with, not pages ÷ 3
-    expect(p.name).toBe('MY FILM'); expect(p.version).toBe('Blue'); expect(p.dayHours).toBe(10);
-    expect(p.accounts.length).toBeGreaterThan(100);              // the empty chart was filled from the standard one
+    const base = {
+      ...blankProject({ name: 'MY FILM', version: 'Blue', chartOfAccounts: 'empty' }),
+      board: s.board,
+      dayHours: 10 as const,
+    };
+    const { project: p, report } = applyStarter(base, {
+      title: 'ignored',
+      tier: 'LBA',
+      rates: 'ballpark',
+      pagesPerDay: 3,
+      crew: 'full',
+    });
+    expect(report.shootDays).toBe(shootDays(s.board).length); // the 12 breaks the sample ships with, not pages ÷ 3
+    expect(p.name).toBe('MY FILM');
+    expect(p.version).toBe('Blue');
+    expect(p.dayHours).toBe(10);
+    expect(p.accounts.length).toBeGreaterThan(100); // the empty chart was filled from the standard one
     expect(p.lines.every(l => p.accounts.some(a => a.number === l.accountId))).toBe(true);
     const dp = p.lines.find(l => l.accountId === '2601' && l.description === 'Shoot')!;
-    expect(dp.multiplier).toBe(11);                               // a 10-hour shoot day
+    expect(dp.multiplier).toBe(11); // a 10-hour shoot day
   });
 });
