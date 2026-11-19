@@ -930,3 +930,11 @@ input[type="checkbox"], input[type="radio"] { min-width: 16px; min-height: 16px;
 label:has(> input[type="checkbox"]), label:has(> input[type="radio"]) { min-height: 24px; display: inline-flex; align-items: center; gap: 6px; }
 .strip .handle { min-width: 24px; min-height: 24px; display: inline-flex; align-items: center; gap: 2px; }
 
+
+/* Small pre-launch fixes: the "what it is and what it is not" block on the About tab, and the quiet line that
+   appears under SAG-AFTRA rates once they have passed the day they were due to rise. */
+.help .whatitis { margin: 1em 0; }
+.help .whatitis p { margin: 0 0 4px; }
+.help .whatitis ul { margin: 0; padding-left: 18px; }
+.help .whatitis li { margin: 2px 0; }
+.ratesdue { margin: 10px 0 0; padding-left: 10px; border-left: 2px solid var(--gold); }

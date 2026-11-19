@@ -17,27 +17,88 @@ import { money } from './ui/format';
 import { idbGet, idbSet, idbDel, idbKeys, STORES } from './idb';
 
 const KEY = 'profitshare.ai.key';
-const MODEL = 'profitshare.ai.model';
+const LEGACY_MODEL = 'profitshare.ai.model';         // before the app chose a model itself, this held the default as often as a real choice
+const PICKED = 'profitshare.ai.model.picked';        // the model the person chose themselves; absent when they have not chosen
+const MODELS = 'profitshare.ai.models';              // the list the last "Test the key" brought back, so the choice survives a reload without asking again
+/** Used when the key's own list is not known (the key has not been tested in this browser). */
 export const DEFAULT_MODEL = 'claude-sonnet-4-5';
 
-export interface AiSettings { key: string; model: string }
+export interface AiModel { id: string; name: string; created?: string }
+/** `model` is the one a request will use. `picked` is the person's own choice, empty when they have left it to the app. */
+export interface AiSettings { key: string; model: string; picked: string }
+
+/** The family the fallback belongs to, read off its own id: the word that is neither "claude" nor a number. */
+export const modelFamily = (id: string) => id.toLowerCase().split('-').find(part => part !== 'claude' && !/^\d+$/.test(part)) ?? '';
+
+/** The model to use when the person has not chosen one. The rule, which reads the key's own list and no table of names:
+ *  1. No list (the key has not been tested here): the fallback constant.
+ *  2. Keep to the fallback's family (its id says "sonnet", the mid-priced one), so a first request does not suddenly
+ *     cost several times more. If the list has none of that family, take the whole list: a model the key can use
+ *     beats one it cannot.
+ *  3. Of those, the newest: the latest created date when every one of them carries a date, otherwise the first in
+ *     the list's own order (the list arrives newest first). */
+export function newestSuitable(list: AiModel[], fallback = DEFAULT_MODEL): string {
+  if (!list.length) return fallback;
+  const family = modelFamily(fallback);
+  const same = family ? list.filter(m => m.id.toLowerCase().split('-').includes(family)) : [];
+  const pool = same.length ? same : list;
+  const when = pool.map(m => (m.created ? Date.parse(m.created) : NaN));
+  if (when.some(Number.isNaN)) return pool[0].id;
+  let best = 0;
+  for (let i = 1; i < pool.length; i++) if (when[i] > when[best]) best = i;   // a tie keeps the earlier one in the list
+  return pool[best].id;
+}
+
+/** Which model a request uses, and a sentence for beside the picker when the person's choice could not be kept.
+ *  A model the person chose is never swapped for a newer one; it is only set aside when the key's list is known
+ *  and no longer has it, because a request to it would fail. */
+export function resolveModel(picked: string, list: AiModel[]): { model: string; note: string } {
+  if (!picked) return { model: newestSuitable(list), note: '' };
+  if (!list.length || list.some(m => m.id === picked)) return { model: picked, note: '' };
+  const model = newestSuitable(list);
+  const name = list.find(m => m.id === model)?.name ?? model;
+  return { model, note: `The model you chose, ${picked}, is no longer on this key's list, so ${name} is used instead. Choose another from the list if you prefer.` };
+}
+
+/** The key's list of models as last fetched; empty when it never was, or when the key has changed since. */
+export function knownModels(): AiModel[] {
+  try {
+    const list = JSON.parse(localStorage.getItem(MODELS) ?? '[]');
+    return Array.isArray(list) ? list.filter(m => m && typeof m.id === 'string').map(m => ({ id: m.id, name: typeof m.name === 'string' ? m.name : m.id, created: typeof m.created === 'string' ? m.created : undefined })) : [];
+  } catch { return []; }
+}
+export function rememberModels(list: AiModel[]) { try { localStorage.setItem(MODELS, JSON.stringify(list)); } catch { /* private window */ } }
+
+function pickedModel(): string {
+  const own = localStorage.getItem(PICKED);
+  if (own !== null) return own;
+  // A value from before this change: the old default was written whether or not anyone chose it, so it does not
+  // count as a choice. Anything else was put there by the person or by an earlier test of the key, and is kept.
+  const old = localStorage.getItem(LEGACY_MODEL) ?? '';
+  return old === 'claude-sonnet-4-5' ? '' : old;
+}
 export function aiSettings(): AiSettings {
-  try { return { key: localStorage.getItem(KEY) ?? '', model: localStorage.getItem(MODEL) || DEFAULT_MODEL }; } catch { return { key: '', model: DEFAULT_MODEL }; }
+  try { const picked = pickedModel(); return { key: localStorage.getItem(KEY) ?? '', picked, model: resolveModel(picked, knownModels()).model }; }
+  catch { return { key: '', picked: '', model: DEFAULT_MODEL }; }
 }
-export function saveAiSettings(s: AiSettings) {
-  try { if (s.key) localStorage.setItem(KEY, s.key); else localStorage.removeItem(KEY); localStorage.setItem(MODEL, s.model || DEFAULT_MODEL); } catch { /* private window */ }
+export function saveAiSettings(s: { key: string; picked: string }) {
+  try {
+    if (s.key !== (localStorage.getItem(KEY) ?? '')) localStorage.removeItem(MODELS);   // the list belongs to the key it was fetched with
+    if (s.key) localStorage.setItem(KEY, s.key); else localStorage.removeItem(KEY);
+    localStorage.setItem(PICKED, s.picked); localStorage.removeItem(LEGACY_MODEL);
+  } catch { /* private window */ }
 }
-export function forgetAi() { try { localStorage.removeItem(KEY); localStorage.removeItem(MODEL); } catch { /* ignore */ } }
+export function forgetAi() { try { for (const k of [KEY, LEGACY_MODEL, PICKED, MODELS]) localStorage.removeItem(k); } catch { /* ignore */ } }
 export const aiReady = () => !!aiSettings().key;
 
 const headers = (key: string) => ({ 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' });
 
-/** The models this key can use, newest first; empty when the call fails (the person can still type an id). */
-export async function listModels(key: string): Promise<{ id: string; name: string }[]> {
+/** The models this key can use, newest first, each with the date it was made when the list gives one. Throws when the call fails (the person can still type an id). */
+export async function listModels(key: string): Promise<AiModel[]> {
   const r = await fetch('https://api.anthropic.com/v1/models?limit=50', { headers: headers(key) });
   if (!r.ok) throw new Error(`${r.status} ${(await r.text()).slice(0, 200)}`);
   const j = await r.json();
-  return (j.data ?? []).map((m: any) => ({ id: m.id, name: m.display_name ?? m.id }));
+  return (j.data ?? []).map((m: any) => ({ id: m.id, name: m.display_name ?? m.id, created: typeof m.created_at === 'string' ? m.created_at : undefined }));
 }
 
 // ---- documents the AI reads: a look book, a treatment, a deck, as PDFs kept in this browser only ----
