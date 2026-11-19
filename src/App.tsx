@@ -2,11 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { useProject, pickFile, pickFiles, hadSavedProject, keepBoard, previousBoard, forgetPreviousBoard } from './store';
 import { foldMemoLines, memoLines, topSheet } from './engine/budget';
 import { SAG_TIERS, sagReport } from './engine/sag';
-import { parseBudgetFile } from './engine/importers/budget';
-import { parseSex } from './engine/importers/sex';
-import { fdxTitle, parseFdx } from './engine/importers/fdx';
-import { describeMerge, mergeScriptIntoBoard } from './engine/importers/merge';
-import { parseScreenplayLines, parseScreenplayText } from './engine/importers/screenplay';
 import { autoTagBoard } from './engine/breakdown';
 import { syncFollowersFromBoard } from './engine/board';
 import { weeklyWageLines, weeksToDays } from './engine/sag';
@@ -40,6 +35,13 @@ import { TourCard, TourPanel, spotlight, useTour } from './ui/TourPanel';
 import { isSampleOpen, type TourStep } from './ui/tour';
 
 type Tab = 'start' | 'deal' | 'topsheet' | 'board' | 'calendar' | 'callsheets' | 'breakdowns' | 'points' | 'sag' | 'incentives' | 'pitch' | 'about';
+
+/** The file readers, fetched the first time a file is brought in (src/engine/importers/onDemand.ts). The browser keeps
+ *  the module, so only the first file waits for it. */
+const importers = () => import('./engine/importers/onDemand').catch(e => {
+  console.error('The file readers could not be loaded', e);
+  throw new Error('the part of ProfitShare that reads files could not be loaded. Check your connection, reload the page and try again.');
+});
 
 export default function App() {
   const { project, setProject, undo, replace, canUndo, undoDepth, storageNote, startNote, dismissStartNote, projects, activeId, newProject, openProject, deleteProject, copies, refreshCopies, saveToFile, quietBackupReminder } = useProject();
@@ -114,6 +116,7 @@ export default function App() {
     return `${opened.length} project${opened.length === 1 ? '' : 's'} opened from ${f.name}, each as its own project${opened.length > 1 ? '. The last one is open now; the rest are under Projects on the Start tab' : ''}${not.length ? `. Not opened: ${not.join('; ')}` : ''}`;
   };
   const loadBudgetFile = async (f: File) => {
+    const { parseBudgetFile } = await importers();
     const imp = parseBudgetFile(await f.arrayBuffer(), f.name, standardChartOfAccounts());
     const weekly = weeklyWageLines({ lines: imp.lines } as Project).length;
     const memo = memoLines({ lines: imp.lines } as Project).length;
@@ -130,6 +133,7 @@ export default function App() {
     return `${imp.lines.length} budget lines from ${f.name} (${via}${imp.reportedTotal ? `, file total ${money(imp.reportedTotal)}` : ''}${weekly ? `; ${weekly} weekly wage line${weekly > 1 ? 's' : ''} rewritten as days, same money` : ''}${memo ? `; ${memo} memo row${memo > 1 ? 's' : ''} folded into notes` : ''})${imp.warnings.length ? `. ${imp.warnings.length} note${imp.warnings.length > 1 ? 's' : ''}: ${imp.warnings.slice(0, 3).join('; ')}` : ''}`;
   };
   const loadBoardFile = async (f: File) => {
+    const { parseSex } = await importers();
     const board = parseSex(await f.arrayBuffer());
     const had = project.board.scenes.length;
     if (had) keepBoard(project.board, `before ${f.name} replaced it`);
@@ -148,9 +152,12 @@ export default function App() {
   };
   /** A script dropped on a project that already has a board: merge it in, or start the board over. */
   const [pendingScript, setPendingScript] = useState<{ board: Board; name: string; title: string; note: string } | null>(null);
-  const mergePending = () => {
+  const mergePending = async () => {
     if (!pendingScript) return;
     const { board: script, name } = pendingScript;
+    let read: Awaited<ReturnType<typeof importers>>;
+    try { read = await importers(); } catch (e) { flash(`${name} was not merged: ${(e as Error).message}`); return; }
+    const { describeMerge, mergeScriptIntoBoard } = read;
     const { board, report } = mergeScriptIntoBoard(project.board, script);
     const { project: next, changed } = syncFollowersFromBoard({ ...project, board });
     setProject(next);
@@ -171,6 +178,7 @@ export default function App() {
   };
   /** A screenplay (PDF, Fountain, plain text) broken down into scenes, eighths and cast. */
   const parseScript = async (f: File) => {
+    const { fdxTitle, parseFdx, parseScreenplayLines, parseScreenplayText } = await importers();
     const imp = /\.pdf$/i.test(f.name)
       ? parseScreenplayLines(await (await import('./engine/importers/pdfScript')).pdfScriptLines(await f.arrayBuffer()), { cueIndent: 90 })
       : /\.fdx$/i.test(f.name)
@@ -340,7 +348,7 @@ export default function App() {
         {pendingScript && (
           <div className="notice row">
             <span><b>{pendingScript.name}</b> has {pendingScript.board.scenes.length} scenes and this project already has a board with {project.board.scenes.length}. <b>Merge</b> matches scenes by number and adds the script text, cast and a first pass of tags to the strips you have, keeping your day breaks, strip order, cast numbers, locations and every tag. <b>Replace</b> starts the board over from the script.</span>
-            <button className="btn primary small" onClick={mergePending}>Merge into the board</button>
+            <button className="btn primary small" onClick={() => void mergePending()}>Merge into the board</button>
             <button className="btn small" onClick={replacePending}>Replace the board</button>
             <button className="btn small" onClick={() => setPendingScript(null)}>Cancel</button>
           </div>

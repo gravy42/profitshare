@@ -1,21 +1,10 @@
 import { isWorkbook, readSpreadsheet, sheetNamed, type Workbook } from './spreadsheet';
 import type { Account, Category, FringeDef, LineItem, Section } from '../types';
+import { CA_FRINGES_2026 } from '../caFringes';
 
 /** Import a Shamel Studio budget export (.xlsx with Budget Metadata / TopSheet / Accounts / Details sheets).
  *  Shamel does not export fringe *definitions*, only the names applied to each line, so we ship a
  *  California 2026 set fitted to Shamel's own math and add unknown names at 0 % for you to fill in. */
-
-export const CA_FRINGES_2026: FringeDef[] = [
-  { id: 'FICA1', name: 'FICA1 (Social Security)', rate: 0.062, cap: null },
-  { id: 'FICA2', name: 'FICA2 (Medicare)', rate: 0.0145, cap: null },
-  { id: 'FUI', name: 'FUI', rate: 0.006, cap: 7000 },
-  { id: 'SUI (CA)', name: 'SUI (CA)', rate: 0.062, cap: 7000 },
-  { id: 'WC (CA)', name: 'Workers Comp (CA)', rate: 0.0448, cap: null },
-  { id: 'PAYROLL FEE', name: 'Payroll service fee', rate: 0.0175, cap: null },
-  { id: 'SAG AFTRA', name: 'SAG-AFTRA P&H (principals)', rate: 0.21, cap: null },
-  { id: 'SAG AFTRA BG', name: 'SAG-AFTRA P&H (background)', rate: 0.2075, cap: null },
-  { id: 'PAYROLL FEE SAG BG', name: 'Payroll fee (SAG background)', rate: 0.0175, cap: null },
-];
 
 interface ShamelImport {
   name: string; version: string; shootDays: number;

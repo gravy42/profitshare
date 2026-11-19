@@ -4,7 +4,7 @@ import budgetJson from './sample-budget.json';
 import boardJson from './sample-board.json';
 import coaJson from './chart-of-accounts.json';
 import pitchJson from './sample-pitch.json';
-import { CA_FRINGES_2026 } from '../engine/importers/shamelXlsx';
+import { CA_FRINGES_2026 } from '../engine/caFringes';
 
 const DEFAULT_TIERS: PointsTier[] = [
   { id: 'lead', name: 'Lead (took scale)', multiplier: 2 },

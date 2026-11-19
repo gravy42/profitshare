@@ -210,6 +210,11 @@ try {
   await step('import: a budget (.csv)', () => bring(BUDGET, 'mmb-export.csv', 'mmb-export'));
   await step('import: a board (.sex)', () => bring(BOARD, 'SaltFlat_Board.sex', 'SaltFlat_Board'));
   await step('import: a script (.fdx)', () => bring(BOARD, 'sample.fdx', 'sample\\.fdx'));
+  await step('import: that script merged into the board', async () => {
+    await page.getByRole('button', { name: 'Merge into the board' }).click();
+    await page.waitForFunction(() => /merged into the board/i.test(document.querySelector('main [role="status"]')?.textContent ?? ''), null, { timeout: 15000 });
+    const dismiss = page.getByRole('button', { name: 'Dismiss this message' }); if (await dismiss.count()) await dismiss.first().click();
+  });
   await step('import: a script (.fountain)', () => bring(BOARD, 'SaltFlat_Script.fountain', 'SaltFlat_Script'));
   await step('import: a script (.pdf)', () => bring(BOARD, 'SaltFlat_Script.pdf', 'SaltFlat_Script'));
   // ---- the start screen's ways in, and the budget built by hand --------------------------------------------------

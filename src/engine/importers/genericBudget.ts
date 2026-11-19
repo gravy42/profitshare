@@ -1,6 +1,6 @@
 import { isWorkbook, readSpreadsheet, type Workbook } from './spreadsheet';
 import type { Account, Category, FringeDef, LineItem } from '../types';
-import { CA_FRINGES_2026 } from './shamelXlsx';
+import { CA_FRINGES_2026 } from '../caFringes';
 import { round2 } from '../budget';
 
 /** Import a budget from any spreadsheet or CSV that has one row per line item and a header row:
