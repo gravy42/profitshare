@@ -1,24 +1,27 @@
 import type { ScriptLine } from './screenplay';
+import { openPdf } from './pdfLib';
 
 /** A screenplay PDF → positioned lines for parseScreenplayLines. Uses pdf.js in the browser (loaded on first use,
- *  worker spun up from an inline blob so it works from the single-file build too). Each text item's position on the
+ *  see pdfLib.ts). Each text item's position on the
  *  page gives the line its indent (points from the left edge) and its place down the page, which is what the
  *  breakdown needs to tell character cues from action and to measure scenes in eighths. */
 export async function pdfScriptLines(data: ArrayBuffer): Promise<ScriptLine[]> {
-  const pdfjs = await import('pdfjs-dist');
-  if (!pdfjs.GlobalWorkerOptions.workerSrc) {
-    const src = (await import('pdfjs-dist/build/pdf.worker.min.mjs?raw')).default;
-    pdfjs.GlobalWorkerOptions.workerSrc = URL.createObjectURL(new Blob([src], { type: 'text/javascript' }));
-  }
-  const doc = await pdfjs.getDocument({ data, isEvalSupported: false }).promise;
-  const pages: { items: { x: number; y: number; w: number; s: string }[]; height: number }[] = [];
+  const doc = await openPdf(data);
+  return linesFromPdfItems(await pdfPageItems(doc));
+}
+
+type PdfPageItems = { items: { x: number; y: number; w: number; s: string }[]; height: number };
+/** Every piece of text on every page with its place, as pdf.js reports it. Apart from the function above so a test
+ *  can run it on a real PDF outside the browser and catch a new pdf.js that places or splits text differently. */
+export async function pdfPageItems(doc: { numPages: number; getPage(n: number): Promise<any> }): Promise<PdfPageItems[]> {
+  const pages: PdfPageItems[] = [];
   for (let p = 1; p <= doc.numPages; p++) {
     const page = await doc.getPage(p);
     const content = await page.getTextContent();
     const items = content.items.flatMap((it: any) => it.str !== undefined && it.transform ? [{ x: it.transform[4], y: it.transform[5], w: it.width, s: it.str as string }] : []);
     pages.push({ items, height: page.view[3] - page.view[1] });
   }
-  return linesFromPdfItems(pages);
+  return pages;
 }
 
 /** Pure part, so it can be tested without pdf.js: group items into lines by page and baseline, order by x. */

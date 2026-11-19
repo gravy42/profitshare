@@ -149,6 +149,14 @@ describe('fonts', () => {
     expect(faces(await textOf(webDeck(prep, 'placeholder-fund'))).sort()).toEqual(['Work Sans 400 italic', 'Work Sans 400 normal', 'Work Sans 600 normal']);
     expect(await textOf(webDeck(prep))).toContain(`src:url(data:font/woff2;base64,${b64('wOF2 ws-latin-400.woff2')}) format("woff2")`);
   });
+  it('a typeface declared whole, with no range, is read as it is; one that says it is the Latin file is taken ahead of it', async () => {
+    const rule = (weight: number, st: string, file: string, range = '') => `@font-face { font-family: 'Work Sans'; font-style: ${st}; font-weight: ${weight}; src: url(/assets/whole/${file}.woff2) format('woff2');${range ? ` unicode-range: ${range};` : ''} }`;
+    // 400: a rule with no range comes first, then the Latin one. 600 and the italic: only a whole file
+    style!.textContent = [rule(400, 'normal', 'ws-other-400'), rule(400, 'normal', 'ws-latin-400', 'U+0000-00FF,U+0131'), rule(400, 'italic', 'ws-whole-400-italic'), rule(600, 'normal', 'ws-whole-600')].join('\n');
+    const prep = await prepare(project(), '2031-03-04');
+    expect(prep.missingFonts).toEqual([]);
+    expect(fetched.map(u => u.split('/').pop()).sort()).toEqual(['ws-latin-400.woff2', 'ws-whole-400-italic.woff2', 'ws-whole-600.woff2']);
+  });
   it('says which typeface it could not read, and does not keep a result that went without one', async () => {
     const p = project();
     vi.stubGlobal('fetch', vi.fn(async () => { throw new TypeError('Failed to fetch'); }));

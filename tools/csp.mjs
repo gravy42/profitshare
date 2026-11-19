@@ -20,7 +20,8 @@ export function cspDirectives(scriptHashes = [], { oneFile = false } = {}) {
     ["default-src", "'none'"],
     // the app's own files, and the inline scripts in index.html by their hashes: no 'unsafe-inline', no eval.
     // 'wasm-unsafe-eval' lets WebAssembly be compiled and nothing else (no eval, no new Function): pdf.js decodes the
-    // JPEG 2000 pictures inside a PDF with a WebAssembly decoder it carries, when a look book or brand book has one
+    // JPEG 2000 pictures inside a PDF with a WebAssembly decoder, when a look book or brand book has one. The decoder
+    // is one of the app's own files (dist/pdfjs/, tools/pdfjs-decoders.mjs), read with fetch(): connect-src 'self'
     ["script-src", "'self'", "'wasm-unsafe-eval'", ...scriptHashes],
     // the app's stylesheets; 'unsafe-inline' for React's style attributes and the <style> the deck preview puts in its shadow root
     ["style-src", "'self'", "'unsafe-inline'"],

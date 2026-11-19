@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import { viteSingleFile } from 'vite-plugin-singlefile';
 import { bundleDeckRuntime } from './tools/build-deck-runtime.mjs';
 import { cspPlugin } from './tools/csp.mjs';
+import { pdfjsDecodersPlugin } from './tools/pdfjs-decoders.mjs';
 
 // `virtual:deck-runtime`: the pitch deck's runtime as text (`runtimeJs`, one IIFE; `runtimeCss`, its stylesheet),
 // for the export that inlines it into the .html a filmmaker sends. It is bundled from src/deck-runtime when the
@@ -36,7 +37,8 @@ export function deckRuntime(): Plugin {
 // served from: profitshare.alonegirlmovie.com, or gravy42.github.io/profitshare/ before the domain was set.
 export default defineConfig({
   base: './',
+  // pdfjsDecodersPlugin: pdf.js's picture decoders, put beside the app as dist/pdfjs/ (tools/pdfjs-decoders.mjs)
   // cspPlugin: the built page's Content-Security-Policy (tools/csp.mjs); last, so it sees the page as it will be served
-  plugins: process.env.SINGLEFILE ? [react(), deckRuntime(), viteSingleFile(), cspPlugin({ oneFile: true })] : [react(), deckRuntime(), cspPlugin()],
+  plugins: process.env.SINGLEFILE ? [react(), deckRuntime(), pdfjsDecodersPlugin({ oneFile: true }), viteSingleFile(), cspPlugin({ oneFile: true })] : [react(), deckRuntime(), pdfjsDecodersPlugin(), cspPlugin()],
   test: { environment: 'jsdom', exclude: ['node_modules/**', 'scratch/**'] },
 } as any);
