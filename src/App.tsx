@@ -29,12 +29,15 @@ import { StartView, type StarterSettings } from './ui/StartView';
 import { starterProject, applyStarter } from './engine/starter';
 import { money } from './ui/format';
 import { TIP_URL } from './ui/support';
+import { keepFieldsNamed } from './ui/nameFields';
 
 type Tab = 'start' | 'deal' | 'topsheet' | 'board' | 'calendar' | 'callsheets' | 'breakdowns' | 'points' | 'sag' | 'incentives' | 'pitch' | 'about';
 
 export default function App() {
   const { project, setProject, undo, replace, canUndo, undoDepth, storageNote, startNote, dismissStartNote, projects, activeId, newProject, openProject, deleteProject } = useProject();
   const [hadSaved] = useState(hadSavedProject);
+  // Fields in tables and label-beside-field boxes get the name a sighted person already sees, kept up to date as tabs are drawn.
+  useEffect(() => { const root = document.getElementById('root'); return root ? keepFieldsNamed(root) : undefined; }, []);
   const [tab, setTab] = useState<Tab>(activeId ? 'topsheet' : 'start');   // no project open (none saved, or the last one could not be opened): the start screen
   // a message to the user: short confirmations fade after a few seconds, anything worth re-reading (an import report, a repricing) stays until dismissed
   const [msg, setMsg] = useState<{ text: string; sticky: boolean } | null>(null);
@@ -264,8 +267,8 @@ export default function App() {
           <a className="tipjar" href={TIP_URL} target="_blank" rel="noreferrer" title="ProfitShare is free. Tips help with its upkeep and with getting ALONE GIRL made.">Free to use · Tip jar</a>
         </span>
         {!(fresh && tab === 'start') && <span className="proj">
-          <input value={project.name} onChange={e => setProject(p => ({ ...p, name: e.target.value }))} /> {' '}
-          <input value={project.version} style={{ width: 90 }} onChange={e => setProject(p => ({ ...p, version: e.target.value }))} />
+          <input aria-label="Project title" value={project.name} onChange={e => setProject(p => ({ ...p, name: e.target.value }))} /> {' '}
+          <input aria-label="Version" value={project.version} style={{ width: 90 }} onChange={e => setProject(p => ({ ...p, version: e.target.value }))} />
         </span>}
         <span className="spacer" />
         {!(fresh && tab === 'start') && <span className="kpi">

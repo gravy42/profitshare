@@ -191,7 +191,7 @@ export function BoardView({ project, raw, setProject, notify, onStarter }: { pro
                   </div>
                 )}
                 <div className={`${stripClass(s)} ${s.unit ? `parked u-${s.unit}` : ''} ${over === i ? 'dragover' : ''} ${isOpen ? 'open' : ''} ${selected.has(i) ? 'sel' : ''} ${dragDay === dayOfStrip[i] ? 'lifting' : ''}`} {...common}>
-                  <span className="handle" title={selected.size > 1 && selected.has(i) ? `drag moves all ${selected.size} picked strips` : 'drag to move; tick the box to pick several and move them together'}><input type="checkbox" className="pick" checked={selected.has(i)} onChange={() => undefined} onClick={e => { e.stopPropagation(); pick(i, e.shiftKey); }} onMouseDown={e => e.stopPropagation()} />⋮⋮</span>
+                  <span className="handle" title={selected.size > 1 && selected.has(i) ? `drag moves all ${selected.size} picked strips` : 'drag to move; tick the box to pick several and move them together'}><input type="checkbox" className="pick" aria-label={`Pick scene ${s.number} to move`} checked={selected.has(i)} onChange={() => undefined} onClick={e => { e.stopPropagation(); pick(i, e.shiftKey); }} onMouseDown={e => e.stopPropagation()} />⋮⋮</span>
                   <span className="num">{s.number}{parts > 1 && <span className="part" title={`part ${part} of ${parts}: this scene shoots over ${parts} days`}>{part}/{parts}</span>}</span>
                   <span>{s.ie}</span>
                   <span className="set">{s.set}<small>{s.synopsis}</small></span>

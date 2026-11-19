@@ -902,3 +902,14 @@ table.locs input { min-width: 80px; }
 .ms-note { font-size: 8px; }
 .palette-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px 16px; }
 .colorfield input[type="color"] { width: 44px; height: 32px; padding: 2px; }
+
+/* Targets a finger, or an unsteady pointer, can hit: nothing pressable is smaller than 24px either way. A tick box
+   is drawn at 16px and, where it has a label, the whole label is the target. */
+button.x, .btn.small, .pd-link { min-width: 24px; min-height: 24px; }
+summary { min-height: 24px; }
+details:not(.fold) > summary { padding-block: 3px; }
+header.top .tipjar { display: inline-block; padding: 4px 0 5px; }
+input[type="checkbox"], input[type="radio"] { min-width: 16px; min-height: 16px; }
+label:has(> input[type="checkbox"]), label:has(> input[type="radio"]) { min-height: 24px; display: inline-flex; align-items: center; gap: 6px; }
+.strip .handle { min-width: 24px; min-height: 24px; display: inline-flex; align-items: center; gap: 2px; }
+

@@ -196,6 +196,31 @@ try {
   await step('the app asked for nothing outside itself', async () => { need(outside.length === 0, outside.slice(0, 3).join(' | ')); });
   await context.close();
 
+  // ---- names: every field and button on every tab has one a screen reader can say --------------------------------------
+  {
+    const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    const named = await ctx.newPage();
+    await named.goto(origin); await named.getByRole('button', { name: 'Load the sample' }).click(); await named.waitForTimeout(600);
+    await step('every field and button has a name', async () => {
+      const bare = []; let seen = 0;
+      for (const label of TABS) {
+        await named.getByRole('button', { name: label, exact: true }).click(); await named.waitForTimeout(500);
+        const r = await named.evaluate(() => {
+          const shown = el => { const b = el.getBoundingClientRect(); return b.width > 0 && b.height > 0; };
+          const has = el => !!(el.getAttribute('aria-label')?.trim() || el.getAttribute('aria-labelledby') || el.title?.trim() || el.closest('label')
+            || (el.id && [...document.querySelectorAll('label[for]')].some(l => l.getAttribute('for') === el.id)));
+          const fields = [...document.querySelectorAll('input:not([type="hidden"]), select, textarea')].filter(shown);
+          const buttons = [...document.querySelectorAll('button, [role="button"]')].filter(shown);
+          const none = [...fields.filter(f => !has(f)), ...buttons.filter(b => !has(b) && !b.textContent.trim())];
+          return { count: fields.length + buttons.length, none: none.slice(0, 3).map(e => e.outerHTML.slice(0, 90)), n: none.length };
+        });
+        seen += r.count; if (r.n) bare.push(`${label}: ${r.n} (${r.none.join(' ')})`);
+      }
+      need(bare.length === 0, bare.join('; ')); return `${seen} fields and buttons`;
+    });
+    await ctx.close();
+  }
+
   // ---- a phone: no tab may push the page wider than the screen -------------------------------------------------------
   {
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });

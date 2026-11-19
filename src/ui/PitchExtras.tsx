@@ -179,10 +179,10 @@ export function LookBookPanel({ project, setPitch }: { project: Project; setPitc
         {imgs.map((img, i) => (
           <figure key={img.id}>
             {img.dataUrl.startsWith('data:') ? <img src={img.dataUrl} alt={img.caption} /> : <div className="missing">{img.dataUrl ? 'loading…' : 'picture missing from this browser; it is still in any .json you saved'}</div>}
-            <input value={img.caption} placeholder="caption" onChange={e => patch(img.id, { caption: e.target.value })} />
+            <input aria-label={`Caption, picture ${i + 1}`} value={img.caption} placeholder="caption" onChange={e => patch(img.id, { caption: e.target.value })} />
             <div className="row" style={{ gap: 4 }}>
-              <select value={img.section} onChange={e => patch(img.id, { section: e.target.value as LookImage['section'] })}>{LOOK_SECTIONS.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}</select>
-              <input value={img.credit ?? ''} placeholder="credit" style={{ width: 90 }} onChange={e => patch(img.id, { credit: e.target.value })} />
+              <select aria-label={`Part of the deck, picture ${i + 1}`} value={img.section} onChange={e => patch(img.id, { section: e.target.value as LookImage['section'] })}>{LOOK_SECTIONS.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}</select>
+              <input aria-label={`Credit, picture ${i + 1}`} value={img.credit ?? ''} placeholder="credit" style={{ width: 90 }} onChange={e => patch(img.id, { credit: e.target.value })} />
               <button className={`btn small ${cover === img.id ? 'primary' : ''}`} title="The picture behind the cover of a new pitch deck" onClick={() => setRules(r => ({ ...r, coverImageId: cover === img.id ? undefined : img.id }))}>{cover === img.id ? 'Cover ✓' : 'Cover'}</button>
               <button className="btn small" disabled={i === 0} onClick={() => move(img.id, -1)} aria-label="earlier">←</button>
               <button className="btn small" disabled={i === imgs.length - 1} onClick={() => move(img.id, 1)} aria-label="later">→</button>
@@ -300,7 +300,7 @@ export function ResearchPanel({ project, setPitch }: { project: Project; setPitc
       {items.map(r => (
         <div className="item" key={r.id}>
           <div className="row">
-            <select value={r.kind} onChange={e => patch(r.id, { kind: e.target.value as ResearchItem['kind'] })}>{RESEARCH_KINDS.map(k => <option key={k.id} value={k.id}>{k.label}</option>)}</select>
+            <select aria-label="Kind of finding" value={r.kind} onChange={e => patch(r.id, { kind: e.target.value as ResearchItem['kind'] })}>{RESEARCH_KINDS.map(k => <option key={k.id} value={k.id}>{k.label}</option>)}</select>
             <input className="l" style={{ flex: 1 }} value={r.title} placeholder="Finding, in one line" onChange={e => patch(r.id, { title: e.target.value })} />
             <input value={r.url ?? ''} placeholder="source url" style={{ width: 200 }} onChange={e => patch(r.id, { url: e.target.value })} />
             <button className="x" aria-label="remove" onClick={() => setPitch(x => ({ ...x, research: (x.research ?? []).filter(y => y.id !== r.id) }))}>×</button>

@@ -38,6 +38,8 @@ Two independent reviews of the combined work found more, fixed the same day:
 
 - **The app fits a phone.** Four tabs (Start, Call sheets, Points & waterfall, Pitch) used to push the whole page wider than the screen, and their tables squeezed columns down to one letter a line. Now the page never scrolls sideways: a table with more columns than the screen has room for scrolls inside its own box with its words kept whole, the Start screen's settings wrap, and the Design box on the Pitch tab stacks into one column.
 
+- **Fields have names a screen reader can say.** About 490 fields, most of them in tables, were announced as just "edit text". Each now carries the name a sighted person already sees: the label beside it, or its column heading and the row it is on ("Days, Dana Okafor"). Nothing pressable is smaller than 24px any more, and the browser walk fails if a field or button on any tab has no name.
+
 Also: help text on the Deal tab and the look book no longer mentions a "Financing" tab or the report deck's layouts. Tests: 997 pass.
 
 ## 2026-11-17
