@@ -489,6 +489,12 @@ details.howto[open] > summary { margin-bottom: 4px; }
   table.comps td.l input { min-width: 170px; }
   table.wide td input:not([type="number"]):not([type="checkbox"]) { min-width: 130px; }
   table.wide td select { min-width: 96px; }
+  /* A field is never wider than the box it sits in. Safari sizes a text field or a menu by its contents and will not
+     shrink it inside a row unless told it may, which pushed whole cards past the edge of the screen. */
+  main input:not([type="checkbox"]):not([type="radio"]):not([type="color"]), main select, main textarea { max-width: 100%; }
+  .row, .ctl { max-width: 100%; }
+  .ctl { min-width: 0; }
+  .ctl > input:not([type="checkbox"]):not([type="radio"]):not([type="color"]), .ctl > select, .ctl > textarea { min-width: 0; }
   /* a grid's columns may shrink below their widest child, so one long row cannot push a whole panel off the screen */
   .grid2, .grid3 { grid-template-columns: minmax(0, 1fr); }
   .grid2 > *, .grid3 > * { min-width: 0; }

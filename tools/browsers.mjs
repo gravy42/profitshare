@@ -238,7 +238,7 @@ try {
         // held in by a box that clips sideways and itself ends inside the screen?
         let p = el.parentElement ?? el.getRootNode().host, held = false;
         while (p && p !== document.documentElement) { const cs = getComputedStyle(p); if (/(auto|scroll|hidden|clip)/.test(cs.overflowX) && p.getBoundingClientRect().right <= vw + 1) { held = true; break; } p = p.parentElement ?? p.getRootNode().host; }
-        if (!held) { const cs = getComputedStyle(el); out.push([Math.round(far - vw), `${say(el)} ${cs.display}/${cs.position} w${Math.round(r.width)} sw${el.scrollWidth} "${(el.textContent || '').trim().slice(0, 24)}" in ${el.parentElement ? say(el.parentElement) : 'shadow'}`]); }
+        if (!held) { const cs = getComputedStyle(el); out.push([Math.round(far - vw), `${say(el)} ${cs.display}/${cs.position} w${Math.round(r.width)} sw${el.scrollWidth} "${(el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 24)}" in ${el.parentElement ? say(el.parentElement) : 'shadow'}`]); }
       };
       all(document);
       const d = document.documentElement, b = document.body;
@@ -254,7 +254,7 @@ try {
         const r = found.getBoundingClientRect(), cs = getComputedStyle(found);
         trail.push(`${say(found)}[${cs.display} ${Math.round(r.left)}..${Math.round(r.right)} sw${found.scrollWidth} ox:${cs.overflowX}]`); node = found;
       }
-      out.unshift([d.scrollWidth - vw, `CULPRIT ${trail.join(' > ') || 'none found by hiding'} "${(node.textContent || '').trim().slice(0, 30)}"`]);
+      out.unshift([d.scrollWidth - vw, `CULPRIT ${trail.join(' > ') || 'none found by hiding'} "${(node.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 30)}"`]);
       return `html ${d.scrollWidth}/${d.clientWidth} body ${b.scrollWidth}/${b.clientWidth}: ` + (out.slice(0, 4).map(([n, t]) => `${t} +${n}`).join(' | ') || 'no element past the edge');
     };
     await step('at phone width no tab scrolls the page sideways', async () => {
