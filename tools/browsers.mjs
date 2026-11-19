@@ -242,7 +242,20 @@ try {
       };
       all(document);
       const d = document.documentElement, b = document.body;
-      return `html ${d.scrollWidth}/${d.clientWidth} body ${b.scrollWidth}/${b.clientWidth}: ` + (out.sort((x, y) => y[0] - x[0]).slice(0, 5).map(([n, t]) => `${t} +${n}`).join(' | ') || 'no element past the edge');
+      // whatever the cause, hiding the culprit removes the overflow: walk down to the smallest element that does
+      const trail = []; let node = b;
+      for (let depth = 0; depth < 14; depth++) {
+        let found = null;
+        for (const kid of node.children) {
+          const was = kid.style.display; kid.style.display = 'none'; const ok = d.scrollWidth <= vw + 1; kid.style.display = was;
+          if (ok) { found = kid; break; }
+        }
+        if (!found) break;
+        const r = found.getBoundingClientRect(), cs = getComputedStyle(found);
+        trail.push(`${say(found)}[${cs.display} ${Math.round(r.left)}..${Math.round(r.right)} sw${found.scrollWidth} ox:${cs.overflowX}]`); node = found;
+      }
+      out.unshift([d.scrollWidth - vw, `CULPRIT ${trail.join(' > ') || 'none found by hiding'} "${(node.textContent || '').trim().slice(0, 30)}"`]);
+      return `html ${d.scrollWidth}/${d.clientWidth} body ${b.scrollWidth}/${b.clientWidth}: ` + (out.slice(0, 4).map(([n, t]) => `${t} +${n}`).join(' | ') || 'no element past the edge');
     };
     await step('at phone width no tab scrolls the page sideways', async () => {
       const wide = [];
