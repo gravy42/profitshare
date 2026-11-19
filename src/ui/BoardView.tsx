@@ -6,7 +6,7 @@ import { topSheet } from '../engine/budget';
 import { adoptBoardDays, syncCastDaysFromBoard } from '../engine/board';
 import { money } from './format';
 import type { Board, Project, Scene, SceneUnit, Strip } from '../engine/types';
-import { autoDayBreaks, fitDayBreaks, clearDayBreaks, dood, eighthsToText, insertDayBreak, moveStrip, removeStrip, shootDays, totalEighths, firstUnitEighths, parkedStart, parkedScenes, setSceneUnit, UNIT_LABEL, UNIT_SHORT, moveStrips, moveDay, dayOfIndex, castSceneCounts, castOrderByAppearance, castOrderByScenes, renumberCast, splitStrip, unsplitScene, setPartEighths, stripPart, stripEighths, dropCastMember, unusedCast } from '../engine/board';
+import { autoDayBreaks, fitDayBreaks, clearDayBreaks, dood, eighthsToText, insertDayBreak, removeStrip, shootDays, totalEighths, firstUnitEighths, parkedStart, parkedScenes, setSceneUnit, UNIT_LABEL, UNIT_SHORT, moveStrips, moveDay, dayOfIndex, castSceneCounts, castOrderByAppearance, castOrderByScenes, renumberCast, splitStrip, unsplitScene, setPartEighths, stripPart, stripEighths, dropCastMember, unusedCast } from '../engine/board';
 import { AiBreakdown } from './AiBreakdown';
 import { useModalFocus } from './modalFocus';
 import { BREAKDOWN_CATEGORIES, addCast, addElement, autoTag, autoTagBoard, categoryColor, namedAnimals, removeCast, removeElement } from '../engine/breakdown';
@@ -209,7 +209,7 @@ export function BoardView({ project, raw, setProject, notify, onStarter }: { pro
                     {parts > 1 && <button className="btn small act" aria-label={`Put scene ${s.number} back on one strip`} title="Put the scene back on one strip" onClick={() => reschedule(`Scene ${s.number} back on one strip`, b => unsplitScene(b, s.id))}><span className="glyph">⊕</span><span className="word">join</span></button>}
                   </span>
                 </div>
-                {isOpen && <Tagger scene={s} board={board} setBoard={setBoard} onAi={() => setAiFor({ only: [s.id] })} />}
+                {isOpen && <Tagger scene={s} setBoard={setBoard} onAi={() => setAiFor({ only: [s.id] })} />}
               </div>
             );
           })}
@@ -319,7 +319,7 @@ const TAG_GROUPS: { label: string; keys: string[] }[] = [
 ];
 
 /** The scene as written, with everything tagged on it lit up; select words to tag them. */
-function Tagger({ scene: s, board, setBoard, onAi }: { scene: Scene; board: Board; setBoard: (f: (b: Board) => Board) => void; onAi: () => void }) {
+function Tagger({ scene: s, setBoard, onAi }: { scene: Scene; setBoard: (f: (b: Board) => Board) => void; onAi: () => void }) {
   const [pick, setPick] = useState<{ text: string; x: number; y: number } | null>(null);
   const [cat, setCat] = useState<string>('Props');
   const [item, setItem] = useState('');

@@ -4,7 +4,7 @@
 // on top of the defaults, so a sheet is never blank and nothing typed is lost when the board moves.
 import type { Board, CallExtra, CallSheetDay, CallSheets, Location, Participant, Project } from './types';
 import { shootDays, eighthsToText, type ShootDay } from './board';
-import { shootDates, withCalendar, shortDate, parseYmd } from './calendar';
+import { shootDates, withCalendar, parseYmd } from './calendar';
 
 export const DEFAULT_BANNER = 'A safety meeting is held by the 1st AD on the first day at a new location and whenever stunts, effects or unusual activity are scheduled. No forced calls without approval from the UPM. No visitors on set. No posting on social media.';
 export const defaultCallSheets = (): CallSheets => ({ company: '', contacts: [], locations: [], crewCall: '07:00', shootingCall: '08:00', lunch: '13:00', wrap: '19:00', days: {} });
@@ -51,7 +51,7 @@ const DEPTS: [string, RegExp][] = [
 ];
 export const departmentOf = (role: string): string => DEPTS.find(([, re]) => re.test(role))?.[0] ?? 'Other';
 
-export const DEPT_ORDER = [...DEPTS.map(d => d[0]), 'Other'];
+const DEPT_ORDER = [...DEPTS.map(d => d[0]), 'Other'];
 
 /** SAG work-status codes for a day: start, work, finish, or all three on a one-day part. */
 export function castStatus(workDays: number[], dayIndex: number): 'SW' | 'W' | 'WF' | 'SWF' | '' {
@@ -109,11 +109,11 @@ export function instructionsFor(scenes: { number: string; elements: Record<strin
 }
 
 // ---- the resolved sheet ----
-export interface SheetScene { number: string; ie: string; set: string; tod: string; synopsis: string; pages: string; castIds: number[]; location?: Location; scriptDay: string }
-export interface SheetCast { castId: number; name: string; actor: string; status: string; pickup: string; call: string; makeup: string; wardrobe: string; onSet: string; note: string }
-export interface SheetDept { dept: string; call: string; people: { id: string; name: string; role: string; call: string }[] }
-export interface SheetLogistics { parking: string; basecamp: string; bathrooms: string; lunchAt: string; trucks: string; hospital: string }
-export interface SheetLocation extends Location { sets: string }
+interface SheetScene { number: string; ie: string; set: string; tod: string; synopsis: string; pages: string; castIds: number[]; location?: Location; scriptDay: string }
+interface SheetCast { castId: number; name: string; actor: string; status: string; pickup: string; call: string; makeup: string; wardrobe: string; onSet: string; note: string }
+interface SheetDept { dept: string; call: string; people: { id: string; name: string; role: string; call: string }[] }
+interface SheetLogistics { parking: string; basecamp: string; bathrooms: string; lunchAt: string; trucks: string; hospital: string }
+interface SheetLocation extends Location { sets: string }
 export interface Sheet {
   dayIndex: number; dayCount: number; date?: string; dateText: string;
   title: string; version: string; company: string;
@@ -181,5 +181,3 @@ export function buildSheet(p0: Project, dayIndex: number): Sheet | null {
     brand: !!cs.brand && !!p.pitch?.design,
   };
 }
-
-export const sheetDateLabel = (s: Sheet) => (s.date ? shortDate(s.date) : `Day ${s.dayIndex}`);

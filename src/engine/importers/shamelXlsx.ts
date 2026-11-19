@@ -17,7 +17,7 @@ export const CA_FRINGES_2026: FringeDef[] = [
   { id: 'PAYROLL FEE SAG BG', name: 'Payroll fee (SAG background)', rate: 0.0175, cap: null },
 ];
 
-export interface ShamelImport {
+interface ShamelImport {
   name: string; version: string; shootDays: number;
   categories: Category[]; accounts: Account[]; fringes: FringeDef[]; lines: LineItem[];
   reported: { grandTotal?: number; contingency?: number };

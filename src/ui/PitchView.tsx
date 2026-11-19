@@ -30,7 +30,7 @@ export function PitchView({ project, setProject, onTab, onUndo, undoDepth }: { p
   const setRev = (id: string, patch: Partial<RevenueLine>) => set(x => ({ ...x, revenue: x.revenue.map(r => r.id === id ? { ...r, ...patch } : r) }));
   const [printing, setPrinting] = useState(false);
   const [ai, setAi] = useState(aiReady());
-  const ts = topSheet(p); const budget = recoupableBudget(p); const pr = projections(p); const stats = compStats(pitch.comps);
+  const ts = topSheet(p); const budget = recoupableBudget(p); const pr = projections(p);
   const incentives = incentiveProceeds(p);
 
   const body = (
@@ -168,7 +168,7 @@ export function PitchView({ project, setProject, onTab, onUndo, undoDepth }: { p
 
 /** Read-only layout of the same content for print. */
 function PitchReport({ p }: { p: Project }) {
-  const pitch = withPitch(p).pitch!; const ts = topSheet(p); const budget = recoupableBudget(p); const pr = projections(p); const stats = compStats(pitch.comps);
+  const pitch = withPitch(p).pitch!; const ts = topSheet(p); const budget = recoupableBudget(p); const pr = projections(p);
   return (
     <div>
       {pitch.logline && <p className="lead">{pitch.logline}</p>}

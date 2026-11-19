@@ -18,7 +18,7 @@ export { cleanDeckMotion, cleanMotion, cleanPaper, cleanPaperShade, dealPapers, 
 
 export type Lead = 'with-grants' | 'without-grants';
 
-export interface MountOptions {
+interface MountOptions {
   recipient?: string;      // a DeckRecipient.slug
   lead?: Lead;             // overrides the recipient's lead
   static?: boolean;        // no motion, every slide in its final state, print-safe (for PDF)
@@ -34,7 +34,7 @@ export interface MountOptions {
   swatch?: boolean;        // a sample, not a deck: the first slide's cards fill the host with nothing around them (a paper shown in a chooser)
 }
 /** Why `play` did nothing: the reader asked their computer for less motion, or the deck is one that never moves. */
-export type PlayResult = 'played' | 'reduced' | 'still';
+type PlayResult = 'played' | 'reduced' | 'still';
 export interface DeckHandle {
   destroy(): void;
   /** Shows the deck as tailored for one recipient (null, or a slug nobody has: the general deck). Every switch goes
@@ -55,7 +55,7 @@ export interface DeckHandle {
   checkOverflow(): number[];
 }
 
-export const GRANTS_KEY = 'grants';
+const GRANTS_KEY = 'grants';
 export const DEFAULT_LEGAL = 'The figures in this deck are illustrative projections, not a promise of returns. Investing in a film is speculative and investors can lose all of the money they put in. This deck is not an offer to sell securities.';
 export const MAX_SOURCES = 8;
 const MAX_CASES = 12;
@@ -78,7 +78,7 @@ interface FaceLike { load?: () => Promise<unknown>; status?: string }
 interface FaceSet { add(f: FaceLike): unknown; delete(f: FaceLike): unknown }
 const facePool = new WeakMap<Document, Map<string, { face: FaceLike; n: number }>>();
 
-export interface CleanFace { family: string; src: string; role: 'title' | 'body'; weight?: FaceWeight; style?: 'normal' | 'italic' }
+interface CleanFace { family: string; src: string; role: 'title' | 'body'; weight?: FaceWeight; style?: 'normal' | 'italic' }
 /** The font files a theme carries that are safe to use: a clean family name, a base64 font data URL, a known role;
  *  a weight (1 to 1000, or a range of them) and a style when the face says which of its family it is. */
 export function cleanFontFaces(raw: unknown): CleanFace[] {
@@ -182,7 +182,7 @@ export function initialSwitches(sources: { key: string; on: boolean }[], lead: L
   return out;
 }
 
-export interface AskPiece { text: string; amount?: boolean }
+interface AskPiece { text: string; amount?: boolean }
 /** An ask body with its tokens filled. `grants` null means the deck has no grants source: the token is taken out. */
 export function fillAsk(template: string, investors: string, grants: string | null): AskPiece[] {
   let t = template || '';
@@ -458,12 +458,12 @@ export function veilBoxes(texts: Box[], frame: Box, em: number): { left: number;
 }
 // ---------- how strong the shade has to be: read from the picture itself ----------
 
-export const SHADE_STEP = 0.05;
+const SHADE_STEP = 0.05;
 export const SHADE_SPARE = 0.05;      // added to what was measured: the picture may move a little, and was read small
-export const SHADE_PASS = 0.95;       // this share of the picture under the words has to pass
+const SHADE_PASS = 0.95;       // this share of the picture under the words has to pass
 export const TURN_FROM = 0.3;        // a slide whose words need at least this much shade is tried the other way round
 export const TURN_GAIN = 0.2;        // and stays that way only when it then needs this much less
-export const LARGE_TEXT = 1.2;        // times the slide's type size: words this large need 3 to 1, smaller ones 4.5 to 1
+const LARGE_TEXT = 1.2;        // times the slide's type size: words this large need 3 to 1, smaller ones 4.5 to 1
 /** A colour as the browser reports it from a computed style: `rgb()`, `rgba()`, hex, or `color(srgb r g b)`. */
 export function readColor(color: string): RGB | null {
   const plain = parseColor(color);

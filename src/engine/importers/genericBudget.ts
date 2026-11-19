@@ -22,7 +22,7 @@ import { round2 } from '../budget';
  *  become categories. Lines with only a Total get amount 1 × rate total. Lines with a fringe dollar amount but no
  *  fringe names get a synthetic fringe at the rate that reproduces that amount, so the totals still reconcile. */
 
-export interface GenericImport {
+interface GenericImport {
   name: string;
   sheet: string;
   columns: Partial<Record<Col, number>>;
@@ -84,7 +84,7 @@ function findHeader(rows: any[][]): { row: number; columns: Partial<Record<Col, 
   return null;
 }
 
-export function parseGenericRows(rows: any[][], opts: { name?: string; sheet?: string; standard?: { categories: Category[]; accounts: Account[] } } = {}): GenericImport {
+function parseGenericRows(rows: any[][], opts: { name?: string; sheet?: string; standard?: { categories: Category[]; accounts: Account[] } } = {}): GenericImport {
   const hdr = findHeader(rows);
   if (!hdr) throw new Error('Could not find a header row with Account / Description / Amount / Rate / Total columns. Export the budget with column headers, or open an issue with the file attached.');
   const C = hdr.columns;

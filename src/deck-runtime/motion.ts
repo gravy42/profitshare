@@ -4,11 +4,10 @@
 // engine (which writes them into the deck's data). Pure: no DOM, no imports but types.
 import type { DeckMotion, SlideMotion } from './data';
 
-export const DECK_PACES = ['calm', 'brisk'] as const;
-export const DECK_ENTRANCES = ['rise', 'fade', 'none'] as const;
+const DECK_PACES = ['calm', 'brisk'] as const;
+const DECK_ENTRANCES = ['rise', 'fade', 'none'] as const;
 export const ENTRANCES = ['rise', 'fade', 'drop', 'slide-left', 'slide-right', 'none'] as const;
 export const ORDERS = ['together', 'one-by-one', 'reverse'] as const;
-export const HEADLINES = ['none', 'type'] as const;
 export const MARKER_PATHS = ['timeline'] as const;
 export const MARKER_ENDS = ['stop', 'settle'] as const;
 export const STAGGER_MAX = 400;                      // milliseconds between one part and the next

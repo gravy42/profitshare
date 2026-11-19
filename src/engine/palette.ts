@@ -4,7 +4,7 @@
 import { DARK_INK, cardInkFor } from './deckData';
 
 export type RGB = [number, number, number];
-export interface Swatch { rgb: RGB; hex: string; count: number; share: number }   // share: 0 to 1 of the pixels read
+interface Swatch { rgb: RGB; hex: string; count: number; share: number }   // share: 0 to 1 of the pixels read
 export interface ThemeColors { bg: string; ink: string; accent: string; accent2: string; muted: string; card: string }
 export interface Proposal { id: 'night' | 'paper' | 'dusk'; label: string; colors: ThemeColors; suggestedAccent?: true }
 
@@ -127,7 +127,7 @@ export function quantize(pixels: RGB[], k = 8): Swatch[] {
 // over the page (the page with 7% of the ink mixed in). A proposal meets the same test on both, so what the builder
 // shows is what the deck draws.
 export const MIN_INK = 7, MIN_TEXT = 4.5, MIN_CARD_TEXT = 7, MIN_CARD_EDGE = 1.1;
-export const PANEL_MIX = 0.07;
+const PANEL_MIX = 0.07;
 const NIGHT = 0.03, PAPER = 0.8;                    // how dark the night ground is, how light the paper: room for every text colour
 const DUSK_DARK: [number, number] = [0.045, 0.07];  // the dusk ground when it comes from a dark colour: a step up from night
 const DUSK_PALE: [number, number] = [0.62, 0.72];   // and when it comes from a light one: a step down from paper

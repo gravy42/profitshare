@@ -5,10 +5,10 @@ import { shootDays } from './board';
 export const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 export const parseYmd = (s: string) => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
 export const addDays = (s: string, n: number) => { const d = parseYmd(s); d.setDate(d.getDate() + n); return ymd(d); };
-export const monthOf = (s: string) => s.slice(0, 7);
+const monthOf = (s: string) => s.slice(0, 7);
 export const dow = (s: string) => parseYmd(s).getDay();          // 0 = Sunday
 export const daysInMonth = (ym: string) => { const [y, m] = ym.split('-').map(Number); return new Date(y, m, 0).getDate(); };
-export const addMonths = (ym: string, n: number) => { const [y, m] = ym.split('-').map(Number); const d = new Date(y, m - 1 + n, 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; };
+const addMonths = (ym: string, n: number) => { const [y, m] = ym.split('-').map(Number); const d = new Date(y, m - 1 + n, 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; };
 export const monthName = (ym: string) => parseYmd(ym + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 export const shortDate = (s: string) => parseYmd(s).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 
@@ -80,14 +80,6 @@ export const EVENT_KINDS: { id: CalEvent['kind']; label: string }[] = [
   { id: 'travel', label: 'Travel / move' }, { id: 'hold', label: 'Hold / hiatus' }, { id: 'off', label: 'Company day off' }, { id: 'note', label: 'Note' },
 ];
 
-/** Every date an event covers (inclusive of `end`). */
-export function eventDates(e: CalEvent): string[] {
-  const end = e.end && e.end > e.date ? e.end : e.date;
-  const out: string[] = [];
-  for (let d = e.date; d <= end && out.length < 400; d = addDays(d, 1)) out.push(d);
-  return out;
-}
-
 export function eventsOn(cal: Calendar, date: string): CalEvent[] {
   return cal.events.filter(e => date >= e.date && date <= (e.end && e.end > e.date ? e.end : e.date));
 }
@@ -95,7 +87,7 @@ export function eventsOn(cal: Calendar, date: string): CalEvent[] {
 // ---------- shoot days onto dates ----------
 
 /** Is `date` a day the company can shoot: a work weekday, not a skipped holiday, not a company day off. */
-export function isWorkDate(cal: Calendar, date: string, holidays: Map<string, string>): boolean {
+function isWorkDate(cal: Calendar, date: string, holidays: Map<string, string>): boolean {
   if (!cal.workDays.includes(dow(date))) return false;
   if (cal.skipHolidays && holidays.has(date)) return false;
   if (cal.events.some(e => e.kind === 'off' && date >= e.date && date <= (e.end && e.end > e.date ? e.end : e.date))) return false;

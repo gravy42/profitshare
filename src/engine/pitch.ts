@@ -52,7 +52,7 @@ export function compGroups(comps: Comp[]): { group: string; comps: Comp[] }[] {
 /** Worldwide gross over budget, when both are known. */
 export const compMultiple = (c: Comp) => (c.budget && c.worldwide ? c.worldwide / c.budget : null);
 
-export interface CompStats { n: number; medianMultiple: number | null; medianWorldwide: number | null; medianBudget: number | null }
+interface CompStats { n: number; medianMultiple: number | null; medianWorldwide: number | null; medianBudget: number | null }
 const median = (xs: number[]) => { if (!xs.length) return null; const s = [...xs].sort((a, b) => a - b); const m = Math.floor(s.length / 2); return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
 export function compStats(comps: Comp[]): CompStats {
   return {
@@ -66,7 +66,7 @@ export function compStats(comps: Comp[]): CompStats {
 export type Case = 'low' | 'mid' | 'high';
 export const CASES: Case[] = ['low', 'mid', 'high'];
 
-export interface Projection { gross: number; fees: number; net: number; deferred: number; investors: number; pool: number; multiple: number }
+interface Projection { gross: number; fees: number; net: number; deferred: number; investors: number; pool: number; multiple: number }
 
 /** Three cases: gross receipts by source, fees off the top, what reaches the film, then the waterfall as set on the Deal tab. */
 export function projections(p: Project): Record<Case, Projection> {

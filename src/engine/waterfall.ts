@@ -18,7 +18,7 @@ export function totalPoints(p: Project): number {
   return p.participants.reduce((n, pt) => n + participantPoints(pt, p.tiers), 0);
 }
 
-export interface PayoutRow {
+interface PayoutRow {
   participant: Participant;
   points: number;
   share: number;               // fraction of the pool
@@ -26,7 +26,7 @@ export interface PayoutRow {
   cashPay: number;             // what the budget pays them in cash (from linked lines)
 }
 
-export interface WaterfallReport {
+interface WaterfallReport {
   budget: number;              // what the waterfall recoups: the cash budget less non-recoupable money
   totalPoints: number;
   scenarios: number[];

@@ -25,7 +25,7 @@ export const BREAKDOWN_CATEGORIES = [
   { key: 'Additional Labor', color: '#6b6b4a' },
   { key: 'Notes', color: '#6d6d6d' },
 ] as const;
-export type BreakdownCategory = typeof BREAKDOWN_CATEGORIES[number]['key'];
+type BreakdownCategory = typeof BREAKDOWN_CATEGORIES[number]['key'];
 export const categoryColor = (key: string) => BREAKDOWN_CATEGORIES.find(c => c.key === key)?.color ?? '#888';
 
 const STOP = /^(a|an|the|her|his|their|its|our|my|your|of|in|on|at|to|from|with|and|or|some|one|two|three|several|another|each|this|that|these|those|same|own|is|are|was|be|has|have|no|not|without|then|also|still|just|very|too|so|all|other|actual|nearby|up|down|out|off|into|onto|over|back|there|here|now|as|like|for|by|about|while|when|where|who|which|what|it|he|she|they|we|you|i)$/i;

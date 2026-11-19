@@ -3,9 +3,9 @@
  *  backtracks, uses no regular expressions, never recurses, expands no entities beyond the five XML ones and
  *  numeric character references, and refuses a document that declares its own (<!DOCTYPE …>). */
 
-export class XmlError extends Error {}
+class XmlError extends Error {}
 
-export interface XmlHandler {
+interface XmlHandler {
   /** An opening tag. `name` has any namespace prefix removed. Attributes live in xml[from, to).
    *  `selfClosing` is true for <tag/>, in which case `close` follows at once. */
   open(name: string, from: number, to: number, selfClosing: boolean): void;

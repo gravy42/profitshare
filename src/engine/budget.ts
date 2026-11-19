@@ -22,10 +22,6 @@ export function lineFringes(l: LineItem, fringes: FringeDef[]): number {
   return round2(total);
 }
 
-export function lineTotal(l: LineItem, fringes: FringeDef[]): number {
-  return round2(lineSubtotal(l) + lineFringes(l, fringes));
-}
-
 /** Money grouped by how it gets paid. */
 export interface Rollup {
   cash: number;            // wages/costs paid from the production account
@@ -34,9 +30,8 @@ export interface Rollup {
   deferredFringes: number;
   points: number;          // cash value of what was converted to points (informational)
 }
-export const emptyRollup = (): Rollup => ({ cash: 0, cashFringes: 0, deferred: 0, deferredFringes: 0, points: 0 });
+const emptyRollup = (): Rollup => ({ cash: 0, cashFringes: 0, deferred: 0, deferredFringes: 0, points: 0 });
 export const rollupCashTotal = (r: Rollup) => r.cash + r.cashFringes;
-export const rollupTotal = (r: Rollup) => r.cash + r.cashFringes + r.deferred + r.deferredFringes;
 
 function accumulate(r: Rollup, l: LineItem, fringes: FringeDef[]) {
   const sub = lineSubtotal(l);
@@ -50,9 +45,9 @@ function addRollup(a: Rollup, b: Rollup) {
   a.deferredFringes += b.deferredFringes; a.points += b.points;
 }
 
-export interface AccountRollup extends Rollup { account: Account }
+interface AccountRollup extends Rollup { account: Account }
 export interface CategoryRollup extends Rollup { category: Category; accounts: AccountRollup[] }
-export interface SectionRollup extends Rollup { section: Section; categories: CategoryRollup[] }
+interface SectionRollup extends Rollup { section: Section; categories: CategoryRollup[] }
 
 export interface TopSheet {
   sections: SectionRollup[];
@@ -238,7 +233,7 @@ export function memoLines(p: Project, accountId?: string): LineItem[] {
 
 const PLACEHOLDER = /\[NAME\]|^(LIST|ALLOWANCE|ALLOW|MEMO|TBD|N\/A)$/i;
 /** What a memo line says, once it is a note: "phone ×10", "CAST #3: COLIN"; nothing for a blank or a template row. */
-export function memoText(l: LineItem): string {
+function memoText(l: LineItem): string {
   const d = l.description.replace(/\s+/g, ' ').trim();
   if (!d || PLACEHOLDER.test(d)) return '';
   return l.amount > 0 ? `${d} ×${l.amount}` : d;

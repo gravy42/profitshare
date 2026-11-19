@@ -47,7 +47,7 @@ export function pathInputs(p: Project): PathInputs {
   };
 }
 
-export interface FundingPath extends PathResult { current: boolean }
+interface FundingPath extends PathResult { current: boolean }
 
 /** Every path, all sources on first. Exactly one is `current`: the one whose switches are the project as saved. */
 export function fundingPaths(p: Project): FundingPath[] {

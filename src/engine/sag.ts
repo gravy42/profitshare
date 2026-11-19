@@ -54,7 +54,7 @@ export function isSagPerformerLine(l: LineItem): boolean {
   return (l.unit === 'DAY' || l.unit === 'WEEK') && l.fringes.some(f => /SAG/i.test(f) && !/BG/i.test(f));
 }
 
-export interface SagReport {
+interface SagReport {
   totalProductionCost: number;   // what SAG measures: cash + deferred + contingency
   cashBudget: number;
   deferredTotal: number;
@@ -126,7 +126,7 @@ export function payrollFringeSet(p: Project): string[] {
   return best ? best.split('|') : p.fringes.filter(f => !/SAG/i.test(f.id)).map(f => f.id);
 }
 
-export interface EveryoneAtScaleOptions {
+interface EveryoneAtScaleOptions {
   /** what happens to producer fees, the script purchase and star/cast allowances */
   premiums: 'points' | 'deferred' | 'delete' | 'keep';
   /** days a producer works when no wage line exists for them yet (default: shoot days + 40 of prep/wrap/post) */
@@ -218,7 +218,7 @@ export function floorNonShootDays(p: Project, opts: { cashHourly: number; rest: 
 }
 
 /** A line that carries someone's days: a wage line, not an allowance. */
-export const isDaysLine = (l: LineItem) => isPayrollLine(l) && !/allowance/i.test(l.description);
+const isDaysLine = (l: LineItem) => isPayrollLine(l) && !/allowance/i.test(l.description);
 export const lineDays = (l: LineItem) => l.unit === 'WEEK' ? l.amount * 5 : l.amount;
 
 /** Participants whose pay is on wage lines take their days from those lines, so the top sheet and the points

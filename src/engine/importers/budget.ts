@@ -3,7 +3,7 @@ import { parseShamelXlsx } from './shamelXlsx';
 import { parseGenericBudget } from './genericBudget';
 import { readSpreadsheet, sheetNamed } from './spreadsheet';
 
-export interface BudgetImport {
+interface BudgetImport {
   source: 'shamel' | 'generic';
   name: string; version: string; shootDays: number;
   categories: Category[]; accounts: Account[]; fringes: FringeDef[]; lines: LineItem[];

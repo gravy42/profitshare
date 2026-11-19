@@ -146,7 +146,7 @@ export async function ask(system: string, prompt: string, opts: { maxTokens?: nu
 
 /** One forced tool call: the model answers through `tool` and its input comes back as data. No documents ride along:
  *  the look book has no business going out with a script. Throws with the API's message on failure. */
-export async function askTool(system: string, prompt: string, tool: { name: string; description: string; input_schema: object }, opts: { maxTokens?: number; model?: string; signal?: AbortSignal; cutOff?: string; nothing?: string } = {}): Promise<unknown> {
+async function askTool(system: string, prompt: string, tool: { name: string; description: string; input_schema: object }, opts: { maxTokens?: number; model?: string; signal?: AbortSignal; cutOff?: string; nothing?: string } = {}): Promise<unknown> {
   const s = aiSettings();
   if (!s.key) throw new Error('No API key. Paste one under AI assist.');
   const r = await fetch('https://api.anthropic.com/v1/messages', {

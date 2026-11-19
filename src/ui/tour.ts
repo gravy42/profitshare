@@ -5,7 +5,7 @@
 // about the sample against the engine, so a change to the sample that makes a step untrue fails a test.
 
 /** The tabs a step can send someone to (the app's own names for them). */
-export type TourTab = 'deal' | 'topsheet' | 'points' | 'pitch';
+type TourTab = 'deal' | 'topsheet' | 'points' | 'pitch';
 
 export interface TourStep {
   id: string;

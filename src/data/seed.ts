@@ -6,7 +6,7 @@ import coaJson from './chart-of-accounts.json';
 import pitchJson from './sample-pitch.json';
 import { CA_FRINGES_2026 } from '../engine/importers/shamelXlsx';
 
-export const DEFAULT_TIERS: PointsTier[] = [
+const DEFAULT_TIERS: PointsTier[] = [
   { id: 'lead', name: 'Lead (took scale)', multiplier: 2 },
   { id: 'director', name: 'Writer / Director', multiplier: 2 },
   { id: 'name', name: 'Name actor', multiplier: 1.75 },
@@ -18,7 +18,7 @@ export const DEFAULT_TIERS: PointsTier[] = [
   { id: 'general', name: 'General / PA / day player', multiplier: 1 },
 ];
 
-export const DEFAULT_WATERFALL: Waterfall = {
+const DEFAULT_WATERFALL: Waterfall = {
   model: 'off-the-gross', recoupPct: 120, poolPct: 50, grossSharePct: 40,
   scenarios: [1_500_000, 3_000_000, 6_000_000],
 };

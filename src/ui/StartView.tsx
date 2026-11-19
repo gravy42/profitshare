@@ -8,7 +8,7 @@ import { StarterForm, type StarterSettings } from './StarterForm';
 const FOLDED_KEY = 'profitshare.startFolded';
 export type { StarterSettings } from './StarterForm';
 
-export interface StartActions {
+interface StartActions {
   onBlank: (opts: { name: string; version: string; shootDays: number; chartOfAccounts: 'standard' | 'empty' }) => void;
   onImportBudget: () => void;
   onOpen: () => void;

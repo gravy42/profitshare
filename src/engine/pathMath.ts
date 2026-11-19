@@ -16,7 +16,7 @@ export interface PathInputs {
   cases: { label: string; gross: number }[];   // gross receipts per case, in order
   feePct: number;            // fees off the top, percent of gross
 }
-export interface PathCase { label: string; gross: number; fees: number; net: number; deferredPaid: number; toInvestors: number; toPool: number; multiple: number }
+interface PathCase { label: string; gross: number; fees: number; net: number; deferredPaid: number; toInvestors: number; toPool: number; multiple: number }
 export interface PathResult { switches: Record<string, boolean>; investors: number; cases: PathCase[] }
 
 /** One path. A source counts when its switch is true; a switch that is left out falls back to the source's saved `on`. */

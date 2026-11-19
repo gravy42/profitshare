@@ -7,9 +7,9 @@
 // `text` is one or two plain sentences. `see` points at related entries by id. Ids are part of the page address
 // (#glossary-points), so changing one breaks links people may have saved.
 
-export type GlossaryGroupId = 'paying' | 'deal' | 'backend' | 'schedule' | 'elsewhere';
+type GlossaryGroupId = 'paying' | 'deal' | 'backend' | 'schedule' | 'elsewhere';
 
-export interface GlossaryGroup { id: GlossaryGroupId; title: string; intro?: string }
+interface GlossaryGroup { id: GlossaryGroupId; title: string; intro?: string }
 
 export interface GlossaryTerm {
   id: string;

@@ -45,7 +45,7 @@ type ShadeName = NonNullable<PitchDesign['paperShade']>;
 interface PaperLook { colors: { bg: string; ink: string; accent: string; accent2: string; muted: string }; card: string; title: string; body: string; hand: boolean; tilt: boolean }
 /** One card on one paper, drawn by the deck's own runtime (the same code that draws the deck), so what is shown here
  *  is what a slide will show. A picture only: the name beside it says which paper it is. */
-export function PaperThumb({ paper, look, shade = 'theme', title = 'A card', text = 'A line or two of text.' }: { paper: PaperName; look: PaperLook; shade?: ShadeName; title?: string; text?: string }) {
+function PaperThumb({ paper, look, shade = 'theme', title = 'A card', text = 'A line or two of text.' }: { paper: PaperName; look: PaperLook; shade?: ShadeName; title?: string; text?: string }) {
   const host = useRef<HTMLSpanElement>(null);
   const key = JSON.stringify([paper, shade, look, title, text]);
   useEffect(() => {

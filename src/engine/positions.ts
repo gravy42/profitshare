@@ -7,7 +7,7 @@ import { crewDayRateOf } from './deal';
 import { sectionForNumber } from './budget';
 import { daysFollowing } from './board';
 
-export interface NewPosition {
+interface NewPosition {
   title: string;                 // "Intimacy Coordinator"
   accountId: string;             // an account in the project, or a number from SUGGESTED_ACCOUNTS to create
   days: number;

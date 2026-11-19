@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { BoardElement, Participant, Project, WaterfallModel } from '../engine/types';
+import type { BoardElement, Participant, Project } from '../engine/types';
 import { addPosition, suggestAccount, SUGGESTED_ACCOUNTS } from '../engine/positions';
 import { scaleHourly } from '../engine/sag';
 import { crewDayRateOf } from '../engine/deal';

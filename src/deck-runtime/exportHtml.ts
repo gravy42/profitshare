@@ -14,14 +14,14 @@ export { base64, sha256, utf8 };
 /** A typeface as a data URL, for an @font-face in a page: one the app itself ships (Work Sans, Special Elite, Caveat),
  *  or a font file the deck carries. `weight` is one number, or the lightest and heaviest of a variable file. */
 export interface PageFont { family: string; weight: number | [number, number]; style?: 'normal' | 'italic'; src: string; unicodeRange?: string }
-export interface DeckParts {
+interface DeckParts {
   runtimeJs: string;       // the runtime bundle: an IIFE that defines window.ProfitShareDeck
   css: string;             // deck.css
   title?: string;          // the page title; left out, the film's name and "Investor deck"
   lang?: string;           // the page language (default en)
   fonts?: PageFont[];      // the app's own typefaces the deck's theme uses
 }
-export interface DeckHtmlOptions {
+interface DeckHtmlOptions {
   recipient?: string;      // a link ending: the file is made for this one person and holds nobody else
   static?: boolean;        // every slide in its final state, one under the other, nothing to press (for print)
 }
@@ -45,7 +45,7 @@ export const safeScript = (js: string): string => js.replace(/<\/(script)/gi, '<
 
 const GENERIC = /^(serif|sans-serif|monospace|cursive|fantasy|system-ui|ui-serif|ui-sans-serif|ui-monospace|ui-rounded|math|emoji|fangsong)$/i;
 export const BUNDLED_FAMILIES = ['Work Sans', 'Special Elite', HAND_FAMILY] as const;
-export type BundledFamily = typeof BUNDLED_FAMILIES[number];
+type BundledFamily = typeof BUNDLED_FAMILIES[number];
 // what the runtime puts after every stack (runtime.ts: TITLE_FALLBACK, BODY_FALLBACK)
 const ROLE_FALLBACK: Record<'title' | 'body', BundledFamily> = { title: 'Special Elite', body: 'Work Sans' };
 

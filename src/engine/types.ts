@@ -82,7 +82,7 @@ export interface SagTier {
   effective: string;
 }
 
-export interface SagSettings {
+interface SagSettings {
   targetTier: SagTierId;     // which agreement the cast is costed at
   dic: boolean;              // Diversity in Casting incentive qualified
   includeContingency: boolean; // count contingency inside total production cost (conservative default: yes)
@@ -90,7 +90,7 @@ export interface SagSettings {
 
 // ---------- schedule ----------
 
-export interface SceneCast { id?: number | null; name: string }
+interface SceneCast { id?: number | null; name: string }
 
 export interface Scene {
   id: string;

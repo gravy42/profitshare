@@ -34,7 +34,7 @@ export function loadCatalogue(): Promise<Catalogue> {
 
 // ---------- asking ----------
 
-export type GoogleProblem = 'offline' | 'unreachable' | 'refused' | 'unreadable' | 'stopped';
+type GoogleProblem = 'offline' | 'unreachable' | 'refused' | 'unreadable' | 'stopped';
 export class GoogleFontsError extends Error {
   constructor(public kind: GoogleProblem, message: string) { super(message); this.name = 'GoogleFontsError'; }
 }

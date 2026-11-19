@@ -4,7 +4,7 @@
 import { strFromU8, strToU8, unzipSync, zipSync, type Zippable } from 'fflate';
 import { downloadText, noteDownloaded, savedProjectList, savedProjectText, type KV } from './store';
 
-export interface ProjectFile { name: string; text: string }
+interface ProjectFile { name: string; text: string }
 
 /** "ProfitShare-projects-2026-11-18.zip": the day it was made, as the person's own clock has it. */
 export function allProjectsZipName(now: Date): string {
@@ -30,7 +30,7 @@ export function projectsZip(files: ProjectFile[], now: Date = new Date()): Uint8
 
 // A .zip is somebody else's file until it has been read, and a small one can unpack into gigabytes. Only project
 // files are unpacked, and never more than this.
-export const ZIP_LIMITS = { files: 200, fileBytes: 150_000_000, totalBytes: 400_000_000 };
+const ZIP_LIMITS = { files: 200, fileBytes: 150_000_000, totalBytes: 400_000_000 };
 const isProjectName = (path: string) => /\.json$/i.test(path) && !/(^|\/)(__MACOSX\/|\.)/.test(path);
 /** The project files inside a .zip, as text, in the order they are in it. Folders are looked into; anything that is
  *  not a .json is passed over. Throws, in plain words, when it is not a .zip or holds more than the limits. */

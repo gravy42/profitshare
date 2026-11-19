@@ -29,7 +29,7 @@ export interface DeckTheme {
 /** `weight` (one number, or the lightest and heaviest of a variable file) and `style` are optional: a face with
  *  neither is a whole face on its own, and bold is drawn from it. Faces of one role and family that carry them are
  *  one family to the browser, which picks the file by weight and style. */
-export interface DeckFontFace { family: string; src: string; role: 'title' | 'body'; weight?: number | [number, number]; style?: 'normal' | 'italic' }
+interface DeckFontFace { family: string; src: string; role: 'title' | 'body'; weight?: number | [number, number]; style?: 'normal' | 'italic' }
 
 /** A picture a slide can use. `src` is a data URL in an exported deck; in the app's preview it may be a blob: URL. */
 export interface DeckImage { id: string; src: string; alt: string }
@@ -37,12 +37,12 @@ export interface DeckImage { id: string; src: string; alt: string }
 export interface DeckCard { id: string; kicker?: string; title: string; body: string; footnote?: string }
 export interface DeckStat { id: string; value: string; label: string; source: string }
 export interface DeckMilestone { id: string; when: string; what: string }
-export interface DeckQuote { text: string; by: string }
+interface DeckQuote { text: string; by: string }
 
 /** Movement for the whole deck. Words from a fixed list only: see motion.ts. Left out, the deck is calm and its parts rise. */
 export interface DeckMotion { pace: 'calm' | 'brisk'; entrance: 'rise' | 'fade' | 'none' }
 /** A picture (a DeckImage, by id) that travels once along the plan's timeline and stops at the last milestone. */
-export interface SlideMarker { imageId: string; path: 'timeline'; end: 'stop' | 'settle'; size?: number }   // size: 0.5 to 2 times the usual height
+interface SlideMarker { imageId: string; path: 'timeline'; end: 'stop' | 'settle'; size?: number }   // size: 0.5 to 2 times the usual height
 /** One slide's movement; every part optional. `stagger` is milliseconds between one part and the next (0 to 400). */
 export interface SlideMotion {
   entrance?: 'rise' | 'fade' | 'drop' | 'slide-left' | 'slide-right' | 'none';

@@ -15,7 +15,7 @@ function moneyFormat(currency: string): Intl.NumberFormat | null {
 }
 const plain = (v: number) => new Intl.NumberFormat(LOCALE, { maximumFractionDigits: 0, useGrouping: true }).format(v);
 
-export interface MoneyPart { text: string; symbol?: boolean }
+interface MoneyPart { text: string; symbol?: boolean }
 
 /** A money amount in pieces, the currency symbol marked, so the deck can set the symbol in another typeface. */
 export function moneyParts(n: number, currency: string): MoneyPart[] {

@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { TOUR_STEPS, clampStep, dismissTourCard, isLastStep, nextStep, prevStep, tourCardDismissed, type TourStep } from './tour';
 import { GLOSSARY, glossaryAnchor } from './glossary';
 
-export interface TourState {
+interface TourState {
   open: boolean;
   step: number;
   cardGone: boolean;            // the invitation has been dismissed (or the tour finished) in this browser

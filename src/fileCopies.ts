@@ -116,7 +116,7 @@ export function forgetFileCopy(id: string, kv: KV | null): void {
 
 // ---- saying it ----
 
-export type CopyState = 'never' | 'changed' | 'safe';
+type CopyState = 'never' | 'changed' | 'safe';
 export const copyState = (r: FileCopy | undefined): CopyState => (!r?.fileAt ? 'never' : r.since ? 'changed' : 'safe');
 
 /** "just now", "5 minutes ago", "3 days ago", "2 months ago": how long ago, in whole words. */

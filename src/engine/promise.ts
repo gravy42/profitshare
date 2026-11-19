@@ -3,7 +3,7 @@
 // is worded and will miss an inventive one, and now and then it will stop a sentence that is innocent. It is there
 // to make the author look twice, never to stand in for a lawyer reading the deck. Pure: text in, a verdict out.
 
-export interface PromiseVerdict { flagged: boolean; phrase?: string }   // phrase: the words that tripped it, for the page to show
+interface PromiseVerdict { flagged: boolean; phrase?: string }   // phrase: the words that tripped it, for the page to show
 
 // what the promise is about
 const MONEY = String.raw`(?:money|capital|principal|investment|investments|invested|stake|profit|profits|profitable|return|returns|recoup\w*|repay\w*|repaid|payback|paid back|pay back|pays back|winner|downside|upside)`;

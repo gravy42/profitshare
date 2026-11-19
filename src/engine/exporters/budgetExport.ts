@@ -29,7 +29,7 @@ export function budgetFileName(p: { name?: string; version?: string }, ext: 'xls
 // ---------- the budget as rows ----------
 
 /** One budget line with the money the app works out for it. */
-export interface ExportLine {
+interface ExportLine {
   category: string; account: string; accountName: string;
   line: LineItem; subtotal: number; fringes: number; total: number;
 }

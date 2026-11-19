@@ -5,9 +5,9 @@ import { shootDays, stripEighths, type ShootDay } from './board';
 export const storyDayOf = (s: Scene) => (s.scriptDay && s.scriptDay.trim()) || '?';
 
 /** Sort key for story days: numbers first in numeric order, then everything else alphabetically. */
-export const storyDayKey = (d: string) => { const n = parseInt(d, 10); return isNaN(n) ? 1e9 : n; };
+const storyDayKey = (d: string) => { const n = parseInt(d, 10); return isNaN(n) ? 1e9 : n; };
 
-export interface StoryDayRow { day: ShootDay; storyDays: string[]; scenes: { scene: Scene; storyDay: string; cast: string[] }[] }
+interface StoryDayRow { day: ShootDay; storyDays: string[]; scenes: { scene: Scene; storyDay: string; cast: string[] }[] }
 
 /** For each shoot day: the story days it touches, in schedule order, so hair, makeup and wardrobe can see the continuity jumps. */
 export function storyDayBreakdown(board: Board): StoryDayRow[] {
@@ -19,8 +19,8 @@ export function storyDayBreakdown(board: Board): StoryDayRow[] {
   });
 }
 
-export interface CharacterDay { day: ShootDay; scenes: { scene: Scene; storyDay: string }[]; storyDays: string[] }
-export interface CharacterBreakdown { castId: number; name: string; days: CharacterDay[]; storyDaysTotal: number; jumps: number }
+interface CharacterDay { day: ShootDay; scenes: { scene: Scene; storyDay: string }[]; storyDays: string[] }
+interface CharacterBreakdown { castId: number; name: string; days: CharacterDay[]; storyDaysTotal: number; jumps: number }
 
 /** Per character: every shoot day they work, which scenes and which story days, and how many days ask for more than one look. */
 export function characterBreakdown(board: Board): CharacterBreakdown[] {
@@ -37,9 +37,9 @@ export function characterBreakdown(board: Board): CharacterBreakdown[] {
   }).filter(r => r.days.length);
 }
 
-export const normItem = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ');
+const normItem = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ');
 
-export interface DepartmentDay { day: ShootDay; items: { item: string; scenes: Scene[] }[] }
+interface DepartmentDay { day: ShootDay; items: { item: string; scenes: Scene[] }[] }
 
 /** One element category (Props, Wardrobe, Makeup/Hair, Set Dressing, Vehicles, Animals…) laid out by shoot day. */
 export function departmentBreakdown(board: Board, category: string): DepartmentDay[] {

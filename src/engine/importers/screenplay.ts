@@ -10,7 +10,7 @@ import type { Board, Scene, Strip } from '../types';
  *             further in than action, which is how a cue is told apart from a shouted action line. */
 export interface ScriptLine { text: string; pos: number; indent: number; page: string }
 
-export interface ScreenplayImport { board: Board; title: string; pages: number; warnings: string[] }
+interface ScreenplayImport { board: Board; title: string; pages: number; warnings: string[] }
 
 const HEADING = /^(?:(\d+[A-Z]?)[.\s]+)?(INT\.?\s*\/\s*EXT\.?|EXT\.?\s*\/\s*INT\.?|I\/E\.?|INT\.?|EXT\.?)(?=[\s.\-:])\s*[.\-:]?\s*(.*?)(?:\s+(\d+[A-Z]?)|\s*#([\w.-]+)#)?\s*$/i;
 const TOD = /\b(DAY|NIGHT|MORNING|AFTERNOON|EVENING|DUSK|DAWN|SUNSET|SUNRISE|LATER|CONTINUOUS|SAME TIME|MAGIC HOUR|PRE-DAWN|PREDAWN|NOON|MIDNIGHT|TWILIGHT|MOMENTS|HOURS?|MINUTES)\b/i;

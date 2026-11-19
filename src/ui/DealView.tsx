@@ -8,7 +8,7 @@ import { MIN_WAGE_PRESETS, highestMinWage, locationDays, locationsOf, newLocatio
 import type { ShootLocation } from '../engine/types';
 import { incentiveProceeds } from '../engine/incentives';
 import { PRESET_GROUPS } from '../engine/deal';
-import { money, pct } from './format';
+import { money } from './format';
 import { SagRatesNotice } from './RatesNotice';
 
 type Set = (f: (p: Project) => Project) => void;

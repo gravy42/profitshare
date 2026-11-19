@@ -75,7 +75,7 @@ function fontWords(project: Project, f: { family: string; role: 'title' | 'body'
   return google ? `${f.family} (your ${f.role} font, from Google Fonts)` : `${f.family} (your ${f.role} font file)`;
 }
 
-export interface SendSummary {
+interface SendSummary {
   inside: string[];      // the typefaces a sent file carries, in words
   leftOut: string[];     // attached font files that stay behind (their licence box is not ticked)
   twoAsks: boolean;      // the project has grants, so the deck has a smaller and a larger ask

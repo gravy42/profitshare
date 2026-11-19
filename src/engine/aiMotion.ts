@@ -22,7 +22,7 @@ const LAYOUT_WORDS: Record<SlideLayout, string> = {
   ask: 'the ask', closing: 'closing (the title once more)',
 };
 
-export const MOTION_SYSTEM = `You set how one slide of a film's pitch deck moves when it comes into view. You can only use the settings of the set_movement tool; there is nothing else the deck can do. Your answer is the slide's whole movement: a setting you leave out is off, so include only what the request asks for.
+const MOTION_SYSTEM = `You set how one slide of a film's pitch deck moves when it comes into view. You can only use the settings of the set_movement tool; there is nothing else the deck can do. Your answer is the slide's whole movement: a setting you leave out is off, so include only what the request asks for.
 
 The settings: how the parts of the slide arrive (entrance), whether they arrive together, one by one or last first (order), the gap between one part and the next in milliseconds (stagger), whether the headline is typed out (headline), whether the slide's big numbers count up (count), and, only where the tool offers it, a picture from the person's look book that travels left to right along the plan's timeline once and stops at the last milestone (marker). A picture is chosen by its id from the list you are given; choose the one whose caption fits the request, and none if nothing fits.
 
@@ -84,7 +84,7 @@ export const MOTION_SENT: { key: string; words: string; only?: 'timeline'; write
   { key: 'pictures', words: 'the captions and ids of your look book pictures', only: 'timeline', write: (_t, _l, offered) => (offered.length ? `LOOK BOOK PICTURES (id: caption):\n${offered.map(p => `${p.id}: ${p.caption || '(no caption)'}`).join('\n')}` : 'LOOK BOOK PICTURES: none this slide can use.') },
   { key: 'vocabulary', words: 'the list of movement settings the deck allows' },
 ];
-export const MOTION_NOT_SENT = ['the pictures themselves', 'the words on your slides', 'your budget'];
+const MOTION_NOT_SENT = ['the pictures themselves', 'the words on your slides', 'your budget'];
 /** The parts a request for this layout carries: the look book's captions and ids go only with a plan slide. */
 export const motionSent = (layout: SlideLayout) => MOTION_SENT.filter(p => !p.only || markerPathOf(layout) === p.only);
 /** Everything that is sent for one request, and nothing else: the parts of `MOTION_SENT` its layout carries. */
@@ -114,7 +114,7 @@ export function readMotionReply(input: unknown, layout: SlideLayout, pictures: M
 const ENTRANCE_WORDS: Record<NonNullable<SlideMotion['entrance']>, string> = { rise: 'rise in', fade: 'fade in', drop: 'drop in', 'slide-left': 'slide in from the right', 'slide-right': 'slide in from the left', none: 'are simply there' };
 const ORDER_WORDS: Record<NonNullable<SlideMotion['order']>, string> = { together: 'all together', 'one-by-one': 'one at a time', reverse: 'one at a time, last first' };
 /** What moves on a slide, as its first word: "Cards" where the slide is cards, "Milestones" on a plan. */
-export const movingParts = (layout: SlideLayout): string => (layout === 'cards' || layout === 'ways' ? 'Cards' : layout === 'timeline' ? 'Facts and milestones' : layout === 'stats' ? 'Numbers' : layout === 'team' ? 'People' : layout === 'look' ? 'Pictures' : 'Parts of the slide');
+const movingParts = (layout: SlideLayout): string => (layout === 'cards' || layout === 'ways' ? 'Cards' : layout === 'timeline' ? 'Facts and milestones' : layout === 'stats' ? 'Numbers' : layout === 'team' ? 'People' : layout === 'look' ? 'Pictures' : 'Parts of the slide');
 
 /** A slide's movement in words, one sentence a setting: "Cards: drop in, one at a time, 120 ms apart." Empty when
  *  the slide has no movement of its own. */

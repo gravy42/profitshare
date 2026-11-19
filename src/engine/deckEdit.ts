@@ -260,7 +260,7 @@ export const nextItemId = (stem: string, items: { id: string }[] | undefined): s
 
 // ---------- recipients ----------
 
-export type LinkProblem = '' | 'empty' | 'taken' | 'reserved';
+type LinkProblem = '' | 'empty' | 'taken' | 'reserved';
 /** What is wrong with a link ending as typed, if anything. `others` are everyone else's endings as typed. The ending
  *  is read the way the deck reads it: lower case, letters, digits and hyphens. */
 export function linkEndingProblem(typed: string, others: string[]): LinkProblem {

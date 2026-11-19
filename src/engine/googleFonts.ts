@@ -10,7 +10,6 @@ import { dataUrlBytes, readFontFiles } from './deckEdit';
 
 export const GOOGLE_CSS_ORIGIN = 'https://fonts.googleapis.com';    // the stylesheet that says where a family's files are
 export const GOOGLE_FILE_ORIGIN = 'https://fonts.gstatic.com';      // the files
-export const GOOGLE_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'] as const;
 
 export const GOOGLE_CSS_MAX = 200_000;         // a stylesheet longer than this is not one of Google's for a single family
 export const GOOGLE_FILE_MAX_BYTES = 2_000_000;   // one font file; latin files are tens of kilobytes
@@ -24,7 +23,7 @@ export const GOOGLE_DISCLOSURE = "Browsing fonts loads previews from Google Font
 export const FONT_CATEGORIES = ['sans-serif', 'serif', 'display', 'handwriting', 'monospace'] as const;
 export type FontCategory = typeof FONT_CATEGORIES[number];
 export const CATEGORY_NAMES: Record<FontCategory, string> = { 'sans-serif': 'Sans serif', serif: 'Serif', display: 'Display', handwriting: 'Handwriting', monospace: 'Monospace' };
-export const FONT_LICENCES = ['OFL', 'Apache', 'UFL'] as const;
+const FONT_LICENCES = ['OFL', 'Apache', 'UFL'] as const;
 export type FontLicence = typeof FONT_LICENCES[number];
 export const LICENCE_NAMES: Record<FontLicence, string> = { OFL: 'SIL Open Font License', Apache: 'Apache License 2.0', UFL: 'Ubuntu Font Licence' };
 
@@ -73,7 +72,7 @@ export function findFamily(families: CatalogueFamily[], typed: unknown): Catalog
 }
 
 export type FontSort = 'popular' | 'az';
-export interface FontQuery { query?: string; category?: FontCategory | ''; sort?: FontSort }
+interface FontQuery { query?: string; category?: FontCategory | ''; sort?: FontSort }
 const byName = (a: CatalogueFamily, b: CatalogueFamily) => { const x = a.family.toLowerCase(), y = b.family.toLowerCase(); return x < y ? -1 : x > y ? 1 : a.family < b.family ? -1 : a.family > b.family ? 1 : 0; };
 const byRank = (a: CatalogueFamily, b: CatalogueFamily) => (a.rank && b.rank ? a.rank - b.rank : a.rank ? -1 : b.rank ? 1 : 0) || byName(a, b);
 
@@ -109,7 +108,7 @@ export function weightsInWords(f: CatalogueFamily): string {
 export type FontRole = FontFile['role'];
 /** What to fetch for a role. A family with fixed weights: a regular, a bold when there is one, and for body text an
  *  italic. A variable family: its one file, which holds every weight (`range`), and for body text its italic one. */
-export interface WeightPlan { regular: number; bold?: number; italic?: number; range?: [number, number] }
+interface WeightPlan { regular: number; bold?: number; italic?: number; range?: [number, number] }
 
 const nearest = (list: number[], to: number): number => list.reduce((best, w) => (Math.abs(w - to) < Math.abs(best - to) ? w : best), list[0]);
 
@@ -162,8 +161,6 @@ export function previewCssUrl(f: CatalogueFamily): string {
   const w = f.variable ? Math.min(f.variable[1], Math.max(f.variable[0], 400)) : nearest([...f.weights].sort((a, b) => a - b), 400);
   return `${GOOGLE_CSS_ORIGIN}/css2?family=${familyParam(f)}:wght@${w}&text=${encodeURIComponent(PREVIEW_LETTERS)}&display=swap`;
 }
-/** The weight a preview is drawn at (the one its stylesheet asks for). */
-export const previewWeight = (f: CatalogueFamily): number => (f.variable ? Math.min(f.variable[1], Math.max(f.variable[0], 400)) : nearest([...f.weights].sort((a, b) => a - b), 400));
 /** True for an address on one of the two hosts, over https, and nothing else. */
 export function isGoogleFontsUrl(url: unknown): boolean {
   if (typeof url !== 'string') return false;
@@ -172,7 +169,7 @@ export function isGoogleFontsUrl(url: unknown): boolean {
 
 // ---------- Google's answer ----------
 
-export interface Css2Face { family: string; style: 'normal' | 'italic'; weight: FaceWeight; url: string; subset: string; unicodeRange: string }
+interface Css2Face { family: string; style: 'normal' | 'italic'; weight: FaceWeight; url: string; subset: string; unicodeRange: string }
 
 // A file's address: https, the files host, a plain path that ends in .woff2. No query, no fragment, no dots that climb.
 const FILE_URL = /^https:\/\/fonts\.gstatic\.com\/[A-Za-z0-9_-]+(?:\/[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*)*\.woff2$/;
@@ -259,7 +256,7 @@ export function parsePreviewCss(css: unknown): string | null {
 export const previewFaceName = (family: string): string => `gfp ${cleanFamily(family)}`;
 export const GOOGLE_PREVIEW_MAX_BYTES = 400_000;   // a preview is a few letters of one weight
 
-export interface FileToFetch { url: string; weight: FaceWeight; style: 'normal' | 'italic' }
+interface FileToFetch { url: string; weight: FaceWeight; style: 'normal' | 'italic' }
 /** The files of a plan among the faces Google listed: the `latin` file of each weight and style the plan asked for,
  *  of the family that was asked for and no other. Sorted: upright before italic, lighter before heavier. */
 export function filesToFetch(faces: Css2Face[], f: CatalogueFamily, plan: WeightPlan): FileToFetch[] {

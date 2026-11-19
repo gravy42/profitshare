@@ -11,7 +11,7 @@ import { fitDayBreaks, shootDays, dood, daysWithElements, adoptBoardDays, syncCa
 import { applyDeal, defaultDeal } from './deal';
 import { topSheet } from './budget';
 
-export interface StarterOptions {
+interface StarterOptions {
   title: string;
   version?: string;
   tier: SagTierId;              // the SAG agreement the cast is priced at (and the deal's target)
@@ -21,14 +21,13 @@ export interface StarterOptions {
   dayHours?: 10 | 12;
 }
 
-export interface StarterReport {
+interface StarterReport {
   pages: number; scenes: number; shootDays: number; cast: number; crew: number; lines: number; cashBudget: number; sets: number;
   extras: string[];             // what the tags added: "stunt coordinator (4 days)", "animal wrangler (3 days)"
 }
 
 const PAYROLL = ['FICA1', 'FICA2', 'FUI', 'SUI (CA)', 'WC (CA)', 'PAYROLL FEE'];
 const SAG = [...PAYROLL, 'SAG AFTRA'];
-const SAG_BG = ['FICA1', 'FICA2', 'FUI', 'SUI (CA)', 'WC (CA)', 'PAYROLL FEE SAG BG', 'SAG AFTRA BG'];
 
 type Role = 'hod' | 'key' | 'crew' | 'general';
 interface Slot { acct: string; title: string; role: Role; prep: number; wrap: number; day?: number; count?: number; long?: boolean; lean?: number }   // lean: how many of these a lean crew keeps (default: all)

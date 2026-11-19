@@ -2,7 +2,7 @@
 // The deal is a set of terms the user can change at any time; applyDeal() computes the effective
 // budget from raw lines + terms, and every view reads the effective one. Change a term, everything updates.
 import type { Deal, Participant, Project, SagTierId } from './types';
-import { PAID_HOURS, setDayHours } from './budget';
+import { setDayHours } from './budget';
 import { daysFromLines, everyoneAtScale, floorNonShootDays, isPayrollLine, isSagPerformerLine, rerateCast, sagTier } from './sag';
 import type { LineItem, PremiumGroup } from './types';
 import { CA_MIN_WAGE } from './locations';
@@ -115,7 +115,7 @@ export function applyDeal(raw: Project): Project {
  *  The budget's own ladder survives: a DP at twice a PA's rate stays at twice. */
 /** Above-the-line wage accounts (story, producers, director): their fees are deals, not crew rates, so the crew bump leaves them alone. */
 const ATL_WAGE_ACCOUNT = /^1[123]\d\d$/;
-export function bumpCrew(p: Project, pct: number): Project {
+function bumpCrew(p: Project, pct: number): Project {
   const f = 1 + pct / 100;
   return { ...p, lines: p.lines.map(l => isPayrollLine(l) && !isSagPerformerLine(l) && !PROFIT_SHARE_PRESET_MATCH(l) && !ATL_WAGE_ACCOUNT.test(l.accountId) ? { ...l, rate: Math.round(l.rate * f * 100) / 100 } : l) };
 }
@@ -131,5 +131,3 @@ export function dealControlledIds(raw: Project, effective: Project): Set<string>
   }
   return out;
 }
-
-export const paidHoursNow = (p: Project) => PAID_HOURS[withDeal(p).dayHours ?? 12];

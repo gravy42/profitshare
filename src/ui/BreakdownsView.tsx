@@ -33,7 +33,6 @@ export function BreakdownsView({ project, setProject }: { project: Project; setP
   const cats = useMemo(() => elementCategories(b), [b]);
   const [cat, setCat] = useState<string>('');
   const category = cat || cats.find(c => /makeup|hair/i.test(c)) || cats[0] || '';
-  const items = useMemo(() => itemsIn(b, category), [b, category]);
   const [itemCat, setItemCat] = useState<string>(''); const [item, setItem] = useState<string>('');
   const tCat = itemCat || cats.find(c => /animal/i.test(c)) || cats[0] || '';
   const tItems = useMemo(() => itemsIn(b, tCat), [b, tCat]);

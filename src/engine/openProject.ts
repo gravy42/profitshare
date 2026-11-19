@@ -15,14 +15,14 @@ import { defaultCalendar } from './calendar';
 import { defaultCallSheets } from './callsheet';
 import { defaultPitch } from './pitch';
 
-export type ProjectCheck =
+type ProjectCheck =
   | { ok: true; project: Project; repaired: string[] }
   | { ok: false; reason: string };
 
 export const NOT_A_PROJECT = 'This file is not a ProfitShare project.';
 export const NOT_JSON = 'This file cannot be read as a project. It may have been cut off.';
 export const EMPTY_FILE = 'This file is empty.';
-export const newerVersion = (v: number) => `This file was made by a newer version of ProfitShare (format ${v}). Reload this page to get the latest version, then open it again.`;
+const newerVersion = (v: number) => `This file was made by a newer version of ProfitShare (format ${v}). Reload this page to get the latest version, then open it again.`;
 
 type Obj = Record<string, unknown>;
 const isObj = (v: unknown): v is Obj => typeof v === 'object' && v !== null && !Array.isArray(v);

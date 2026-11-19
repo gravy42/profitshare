@@ -17,7 +17,7 @@ const FALLBACK: Record<FontCategory, string> = { 'sans-serif': 'sans-serif', ser
 const BODY_SAMPLE = 'A story worth telling, set in this font. 0123456789';
 const ROLE_WORD: Record<FontRole, string> = { title: 'title', body: 'body' };
 
-export interface GoogleFontsDialogProps {
+interface GoogleFontsDialogProps {
   role: FontRole;
   film: string;                 // the film's title: what a title font is shown in
   current?: string;             // the family the role has now, if it came from here

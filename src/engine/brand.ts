@@ -3,8 +3,8 @@
 import type { DeckRules, PitchDesign } from './types';
 import { defaultDeckRules } from './pitch';
 
-export interface BrandColors extends Partial<PitchDesign['colors']> { line?: string; inkBright?: string; card?: string }
-export interface BrandFound {
+interface BrandColors extends Partial<PitchDesign['colors']> { line?: string; inkBright?: string; card?: string }
+interface BrandFound {
   name: string;
   colors: BrandColors;                        // the set the deck will use (the night set when the document has both)
   night?: BrandColors;

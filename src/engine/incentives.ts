@@ -32,15 +32,15 @@ import { lineFringes, lineSubtotal, topSheet } from './budget';
 import { isPayrollLine, isSagPerformerLine } from './sag';
 import { outOfZonePctFromLocations } from './locations';
 
-export const CA_BASE = 0.35, CA_OUT_OF_ZONE = 0.05, CA_LOCAL_HIRE = 0.10, CA_VFX = 0.05, CA_TRAINEE = 0.005, CA_TRAINEE_MAX = 4;
+const CA_BASE = 0.35, CA_OUT_OF_ZONE = 0.05, CA_LOCAL_HIRE = 0.10, CA_VFX = 0.05, CA_TRAINEE = 0.005, CA_TRAINEE_MAX = 4;
 export const CA_QUALIFIED_CAP = 20_000_000, CA_MIN_BUDGET = 1_000_000, CA_REFUND_SHARE = 0.95, CA_REFUND_YEARS = 2;   // SB 186 (Sept 2026)
-export const CA_CAREER_PATHWAYS_FEE = 0.0025;                 // of the allocation
+const CA_CAREER_PATHWAYS_FEE = 0.0025;                 // of the allocation
 export const CA_DAYS_TO_START = 180;                           // from the CAL
-export const FED_BASE = 0.20, FED_BONUS = 0.05, FED_MAX = 0.30, FED_MIN_BUDGET = 1_000_000;
+const FED_BASE = 0.20, FED_BONUS = 0.05, FED_MAX = 0.30, FED_MIN_BUDGET = 1_000_000;
 export const FED_FIRST_START = '2027-01-01';                   // productions beginning in taxable years after Dec 31, 2026
 
 /** FY 2026–27 application windows for feature films (independent films apply in the same windows). */
-export const CA_WINDOWS = [
+const CA_WINDOWS = [
   { apply: 'Aug 10–12, 2026', close: '2026-08-12', cal: '2026-09-21' },
   { apply: 'Jan 11–13, 2027', close: '2027-01-13', cal: '2027-02-22' },
   { apply: 'May 3–5, 2027', close: '2027-05-05', cal: '2027-06-14' },
@@ -57,7 +57,7 @@ export const LOCAL_PERKS = [
 /** Categories that don't qualify for the California credit by default: the qualified-individual list (writers,
  *  producers, directors, principal cast and their travel) plus publicity. Stunts (1500) stay in: stunt performers
  *  and coordinators qualify. Everything is a checkbox on the tab. */
-export const CA_DEFAULT_EXCLUDED = (p: Project) =>
+const CA_DEFAULT_EXCLUDED = (p: Project) =>
   p.categories.filter(c => (c.section === 'ATL' && !/STUNT/i.test(c.name)) || /PUBLICITY|MARKETING|DISTRIBUTION|FINANC/i.test(c.name)).map(c => c.number);
 
 export function defaultIncentives(p: Project): Incentives {
@@ -92,8 +92,8 @@ export interface CreditReport {
   rate: number;                  // net ÷ budget to raise
   notes: string[];
 }
-export interface WindowFit { apply: string; cal: string; startBy: string; fits: boolean; closed: boolean }
-export interface IncentiveReport {
+interface WindowFit { apply: string; cal: string; startBy: string; fits: boolean; closed: boolean }
+interface IncentiveReport {
   ca: CreditReport;
   federal: CreditReport;
   perks: Line[];
@@ -130,10 +130,6 @@ function spendByCategory(p: Project, keep: (l: Project['lines'][number]) => numb
   return out;
 }
 
-/** The application window whose allocation letter comes before the planned start with camera rolling in time. */
-export function windowFor(startDate: string, today = new Date().toISOString().slice(0, 10)): WindowFit | null {
-  return windowFits(startDate, today).find(w => w.fits && !w.closed) ?? null;
-}
 /** The letter the credit is figured against: the latest one that still comes before the start, whether or not its
  *  application window has closed. It does not depend on today's date, so the credit does not move when a window shuts. */
 export function letterFor(startDate: string): WindowFit | null {
@@ -153,8 +149,8 @@ export function prepDaysAfterLetter(cal: string, startDate: string): number {
 }
 
 /** Prep work: the days that run backwards from the first day of photography. Wrap and post come after it. */
-export const PREP_LINE = /prep|scout|rehears|fitting/i;
-export const TEST_LINE = /camera test|test shoot/i;
+const PREP_LINE = /prep|scout|rehears|fitting/i;
+const TEST_LINE = /camera test|test shoot/i;
 
 /** What share of a line the California credit can count once the allocation letter's date is known. Spending before
  *  the letter is allowed but never qualifies. A prep line of N days ends the day before photography, so only its

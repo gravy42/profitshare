@@ -91,7 +91,7 @@ export function shootDays(board: Board): ShootDay[] {
 }
 
 /** Day-out-of-days: for each cast member, which shoot days they work. */
-export interface DoodRow { castId: number; name: string; workDays: number[]; total: number; span: number }
+interface DoodRow { castId: number; name: string; workDays: number[]; total: number; span: number }
 
 export function dood(board: Board): DoodRow[] {
   const days = shootDays(board);
@@ -353,11 +353,6 @@ export function syncFollowersFromBoard(p: Project): { project: Project; changed:
   const daysOf = new Map(participants.filter(x => x.followsCastIds?.length || x.followsElements?.length).map(x => [x.id, x.days]));
   const lines = p.lines.map(l => (!l.participantId || l.unit !== 'DAY' || !daysOf.has(l.participantId)) ? l : { ...l, amount: daysOf.get(l.participantId)! });
   return { project: { ...p, participants, lines }, changed };
-}
-
-/** Shoot days on which any of these cast members work: a studio teacher's days, a stunt double's days. */
-export function daysWithCast(board: Board, castIds: number[]): number {
-  return shootDays(board).filter(d => d.castIds.some(id => castIds.includes(id))).length;
 }
 
 const normEl = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();

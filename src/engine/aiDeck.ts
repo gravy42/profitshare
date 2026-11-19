@@ -28,9 +28,9 @@ export const CRITIQUE_SENT = [
   ['headline', 'headlines'], ['paragraph', 'paragraphs'], ['card', 'cards'], ['number', 'numbers and their sources'], ['team', 'team names and bios'],
   ['comp', 'comparable film titles'], ['terms', 'the deal terms shown on the model slide'], ['contact', 'your contact line'], ['film', 'the film\'s title'],
 ] as const;
-export type SentKind = typeof CRITIQUE_SENT[number][0];
+type SentKind = typeof CRITIQUE_SENT[number][0];
 export const CRITIQUE_NOT_SENT = ['your budget lines', 'the figures on the money slide', 'pictures', 'the people you send the deck to'] as const;
-export interface SlideWords { field: string; kind: SentKind; text: string }
+interface SlideWords { field: string; kind: SentKind; text: string }
 
 /** A slide's words, field by field, the way its reader sees them: no pictures, no figures from the budget. `field`
  *  is where the editor has it; `kind` is what it is called when the page says what is sent. */
@@ -65,7 +65,7 @@ export function slideText(s: DeckSlide): SlideWords[] {
 // ---------- checks that need no model ----------
 
 /** A problem on the deck, tied to a slide and (when there is one) the field to open. */
-export interface DeckProblem { slideId: string; field: string; message: string }
+interface DeckProblem { slideId: string; field: string; message: string }
 
 /** What can be said about the deck's words without asking anyone: text that reads as a promise of returns, and an
  *  ask with no way to answer it. (Missing sources, lost pictures and the rest are `deckWarnings`; a slide that is too
@@ -97,7 +97,7 @@ export function deckChecks(d: DeckData): DeckProblem[] {
 export interface PersonBrief { about: string; film: string; logline: string; askWith: string; askWithout: string; hasGrants: boolean }
 export interface PersonSuggestion { coverLine: string; note: string; lead: 'with-grants' | 'without-grants'; flagged: boolean }   // flagged: the note or the line reads as a promise of returns
 
-export const PERSON_SYSTEM = `You help an independent filmmaker tailor a pitch deck for one person or fund they are sending it to. From what the filmmaker pasted about that person, suggest: a cover line (the short line above the film's title, such as "Prepared for Ada Example."), a short note to them for the ask slide, and which ask they should read first.
+const PERSON_SYSTEM = `You help an independent filmmaker tailor a pitch deck for one person or fund they are sending it to. From what the filmmaker pasted about that person, suggest: a cover line (the short line above the film's title, such as "Prepared for Ada Example."), a short note to them for the ask slide, and which ask they should read first.
 
 Rules. Plain and specific. No flattery. Use only what the pasted text says about the person: never invent a fact about them, their work, their money or their tastes, and never guess. If the pasted text gives nothing to be specific about, keep the note general and short. Never say or suggest what the investment will return: no promises, no predictions, no "will". The note is at most 240 characters and reads as the filmmaker speaking to that person. No em dashes. Answer through the suggest_for_person tool only.`;
 
@@ -123,7 +123,7 @@ export const PERSON_SENT: { key: string; words: (hasGrants: boolean) => string; 
   { key: 'asks', words: g => (g ? 'the two ask sentences from your deck, with the amounts in them (what you are raising and the grants figure)' : 'the ask sentence from your deck, with the amount in it (what you are raising)'),
     write: b => (b.hasGrants ? `THE ASK, WITH GRANTS COUNTED: ${line(b.askWith, 600)}\n\nTHE ASK, WITHOUT GRANTS: ${line(b.askWithout, 600)}` : `THE ASK: ${line(b.askWith, 600)}`) },
 ];
-export const PERSON_NOT_SENT = ['your budget lines', 'anyone else you send the deck to', 'your slides', 'pictures'];
+const PERSON_NOT_SENT = ['your budget lines', 'anyone else you send the deck to', 'your slides', 'pictures'];
 /** What is sent for one person: exactly the parts of `PERSON_SENT`, in order. */
 export function personRequest(b: PersonBrief): AiRequest {
   return { system: PERSON_SYSTEM, prompt: PERSON_SENT.map(part => part.write(b)).join('\n\n'), tool: personTool(b.hasGrants) };
@@ -140,8 +140,8 @@ export const personSends = (hasGrants: boolean): string =>
 
 // ---------- a second line for a headline ----------
 
-export const PUNCH_SYSTEM = `You write the second line of a slide's headline in a film's pitch deck. The headline is line one; the second line lands the point in a few words, in the same voice. You are given the slide's own headline and text and nothing else, so use only what they say: no new facts, no numbers that are not there, nothing about what an investment will return. Each option is one short line, under 80 characters, no em dashes, not a repeat of the headline. Give three options that differ from each other, through the suggest_second_lines tool only.`;
-export const PUNCH_TOOL: AiTool = {
+const PUNCH_SYSTEM = `You write the second line of a slide's headline in a film's pitch deck. The headline is line one; the second line lands the point in a few words, in the same voice. You are given the slide's own headline and text and nothing else, so use only what they say: no new facts, no numbers that are not there, nothing about what an investment will return. Each option is one short line, under 80 characters, no em dashes, not a repeat of the headline. Give three options that differ from each other, through the suggest_second_lines tool only.`;
+const PUNCH_TOOL: AiTool = {
   name: 'suggest_second_lines', description: 'Three options for the second line of this slide\'s headline.',
   input_schema: { type: 'object', additionalProperties: false, required: ['options'], properties: { options: { type: 'array', minItems: 3, maxItems: 3, items: { type: 'string', maxLength: PUNCH_MAX } } } },
 };
@@ -149,7 +149,7 @@ export const PUNCH_SENT: { key: string; words: string; write: (headline: string,
   { key: 'headline', words: 'this slide\'s headline', write: headline => `HEADLINE: ${line(headline, 300) || '(none yet)'}` },
   { key: 'text', words: 'the slide\'s own text (its paragraphs, cards, numbers and quote)', write: (_h, body) => `THE SLIDE'S TEXT:\n${(typeof body === 'string' ? body : '').trim().slice(0, SLIDE_TEXT_MAX) || '(none)'}` },
 ];
-export const PUNCH_NOT_SENT = ['anything else on the deck', 'pictures', 'your budget'];
+const PUNCH_NOT_SENT = ['anything else on the deck', 'pictures', 'your budget'];
 export function punchRequest(headline: string, body: string): AiRequest {
   return { system: PUNCH_SYSTEM, prompt: PUNCH_SENT.map(part => part.write(headline, body)).join('\n\n'), tool: PUNCH_TOOL };
 }
@@ -173,12 +173,12 @@ export const PUNCH_SENDS = sendsText(PUNCH_SENT.map(part => part.words), PUNCH_N
 
 // ---------- a read of the whole deck ----------
 
-export const PROBLEM_KINDS = ['unsourced', 'vague', 'empty-headline', 'too-full', 'unclear-ask', 'promise', 'other'] as const;
-export type ProblemKind = typeof PROBLEM_KINDS[number];
-export const PROBLEM_FIELDS = ['headline', 'body', 'cards', 'numbers', 'ask', 'other'] as const;
+const PROBLEM_KINDS = ['unsourced', 'vague', 'empty-headline', 'too-full', 'unclear-ask', 'promise', 'other'] as const;
+type ProblemKind = typeof PROBLEM_KINDS[number];
+const PROBLEM_FIELDS = ['headline', 'body', 'cards', 'numbers', 'ask', 'other'] as const;
 export interface AiProblem extends DeckProblem { kind: ProblemKind }
 
-export const CRITIQUE_SYSTEM = `You read an independent film's pitch deck the way a careful investor's adviser would, and report at most eight concrete problems, the most serious first. Each problem is tied to one slide by its id and says, in one or two plain sentences, what is wrong and what to do about it.
+const CRITIQUE_SYSTEM = `You read an independent film's pitch deck the way a careful investor's adviser would, and report at most eight concrete problems, the most serious first. Each problem is tied to one slide by its id and says, in one or two plain sentences, what is wrong and what to do about it.
 
 What to look for: a claim with no source, or a vague one ("huge audience", "proven demand"); a headline that says nothing; a slide with too much on it to take in; an ask that does not say what is being asked or what happens next; and anything that reads as a promise or a prediction of returns. Always report that last kind: the deck must never promise returns. The tokens {investors} and {grants} in the ask are filled in with live amounts; they are not a problem.
 

@@ -19,7 +19,6 @@ const PaletteBuilder = lazy(() => import('./DesignBuilder').then(m => ({ default
 const CardColor = lazy(() => import('./DesignBuilder').then(m => ({ default: m.CardColor })));
 const PaperChooser = lazy(() => import('./DesignBuilder').then(m => ({ default: m.PaperChooser })));
 
-type SetProject = (f: (p: Project) => Project) => void;
 type Pitch = NonNullable<Project['pitch']>;
 export type SetPitch = (f: (x: Pitch) => Pitch) => void;
 
@@ -113,7 +112,7 @@ export function Draft({ what, project, extra, onUse, ready, label = 'Draft' }: {
 // ---------- images ----------
 
 /** Resize to at most `max` px on the long side and return a JPEG data URL, so twenty pictures stay a few MB, not fifty. */
-export async function resizeImage(file: File, max = 1600, quality = 0.82): Promise<string> {
+async function resizeImage(file: File, max = 1600, quality = 0.82): Promise<string> {
   const bmp = await createImageBitmap(file);
   const scale = Math.min(1, max / Math.max(bmp.width, bmp.height));
   const w = Math.round(bmp.width * scale), h = Math.round(bmp.height * scale);

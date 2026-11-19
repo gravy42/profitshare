@@ -35,7 +35,7 @@ async function cropped(img: HTMLImageElement, wPx: number, hPx: number): Promise
 }
 
 /** How a set of slides becomes a PDF. Every option can be left out. */
-export interface SlidesPdfOptions {
+interface SlidesPdfOptions {
   /** Words sit over this slide's picture: it is captured on a transparent ground, and the ground, the picture and the words go down in that order. */
   overlay?: (slide: HTMLElement) => boolean;
   /** @font-face rules for the capture. Given, the page's own stylesheets are not searched for fonts (a face added with the FontFace API is in none of them). */

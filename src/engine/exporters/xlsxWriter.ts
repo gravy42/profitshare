@@ -9,10 +9,10 @@ import { strToU8, zipSync } from 'fflate';
  *  fetch things. Every piece of text goes out as a text cell, and text that starts the way a formula does (= + - @)
  *  also carries Excel's own "this is text" mark, so it stays text even when someone edits the cell and presses Enter. */
 
-export type CellFormat = 'general' | 'money' | 'percent';
-export type CellValue = string | number | boolean | null | undefined;
+type CellFormat = 'general' | 'money' | 'percent';
+type CellValue = string | number | boolean | null | undefined;
 /** A cell with formatting. `percent` takes a fraction (0.1 shows as 10.00%). */
-export interface StyledCell { value: CellValue; format?: CellFormat; bold?: boolean }
+interface StyledCell { value: CellValue; format?: CellFormat; bold?: boolean }
 export type SheetCell = CellValue | StyledCell;
 
 export interface SheetSpec {

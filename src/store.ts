@@ -29,7 +29,7 @@ export interface KV { getItem(k: string): string | null; setItem(k: string, v: s
 const ls = (): KV | null => { try { return typeof localStorage !== 'undefined' ? localStorage : null; } catch { return null; } };
 const ss = (): KV | null => { try { return typeof sessionStorage !== 'undefined' ? sessionStorage : null; } catch { return null; } };
 
-export const newProjectId = () => `p_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
+const newProjectId = () => `p_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
 
 /** The list of projects as the browser holds it. A row that is not a row (the list was edited by hand, or cut off) is
  *  left out, and a row with a field missing is shown with a blank there, so the Projects table can always be drawn. */
@@ -68,7 +68,7 @@ function foundSlots(kv: KV | null): ProjectMeta[] {
 }
 function writeIndex(list: ProjectMeta[], kv: KV | null = ls()) { try { kv?.setItem(INDEX_KEY, JSON.stringify(list)); } catch { /* ignore */ } }
 
-export function metaOf(p: Project, id: string): ProjectMeta {
+function metaOf(p: Project, id: string): ProjectMeta {
   let cashBudget = 0;
   try { cashBudget = topSheet(applyDeal(p)).cashBudget; } catch { /* a half-built project still gets listed */ }
   return { id, name: p.name, version: p.version, savedAt: new Date().toISOString(), shootDays: p.shootDays, lines: p.lines.length, scenes: p.board.scenes.length, cashBudget };
@@ -189,7 +189,7 @@ export function saveSlot(id: string, p: Project, kv: KV | null = ls()): boolean 
   try { noteSlotSaved(id, markOf(p), kv, Date.now(), index.find(m => m.id === id)?.savedAt); } catch { /* the save itself went through */ }
   return true;
 }
-export type SlotRead =
+type SlotRead =
   | { ok: true; project: Project; repaired: string[] }
   | { ok: false; reason: string; missing: boolean };   // missing: there is nothing saved under this id at all
 /** What is saved for one project, read through the same check a file goes through. A slot that cannot be read is
@@ -299,7 +299,7 @@ function rememberActive(id: string | null) {
 export const hadSavedProject = () => startingId() !== null;
 
 const BOARD_KEY = 'profitshare.previous-board';
-export interface BoardBackup { when: string; reason: string; board: Board }
+interface BoardBackup { when: string; reason: string; board: Board }
 /** The board as it was before something replaced it, kept in the browser so a reload doesn't lose it. */
 export function keepBoard(board: Board, reason: string): void {
   if (!board.scenes.length) return;
@@ -422,7 +422,7 @@ export function useProject() {
 }
 /** Where a new project came from: a file it was opened from (so a file already holds it), or a sample or blank start
  *  that nobody has changed yet (so there is nothing to remind anyone to save). */
-export type ProjectOrigin = 'file' | 'untouched';
+type ProjectOrigin = 'file' | 'untouched';
 
 /** What a tab starts on. The project it would open is read through the check; if it cannot be read, or the last start
  *  ended in a crash, the tab starts on the start screen with no project open (so autosave has nothing to write over)
@@ -480,7 +480,7 @@ export function downloadText(text: string | Uint8Array, fileName: string, type =
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
-export function downloadJson(p: Project) {
+function downloadJson(p: Project) {
   const blob = new Blob([JSON.stringify(p, null, 1)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);

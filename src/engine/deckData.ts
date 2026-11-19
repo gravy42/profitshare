@@ -21,7 +21,7 @@ import { pathFor } from './pathMath';
 /** "Primary: women who…" in the Primary box says the label twice; the slide keeps the label and drops the prefix. */
 export const unlabel = (text: string, label: string) => text.replace(new RegExp(`^\\s*${label}\\s*[:.\\u2014-]\\s*`, 'i'), '');
 
-export interface DeckDataOptions {
+interface DeckDataOptions {
   today?: string;                  // ISO date; only for the month and year in the default cover line
   fonts?: 'all' | 'embeddable';    // which attached font files the deck carries: only those cleared to travel in a file (the default: what a deck that is sent may hold), or all of them (the in-app preview)
 }

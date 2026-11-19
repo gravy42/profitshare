@@ -4,7 +4,7 @@
 import type { Board, CastMember, Scene } from '../types';
 import { addTag, autoTag, namedAnimals } from '../breakdown';
 
-export interface MergeReport {
+interface MergeReport {
   matched: number;                 // board scenes that found their script scene
   unmatched: string[];             // board scene numbers with no script scene of that number
   added: string[];                 // script scenes the board didn't have, appended at the end of the strips
