@@ -36,6 +36,8 @@ Two independent reviews of the combined work found more, fixed the same day:
 
 - **Why ProfitShare exists.** The About tab now opens with Cris's own account of why she built it, and why it is free.
 
+- **The app fits a phone.** Four tabs (Start, Call sheets, Points & waterfall, Pitch) used to push the whole page wider than the screen, and their tables squeezed columns down to one letter a line. Now the page never scrolls sideways: a table with more columns than the screen has room for scrolls inside its own box with its words kept whole, the Start screen's settings wrap, and the Design box on the Pitch tab stacks into one column.
+
 Also: help text on the Deal tab and the look book no longer mentions a "Financing" tab or the report deck's layouts. Tests: 997 pass.
 
 ## 2026-11-17

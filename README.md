@@ -22,7 +22,7 @@ Written by a director budgeting her first feature, because none of the tools wou
 
 - **US dollars, California rules.** Payroll fringes (the taxes and fees an employer pays on top of a wage) default to a California set, and the state incentive it models is the California film tax credit.
 - **SAG-AFTRA low-budget theatrical tiers.** Ultra Low Budget, Moderate Low Budget, Low Budget and Theatrical Basic, with the rates effective 7/1/2026.
-- **Built for a laptop screen.** On a phone some tabs scroll sideways. The pitch decks it makes do work on phones.
+- **Built for a laptop screen.** It opens and works on a phone, where the widest tables scroll sideways inside their own box, but budgeting is easier with room. The pitch decks it makes are laid out for phones too.
 - **Not legal, tax or financial advice.** It does not replace a payroll company, a SAG-AFTRA signatory rep or an attorney. Check the numbers with them before anyone signs.
 - **About the decks.** The money slide of a deck carries a line saying the figures are illustrative and not a promise of returns. Sending a deck to potential investors can be subject to securities rules, so have a lawyer look before you send.
 

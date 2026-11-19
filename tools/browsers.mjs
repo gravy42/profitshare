@@ -77,7 +77,8 @@ try {
     return policy;
   });
   await step('the sample loads', async () => { await page.getByRole('button', { name: 'Load the sample' }).click(); await page.waitForTimeout(600); await shot('01-sample'); });
-  for (const label of ['Top sheet & budget', 'Deal', 'Stripboard', 'Calendar', 'Call sheets', 'Breakdowns', 'Points & waterfall', 'SAG tier', 'Incentives', 'About', 'Start', 'Pitch']) {
+  const TABS = ['Top sheet & budget', 'Deal', 'Stripboard', 'Calendar', 'Call sheets', 'Breakdowns', 'Points & waterfall', 'SAG tier', 'Incentives', 'About', 'Start', 'Pitch'];
+  for (const label of TABS) {
     await step(`tab: ${label}`, async () => { await page.getByRole('button', { name: label, exact: true }).click(); await page.waitForTimeout(500); await shot(`02-tab-${label.toLowerCase().replace(/[^a-z]+/g, '-')}`); });
   }
   await step('the pitch deck preview draws 14 slides', async () => {
@@ -194,6 +195,23 @@ try {
   await step('the app logged no errors', async () => { need(errors.length === 0, errors.slice(0, 4).join(' | ')); });
   await step('the app asked for nothing outside itself', async () => { need(outside.length === 0, outside.slice(0, 3).join(' | ')); });
   await context.close();
+
+  // ---- a phone: no tab may push the page wider than the screen -------------------------------------------------------
+  {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    const phone = await ctx.newPage();
+    await phone.goto(origin); await phone.getByRole('button', { name: 'Load the sample' }).click(); await phone.waitForTimeout(600);
+    await step('at phone width no tab scrolls the page sideways', async () => {
+      const wide = [];
+      for (const label of TABS) {
+        await phone.getByRole('button', { name: label, exact: true }).click(); await phone.waitForTimeout(400);
+        const over = await phone.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+        if (over > 1) wide.push(`${label} +${over}px`);
+      }
+      need(wide.length === 0, wide.join(', ')); return `${TABS.length} tabs`;
+    });
+    await ctx.close();
+  }
 
   // ---- the policy, tried: what it must let through, and what it must stop ------------------------------------------
   {

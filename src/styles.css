@@ -478,6 +478,27 @@ details.howto[open] > summary { margin-bottom: 4px; }
   td select, td input { max-width: 100%; }
   .dood table, .dood-full table { display: block; overflow-x: auto; }
   .matrix { min-width: 720px; }   /* the matrix scrolls sideways inside its panel rather than squeezing */
+  /* Tables with more columns than a phone has room for scroll sideways inside their own box, words kept whole,
+     so the page itself never scrolls sideways and no column is squeezed down to one letter a line. */
+  table.wide, table.projlist, table.compact, table.comps, table.proj { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table.wide th, table.wide td, table.projlist th, table.projlist td, table.compact th, table.compact td, table.comps th, table.comps td, table.proj th, table.proj td { overflow-wrap: normal; }
+  table.wide th, table.projlist th, table.compact th, table.comps th, table.proj th { white-space: nowrap; }
+  table.projlist td, table.wide td { white-space: nowrap; }
+  table.compact input, table.compact select { min-width: 84px; }
+  table.comps td input, table.proj td input { min-width: 96px; }
+  table.comps td.l input { min-width: 170px; }
+  table.wide td input:not([type="number"]):not([type="checkbox"]) { min-width: 130px; }
+  table.wide td select { min-width: 96px; }
+  /* a grid's columns may shrink below their widest child, so one long row cannot push a whole panel off the screen */
+  .grid2, .grid3 { grid-template-columns: minmax(0, 1fr); }
+  .grid2 > *, .grid3 > * { min-width: 0; }
+  /* the Design box on the Pitch tab: its two columns stack, and the paired fields (title font, body font) go one to a line */
+  .panel.design > .row > div { flex: 1 1 100% !important; min-width: 0; max-width: 100%; }
+  .panel.design .row > .ctl[style] { flex: 1 1 100% !important; min-width: 0; }
+  .panel.design input:not([type="color"]):not([type="checkbox"]), .panel.design textarea { max-width: 100%; min-width: 0; }
+  /* the start screen's settings: a long choice wraps inside its box instead of pushing the card wider */
+  .starterform .ctl, .starterform label { min-width: 0; max-width: 100%; }
+  .starterform select, .starterform input { max-width: 100%; }
 }
 .scrollx { overflow-x: auto; max-width: 100%; }
 

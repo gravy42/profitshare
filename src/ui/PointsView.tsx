@@ -59,7 +59,7 @@ export function PointsView({ project, setProject }: { project: Project; setProje
             ? <>The pool takes {w.grossSharePct}% of every dollar until investors have recouped {w.recoupPct}% of the {money(r.budget)} they put in from their {100 - w.grossSharePct}% (that happens at {money(rStar + r.deferred)} of revenue). After that the split is {w.poolPct}/{100 - w.poolPct}. This is the Sing Sing structure: the back end pays even if the film only does modestly.</>
             : <>Investors take {w.recoupPct}% of the {money(r.budget)} they put in first ({money(rStar)}). Then {w.poolPct}% of everything above that funds the pool. Simpler to explain, but nobody on the crew sees a dollar until recoupment.</>}
         </p>
-        <table style={{ marginTop: 8 }}>
+        <table className="wide" style={{ marginTop: 8 }}>
           <thead><tr><th className="l">At revenue of</th>{r.scenarios.map(s => <th key={s}>{money(s)}</th>)}</tr></thead>
           <tbody>
             {r.deferred > 0 && <tr><td>Deferred pay, from first proceeds</td>{r.deferredPaid.map((p, i) => <td key={i}>{money(p)}</td>)}</tr>}
@@ -74,7 +74,7 @@ export function PointsView({ project, setProject }: { project: Project; setProje
       <div className="grid2">
         <div className="panel">
           <h2>Tiers (multiplier on days worked)</h2>
-          <table>
+          <table className="wide">
             <thead><tr><th className="l">Tier</th><th>×</th><th>People</th><th>Points</th></tr></thead>
             <tbody>
               {project.tiers.map(t => {
@@ -101,7 +101,7 @@ export function PointsView({ project, setProject }: { project: Project; setProje
       <div className="panel">
         <h2>Points schedule</h2>
         <p className="help">Above the line, cast, then below the line by department, each with its own subtotal. A participant's group sets where they sit; change it in the Group column. Days typed here go straight onto the person's wage lines on the top sheet (weeks become days ÷ 5), so the budget, the SAG check and the points all move together. Points are days × tier × bonus, or a fixed block when the deal sets one ("fix" next to the bonus): a name actor's premium or a producer's fee buys a share that has nothing to do with days worked.</p>
-        <table>
+        <table className="wide">
           <thead><tr><th className="l">Participant</th><th className="l">Role</th><th>Group</th><th>Tier</th><th>Days</th><th>Bonus ×</th><th>Points</th><th>Share</th><th>Wages</th>{r.scenarios.map(s => <th key={s}>@ {money(s / 1e6, 1)}M</th>)}<th /></tr></thead>
           <tbody>
             {sections.map(sec => {
