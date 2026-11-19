@@ -41,7 +41,7 @@ import { readProjectsZip } from './backups';
 import { Glossary } from './ui/GlossarySection';
 import { glossaryIdFromHash } from './ui/glossary';
 import { TourCard, TourPanel, spotlight, useTour } from './ui/TourPanel';
-import { isSampleOpen, type TourStep } from './ui/tour';
+import { isSampleOpen, savedSampleId, type TourStep } from './ui/tour';
 
 type Tab =
   | 'start'
@@ -261,9 +261,16 @@ export default function App() {
     name: string;
     title: string;
     note: string;
+    /** The project the script was dropped on. The question is about that project's board and no other. */
+    projectId: string | null;
   } | null>(null);
+  // Switching project (opening another, a file, the sample, or New project) drops the question: merging or replacing
+  // would otherwise land on a board the script was never dropped on.
+  useEffect(() => {
+    setPendingScript(p => (p && p.projectId !== activeId ? null : p));
+  }, [activeId]);
   const mergePending = async () => {
-    if (!pendingScript) return;
+    if (!pendingScript || pendingScript.projectId !== activeId) return;
     const { board: script, name } = pendingScript;
     let read: Awaited<ReturnType<typeof importers>>;
     try {
@@ -283,7 +290,7 @@ export default function App() {
     );
   };
   const replacePending = () => {
-    if (!pendingScript) return;
+    if (!pendingScript || pendingScript.projectId !== activeId) return;
     const { board: raw, name, title, note } = pendingScript;
     const old = project.board;
     const breaks = old.strips.filter(s => s.type === 'daybreak').length,
@@ -409,7 +416,7 @@ export default function App() {
     const current = project;
     if (!fresh && current.board.scenes.length > 0) {
       // a board is already here: keep its schedule and pour the script in, unless asked to start over (the merge does its own first pass)
-      setPendingScript({ board: imp.board, name: f.name, title: imp.title, note });
+      setPendingScript({ board: imp.board, name: f.name, title: imp.title, note, projectId: activeId });
       return `${f.name} is ready (${board.scenes.length} scenes, ${c} speaking part${c === 1 ? '' : 's'}${writerTags ? `, ${writerTags} tags from the script's tagger` : ''}). Merge it into the board you have, or replace the board?`;
     }
     setProject(p => ({ ...p, board, name: imp.title && (!p.name || /^untitled/i.test(p.name)) ? imp.title : p.name }));
@@ -512,12 +519,25 @@ export default function App() {
     setTab('deal');
     flash('Sample project loaded: SALT FLAT, an invented 12-day feature. These are its terms; change any of them.');
   };
+  // The tour opens the sample this browser already holds, when it holds one, so pressing step 1 again (or on another
+  // day) does not add another SALT FLAT to the Projects list each time. A new one is made only when there is none, or
+  // when the one there cannot be read.
+  const tourSample = () => {
+    const id = savedSampleId(projects);
+    if (id && openProject(id).ok) {
+      flash(
+        'Opened SALT FLAT, the sample already in this browser. Your own projects stay under Projects on the Start tab.',
+      );
+      return;
+    }
+    startSample();
+  };
   // The tour's button for a step: the first step opens the sample (unless it is already the film that is open); the
   // rest switch tab and point at the part of the page the step talks about. With nothing open there is nothing to
   // show on any tab, so the sample is opened first.
   const tourGo = (s: TourStep) => {
     const sampleOpen = isSampleOpen(project.name, !fresh);
-    if (s.id === 'sample' ? !sampleOpen : fresh) startSample();
+    if (s.id === 'sample' ? !sampleOpen : fresh) tourSample();
     setTab(s.tab);
     spotlight(s.spot);
   };
@@ -726,7 +746,7 @@ export default function App() {
         {!fresh && activeId && (
           <BackupReminder copy={copies[activeId]} onSave={saveToFile} onDismiss={quietBackupReminder} />
         )}
-        {pendingScript && (
+        {pendingScript && pendingScript.projectId === activeId && (
           <div className="notice row">
             <span>
               <b>{pendingScript.name}</b> has {pendingScript.board.scenes.length} scenes and this project already has a
@@ -846,7 +866,7 @@ export default function App() {
           </span>
           <span className="signoff">
             from the world of{' '}
-            <a href="https://www.blissfulspinster.com" target="_blank" rel="noreferrer">
+            <a href="https://alonegirlmovie.com" target="_blank" rel="noreferrer">
               ALONE GIRL
             </a>
           </span>

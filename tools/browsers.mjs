@@ -552,6 +552,67 @@ try {
     await choose(page.locator('header').getByRole('button', { name: 'Open', exact: true }), zip.path);
     return says('projects opened from projects\\.zip', 'after the zip');
   });
+  // ---- switching project leaves nothing of the last one behind, and the tour reuses the sample ------------------
+  const openRow = async name => {
+    const title = page.getByLabel('Project title');
+    if ((await title.count()) && (await title.inputValue()) === name) return; // already the one open
+    await page.getByRole('button', { name: 'Start', exact: true }).click();
+    await page.evaluate(() => {
+      const d = document.querySelector('details.projects');
+      if (d) d.open = true;
+    });
+    await page
+      .locator('table.projlist tr', { hasText: name })
+      .first()
+      .getByRole('button', { name: 'Open', exact: true })
+      .click();
+    await page.waitForTimeout(300);
+  };
+  const openTitle = () => page.getByLabel('Project title').inputValue();
+  await step('a script waiting on merge or replace goes when another project opens', async () => {
+    await startScreen();
+    await page.getByPlaceholder('Working title').fill('Walk Film Two');
+    await page.getByRole('button', { name: 'Start from scratch' }).click();
+    await startScreen();
+    await page.getByRole('button', { name: 'Load the sample' }).click();
+    await dragged('drop', ['tools/fixtures/sample.fdx']);
+    const merge = page.getByRole('button', { name: 'Merge into the board' });
+    await merge.waitFor({ timeout: 15000 });
+    await openRow('Walk Film Two');
+    need((await openTitle()) === 'Walk Film Two', `the open project is "${await openTitle()}"`);
+    need((await merge.count()) === 0, 'the merge or replace question is still showing on Walk Film Two');
+    await startScreen();
+    need((await merge.count()) === 0, 'the merge or replace question is still showing on the start screen');
+  });
+  await step('tour: step 1 opens the sample already here, and adds no copy', async () => {
+    const samples = () =>
+      page.evaluate(
+        () =>
+          JSON.parse(localStorage.getItem('profitshare.projects') ?? '[]').filter(
+            m =>
+              String(m?.name ?? '')
+                .trim()
+                .toUpperCase() === 'SALT FLAT',
+          ).length,
+      );
+    await openRow('Walk Film Two');
+    const before = await samples();
+    need(before > 0, 'there is no sample in this browser to open');
+    await page.getByRole('button', { name: 'Start', exact: true }).click();
+    await page.getByRole('button', { name: 'Take the tour' }).click();
+    const go = page.getByRole('button', { name: 'Open Salt Flat, the invented film' });
+    await go.click();
+    await page.waitForTimeout(300);
+    need((await openTitle()) === 'SALT FLAT', `step 1 opened "${await openTitle()}"`);
+    await openRow('Walk Film Two');
+    await go.click();
+    await page.waitForTimeout(300);
+    need((await openTitle()) === 'SALT FLAT', `step 1, pressed again, opened "${await openTitle()}"`);
+    const after = await samples();
+    need(after === before, `${before} SALT FLAT projects before, ${after} after pressing step 1 twice`);
+    await page.getByRole('button', { name: 'Close the tour' }).click();
+    return `${after} SALT FLAT, before and after`;
+  });
   await step('the policy refused nothing the app does', async () => {
     need(refused.length === 0, `${refused.length} refused: ${[...new Set(refused)].slice(0, 4).join(' | ')}`);
   });

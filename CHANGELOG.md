@@ -43,6 +43,13 @@ Two independent reviews of the night's work found these, fixed the same morning:
 - **"Built by a filmmaker, not a lawyer or a C.P.A."** now leads "What it is and what it is not" on About and in the README.
 - The link preview picture says "Indie & NonDē film budgeting with profit share modeling built in." The code of conduct says "they"; the security page says plainly that reports are not paid for.
 
+Four fixes in the afternoon:
+
+- **The tour opens the sample you already have.** With your own film open, step 1 used to add another copy of Salt Flat to the Projects list every time it was pressed. It now opens the Salt Flat already in this browser (the one saved last, if there are several) and makes a new one only when there is none. *Load the sample* on the Start tab still starts a fresh copy.
+- **A script's merge or replace question stays with its project.** Drop a script on a project with a board and the app asks whether to merge it or replace the board. Switching to another project, a file or the sample used to leave that question up, and answering it changed the board of the project you had switched to. The question now goes when you switch.
+- **The model list can be refreshed.** The list of models your key can use was fetched once, at *Test the key*, and kept from then on, so models Anthropic added later never showed. The key panel now says how old the list is and has a *Refresh the list* button. If the refresh fails, the list you had is kept.
+- **The footer link** under *from the world of ALONE GIRL* now goes to alonegirlmovie.com.
+
 ## 2026-11-18
 
 Eight things fixed before telling anyone the app exists. They came out of a full audit of the repo.

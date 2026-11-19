@@ -13,6 +13,7 @@ import {
   forgetAi,
   knownModels,
   modelFamily,
+  modelsFetchedOn,
   newestSuitable,
   rememberModels,
   resolveModel,
@@ -204,6 +205,64 @@ describe('the key and model fields', () => {
       "The model you chose, claude-sonnet-7, is no longer on this key's list, so Sonnet 9 is used instead.",
     );
     expect(el.querySelector('output')!.textContent).toBe('claude-sonnet-9');
+  });
+  it('the remembered list says how old it is, and Refresh the list fetches it again', async () => {
+    saveAiSettings({ key: 'sk-ant-test-key', picked: '' });
+    rememberModels(LIST.slice(1), new Date(2031, 3, 2, 12).getTime()); // before Opus 9.1 came out
+    expect(modelsFetchedOn()).toBe('2031-04-02');
+    const fetchStub = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({ data: LIST.map(m => ({ id: m.id, display_name: m.name, created_at: m.created })) }),
+          { status: 200 },
+        ),
+    );
+    vi.stubGlobal('fetch', fetchStub);
+    const el = draw(<KeyHarness />);
+    expect(el.textContent).toContain('The model list is from 2 April 2031.');
+    expect([...el.querySelectorAll('option')].map(o => o.textContent)).not.toContain('Opus 9.1');
+    const refresh = el.querySelector<HTMLButtonElement>(
+      'button[aria-label="Refresh the list of models from Anthropic"]',
+    )!;
+    expect(refresh.textContent).toBe('Refresh the list');
+    act(() => refresh.click());
+    await tick();
+    expect(fetchStub).toHaveBeenCalledTimes(1);
+    expect([...el.querySelectorAll('option')].map(o => o.textContent)).toContain('Opus 9.1');
+    expect(knownModels().map(m => m.id)).toEqual(LIST.map(m => m.id));
+    expect(el.textContent).toContain('List refreshed. 4 models available.');
+    expect(modelsFetchedOn()).not.toBe('2031-04-02');
+  });
+  it('a refresh that fails keeps the list there was', async () => {
+    saveAiSettings({ key: 'sk-ant-test-key', picked: '' });
+    rememberModels(LIST);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('overloaded', { status: 529 })),
+    );
+    const el = draw(<KeyHarness />);
+    act(() => el.querySelector<HTMLButtonElement>('button[aria-label^="Refresh the list"]')!.click());
+    await tick();
+    expect(el.textContent).toContain('The list could not be refreshed: 529 overloaded The list you had is kept.');
+    expect(knownModels()).toEqual(LIST);
+    expect(el.querySelectorAll('select option')).toHaveLength(LIST.length + 1);
+  });
+  it('no Refresh until there is a list, and a list from before the date was kept says so', () => {
+    saveAiSettings({ key: 'sk-ant-test-key', picked: '' });
+    expect(draw(<KeyHarness />).querySelector('button[aria-label^="Refresh the list"]')).toBeNull();
+    act(() => root?.unmount());
+    localStorage.setItem('profitshare.ai.models', JSON.stringify(LIST)); // written by an earlier version, no date
+    expect(modelsFetchedOn()).toBe('');
+    expect(draw(<KeyHarness />).textContent).toContain('The model list is from an earlier visit.');
+  });
+  it('a new key or Forget drops the date with the list', () => {
+    saveAiSettings({ key: 'sk-ant-test-key', picked: '' });
+    rememberModels(LIST);
+    saveAiSettings({ key: 'sk-ant-other-key', picked: '' });
+    expect(modelsFetchedOn()).toBe('');
+    rememberModels(LIST);
+    forgetAi();
+    expect(modelsFetchedOn()).toBe('');
   });
   it('a choice from the list is kept and shown', () => {
     saveAiSettings({ key: 'sk-ant-test-key', picked: '' });

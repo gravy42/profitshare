@@ -11,6 +11,7 @@ import {
   isSampleOpen,
   nextStep,
   prevStep,
+  savedSampleId,
   tourCardDismissed,
 } from './tour';
 import { GLOSSARY } from './glossary';
@@ -137,6 +138,28 @@ describe("telling the sample from someone's own film", () => {
     expect(isSampleOpen(' salt flat ', true)).toBe(true);
     expect(isSampleOpen(SAMPLE_NAME, false)).toBe(false);
     expect(isSampleOpen('Nine Miles', true)).toBe(false);
+  });
+});
+
+describe('step 1 opens the sample this browser already holds', () => {
+  const row = (id: string, name: string, savedAt: string) => ({ id, name, savedAt });
+  it('finds it among your own projects, by its title', () => {
+    expect(
+      savedSampleId([row('a', 'Nine Miles', '2026-11-19T10:00:00Z'), row('b', 'SALT FLAT', '2026-11-18T10:00:00Z')]),
+    ).toBe('b');
+  });
+  it('takes the one saved last when there are several', () => {
+    expect(
+      savedSampleId([
+        row('old', 'SALT FLAT', '2026-11-01T10:00:00Z'),
+        row('new', ' salt flat ', '2026-11-19T09:00:00Z'),
+        row('mid', 'SALT FLAT', '2026-11-10T10:00:00Z'),
+      ]),
+    ).toBe('new');
+  });
+  it('finds none when there is none, or only a renamed one', () => {
+    expect(savedSampleId([])).toBeNull();
+    expect(savedSampleId([row('a', 'SALT FLAT (my copy)', '2026-11-19T10:00:00Z')])).toBeNull();
   });
 });
 

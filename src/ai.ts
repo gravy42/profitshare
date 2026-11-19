@@ -43,6 +43,7 @@ const KEY = 'profitshare.ai.key';
 const LEGACY_MODEL = 'profitshare.ai.model'; // before the app chose a model itself, this held the default as often as a real choice
 const PICKED = 'profitshare.ai.model.picked'; // the model the person chose themselves; absent when they have not chosen
 const MODELS = 'profitshare.ai.models'; // the list the last "Test the key" brought back, so the choice survives a reload without asking again
+const MODELS_AT = 'profitshare.ai.models.at'; // when that list was fetched, so the panel can say how old it is
 /** Used when the key's own list is not known (the key has not been tested in this browser). */
 export const DEFAULT_MODEL = 'claude-sonnet-4-5';
 
@@ -115,11 +116,25 @@ export function knownModels(): AiModel[] {
     return [];
   }
 }
-export function rememberModels(list: AiModel[]) {
+export function rememberModels(list: AiModel[], now = Date.now()) {
   try {
     localStorage.setItem(MODELS, JSON.stringify(list));
+    localStorage.setItem(MODELS_AT, new Date(now).toISOString());
   } catch {
     /* private window */
+  }
+}
+
+/** When the remembered list was fetched, as year-month-day in this browser's own time; empty when that is not known
+ *  (a list kept from before the date was written down, or no list at all). */
+export function modelsFetchedOn(): string {
+  try {
+    const at = Date.parse(localStorage.getItem(MODELS_AT) ?? '');
+    if (Number.isNaN(at)) return '';
+    const d = new Date(at);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  } catch {
+    return '';
   }
 }
 
@@ -141,7 +156,11 @@ export function aiSettings(): AiSettings {
 }
 export function saveAiSettings(s: { key: string; picked: string }) {
   try {
-    if (s.key !== (localStorage.getItem(KEY) ?? '')) localStorage.removeItem(MODELS); // the list belongs to the key it was fetched with
+    if (s.key !== (localStorage.getItem(KEY) ?? '')) {
+      // the list belongs to the key it was fetched with
+      localStorage.removeItem(MODELS);
+      localStorage.removeItem(MODELS_AT);
+    }
     if (s.key) localStorage.setItem(KEY, s.key);
     else localStorage.removeItem(KEY);
     localStorage.setItem(PICKED, s.picked);
@@ -152,7 +171,7 @@ export function saveAiSettings(s: { key: string; picked: string }) {
 }
 export function forgetAi() {
   try {
-    for (const k of [KEY, LEGACY_MODEL, PICKED, MODELS]) localStorage.removeItem(k);
+    for (const k of [KEY, LEGACY_MODEL, PICKED, MODELS, MODELS_AT]) localStorage.removeItem(k);
   } catch {
     /* ignore */
   }

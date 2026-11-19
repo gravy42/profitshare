@@ -118,6 +118,15 @@ export const isLastStep = (i: number): boolean => clampStep(i) === TOUR_STEPS.le
 export const isSampleOpen = (projectName: string, anythingOpen: boolean): boolean =>
   anythingOpen && projectName.trim().toUpperCase() === SAMPLE_NAME;
 
+/** The sample this browser already holds, if it holds one: the project going by the sample's title that was saved
+ *  last. The tour opens that one rather than adding another copy each time step 1 is pressed. */
+export function savedSampleId(projects: { id: string; name: string; savedAt: string }[]): string | null {
+  let best: { id: string; savedAt: string } | null = null;
+  for (const p of projects)
+    if (isSampleOpen(p.name, true) && (!best || p.savedAt > best.savedAt)) best = { id: p.id, savedAt: p.savedAt };
+  return best?.id ?? null;
+}
+
 // ---- the invitation on the Start screen: dismissed once, gone for good in this browser ----
 
 export const TOUR_KEY = 'profitshare.tourCard';
