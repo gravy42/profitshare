@@ -229,13 +229,18 @@ try {
     // which elements stick out past the screen without a scrolling box around them, widest first: says what to fix
     const widest = () => {
       const vw = document.documentElement.clientWidth, out = [];
-      for (const el of document.querySelectorAll('body *')) {
-        const r = el.getBoundingClientRect(); if (!r.width || r.right <= vw + 1) continue;
-        let p = el.parentElement, boxed = false;
-        while (p && p !== document.body) { if (/(auto|scroll|hidden)/.test(getComputedStyle(p).overflowX)) { boxed = true; break; } p = p.parentElement; }
-        if (!boxed) out.push([Math.round(r.right - vw), `${el.tagName.toLowerCase()}${el.id ? '#' + el.id : ''}.${String(el.className).split(' ').slice(0, 2).join('.')} in ${String(el.parentElement?.className).split(' ').slice(0, 2).join('.')}`]);
-      }
-      return out.sort((a, b) => b[0] - a[0]).slice(0, 4).map(([n, s]) => `${s} +${n}`).join(' | ');
+      const all = root => { for (const el of root.querySelectorAll('*')) { see(el); if (el.shadowRoot) all(el.shadowRoot); } };
+      const say = el => `${el.tagName.toLowerCase()}${el.id ? '#' + el.id : ''}.${String(el.className?.baseVal ?? el.className).split(' ').slice(0, 2).join('.')}`;
+      const see = el => {
+        const r = el.getBoundingClientRect(); const far = Math.max(r.right, r.left + el.scrollWidth * 0); if (far <= vw + 1) return;
+        // held in by a box that clips sideways and itself ends inside the screen?
+        let p = el.parentElement ?? el.getRootNode().host, held = false;
+        while (p && p !== document.documentElement) { const cs = getComputedStyle(p); if (/(auto|scroll|hidden|clip)/.test(cs.overflowX) && p.getBoundingClientRect().right <= vw + 1) { held = true; break; } p = p.parentElement ?? p.getRootNode().host; }
+        if (!held) { const cs = getComputedStyle(el); out.push([Math.round(far - vw), `${say(el)} ${cs.display}/${cs.position} w${Math.round(r.width)} in ${el.parentElement ? say(el.parentElement) : 'shadow'}`]); }
+      };
+      all(document);
+      const d = document.documentElement, b = document.body;
+      return `html ${d.scrollWidth}/${d.clientWidth} body ${b.scrollWidth}/${b.clientWidth}: ` + (out.sort((x, y) => y[0] - x[0]).slice(0, 5).map(([n, t]) => `${t} +${n}`).join(' | ') || 'no element past the edge');
     };
     await step('at phone width no tab scrolls the page sideways', async () => {
       const wide = [];
