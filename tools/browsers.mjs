@@ -81,6 +81,27 @@ try {
   for (const label of TABS) {
     await step(`tab: ${label}`, async () => { await page.getByRole('button', { name: label, exact: true }).click(); await page.waitForTimeout(500); await shot(`02-tab-${label.toLowerCase().replace(/[^a-z]+/g, '-')}`); });
   }
+  // The budget, taken out of the app for people who do not use it: each file must download under the page's policy,
+  // be the kind of file its name says, and carry the sample's budget to raise.
+  await step('export: the budget as Excel, CSV and PDF', async () => {
+    await page.getByRole('button', { name: 'Top sheet & budget', exact: true }).click(); await page.waitForTimeout(400);
+    const group = page.getByRole('group', { name: 'Export the budget' });
+    const said = [];
+    for (const [label, ext, starts] of [['Excel', 'xlsx', 'PK'], ['CSV', 'csv', ''], ['PDF', 'pdf', '%PDF']]) {
+      const d = await download(() => group.getByRole('button', { name: new RegExp(`as an? ${label}`) }).click(), `budget.${ext}`);
+      const bytes = readFileSync(d.path);
+      need(d.name === `SALT_FLAT_Draft_3_budget.${ext}`, `the ${label} file is called ${d.name}`);
+      need(bytes.length > 0, `the ${label} file is empty`);
+      need(bytes.subarray(0, starts.length).toString('latin1') === starts, `the ${label} file does not start with ${starts}`);
+      if (ext === 'csv') need(bytes.toString('utf8').includes('805312.06'), 'the CSV does not carry the budget to raise, 805312.06');
+      if (ext === 'pdf') need(await (await PDFDocument.load(bytes)).getPageCount() > 1, 'the PDF has one page: the full budget is missing');
+      await page.getByText(`Saved ${d.name} to your downloads.`).waitFor({ timeout: 5000 });
+      said.push(`${d.name} ${(bytes.length / 1000).toFixed(0)} kB`);
+    }
+    await shot('02b-budget-export');
+    await page.getByRole('button', { name: 'Pitch', exact: true }).click(); await page.waitForTimeout(500);
+    return said.join(', ');
+  });
   await step('the pitch deck preview draws 14 slides', async () => {
     await page.locator('#pitch-deck').scrollIntoViewIfNeeded();
     await page.waitForFunction(() => document.querySelector('#pitch-deck .pd-host')?.shadowRoot?.querySelectorAll('section.psd-slide').length === 14, null, { timeout: 20000 });

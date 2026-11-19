@@ -930,3 +930,8 @@ input[type="checkbox"], input[type="radio"] { min-width: 16px; min-height: 16px;
 label:has(> input[type="checkbox"]), label:has(> input[type="radio"]) { min-height: 24px; display: inline-flex; align-items: center; gap: 6px; }
 .strip .handle { min-width: 24px; min-height: 24px; display: inline-flex; align-items: center; gap: 2px; }
 
+
+/* Budget export (Top sheet & budget tab): the Excel / CSV / PDF buttons sit together beside the print buttons and
+   wrap as one group on a phone. */
+.budget-export { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.budget-export-help [role="status"] { font-weight: 600; }
