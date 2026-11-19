@@ -221,7 +221,7 @@ export default function GoogleFontsDialog({ role, film, current, onPick, onClose
 
 interface RowsProps {
   rows: CatalogueFamily[]; from: number; to: number; rowH: number; active: number; listId: string; current?: string; previews: boolean; loader: PreviewLoader;
-  root: React.RefObject<HTMLDivElement>; sample: string; big: boolean; onActive: (i: number) => void; onUse: (f: CatalogueFamily) => void;
+  root: React.RefObject<HTMLDivElement | null>; sample: string; big: boolean; onActive: (i: number) => void; onUse: (f: CatalogueFamily) => void;
 }
 /** The rows on screen (and a few either side) out of however many match: the list is as tall as all of them, and only
  *  these are in the page. A row's preview is asked for once the row has been in view for a moment. */

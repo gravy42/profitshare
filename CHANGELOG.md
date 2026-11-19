@@ -40,6 +40,8 @@ Two independent reviews of the combined work found more, fixed the same day:
 
 - **Fields have names a screen reader can say.** About 490 fields, most of them in tables, were announced as just "edit text". Each now carries the name a sighted person already sees: the label beside it, or its column heading and the row it is on ("Days, Dana Okafor"). Nothing pressable is smaller than 24px any more, and the browser walk fails if a field or button on any tab has no name.
 
+- **React 19 and TypeScript 7.** The app moves from React 18 to 19 and the compiler from TypeScript 5 to 7. Nothing changes on screen; the first download is 23 KB larger compressed. The PDF library and the test environment (jsdom) stay where they are for now: the newer PDF library ships its picture decoders as separate files and needs its own careful change, and the newer jsdom only changes how four tests have to be written.
+
 Also: help text on the Deal tab and the look book no longer mentions a "Financing" tab or the report deck's layouts. Tests: 997 pass.
 
 ## 2026-11-17
