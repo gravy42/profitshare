@@ -51,7 +51,7 @@ export function IncentivesView({ project, setProject }: { project: Project; setP
         <table style={{ marginTop: 10, maxWidth: 720 }}>
           <thead><tr><th className="l">Feature film window</th><th>Allocation letter</th><th>Camera must roll by</th><th>For this start</th></tr></thead>
           <tbody>{r.windows.map(w => <tr key={w.apply} className={r.window?.apply === w.apply ? 'hl' : ''}>
-            <td className="l">{w.apply}{w.closed ? ' (closed)' : ''}</td><td>{fmtDate(w.cal)}</td><td>{fmtDate(w.startBy)}</td>
+            <td className="l"><span style={{ whiteSpace: 'nowrap' }}>{w.apply}</span>{w.closed ? ' (closed)' : ''}</td><td>{fmtDate(w.cal)}</td><td>{fmtDate(w.startBy)}</td>
             <td>{w.fits && !w.closed ? 'apply here' : w.fits ? 'would have fit' : inc.startDate < w.cal ? 'letter comes after you start' : 'too late to start'}</td></tr>)}
           </tbody>
         </table>

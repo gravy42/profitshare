@@ -3,6 +3,7 @@ import type { CalEventKind, Project } from '../engine/types';
 import { shootDays, eighthsToText } from '../engine/board';
 import { BreakdownReport, PrintPortal } from './print';
 import { storyDayOf } from '../engine/breakdowns';
+import { pressKey, useModalFocus } from './modalFocus';
 import { EVENT_KINDS, daysInMonth, dow, eventsOn, holidaysBetween, monthName, monthRange, newEvent, shootDates, shortDate, stampBoardDates, toIcs, withCalendar, ymd } from '../engine/calendar';
 
 type SetProject = (f: (p: Project) => Project) => void;
@@ -138,7 +139,7 @@ export function CalendarView({ project, setProject }: { project: Project; setPro
                   return (
                     <div key={d} className={`cell ${work ? '' : 'weekend'} ${day ? 'shoot' : ''} ${off ? 'off' : ''} ${d === today ? 'today' : ''} ${editing === d ? 'editing' : ''}`} onClick={() => { if (editing !== d) open(d); }}>
                       <div className="num">{+d.slice(8)}{hol && <span className="hol" title={hol}>{hol}</span>}</div>
-                      {day && <div className="chip shootchip" title={`Scenes ${day.scenes.map(s => s.number).join(', ')} · click for cast, scenes and sides`} onClick={ev => { ev.stopPropagation(); setOpenDay(day.index); }}><span>Day {day.index} · {eighthsToText(day.eighths)} pgs<small>{(() => { const locs = [...new Set(day.scenes.map(s => s.location).filter(Boolean))]; return locs.length > 1 ? `${locs[0]} +${locs.length - 1}` : locs[0] ?? ''; })()}</small></span>{pin && <button className="x" onClick={ev => { ev.stopPropagation(); unpin(day.index); }} title="take this day off the calendar">×</button>}</div>}
+                      {day && <div className="chip shootchip" title={`Scenes ${day.scenes.map(s => s.number).join(', ')} · click for cast, scenes and sides`} tabIndex={0} role="button" onKeyDown={pressKey(() => setOpenDay(day.index))} onClick={ev => { ev.stopPropagation(); setOpenDay(day.index); }}><span>Day {day.index} · {eighthsToText(day.eighths)} pgs<small>{(() => { const locs = [...new Set(day.scenes.map(s => s.location).filter(Boolean))]; return locs.length > 1 ? `${locs[0]} +${locs.length - 1}` : locs[0] ?? ''; })()}</small></span>{pin && <button className="x" onClick={ev => { ev.stopPropagation(); unpin(day.index); }} title="take this day off the calendar">×</button>}</div>}
                       {evs.map(e => { const isFirst = e.date === d; return <div key={e.id} className={`chip ev ${e.kind} ${isFirst ? '' : 'cont'}`} title={`${e.label}${e.end ? ` (${shortDate(e.date)} → ${shortDate(e.end)})` : ''}`}>{isFirst ? e.label : <span className="muted">↳ {e.label.split(/[:(]/)[0].trim()}</span>}{isFirst && <button className="x" onClick={ev => { ev.stopPropagation(); remove(e.id); }} title="remove">×</button>}</div>; })}
                       {editing === d && (
                         <div className="adder" onClick={e => e.stopPropagation()}>
@@ -195,6 +196,7 @@ function DayPopout({ project, day, date, total, onStep, onClose }: { project: Pr
   const locs = [...new Set(day.scenes.map(s => s.location).filter(Boolean))];
   const elements = (() => { const m = new Map<string, Set<string>>(); for (const s of day.scenes) for (const [k, v] of Object.entries(s.elements)) { const set = m.get(k) ?? new Set(); v.forEach(x => set.add(x)); m.set(k, set); } return [...m.entries()].filter(([, v]) => v.size); })();
   const hasText = day.scenes.some(s => s.text);
+  const card = useModalFocus();
   const title = `Day ${day.index}${date ? ` · ${shortDate(date)}` : ''}${day.label ? ` · ${day.label}` : ''} · ${eighthsToText(day.eighths)} pgs${locs.length ? ` · ${locs.join(' / ')}` : ''}`;
   const body = (
     <div className="dayout">
@@ -217,7 +219,7 @@ function DayPopout({ project, day, date, total, onStep, onClose }: { project: Pr
   );
   return (
     <div className="modal" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="modal-card">
+      <div className="modal-card" ref={card} role="dialog" aria-modal="true" aria-label={title}>
         <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
           <h2>{title}</h2>
           <div className="row">

@@ -7,10 +7,10 @@
   /* Day: paper and ink (the website / print look). Semantic names the components use. */
   --bg: var(--paper); --card: var(--paper-raised); --soft: #ece3cd; --line: var(--sand);
   --ink: var(--midnight); --muted: var(--teal); --help: #2f5660;
-  --accent: var(--marigold); --on-accent: var(--midnight); --accent-ink: var(--sienna);
+  --accent: var(--marigold); --on-accent: var(--midnight); --accent-ink: #9e4f0a;   /* sienna a shade deeper, so links and deferred tags read on the soft paper (4.5 to 1) */
   --lead: var(--cobalt);                 /* the lead colour as text: cobalt by Day, periwinkle at Night */
   --good: #2f6a68; --bad: var(--brick);
-  --cash: #2f6a68; --deferred: var(--sienna); --points: var(--cobalt);
+  --cash: #2f6a68; --deferred: #9e4f0a; --points: var(--cobalt);
   --bar: var(--midnight); --bar-ink: var(--periwinkle); --bar-bright: var(--paper);   /* the masthead and day bars are always Night */
   --gold: var(--marigold); --orange: var(--tangerine); --plum: var(--cobalt); --plum-ink: var(--cobalt);
   --strip-ink: var(--midnight); --strip-muted: #4a6366; --btn-primary-ink: var(--midnight);
@@ -30,7 +30,7 @@
     --bg: var(--midnight); --card: var(--pine); --soft: #1a3330; --line: #2f4f52;
     --ink: var(--periwinkle); --muted: var(--dusk); --help: var(--dusk);
     --accent-ink: var(--marigold); --lead: var(--periwinkle);
-    --good: #6fb0ad; --bad: #e37a6a;
+    --good: #6fb0ad; --bad: #e58273;
     --cash: #6fb0ad; --deferred: var(--tangerine); --points: var(--periwinkle);
     --bar: #000; --plum: var(--periwinkle); --plum-ink: var(--periwinkle);
     --tag-cash-bg: #173a39; --tag-deferred-bg: #3d2a10; --tag-points-bg: #1d2f4a; --tag-ok-bg: #173a39; --tag-bad-bg: #44201c;
@@ -41,7 +41,7 @@
   --bg: var(--midnight); --card: var(--pine); --soft: #1a3330; --line: #2f4f52;
   --ink: var(--periwinkle); --muted: var(--dusk); --help: var(--dusk);
   --accent-ink: var(--marigold); --lead: var(--periwinkle);
-  --good: #6fb0ad; --bad: #e37a6a;
+  --good: #6fb0ad; --bad: #e58273;
   --cash: #6fb0ad; --deferred: var(--tangerine); --points: var(--periwinkle);
   --bar: #000; --plum: var(--periwinkle); --plum-ink: var(--periwinkle);
   --tag-cash-bg: #173a39; --tag-deferred-bg: #3d2a10; --tag-points-bg: #1d2f4a; --tag-ok-bg: #173a39; --tag-bad-bg: #44201c;
@@ -134,7 +134,7 @@ tr.total > td { font-weight: 800; border-top: 2px solid var(--line); }
 tr.hl > td { background: var(--soft); }
 td input, td select { border: 1px solid transparent; background: transparent; color: var(--ink); padding: 3px 4px; border-radius: 6px; width: 100%; text-align: right; }
 td input:hover, td select:hover { border-color: var(--line); background: var(--card); }
-td input:focus, td select:focus { outline: 2px solid var(--gold); border-color: var(--gold); background: var(--card); }
+td input:focus, td select:focus { outline: 2px solid var(--focus); border-color: var(--focus); background: var(--card); }
 td input.l { text-align: left; }
 td select { text-align: left; width: auto; }
 td.num { width: 90px; }
@@ -255,7 +255,7 @@ details.panel > summary::-webkit-details-marker { display: none; }
 /* points schedule sections */
 tr.section td { background: var(--soft); font-weight: 800; font-size: 11px; letter-spacing: .5px; text-transform: uppercase; color: var(--plum-ink); padding-top: 10px; }
 tr.subtotal td { border-top: 1px solid var(--line); font-weight: 700; color: var(--muted); }
-tr.dept td { font-weight: 700; font-size: 11.5px; color: var(--teal); background: color-mix(in srgb, var(--soft) 60%, transparent); padding-top: 8px; }
+tr.dept td { font-weight: 700; font-size: 11.5px; color: var(--muted); background: color-mix(in srgb, var(--soft) 60%, transparent); padding-top: 8px; }
 tr.total td { border-top: 2px solid var(--ink); font-weight: 800; }
 
 /* DOOD popout */
@@ -424,7 +424,7 @@ table.bd.track tr.daymid td:not([rowspan]) { border-bottom: 1px dashed var(--lin
 /* messages: a × to dismiss; long ones stay until you do */
 .notice.msg { justify-content: space-between; flex-wrap: nowrap; align-items: flex-start; }
 .notice.msg > span { flex: 1; min-width: 0; }
-.notice .x { background: transparent; border: 0; color: var(--ink); opacity: .6; cursor: pointer; font-size: 16px; line-height: 1; padding: 0 2px; }
+.notice .x { background: transparent; border: 0; color: var(--ink); opacity: .85; cursor: pointer; font-size: 16px; line-height: 1; padding: 0 2px; }
 .notice .x:hover { opacity: 1; }
 /* the header before a film exists: just the name and a way in */
 header.top.empty { padding: 18px 20px; }
@@ -432,7 +432,7 @@ header.top.empty { padding: 18px 20px; }
 .strip .act { display: inline-flex; align-items: center; gap: 3px; min-height: 24px; }
 .strip .act .word { display: inline; font-size: 11px; }   /* the word rides with the glyph; it hides only where there is no room (see the narrow rules) */
 .strip .act .count { font-size: 11px; font-weight: 700; padding: 0 5px; border-radius: 8px; background: var(--strip-ink); color: #fff; }
-.strip .act:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
+.strip .act:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
 .strip { grid-template-columns: 26px 54px 34px 1fr 80px 70px 80px auto auto; }
 /* the board's own numbers earn real size */
 .panel h2 .figures { color: var(--ink); font-weight: 400; margin-left: 8px; font-size: 15px; font-variant-numeric: tabular-nums; }
@@ -451,7 +451,7 @@ details.howto > summary { cursor: pointer; font-weight: 700; color: var(--plum-i
 details.howto[open] > summary { margin-bottom: 4px; }
 /* keyboard focus you can see, in both themes */
 .btn:focus-visible { outline: none; }
-.btn:focus-visible::before, nav.tabs button:focus-visible, .matrix td.cell:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.btn:focus-visible::before, nav.tabs button:focus-visible, .matrix td.cell:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .matrix td.cell { cursor: pointer; }
 /* narrow screens: the header stacks, nothing scrolls sideways */
 @media (max-width: 760px) {
@@ -473,7 +473,6 @@ details.howto[open] > summary { margin-bottom: 4px; }
   .board { grid-template-columns: minmax(0, 1fr); }
   .board > div { min-width: 0; }
   table { max-width: 100%; }
-  th, td { overflow-wrap: anywhere; }
   .matrix th, .matrix td { overflow-wrap: normal; }
   td select, td input { max-width: 100%; }
   .dood table, .dood-full table { display: block; overflow-x: auto; }
@@ -930,3 +929,50 @@ input[type="checkbox"], input[type="radio"] { min-width: 16px; min-height: 16px;
 label:has(> input[type="checkbox"]), label:has(> input[type="radio"]) { min-height: 24px; display: inline-flex; align-items: center; gap: 6px; }
 .strip .handle { min-width: 24px; min-height: 24px; display: inline-flex; align-items: center; gap: 2px; }
 
+
+/* ---- tables on a phone (Nov 2026) ----
+   Every table that is too wide for a phone scrolls sideways inside its own box, and no word, number or sum of money
+   is ever broken in the middle to make a column fit. (Cells used to be allowed to break anywhere, which let a wide
+   table crush its columns down to one or two characters a line.) Three are left as they are: the Deal tab's tier
+   grid, which already sits in a scrolling box at a fixed width; the pitch deck's send list, which stacks into cards;
+   and the printed call sheet, which is a sheet of paper at its real size. Screen only: paper is never this narrow. */
+@media screen and (max-width: 760px) {
+  table:not(.matrix):not(.pd-sendtable):not(.callsheet table) { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  /* a table inside a cell (an opened account's lines on the Top sheet) scrolls in the room its cell has, and does not
+     make the table around it wider: no width of its own to ask for, then at least the whole cell */
+  td > table:not(.callsheet table) { width: 0; min-width: 100%; }
+  /* a table with no heading row still fills the width it has: its body is the table (with a heading row the two
+     would stop lining up, so those take the width their words need) */
+  table:not(.matrix):not(.pd-sendtable):not(.callsheet table) > tbody:only-child { display: table; width: 100%; border-collapse: collapse; }
+  /* one fixed set of columns suits a wide page; on a phone each column takes the room its words need */
+  table.bd.track { table-layout: auto; }
+  table.bd.track col { width: auto; }
+  table.bd.track td { overflow-wrap: normal; }
+  /* a field in a cell is as wide as the cell, and a cell with nothing but a field in it has no width of its own:
+     give every field room to be read and typed in (the :where keeps this weaker than any table's own sizes) */
+  td :where(input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="number"]):not([type="range"])) { min-width: 96px; }
+  td :where(input[type="number"]) { min-width: 72px; }
+  td :where(select) { min-width: 84px; }
+  /* the call sheet's entry tables: their own rule further up sets no least width, and came after the phone one */
+  table.compact input, table.compact select { min-width: 84px; }
+}
+
+/* ---- contrast and keyboard (Nov 2026) ----
+   The ring that shows where the keyboard is. Marigold reads on the dark surfaces (the masthead, the day bars, the
+   whole of Night) but not on Day's paper, where it was 1.6 to 1; there the ring is cobalt. Strips are light paper in
+   both looks, so theirs is cobalt always. */
+:root { --focus: var(--cobalt); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --focus: var(--gold); } }
+:root[data-theme="dark"] { --focus: var(--gold); }
+header.top, .daybreak { --focus: var(--gold); }
+.strip { --focus: var(--cobalt); }
+/* a budget line's cells were drawn a tenth fainter than the rest; that took the quiet grey words and the pay tags in
+   them under 4.5 to 1. The indent and the lighter weight already say "line". */
+tr.line > td { opacity: 1; }
+/* a budget category or account is opened from the keyboard too (Enter or Space on its number), and a shoot day's chip
+   on the calendar: show where the keyboard is */
+button.rowopen { background: none; border: 0; padding: 0; margin: 0; font: inherit; color: inherit; letter-spacing: inherit; text-transform: inherit; cursor: pointer; }   /* the arrow and number of a budget row: a button that looks like the words it replaced */
+button.rowopen:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.cal .shootchip:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+/* a pop-out takes focus as it opens so Tab starts inside it; the card itself needs no ring for that */
+.modal-card:focus { outline: none; }

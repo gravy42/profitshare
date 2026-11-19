@@ -8,6 +8,7 @@ import { categoryColor } from '../engine/breakdown';
 import { syncFollowersFromBoard } from '../engine/board';
 import { keepBoard } from '../store';
 import { AiKeyFields } from './AiKey';
+import { useModalFocus } from './modalFocus';
 
 type SetProject = (f: (p: Project) => Project) => void;
 const RUN = 15;   // scenes per request: small enough to finish well inside the reply limit, big enough to keep the story in view
@@ -74,9 +75,10 @@ export function AiBreakdown({ project, setProject, only, onClose, notify }: { pr
     <button type="button" key={k} className={`pick ${rejected.has(k) ? 'off' : ''}`} style={color ? { borderColor: color } : undefined} aria-pressed={!rejected.has(k)} title={rejected.has(k) ? 'Left out: click to include' : 'Included: click to leave out'} onClick={() => toggle(k)}>{label}</button>
   );
 
+  const card = useModalFocus();
   return (
     <div className="modal" onMouseDown={e => { if (e.target === e.currentTarget && stage !== 'running') close(); }}>
-      <div className="modal-card aibd">
+      <div className="modal-card aibd" ref={card} role="dialog" aria-modal="true" aria-label="AI breakdown">
         <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
           <h2>AI breakdown · {scenes.length} scene{scenes.length === 1 ? '' : 's'}</h2>
           <button className="btn small" onClick={close}>{stage === 'running' ? 'Stop' : 'Close (Esc)'}</button>
