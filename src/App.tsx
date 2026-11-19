@@ -33,6 +33,10 @@ import { keepFieldsNamed } from './ui/nameFields';
 import { WhatItIs, Feedback } from './ui/AboutExtras';
 import { BackupReminder } from './ui/BackupReminder';
 import { readProjectsZip } from './backups';
+import { Glossary } from './ui/GlossarySection';
+import { glossaryIdFromHash } from './ui/glossary';
+import { TourCard, TourPanel, spotlight, useTour } from './ui/TourPanel';
+import { isSampleOpen, type TourStep } from './ui/tour';
 
 type Tab = 'start' | 'deal' | 'topsheet' | 'board' | 'calendar' | 'callsheets' | 'breakdowns' | 'points' | 'sag' | 'incentives' | 'pitch' | 'about';
 
@@ -41,7 +45,13 @@ export default function App() {
   const [hadSaved] = useState(hadSavedProject);
   // Fields in tables and label-beside-field boxes get the name a sighted person already sees, kept up to date as tabs are drawn.
   useEffect(() => { const root = document.getElementById('root'); return root ? keepFieldsNamed(root) : undefined; }, []);
-  const [tab, setTab] = useState<Tab>(activeId ? 'topsheet' : 'start');   // no project open (none saved, or the last one could not be opened): the start screen
+  // no project open (none saved, or the last one could not be opened): the start screen. A link to a glossary word opens About, where the glossary is.
+  const [tab, setTab] = useState<Tab>(glossaryIdFromHash(location.hash) !== null ? 'about' : activeId ? 'topsheet' : 'start');
+  useEffect(() => {
+    const toGlossary = () => { if (glossaryIdFromHash(location.hash) !== null) setTab('about'); };
+    window.addEventListener('hashchange', toGlossary); return () => window.removeEventListener('hashchange', toGlossary);
+  }, []);
+  const tour = useTour();
   // a message to the user: short confirmations fade after a few seconds, anything worth re-reading (an import report, a repricing) stays until dismissed
   const [msg, setMsg] = useState<{ text: string; sticky: boolean } | null>(null);
   const msgTimer = useRef<number | null>(null);
@@ -258,6 +268,14 @@ export default function App() {
   const fresh = activeId === null;
   const startBlank = (o: BlankOptions) => { replace(blankProject(o), 'untouched'); setTab('deal'); flash('Blank budget ready. Set the terms here, then build lines on the Top sheet.'); };
   const startSample = () => { replace(sampleDemo(), 'untouched'); setTab('deal'); flash('Sample project loaded: SALT FLAT, an invented 12-day feature. These are its terms; change any of them.'); };
+  // The tour's button for a step: the first step opens the sample (unless it is already the film that is open); the
+  // rest switch tab and point at the part of the page the step talks about. With nothing open there is nothing to
+  // show on any tab, so the sample is opened first.
+  const tourGo = (s: TourStep) => {
+    const sampleOpen = isSampleOpen(project.name, !fresh);
+    if (s.id === 'sample' ? !sampleOpen : fresh) startSample();
+    setTab(s.tab); spotlight(s.spot);
+  };
   const startImport = () => { replace(blankProject({ chartOfAccounts: 'empty' })); void importBudget(); };
   const startOpen = () => void openJson();
   const startNew = () => { newProject(); setTab('start'); flash(`${project.name || 'The project'} is saved in this browser; find it under Projects on the Start tab.`); };
@@ -326,6 +344,7 @@ export default function App() {
             <button className="btn small" onClick={() => setPendingScript(null)}>Cancel</button>
           </div>
         )}
+        {tab === 'start' && !tour.cardGone && !tour.open && <TourCard onTake={tour.start} onDismiss={tour.dismissCard} />}
         {tab === 'start' && <StartView onBlank={startBlank} onImportBudget={startImport} onOpen={startOpen} onSample={startSample} onScript={pickScript} starter={starter} setStarter={setStarter} fresh={fresh} projects={projects} activeId={activeId} onOpenProject={switchTo} onDeleteProject={deleteProject} copies={copies} onCopiesChanged={refreshCopies} />}
         {tab === 'deal' && <DealView raw={project} eff={eff} setProject={setProject} fresh={!hadSaved && !msg} />}
         {tab === 'topsheet' && <>
@@ -346,11 +365,13 @@ export default function App() {
         {tab === 'incentives' && <IncentivesView project={eff} setProject={setProject} />}
         {tab === 'pitch' && <PitchView project={eff} setProject={setProject} onTab={t => setTab(t as Tab)} onUndo={undo} undoDepth={undoDepth} />}
         {tab === 'about' && <About onStart={() => setTab('start')} />}
+        {tab === 'about' && <Glossary onTour={tour.start} />}
         <footer>
           <span>ProfitShare · open source, MIT · every project is autosaved in this browser (Projects on the Start tab); Save downloads a .json to keep or share · not legal, tax or financial advice</span>
           <span className="tip">ProfitShare is free. <a href={TIP_URL} target="_blank" rel="noreferrer">Leave a tip</a> to help with its upkeep and with getting ALONE GIRL made.</span>
           <span className="signoff">from the world of <a href="https://www.blissfulspinster.com" target="_blank" rel="noreferrer">ALONE GIRL</a></span>
         </footer>
+        {tour.open && <TourPanel tour={tour} onGo={tourGo} otherProject={fresh || isSampleOpen(project.name, true) ? null : project.name} />}
       </main>
     </div>
   );

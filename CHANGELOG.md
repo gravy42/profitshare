@@ -22,6 +22,7 @@ Work done overnight from the audit's "soon after launch" list.
 - **Download all my projects.** The Projects panel on the Start tab has a button that downloads every project in this browser as one .zip, each as its own .json file. Open takes the .zip, or several files at once, and brings each back as its own project.
 - **What is saved to a file.** The Projects table says whether each project has been saved to a file, when, and whether it has changed since. A project with older changes that are in no file gets one quiet line with a Save button; dismiss it and it stays away for a few days.
 - **Kept by the browser.** ProfitShare asks the browser, once, to keep its store when the disk runs low.
+- **A two-minute tour and a glossary (a draft, for Cris to edit).** New here? The Start screen offers a six-step tour of the sample film, from top sheet to pitch deck; one click dismisses it for good. About now has a glossary of the words the app uses, searchable, each with its own link. It says how ProfitShare uses each word and is not legal advice.
 
 ## 2026-11-18
 
