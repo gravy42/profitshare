@@ -36,10 +36,10 @@ function useAsk<T>() {
   return { ...state, run, clear, stop };
 }
 /** The button that sends, and beside it, while the answer is awaited, the one that stops. */
-function Send({ ask, label, busyLabel = 'Asking…', disabled, onSend, buttonRef }: { ask: { busy: boolean; stop: () => void }; label: string; busyLabel?: string; disabled?: boolean; onSend: () => void; buttonRef?: RefObject<HTMLButtonElement> }) {
+function Send({ ask, label, busyLabel = 'Asking…', disabled, onSend, buttonRef }: { ask: { busy: boolean; stop: () => void }; label: string; busyLabel?: string; disabled?: boolean; onSend: () => void; buttonRef?: RefObject<HTMLButtonElement | null> }) {
   return <><button ref={buttonRef} type="button" className="btn small" disabled={ask.busy || disabled} onClick={onSend}>{ask.busy ? busyLabel : label}</button>{ask.busy && <button type="button" className="btn small" onClick={ask.stop}>Stop</button>}</>;
 }
-const focusOn = (ref: RefObject<HTMLElement>) => window.setTimeout(() => ref.current?.focus(), 0);
+const focusOn = (ref: RefObject<HTMLElement | null>) => window.setTimeout(() => ref.current?.focus(), 0);
 /** What a screen reader is told as a request goes out, comes back or fails. Always in the page, so it is heard. */
 function Said({ busy, error, note = '', ready, waiting = 'Asking. This takes a few seconds. Stop ends it.' }: { busy: boolean; error: string; note?: string; ready: string; waiting?: string }) {
   return <div className={`pd-said${error ? ' pd-bad' : ''}`} role="status" aria-live="polite">{busy ? waiting : error ? `✕ ${error}` : note || ready}</div>;
