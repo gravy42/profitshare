@@ -6,6 +6,7 @@ import { adoptBoardDays, syncCastDaysFromBoard } from './engine/board';
 import { topSheet } from './engine/budget';
 import { idbAvailable, idbGet, idbSet, idbDel, STORES } from './idb';
 import { checkBoard, checkProject, repairNote } from './engine/openProject';
+import { COPIES_KEY, askToKeepStorage, forgetFileCopy, markOf, markOfText, noteFileCopy, noteSlotSaved, noteUntouched, quietReminder, readFileCopies, type FileCopies } from './fileCopies';
 
 /** Every project that comes in: deal defaults, then the board takes ownership of cast and follower days. */
 const normalize = (p: Project): Project => syncCastDaysFromBoard(adoptBoardDays(withDeal(p)));
@@ -182,8 +183,10 @@ export function saveSlot(id: string, p: Project, kv: KV | null = ls()): boolean 
   const now = assetKeys(p);
   lastKeys.set(id, now);
   dropAssets([...before].filter(k => !now.has(k)), id, kv);
-  const rest = readIndex(kv).filter(m => m.id !== id);
-  writeIndex([metaOf(p, id), ...rest], kv);
+  const index = readIndex(kv);
+  writeIndex([metaOf(p, id), ...index.filter(m => m.id !== id)], kv);
+  // beside the list: whether this differs from the last copy that went into a file (see fileCopies.ts)
+  try { noteSlotSaved(id, markOf(p), kv, Date.now(), index.find(m => m.id === id)?.savedAt); } catch { /* the save itself went through */ }
   return true;
 }
 export type SlotRead =
@@ -212,6 +215,7 @@ export function deleteSlot(id: string, kv: KV | null = ls()): void {
   try { kv?.removeItem(slotKey(id)); } catch { /* ignore */ }
   writeIndex(readIndex(kv).filter(m => m.id !== id), kv);
   lastKeys.delete(id);
+  forgetFileCopy(id, kv);
   dropAssets(keys, id, kv);   // after the slot has gone, and never an asset another project still uses
   if (kv?.getItem(ACTIVE_KEY) === id) { try { kv.removeItem(ACTIVE_KEY); } catch { /* ignore */ } }
 }
@@ -322,7 +326,11 @@ export function useProject() {
   const [startNote, setStartNote] = useState(start.note);
   openNow = activeId;   // for the crash screen: which project was being drawn when drawing failed
   useEffect(() => { noteDrawn(activeId); }, [activeId]);   // this render reached the page
-  const [projects, setProjects] = useState<ProjectMeta[]>(readIndex);
+  const [projects, setProjectList] = useState<ProjectMeta[]>(readIndex);
+  // what is known about each project's copies in files, read whenever the list is
+  const [copies, setCopies] = useState<FileCopies>(() => readFileCopies(ls()));
+  const refreshCopies = useCallback(() => setCopies(readFileCopies(ls())), []);
+  const setProjects = useCallback((list: ProjectMeta[]) => { setProjectList(list); refreshCopies(); }, [refreshCopies]);
   const past = useRef<Project[]>([]);
   const [dirty, setDirty] = useState(false);
   const [assetTick, setAssetTick] = useState(0);
@@ -341,7 +349,13 @@ export function useProject() {
   useEffect(() => { hydrate(project); }, []);   // eslint-disable-line react-hooks/exhaustive-deps
 
   /** Give the in-memory project a slot of its own (the first edit on the start screen, or an Open / Start action). */
-  const adopt = useCallback((p: Project): string => { const id = newProjectId(); saveSlot(id, p); setProjects(readIndex()); setActiveId(id); return id; }, []);
+  const adopt = useCallback((p: Project, origin?: ProjectOrigin): string => {
+    const id = newProjectId(); saveSlot(id, p);
+    if (origin === 'file') noteFileCopy(id, markOf(p), ls(), Date.now(), 'opened');
+    else if (origin === 'untouched') noteUntouched(id, markOf(p), ls(), Date.now());
+    if (origin !== 'untouched') void askToKeepStorage(ls());   // the person has a project of their own here now
+    setProjects(readIndex()); setActiveId(id); return id;
+  }, [setProjects]);
 
   // autosave, 300ms after the last change, into this project's own slot; nothing is written while no project is open
   useEffect(() => {
@@ -358,7 +372,7 @@ export function useProject() {
   useEffect(() => { rememberActive(activeId); }, [activeId]);
   // another tab saved or deleted something: refresh the list
   useEffect(() => {
-    const on = (e: StorageEvent) => { if (e.key === INDEX_KEY) setProjects(readIndex()); };
+    const on = (e: StorageEvent) => { if (e.key === INDEX_KEY) setProjects(readIndex()); else if (e.key === COPIES_KEY) refreshCopies(); };
     window.addEventListener('storage', on); return () => window.removeEventListener('storage', on);
   }, []);
 
@@ -366,7 +380,7 @@ export function useProject() {
     setProjectState(prev => {
       let n = typeof next === 'function' ? next(prev) : next;
       if (n.board !== prev.board || n.participants !== prev.participants) n = syncCastDaysFromBoard(adoptBoardDays(n));   // the board owns cast and follower days: every edit flows to the budget
-      if (n !== prev) { past.current.push(prev); if (past.current.length > HISTORY) past.current.shift(); setDirty(true); }
+      if (n !== prev) { past.current.push(prev); if (past.current.length > HISTORY) past.current.shift(); setDirty(true); if (idRef.current) void askToKeepStorage(ls()); }   // an edit makes it theirs
       return n;
     });
   }, []);
@@ -377,7 +391,14 @@ export function useProject() {
   }, [hydrate]);
 
   /** A project from a file or a Start button: it becomes a new project in the browser; the one that was open stays in the list. */
-  const replace = useCallback((p: Project) => { past.current = []; const n = normalize(p); setProjectState(n); setDirty(false); adopt(n); }, [adopt]);
+  const replace = useCallback((p: Project, origin?: ProjectOrigin) => { past.current = []; const n = normalize(p); setProjectState(n); setDirty(false); adopt(n, origin); }, [adopt]);
+
+  /** Save: download the open project as a file, and note that a file now holds it as it is. */
+  const saveToFile = useCallback(() => {
+    downloadJson(project);
+    if (idRef.current) { noteFileCopy(idRef.current, markOf(project), ls(), Date.now()); refreshCopies(); }
+  }, [project, refreshCopies]);
+  const quietBackupReminder = useCallback(() => { if (idRef.current) { quietReminder(idRef.current, ls(), Date.now()); refreshCopies(); } }, [refreshCopies]);
 
   /** Close the open project (it stays saved) and show the start screen. */
   const newProject = useCallback(() => { past.current = []; setActiveId(null); setProjectState(normalize(blankProject({ chartOfAccounts: 'empty' }))); setDirty(false); }, []);
@@ -395,10 +416,13 @@ export function useProject() {
   const deleteProject = useCallback((id: string) => {
     deleteSlot(id); setProjects(readIndex());
     if (idRef.current === id) newProject();
-  }, [newProject]);
+  }, [newProject, setProjects]);
 
-  return { project, setProject, undo, replace, dirty, setDirty, canUndo: past.current.length > 0, undoDepth: past.current.length, storageNote, startNote, dismissStartNote: () => setStartNote(''), projects, activeId, newProject, openProject, deleteProject };
+  return { project, setProject, undo, replace, dirty, setDirty, canUndo: past.current.length > 0, undoDepth: past.current.length, storageNote, startNote, dismissStartNote: () => setStartNote(''), projects, activeId, newProject, openProject, deleteProject, copies, refreshCopies, saveToFile, quietBackupReminder };
 }
+/** Where a new project came from: a file it was opened from (so a file already holds it), or a sample or blank start
+ *  that nobody has changed yet (so there is nothing to remind anyone to save). */
+export type ProjectOrigin = 'file' | 'untouched';
 
 /** What a tab starts on. The project it would open is read through the check; if it cannot be read, or the last start
  *  ended in a crash, the tab starts on the start screen with no project open (so autosave has nothing to write over)
@@ -424,12 +448,12 @@ export function startUp(kv: KV | null = ls(), tabKv: KV | null = ss()): { id: st
  *  needs a project to be readable: one that is not is handed over exactly as it is saved. Pictures and font files are
  *  put back from the browser's big store where that works. */
 export function savedProjectList(kv: KV | null = ls()): { id: string; name: string; fileName: string }[] {
-  const used = new Set<string>();
+  const used = new Set<string>();   // compared without regard to capitals: on most laptops "Salt_Flat" and "salt_flat" are one file
   return readIndex(kv).filter(m => get(kv, slotKey(m.id)) !== null).map(m => {
     const stem = `${m.name.replace(/[^\w-]+/g, '_').slice(0, 60) || 'project'}${m.version ? `_${m.version.replace(/[^\w-]+/g, '_').slice(0, 30)}` : ''}`;
     let fileName = `${stem}.profitshare.json`;
-    for (let n = 2; used.has(fileName); n++) fileName = `${stem}_${n}.profitshare.json`;
-    used.add(fileName);
+    for (let n = 2; used.has(fileName.toLowerCase()); n++) fileName = `${stem}_${n}.profitshare.json`;
+    used.add(fileName.toLowerCase());
     return { id: m.id, name: m.name, fileName };
   });
 }
@@ -442,8 +466,13 @@ export async function savedProjectText(id: string, kv: KV | null = ls()): Promis
     return JSON.stringify(await hydrateImages(p), null, 1);
   } catch { return raw; }   // not something this version can take apart: the file is what the browser holds, as it is
 }
-export function downloadText(text: string, fileName: string) {
-  const blob = new Blob([text], { type: 'application/json' });
+/** A saved project has just been downloaded as it is in its slot: note that a file holds it (see fileCopies.ts). */
+export function noteDownloaded(id: string, kv: KV | null = ls(), now = Date.now()): void {
+  const raw = get(kv, slotKey(id));
+  if (raw !== null) noteFileCopy(id, markOfText(raw), kv, now);
+}
+export function downloadText(text: string | Uint8Array, fileName: string, type = 'application/json') {
+  const blob = new Blob([text as BlobPart], { type });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = fileName;
@@ -458,6 +487,16 @@ export function downloadJson(p: Project) {
   a.download = `${p.name.replace(/[^\w-]+/g, '_')}_${p.version.replace(/[^\w-]+/g, '_') || 'v1'}.profitshare.json`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+/** Several files at once (every saved project from another laptop, say). */
+export function pickFiles(accept: string): Promise<File[]> {
+  return new Promise(resolve => {
+    const input = document.createElement('input');
+    input.type = 'file'; input.accept = accept; input.multiple = true;
+    input.onchange = () => resolve(Array.from(input.files ?? []));
+    input.click();
+  });
 }
 
 export function pickFile(accept: string): Promise<File | null> {

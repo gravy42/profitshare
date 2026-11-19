@@ -987,3 +987,13 @@ button.rowopen:focus-visible { outline: 2px solid var(--focus); outline-offset: 
    wrap as one group on a phone. */
 .budget-export { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .budget-export-help [role="status"] { font-weight: 600; }
+/* ---- Backups: download all my projects, what is in a file, and the quiet reminder ---- */
+.backup-all { align-items: center; margin: 0 0 6px; }
+.backup-all .help { flex: 1; min-width: 200px; margin: 0; }
+.backup-said { min-height: 1.2em; margin: 0 0 8px; font-size: 13px; }
+table.projlist td.filecopy { color: var(--muted); font-size: 12px; }
+table.projlist td.filecopy.changed, table.projlist td.filecopy.never { color: var(--ink); }
+.notice.backup-reminder { align-items: center; flex-wrap: nowrap; gap: 8px; }
+.notice.backup-reminder > span { flex: 1; min-width: 0; }
+.notice.backup-reminder .btn { flex: none; }
+.notice.backup-reminder .x { min-width: 24px; min-height: 24px; }

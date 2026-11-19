@@ -1,5 +1,5 @@
 import { Component, Fragment, createRef, type ErrorInfo, type ReactNode } from 'react';
-import { downloadText, noteCrash, savedProjectList, savedProjectText } from '../store';
+import { downloadText, noteCrash, noteDownloaded, savedProjectList, savedProjectText } from '../store';
 import './crash.css';
 
 /** Around the whole app. If drawing the page fails anywhere that no smaller Boundary caught, this stands in for the
@@ -36,6 +36,7 @@ export class AppBoundary extends Component<{ children: ReactNode; reload?: () =>
         const text = await savedProjectText(p.id);
         if (text === null) continue;
         downloadText(text, p.fileName); n++;
+        try { noteDownloaded(p.id); } catch (e) { console.error(e); }   // a file holds this project now
         if (!only) await new Promise(r => setTimeout(r, 250));   // one at a time, so the browser takes each file
       }
       this.setState({ busy: false, said: n === 0 ? 'There was nothing to download.' : n === 1 ? '1 project file downloaded. Look in your Downloads folder.' : `${n} project files downloaded. Look in your Downloads folder. If the browser asked whether to allow several downloads, choose Allow.` });

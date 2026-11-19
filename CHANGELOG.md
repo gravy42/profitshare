@@ -19,6 +19,9 @@ Work done overnight from the audit's "soon after launch" list.
 - **The project file has a written rule for change.** `docs/file-format.md` says what the app does with a newer file or an unreadable part, and when the format number must rise. `docs/rates.md` lists every rate and dated rule in the code, with what to check each year and who publishes it.
 - **A link to the app now shows a preview, and the tab has an icon.** The page carries a description, link preview tags, a theme colour and icons, all the app's own files.
 - **Export the budget to Excel, CSV and PDF.** The Top sheet & budget tab has Export buttons beside the print buttons. Excel is a workbook with the top sheet, every line, the points schedule and the deal terms. CSV is the budget lines alone, and ProfitShare can read it back in: the sample comes back with the same 154 lines and the same $805,312.06. PDF is the top sheet and the full budget with page numbers. Pay type, account names and fringe rates of your own do not come back from a CSV. Text that looks like a formula is always written as text.
+- **Download all my projects.** The Projects panel on the Start tab has a button that downloads every project in this browser as one .zip, each as its own .json file. Open takes the .zip, or several files at once, and brings each back as its own project.
+- **What is saved to a file.** The Projects table says whether each project has been saved to a file, when, and whether it has changed since. A project with older changes that are in no file gets one quiet line with a Save button; dismiss it and it stays away for a few days.
+- **Kept by the browser.** ProfitShare asks the browser, once, to keep its store when the disk runs low.
 
 ## 2026-11-18
 
