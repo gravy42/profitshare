@@ -12,10 +12,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "smoke": "npm run build:single && node tools/smoke.mjs",
     "sample": "node tools/make-sample.mjs",
     "browsers": "node tools/browsers.mjs",
-    "build:deck-runtime": "node tools/build-deck-runtime.mjs",
     "deck:scratch": "node tools/deck-scratch.mjs",
     "fonts:catalogue": "node tools/make-font-catalogue.mjs"
   },

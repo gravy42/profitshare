@@ -1,7 +1,7 @@
 // The Google Fonts picker against the REAL Google Fonts, in one browser engine: `BROWSER=webkit node
 // tools/google-fonts-live.mjs` (chromium, firefox or webkit; PORT for another port). It builds nothing: run
 // `npm run build` first. This is the only script here that needs the internet, so it is not part of `npm test`,
-// `npm run smoke` or `npm run browsers`: a CI job of its own runs it and is allowed to fail when Google is down.
+// `npm run browsers`: a CI job of its own runs it and is allowed to fail when Google is down.
 // Every step is tried even when an earlier one failed; the report is printed and written to
 // browsers-out/google-live-<browser>/. With BROWSER_SHEET=1 one small picture of the picker, with the previews Google
 // sent, is printed into the log (the same SHEET lines tools/browsers.mjs prints).

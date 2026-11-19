@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // The sample as "Load the sample" opens it: an invented film with a whole pitch deck. This is the product's demo, so
 // it is held to what the app asks of any deck: nothing to fix, every colour readable, nothing real in it. Whether a
-// slide overflows can only be measured in a browser (tools/smoke.mjs and the stage's Chrome run do that); here the
+// slide overflows can only be measured in a browser (tools/browsers.mjs does that); here the
 // structure is checked as far as jsdom can draw it.
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';

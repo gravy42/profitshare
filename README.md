@@ -157,9 +157,7 @@ npm run build          # static site in dist/ (the GitHub Pages workflow deploys
 npm run preview        # serve dist/ locally
 npm run build:single   # one self-contained index.html in dist-single/
 npm run sample         # rebuild the sample project and the importer fixtures
-npm run smoke          # Playwright walk through the single-file build, light and dark
 npm run browsers       # walk the built app and a sent deck in one engine (BROWSER=webkit, firefox or chromium)
-npm run build:deck-runtime   # the pitch deck renderer on its own, in dist-deck/
 npm run deck:scratch -- deck.json out.html   # a test page from a deck JSON
 npm run fonts:catalogue      # rebuild the bundled list of Google Fonts families
 ```
@@ -177,7 +175,7 @@ src/engine/*.test.ts   vitest
 src/deck-runtime/      the pitch deck renderer: no framework, no network
 src/data/              the sample project, the standard chart of accounts, the Google Fonts list
 src/ui/                React views
-tools/                 make-sample.mjs (builds the sample and its fixtures), smoke and browser walks, fixtures
+tools/                 make-sample.mjs (builds the sample and its fixtures), the browser walk (browsers.mjs), fixtures
 ```
 
 `src/engine/types.ts` is the whole data model. A project file is that object as JSON, so anything that can read JSON can read a ProfitShare project.

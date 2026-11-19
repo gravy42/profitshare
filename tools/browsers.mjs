@@ -212,6 +212,114 @@ try {
   await step('import: a script (.fdx)', () => bring(BOARD, 'sample.fdx', 'sample\\.fdx'));
   await step('import: a script (.fountain)', () => bring(BOARD, 'SaltFlat_Script.fountain', 'SaltFlat_Script'));
   await step('import: a script (.pdf)', () => bring(BOARD, 'SaltFlat_Script.pdf', 'SaltFlat_Script'));
+  // ---- the start screen's ways in, and the budget built by hand --------------------------------------------------
+  // (From scratch, the drop target and the Deal tab's pay choices were once walked by tools/smoke.mjs and
+  // smoke-start.mjs; they are here now so that one walk, the one CI runs in three engines, covers them.)
+  const says = async (re, what) => {
+    const read = () => page.evaluate(() => [...document.querySelectorAll('main [role="status"]')].map(e => e.textContent ?? '').join(' ').replace(/\s+/g, ' ').trim());
+    await page.waitForFunction(src => new RegExp(src, 'i').test([...document.querySelectorAll('main [role="status"]')].map(e => e.textContent ?? '').join(' ')), re, { timeout: 30000 }).catch(() => undefined);
+    const text = await read();
+    need(new RegExp(re, 'i').test(text), `${what}: the page says "${text.slice(0, 200)}"`);
+    return text.slice(0, 110);
+  };
+  const startScreen = async () => { await page.getByRole('button', { name: 'New project', exact: true }).click(); await page.getByRole('button', { name: 'Start from scratch' }).waitFor({ timeout: 10000 }); };
+  // files handed to the page the way a drag from the desktop hands them: a DataTransfer with the files on it
+  const dragged = async (type, files) => {
+    const sent = files.map(f => ({ name: f.split('/').pop(), b64: readFileSync(f).toString('base64') }));
+    await page.evaluate(({ type, sent }) => {
+      const dt = new DataTransfer();
+      for (const f of sent) dt.items.add(new File([Uint8Array.from(atob(f.b64), c => c.charCodeAt(0))], f.name));
+      window.dispatchEvent(new DragEvent(type, { bubbles: true, cancelable: true, dataTransfer: dt }));
+    }, { type, sent });
+  };
+  const choose = async (button, files) => {
+    const [chooser] = await Promise.all([page.waitForEvent('filechooser', { timeout: 10000 }), button.click()]);
+    await chooser.setFiles(files);
+  };
+  const raise = async () => (await page.locator('header .kpi span').first().innerText()).replace(/\s+/g, ' ').trim();
+  await step('budget: a deal-set line shows its pay as fixed and leads to the Deal tab', async () => {
+    await page.locator('header').getByRole('button', { name: 'Open', exact: true }).waitFor({ timeout: 5000 });
+    await startScreen(); await page.getByRole('button', { name: 'Load the sample' }).click();
+    await page.getByRole('button', { name: 'Top sheet & budget', exact: true }).click();
+    await page.getByPlaceholder('filter lines…').fill('fee');
+    const row = page.locator('tr.line', { has: page.locator('.dealpay') }).first();
+    await row.waitFor({ timeout: 10000 });
+    need(await row.locator('select.tag').count() === 0, 'the line still has a pay menu');
+    const before = await raise();
+    await shot('08a-deal-set-pay');
+    await row.getByRole('button', { name: 'Set on the Deal tab' }).click();
+    const group = await page.waitForFunction(() => /^deal-pay-/.test(document.activeElement?.id ?? '') && document.activeElement.id, null, { timeout: 5000 });
+    // the Deal tab's choice is the one that counts: producer fees to points takes them off the budget to raise
+    await page.locator('#deal-pay-producers').selectOption('points'); await page.waitForTimeout(300);
+    const after = await raise();
+    need(after !== before, `the budget to raise did not move (${before})`);
+    await page.locator('#deal-pay-producers').selectOption('cash'); await page.waitForTimeout(300);
+    need(await raise() === before, `back up front, the budget to raise is ${await raise()}, not ${before}`);
+    return `focus on #${await group.jsonValue()}; ${before} -> ${after} -> back`;
+  });
+  await step('start: from scratch, then a line typed on the budget', async () => {
+    await startScreen();
+    await page.getByPlaceholder('Working title').fill('Walk Film');
+    await page.getByRole('button', { name: 'Start from scratch' }).click();
+    await page.getByRole('button', { name: 'Top sheet & budget', exact: true }).click();
+    const before = await raise();
+    await page.getByRole('button', { name: /^2600 / }).click();
+    await page.getByRole('button', { name: /^2601 / }).click();
+    await page.getByRole('button', { name: '+ line' }).first().click();
+    const row = page.locator('tr.line').first();
+    await row.getByPlaceholder('description').fill('Director of photography');
+    await row.locator('input[type=number]').nth(0).fill('20');
+    await row.locator('input[type=number]').nth(2).fill('500');
+    await page.waitForTimeout(300);
+    const after = await raise();
+    need(/\$0\b/.test(before) && !/\$0\b/.test(after), `the budget to raise went from "${before}" to "${after}"`);
+    await shot('08b-from-scratch');
+    return after;
+  });
+  await step('start: a file dragged over the page shows where to drop it', async () => {
+    await dragged('dragenter', ['tools/fixtures/mmb-export.csv']);
+    await page.locator('.dropzone').waitFor({ timeout: 5000 }); await shot('08c-drop-target');
+    await dragged('dragleave', ['tools/fixtures/mmb-export.csv']);
+    await page.locator('.dropzone').waitFor({ state: 'detached', timeout: 5000 });
+  });
+  await step('start: a budget and a board dropped together', async () => {
+    await dragged('drop', ['tools/fixtures/SaltFlat_Board.sex', 'tools/fixtures/Budget_SaltFlat_Draft3.xlsx']);
+    return says('budget lines from Budget_SaltFlat_Draft3.*scenes from SaltFlat_Board', 'after the drop');
+  });
+  await step('start: a script dropped on the start screen becomes a first budget', async () => {
+    await startScreen();
+    await dragged('drop', ['tools/fixtures/SaltFlat_Script.fountain']);
+    return says('broken down and scheduled', 'after the drop');
+  });
+  await step('start: a script picked on the start screen', async () => {
+    await startScreen();
+    await choose(page.getByRole('button', { name: /^Pick a script/ }), 'tools/fixtures/sample.fdx');
+    return says('broken down and scheduled', 'after the pick');
+  });
+  await step('start: a budget picked on the start screen', async () => {
+    await startScreen();
+    await choose(page.getByRole('button', { name: 'Import .xlsx / .csv', exact: true }), 'tools/fixtures/mmb-export.csv');
+    return says('budget lines from mmb-export', 'after the pick');
+  });
+  await step('start: a saved project (.json) opens, and several at once', async () => {
+    await startScreen(); await page.getByRole('button', { name: 'Load the sample' }).click(); await page.waitForTimeout(400);
+    const one = await download(() => page.getByRole('button', { name: 'Save', exact: true }).click(), 'project.json');
+    need(JSON.parse(readFileSync(one.path, 'utf8')).name, 'the saved file has no project name in it');
+    await startScreen();
+    await choose(page.getByRole('button', { name: 'Open .json', exact: true }), one.path);
+    const first = await says('Opened project\\.json as its own project', 'after one file');
+    writeFileSync(`${out}/project-2.json`, readFileSync(one.path));
+    await choose(page.locator('header').getByRole('button', { name: 'Open', exact: true }), [one.path, `${out}/project-2.json`]);
+    await says('Opened project\\.json as its own project.*Opened project-2\\.json as its own project', 'after two files');
+    return first;
+  });
+  await step('start: the .zip of every project opens', async () => {
+    await page.getByRole('button', { name: /^Projects/ }).click();
+    const zip = await download(() => page.getByRole('button', { name: 'Download all my projects' }).click(), 'projects.zip');
+    const bytes = readFileSync(zip.path); need(bytes[0] === 0x50 && bytes[1] === 0x4b, `${zip.name} is not a zip`);
+    await choose(page.locator('header').getByRole('button', { name: 'Open', exact: true }), zip.path);
+    return says('projects opened from projects\\.zip', 'after the zip');
+  });
   await step('the policy refused nothing the app does', async () => { need(refused.length === 0, `${refused.length} refused: ${[...new Set(refused)].slice(0, 4).join(' | ')}`); });
   await step('the app logged no errors', async () => { need(errors.length === 0, errors.slice(0, 4).join(' | ')); });
   await step('the app asked for nothing outside itself', async () => { need(outside.length === 0, outside.slice(0, 3).join(' | ')); });
