@@ -1,8 +1,9 @@
 import type { Project } from '../engine/types';
 import { SAG_TIERS, sagReport, tierCap } from '../engine/sag';
 import { money } from './format';
+import { SagRatesNotice } from './RatesNotice';
 
-export function SagView({ project }: { project: Project }) {
+export function SagView({ project, today }: { project: Project; today?: Date }) {
   const r = sagReport(project);
 
   return (
@@ -36,6 +37,7 @@ export function SagView({ project }: { project: Project }) {
             })}
           </tbody>
         </table>
+        <SagRatesNotice today={today} />
         <p className="help" style={{ marginTop: 10 }}>
           Rates effective 7/1/2026 (SAG-AFTRA low-budget agreements rise 3% every July through 2030; P&amp;H 22% from 9/6/2026). SAG defines total production cost as all above- and below-the-line costs <b>including deferred compensation</b>, so a fixed deferment does not help you get under a cap. Contingent points have no fixed value and are not a budget line. Confirm with your SAG signatory rep and attorney before you sign; this tool is not legal advice.
         </p>

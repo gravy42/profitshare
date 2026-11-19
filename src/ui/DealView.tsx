@@ -9,13 +9,14 @@ import type { ShootLocation } from '../engine/types';
 import { incentiveProceeds } from '../engine/incentives';
 import { PRESET_GROUPS } from '../engine/deal';
 import { money, pct } from './format';
+import { SagRatesNotice } from './RatesNotice';
 
 type Set = (f: (p: Project) => Project) => void;
 
 const PREMIUM_LABEL: Record<PremiumChoice, string> = { cash: 'up front, as budgeted', points: 'points (contingent)', deferred: 'deferred (fixed IOU, counts for SAG)', delete: 'gone: delete the lines' };
 
 /** Every tier under both pay models, side by side, from the same raw budget. Clicking a cell applies that combination. */
-function TierMatrix({ raw, setProject }: { raw: Project; setProject: Set }) {
+function TierMatrix({ raw, setProject, today }: { raw: Project; setProject: Set; today?: Date }) {
   const d = withDeal(raw).deal!;
   // the two bump columns: the budget's own rates plus a percent, so a hybrid (better than usual pay, plus the back end) sits beside the pure models
   const BUMPS = [10, 15];
@@ -43,13 +44,14 @@ function TierMatrix({ raw, setProject }: { raw: Project; setProject: Set }) {
           <tr key={t.id}><td className="l"><b>{t.name}</b><div className="sub">${t.dayRate}/day · cap {t.cap ? money(raw.sag.dic && t.dicCap ? t.dicCap : t.cap) : 'none'}{raw.sag.dic && t.dicCap && t.cap !== t.dicCap ? ' with DIC' : ''}</div></td>{cell(t.id, 'as-budgeted', budgeted)}{bumps.map((x, i) => cell(t.id, 'as-budgeted', x, BUMPS[i]))}{cell(t.id, 'everyone-at-scale', scale)}</tr>
         ))}</tbody>
       </table></div>
+      <SagRatesNotice today={today} />
 <details className="why"><summary>why</summary><p className="help small">Same budget, same premiums and non-shoot floor, only the tier and the pay model change. The +% columns are the hybrid: everyone paid a little better than the budget says, and everyone on the back end. The cell marked "your film" is where it sits now; click another to move it. "Fits" is total production cost against that tier's cap (with the Diversity in Casting cap when that box is on).</p></details>
     </div>
   );
 }
 
 /** One page for every term of the deal. `raw` is what the user typed or imported; `eff` is the budget with the terms applied. */
-export function DealView({ raw, eff, setProject, fresh }: { raw: Project; eff: Project; setProject: Set; fresh?: boolean }) {
+export function DealView({ raw, eff, setProject, fresh, today }: { raw: Project; eff: Project; setProject: Set; fresh?: boolean; today?: Date }) {
   const d = withDeal(raw).deal!;
   const ts = topSheet(eff);
   const r = sagReport(eff);
@@ -95,7 +97,7 @@ export function DealView({ raw, eff, setProject, fresh }: { raw: Project; eff: P
         <p className="help small">Each number is a link to the terms that move it. Budget to raise is what investors fund{incentiveProceeds(eff) > 0 ? '' : ' (grants and incentives come off it under Financing below and on the Incentives tab)'}; the cap is SAG-AFTRA's total production cost test for the tier you are aiming at; the back end is the value traded for points.</p>
       </div>
 
-      <TierMatrix raw={raw} setProject={setProject} />
+      <TierMatrix raw={raw} setProject={setProject} today={today} />
 
       <div className="panel" id="the-film">
         <h2>The film</h2>
@@ -143,6 +145,7 @@ export function DealView({ raw, eff, setProject, fresh }: { raw: Project; eff: P
           <label className="row" style={{ gap: 6 }}><input type="checkbox" checked={raw.sag.dic} onChange={e => setSag({ dic: e.target.checked })} /> Diversity in Casting incentive</label>
           <label className="row" style={{ gap: 6 }}><input type="checkbox" checked={raw.sag.includeContingency} onChange={e => setSag({ includeContingency: e.target.checked })} /> Count contingency in total production cost</label>
         </div>
+        <SagRatesNotice today={today} />
 <details className="why"><summary>why</summary><p className="help small">The tier sets the bar the budget has to clear and the scale the cast get. It doesn't lower anything by itself. The SAG tab shows the full table.</p></details>
       </div>
 

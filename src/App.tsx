@@ -30,6 +30,7 @@ import { starterProject, applyStarter } from './engine/starter';
 import { money } from './ui/format';
 import { TIP_URL } from './ui/support';
 import { keepFieldsNamed } from './ui/nameFields';
+import { WhatItIs, Feedback } from './ui/AboutExtras';
 
 type Tab = 'start' | 'deal' | 'topsheet' | 'board' | 'calendar' | 'callsheets' | 'breakdowns' | 'points' | 'sag' | 'incentives' | 'pitch' | 'about';
 
@@ -368,9 +369,11 @@ function About({ onStart }: { onStart: () => void }) {
         <p><b>How it works.</b> ProfitShare is built for films where part of everyone's pay is a share of the back end. Every budget line carries a pay type: <span className="tag cash">up front</span> is what you raise, <span className="tag deferred">deferred</span> is a fixed IOU, <span className="tag points">points</span> is contingent participation. The top sheet, the SAG tier check and the points schedule all update from the same lines.</p>
         <p><b>The Deal tab</b> holds every term (day length, SAG tier, pay model, premiums, floor rate for non-shoot days, grants, waterfall) as a layer over the raw budget. Nothing you imported is rewritten; every tab recomputes from budget plus terms, live, and any term can change at any time.</p>
         <p>The stripboard feeds the same model: place day breaks, and the day-out-of-days tells you each actor's work days, which you can push straight into the cast lines and the points schedule.</p>
+        <WhatItIs />
         <p><b>Local-first.</b> Nothing leaves your browser unless you ask. AI assist, with your own Anthropic key, sends only what its button says it sends. The Google Fonts picker fetches fonts from Google after you say yes. Autosave keeps your work in this browser; press Save to download a .json you can open anywhere or share with a collaborator, and Open to load one.</p>
         <p><b>Imports.</b> Budgets from Shamel Studio (.xlsx) and Movie Magic Budgeting (Excel or CSV export), or any spreadsheet with account, description, amount, rate and total columns. Boards from Movie Magic Scheduling (.sex, which Shamel also exports). Scripts from Final Draft (.fdx), Highland, Celtx, WriterDuet or any app that saves Fountain or plain text, and any screenplay PDF with real text in it (not a scan): scenes, eighths and speaking cast are read straight off the page.</p>
         <p><b>Rates.</b> SAG-AFTRA low-budget scale effective 7/1/2026, California payroll fringes as of 2026. Check them before you rely on them.</p>
+        <Feedback />
         <p><b>Free, with a tip jar.</b> ProfitShare is free and open source, and stays that way. If it helped your film, maybe you'd consider helping ProfitShare and my film ALONE GIRL by putting a little somethin' somethin' in <a href={TIP_URL} target="_blank" rel="noreferrer">the tip jar</a>. It really helps me keep the app going, and whatever is left over goes towards my film fund. Whatever you choose, thank you so much for being here. Tips are gifts: they buy nothing, and they are not tax-deductible.</p>
       </div>
       <div className="row" style={{ marginTop: 12 }}>

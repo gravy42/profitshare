@@ -4,16 +4,34 @@ import { lineSubtotal, topSheet, PAID_HOURS, dayHoursOf } from './budget';
 /** Scale covers an 8-hour day; this is the hourly it implies. */
 export const scaleHourly = (dayRate: number) => Math.round((dayRate / 8) * 100) / 100;
 
+/** The one place that says how old the SAG-AFTRA rates below are. `asOf` is the day they took effect; `nextChange`
+ *  is the next day they are known to rise (the low-budget agreements go up every 1 July). When the tiers are
+ *  brought up to date, move both dates on a year and the notice goes quiet again. Dates are year-month-day. */
+export const SAG_RATES = { asOf: '2026-07-01', nextChange: '2027-07-01' } as const;
+
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+/** '2026-07-01' as '1 July 2026', spelled out so nobody reads the month and day the other way round. */
+export const longDate = (ymd: string) => { const [y, m, d] = ymd.split('-').map(Number); return `${d} ${MONTHS[m - 1]} ${y}`; };
+/** The calendar day where the person is, as year-month-day, so it compares with the dates above as plain text. */
+const localDay = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+/** Have the rates in this file passed the day they were due to rise? `today` can be handed in, so tests can set it. */
+export const sagRatesOutOfDate = (today: Date = new Date()) => localDay(today) >= SAG_RATES.nextChange;
+/** What to tell the person once that day has come; nothing before it. */
+export const sagRatesNotice = (today: Date = new Date()): string | null => sagRatesOutOfDate(today)
+  ? `These SAG-AFTRA rates took effect ${longDate(SAG_RATES.asOf)} and were due to rise on ${longDate(SAG_RATES.nextChange)}. Check the current rates before you rely on these.`
+  : null;
+
 /** SAG-AFTRA theatrical minimums. Low-budget rates effective 7/1/2026 (3 %/yr through 2030).
  *  Caps: ULB ≤ $300K, MLB ≤ $700K (DIC → $1.05M), LBA ≤ $2M (DIC → $3.75M). Basic Agreement above that.
  *  P&H: 22 % for principals from 9/6/2026 on low-budget agreements.
  *  Sources: sagindie.org 2026 contract notice; SAG-AFTRA MLB agreement text.
  *  Check sagaftra.org before you sign anything; these numbers move every July. */
 export const SAG_TIERS: SagTier[] = [
-  { id: 'ULB',   name: 'Ultra Low Budget',    dayRate: 257,  weeklyRate: null, cap: 300_000,   dicCap: 300_000,   phRate: 0.22, effective: '2026-07-01' },
-  { id: 'MLB',   name: 'Moderate Low Budget', dayRate: 449,  weeklyRate: 1560, cap: 700_000,   dicCap: 1_050_000, phRate: 0.22, effective: '2026-07-01' },
-  { id: 'LBA',   name: 'Low Budget',          dayRate: 834,  weeklyRate: 2896, cap: 2_000_000, dicCap: 3_750_000, phRate: 0.22, effective: '2026-07-01' },
-  { id: 'BASIC', name: 'Theatrical Basic',    dayRate: 1321, weeklyRate: 4585, cap: null,      dicCap: null,      phRate: 0.22, effective: '2026-07-01' },
+  { id: 'ULB',   name: 'Ultra Low Budget',    dayRate: 257,  weeklyRate: null, cap: 300_000,   dicCap: 300_000,   phRate: 0.22, effective: SAG_RATES.asOf },
+  { id: 'MLB',   name: 'Moderate Low Budget', dayRate: 449,  weeklyRate: 1560, cap: 700_000,   dicCap: 1_050_000, phRate: 0.22, effective: SAG_RATES.asOf },
+  { id: 'LBA',   name: 'Low Budget',          dayRate: 834,  weeklyRate: 2896, cap: 2_000_000, dicCap: 3_750_000, phRate: 0.22, effective: SAG_RATES.asOf },
+  { id: 'BASIC', name: 'Theatrical Basic',    dayRate: 1321, weeklyRate: 4585, cap: null,      dicCap: null,      phRate: 0.22, effective: SAG_RATES.asOf },
 ];
 
 export const sagTier = (id: SagTierId) => SAG_TIERS.find(t => t.id === id)!;
