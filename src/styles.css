@@ -491,7 +491,10 @@ details.howto[open] > summary { margin-bottom: 4px; }
   table.wide td select { min-width: 96px; }
   /* A field is never wider than the box it sits in. Safari sizes a text field or a menu by its contents and will not
      shrink it inside a row unless told it may, which pushed whole cards past the edge of the screen. */
-  main input:not([type="checkbox"]):not([type="radio"]):not([type="color"]), main select, main textarea { max-width: 100%; }
+  main input:not([type="checkbox"]):not([type="radio"]):not([type="color"]), main select, main textarea { max-width: min(100%, calc(100vw - 64px)); }
+  /* a menu takes the width of its longest choice; Safari will not clamp that with a percentage inside a column of
+     fields, so the clamp is also given against the screen: the page's and the panel's padding, and a card's inside it */
+  .start .card select, .start .card input:not([type="checkbox"]):not([type="radio"]) { max-width: min(100%, calc(100vw - 100px)); }
   .row, .ctl { max-width: 100%; }
   .ctl { min-width: 0; }
   .ctl > input:not([type="checkbox"]):not([type="radio"]):not([type="color"]), .ctl > select, .ctl > textarea { min-width: 0; }
