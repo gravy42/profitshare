@@ -6,7 +6,7 @@ import { act, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { DEFAULT_MODEL, aiSettings, forgetAi, knownModels, modelFamily, newestSuitable, rememberModels, resolveModel, saveAiSettings, type AiModel } from '../ai';
+import { DEFAULT_MODEL, listModels, aiSettings, forgetAi, knownModels, modelFamily, newestSuitable, rememberModels, resolveModel, saveAiSettings, type AiModel } from '../ai';
 import { SAG_RATES, SAG_TIERS, longDate, sagRatesNotice, sagRatesOutOfDate } from '../engine/sag';
 import { sampleDemo } from '../data/seed';
 import { applyDeal } from '../engine/deal';
@@ -86,6 +86,12 @@ function draw(node: React.ReactNode): HTMLElement { box = document.createElement
 describe('the key and model fields', () => {
   it('say where the key is kept and where it goes', () => {
     expect(draw(<KeyHarness />).textContent).toContain('Your key is kept in this browser, not encrypted, and is sent only to Anthropic when you press an AI button. Use a key with a spending limit.');
+  });
+  it('a list entry with no id is left out, and an answer that is not a list gives a plain sentence', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ data: [{ display_name: 'no id' }, { id: 'claude-sonnet-9' }, null, { id: 7 }] }), { status: 200 })));
+    expect((await listModels('k')).map(m => m.id)).toEqual(['claude-sonnet-9']);
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ data: { not: 'a list' } }), { status: 200 })));
+    await expect(listModels('k')).rejects.toThrow('Anthropic answered, but not with a list of models. Type a model id instead.');
   });
   it('Test the key brings the list back, and the newest suitable model is used without anyone choosing', async () => {
     saveAiSettings({ key: 'sk-ant-test-key', picked: '' });

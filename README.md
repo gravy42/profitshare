@@ -193,7 +193,7 @@ The deck preview in the app and the web deck you send are the same renderer, bun
 - **Merging.** Drop a script on a project that already has a board and ProfitShare offers to merge it: scenes match by number, and your day breaks, strip order and tags stay. Replacing the board asks first and keeps the old one for Undo.
 - `tools/fixtures/` holds the test files, all invented.
 
-If a file from another app fails to import, open an issue and attach it.
+If a file from another app fails to import, open an issue and describe it. Please do not attach a real budget.
 
 </details>
 

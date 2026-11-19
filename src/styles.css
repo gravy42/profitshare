@@ -978,7 +978,7 @@ header.top, .daybreak { --focus: var(--gold); }
 tr.line > td { opacity: 1; }
 /* a budget category or account is opened from the keyboard too (Enter or Space on its number), and a shoot day's chip
    on the calendar: show where the keyboard is */
-button.rowopen { background: none; border: 0; padding: 0; margin: 0; font: inherit; color: inherit; letter-spacing: inherit; text-transform: inherit; cursor: pointer; }   /* the arrow and number of a budget row: a button that looks like the words it replaced */
+button.rowopen { min-height: 24px; background: none; border: 0; padding: 0; margin: 0; font: inherit; color: inherit; letter-spacing: inherit; text-transform: inherit; cursor: pointer; }   /* the arrow and number of a budget row: a button that looks like the words it replaced */
 button.rowopen:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .cal .shootchip:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 /* a pop-out takes focus as it opens so Tab starts inside it; the card itself needs no ring for that */
@@ -1009,14 +1009,14 @@ table.projlist td.filecopy.changed, table.projlist td.filecopy.never { color: va
 .tour .x { background: transparent; border: 0; color: var(--ink); cursor: pointer; font-size: 18px; line-height: 1; }
 .tour h2 { font: 400 19px/1.15 var(--font-title); color: var(--lead); margin: 2px 0 8px; }
 .tour h2:focus { outline: none; }
-.tour h2:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+.tour h2:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
 .tour p { margin: 0 0 8px; font-size: 13.5px; }
 .tour .tour-note { font-size: 12.5px; background: var(--soft); border-left: 3px solid var(--gold); padding: 6px 8px; }
 .tour .tour-terms { font-size: 12px; color: var(--help); }
 .tour .tour-terms a { display: inline-block; padding: 4px 0; }
 .tour-btns { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
 .tour-btns .spacer { flex: 1; }
-.tour .x:focus-visible, .tourcard .x:focus-visible, .gl-link:focus-visible, .glossary a:focus-visible, .tour a:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.tour .x:focus-visible, .tourcard .x:focus-visible, .gl-link:focus-visible, .glossary a:focus-visible, .tour a:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .tour-keys { display: inline-flex; align-items: center; gap: 6px; }
 .tour.folded h2 { margin-bottom: 0; font-size: 16px; }
 .tour-room { height: 220px; }
@@ -1040,7 +1040,7 @@ table.projlist td.filecopy.changed, table.projlist td.filecopy.never { color: va
 .gl-list { margin: 0; max-width: 820px; }
 .gl-entry { padding: 9px 8px 10px; border-top: 1px solid var(--line); scroll-margin: 80px 0; }
 .gl-entry:focus { outline: none; }
-.gl-entry:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }
+.gl-entry:focus-visible { outline: 2px solid var(--focus); outline-offset: -2px; }
 .gl-entry.hit { background: var(--soft); box-shadow: inset 3px 0 0 0 var(--gold); }
 .gl-entry dt { font-weight: 700; font-size: 14.5px; display: flex; align-items: center; gap: 4px; }
 .gl-entry dd { margin: 2px 0 0; font-size: 14px; overflow-wrap: anywhere; }

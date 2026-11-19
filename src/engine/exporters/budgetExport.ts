@@ -47,7 +47,8 @@ export function budgetLines(p: Project, ts: TopSheet = topSheet(p)): ExportLine[
   for (const l of p.lines) (byAccount.get(l.accountId) ?? byAccount.set(l.accountId, []).get(l.accountId)!).push(l);
   for (const s of sectionsInOrder(ts)) for (const c of s.categories) for (const a of c.accounts) {
     for (const line of byAccount.get(a.account.number) ?? []) {
-      const subtotal = lineSubtotal(line), fringes = lineFringes(line, p.fringes);
+      // a points line carries no fringes anywhere in the app (it is not payroll): its total is the value traded
+      const subtotal = lineSubtotal(line), fringes = line.payType === 'points' ? 0 : lineFringes(line, p.fringes);
       out.push({ category: c.category.number, account: a.account.number, accountName: a.account.name, line, subtotal, fringes, total: round2(subtotal + fringes) });
     }
   }

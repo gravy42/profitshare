@@ -68,6 +68,6 @@ export async function downloadAllProjects(kv?: KV | null, now: Date = new Date()
   else downloadText(projectsZip(files, now), fileName, 'application/zip');
   for (const f of files) { if (kv === undefined) noteDownloaded(f.id); else noteDownloaded(f.id, kv, now.getTime()); }
   return { count: files.length, fileName, said: files.length === 1
-    ? `1 project downloaded as ${fileName}. Look in your Downloads folder, and keep it somewhere safe.`
-    : `${files.length} projects downloaded in ${fileName}. Look in your Downloads folder, and keep it somewhere safe.` };
+    ? `1 project downloaded as ${fileName}. Keep it somewhere safe.`
+    : `${files.length} projects downloaded in ${fileName}. Keep it somewhere safe.` };
 }

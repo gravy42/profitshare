@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useProject, pickFile, pickFiles, hadSavedProject, keepBoard, previousBoard, forgetPreviousBoard } from './store';
+import { useProject, StoreFullError, pickFile, pickFiles, hadSavedProject, keepBoard, previousBoard, forgetPreviousBoard } from './store';
 import { foldMemoLines, memoLines, topSheet } from './engine/budget';
 import { SAG_TIERS, sagReport } from './engine/sag';
 import { parseBudgetFile } from './engine/importers/budget';
@@ -99,7 +99,7 @@ export default function App() {
     if (!r.ok) throw new Error(r.reason);
     const was = fresh ? '' : `; ${project.name || 'the project you had open'} stays under Projects on the Start tab`;
     try { replace(r.project, 'file'); }   // always a new project of its own: nothing in this browser is written over
-    catch (e) { console.error(`${name} could not be opened`, e); throw new Error('This project file could not be opened. It may be damaged.'); }
+    catch (e) { if (e instanceof StoreFullError) throw e; console.error(`${name} could not be opened`, e); throw new Error('This project file could not be opened. It may be damaged.'); }
     setTab(fresh ? 'deal' : 'topsheet');
     const note = repairNote(r.repaired);
     return `Opened ${name} as its own project${was}${note ? `. ${note}` : ''}`;

@@ -95,7 +95,7 @@ try {
       need(bytes.subarray(0, starts.length).toString('latin1') === starts, `the ${label} file does not start with ${starts}`);
       if (ext === 'csv') need(bytes.toString('utf8').includes('805312.06'), 'the CSV does not carry the budget to raise, 805312.06');
       if (ext === 'pdf') need(await (await PDFDocument.load(bytes)).getPageCount() > 1, 'the PDF has one page: the full budget is missing');
-      await page.getByText(`Saved ${d.name} to your downloads.`).waitFor({ timeout: 5000 });
+      await page.getByText(`Downloaded ${d.name}.`).waitFor({ timeout: 5000 });
       said.push(`${d.name} ${(bytes.length / 1000).toFixed(0)} kB`);
     }
     await shot('02b-budget-export');

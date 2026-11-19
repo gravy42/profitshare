@@ -29,6 +29,8 @@ export interface KV { getItem(k: string): string | null; setItem(k: string, v: s
 const ls = (): KV | null => { try { return typeof localStorage !== 'undefined' ? localStorage : null; } catch { return null; } };
 const ss = (): KV | null => { try { return typeof sessionStorage !== 'undefined' ? sessionStorage : null; } catch { return null; } };
 
+/** The browser's store has no room for another project. */
+export class StoreFullError extends Error { constructor() { super('This browser has no room left to keep another project. Download your projects, remove some you no longer need, and try again.'); this.name = 'StoreFullError'; } }
 export const newProjectId = () => `p_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
 
 /** The list of projects as the browser holds it. A row that is not a row (the list was edited by hand, or cut off) is
@@ -336,6 +338,10 @@ export function useProject() {
   const [assetTick, setAssetTick] = useState(0);
   const [storageNote, setStorageNote] = useState('');
   const idRef = useRef(activeId); idRef.current = activeId;
+  const projectRef = useRef(project); projectRef.current = project;
+  // An edit autosave has not written yet. Autosave waits 300ms, so anything that switches project writes it first.
+  const pending = useRef(false);
+  const writeOpen = () => { if (idRef.current && pending.current) { saveSlot(idRef.current, projectRef.current); pending.current = false; } };
   // pictures come back from IndexedDB after the slot loads; swapping them in is not an edit
   const hydrate = useCallback((p: Project) => {
     void hydrateImages(p).then(h => {
@@ -350,7 +356,9 @@ export function useProject() {
 
   /** Give the in-memory project a slot of its own (the first edit on the start screen, or an Open / Start action). */
   const adopt = useCallback((p: Project, origin?: ProjectOrigin): string => {
-    const id = newProjectId(); saveSlot(id, p);
+    const id = newProjectId();
+    // No room left in the browser's store: say so, and write no record claiming a project that was never kept.
+    if (!saveSlot(id, p)) throw new StoreFullError();
     if (origin === 'file') noteFileCopy(id, markOf(p), ls(), Date.now(), 'opened');
     else if (origin === 'untouched') noteUntouched(id, markOf(p), ls(), Date.now());
     if (origin !== 'untouched') void askToKeepStorage(ls());   // the person has a project of their own here now
@@ -359,9 +367,9 @@ export function useProject() {
 
   // autosave, 300ms after the last change, into this project's own slot; nothing is written while no project is open
   useEffect(() => {
-    if (!activeId) { if (dirty) adopt(project); return; }   // the first edit on the start screen makes it a project of its own
+    if (!activeId) { if (dirty) { try { adopt(project); } catch { /* the store is full: the storage note below says so */ } } return; }   // the first edit on the start screen makes it a project of its own
     const t = setTimeout(() => {
-      const ok = saveSlot(activeId, project); setProjects(readIndex());
+      const ok = saveSlot(activeId, project); pending.current = false; setProjects(readIndex());
       setStorageNote(!ok ? 'This browser\'s store is full, so the last changes are not saved here. Press Save to download the project as a .json file.'
         : assetsKeptInline() ? 'This browser would not store a picture or font file on its own, so it is kept inside the project here. Press Save to keep a .json copy as well.' : '');
     }, 300);
@@ -380,7 +388,7 @@ export function useProject() {
     setProjectState(prev => {
       let n = typeof next === 'function' ? next(prev) : next;
       if (n.board !== prev.board || n.participants !== prev.participants) n = syncCastDaysFromBoard(adoptBoardDays(n));   // the board owns cast and follower days: every edit flows to the budget
-      if (n !== prev) { past.current.push(prev); if (past.current.length > HISTORY) past.current.shift(); setDirty(true); if (idRef.current) void askToKeepStorage(ls()); }   // an edit makes it theirs
+      if (n !== prev) { past.current.push(prev); if (past.current.length > HISTORY) past.current.shift(); setDirty(true); pending.current = true; if (idRef.current) void askToKeepStorage(ls()); }   // an edit makes it theirs
       return n;
     });
   }, []);
@@ -391,7 +399,14 @@ export function useProject() {
   }, [hydrate]);
 
   /** A project from a file or a Start button: it becomes a new project in the browser; the one that was open stays in the list. */
-  const replace = useCallback((p: Project, origin?: ProjectOrigin) => { past.current = []; const n = normalize(p); setProjectState(n); setDirty(false); adopt(n, origin); }, [adopt]);
+  const replace = useCallback((p: Project, origin?: ProjectOrigin) => {
+    const n = normalize(p);
+    // The project that is open is written to its slot first: autosave waits 300ms, and an edit made just before a
+    // switch would otherwise be left behind.
+    writeOpen();
+    adopt(n, origin);   // throws when the store is full, before anything on screen changes
+    past.current = []; setProjectState(n); setDirty(false);
+  }, [adopt]);
 
   /** Save: download the open project as a file, and note that a file now holds it as it is. */
   const saveToFile = useCallback(() => {
@@ -401,13 +416,14 @@ export function useProject() {
   const quietBackupReminder = useCallback(() => { if (idRef.current) { quietReminder(idRef.current, ls(), Date.now()); refreshCopies(); } }, [refreshCopies]);
 
   /** Close the open project (it stays saved) and show the start screen. */
-  const newProject = useCallback(() => { past.current = []; setActiveId(null); setProjectState(normalize(blankProject({ chartOfAccounts: 'empty' }))); setDirty(false); }, []);
+  const newProject = useCallback(() => { writeOpen(); past.current = []; setActiveId(null); setProjectState(normalize(blankProject({ chartOfAccounts: 'empty' }))); setDirty(false); }, []);
 
   /** Switch to another project the browser holds. When what is saved for it cannot be read, nothing changes (the
    *  project that is open stays open, the saved copy stays as it is) and `note` says why. */
   const openProject = useCallback((id: string): { ok: boolean; note: string } => {
     const r = readSlot(id);
     if (!r.ok) return { ok: false, note: r.reason };
+    writeOpen();
     const p = r.project;
     past.current = []; setActiveId(id); setProjectState(p); setDirty(false); setStartNote(''); hydrate(p);
     return { ok: true, note: repairNote(r.repaired) };

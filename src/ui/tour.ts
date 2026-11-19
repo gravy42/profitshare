@@ -35,7 +35,7 @@ export const TOUR_STEPS: TourStep[] = [
     ], terms: ['deal'] },
   { id: 'topsheet', title: 'Read the top sheet', tab: 'topsheet', go: 'Take me there', goName: 'Take me there: the top sheet', spot: 'main .grid3',
     body: [
-      'Look at the three boxes across the top. Budget to raise is what you need in the bank. Deferred and Converted to points both start at $0, because everyone in the sample is paid up front.',
+      'Look at the three boxes at the top. Budget to raise is what you need in the bank. Deferred and Converted to points both start at $0, because everyone in the sample is paid up front.',
       'Scroll to the foot of the table. Budget to raise is there again, under the contingency row that feeds it.',
     ], terms: ['budget-to-raise', 'top-sheet', 'contingency'] },
   { id: 'paytype', title: 'Move one line to points', tab: 'topsheet', go: 'Take me there', goName: 'Take me there: the budget lines', spot: 'main .panel tr >> 4100 ',

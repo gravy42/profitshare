@@ -172,13 +172,14 @@ describe('the reminder', () => {
     expect(reminderFor(rec(), due + 50 * DAY)).toBeNull();
     expect(rec().quietUntil).toBeUndefined();
   });
-  it('never for the sample nobody has touched; from the first change it is a project like any other', () => {
+  it('never for the sample nobody has touched; the first change starts its clock then, not when it was opened', () => {
     const kv = mem(), p = sampleDemo();
     saveSlot('s', p, kv); noteUntouched('s', markOf(p), kv, T0);
     expect(reminderFor(readFileCopies(kv).s, T0 + 365 * DAY)).toBeNull();
     expect(copyWords(readFileCopies(kv).s, T0)).toBe('Never saved to a file (nothing changed yet)');
     at(T0 + 10 * DAY); saveSlot('s', { ...p, name: 'My film' }, kv);
-    expect(reminderFor(readFileCopies(kv).s, T0 + 10 * DAY)).toMatchObject({ kind: 'never' });
+    expect(reminderFor(readFileCopies(kv).s, T0 + 10 * DAY)).toBeNull();   // no nagging on the very first edit
+    expect(reminderFor(readFileCopies(kv).s, T0 + 10 * DAY + REMIND_NEVER_AFTER)).toMatchObject({ kind: 'never' });
   });
   it('nothing known, or a date that is not one: no line', () => {
     expect(reminderFor(undefined, T0)).toBeNull();
