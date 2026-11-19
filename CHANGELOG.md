@@ -34,6 +34,10 @@ Two independent reviews of the night's work found these, fixed the same morning:
 - **Typefaces in a sent deck.** The Latin font file is now chosen by what its rule says it covers, not by the order the rules are in.
 - **The one-file build opens again.** Its security policy was written before the app's code was put into the page, so the page refused its own script. The policy is now worked out from the finished file.
 - Tests run on the current jsdom (31).
+- **Pay set by the deal no longer pretends to be editable.** On producer fee, script purchase and star allowance lines the budget tab shows the pay as fixed, with a button to the Deal tab control that sets it. The menu used to flip back.
+- **Smaller first load.** The file readers load when you bring a file in.
+- **Tidying.** Report deck leftovers, the old smoke scripts and unused code are gone; the compiler now refuses unused locals and parameters; the browser walk covers every way in from the start screen (63 steps).
+- **README caught up.** It now describes the tour and glossary, export, the save reminder and *Download all my projects*, and the start screen and top sheet screenshots were retaken.
 
 ## 2026-11-18
 

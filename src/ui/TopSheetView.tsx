@@ -150,7 +150,7 @@ export function TopSheetView({ project, raw, controlled, setProject, starter, se
         <p className="help">
           {empty
             ? <>Nothing in the budget yet. Open a category, then an account, and press <b>+ line</b>. Every line is amount × rate × multiplier, with fringes on top. <b>Edit accounts</b> lets you rename, add or remove categories and accounts.</>
-            : <>Click a category, then an account, to open its lines. Change <b>Pay</b> on any line to move it between up front, deferred and points. Up front is what you have to raise; deferred still counts for SAG; points live only in the back end.</>}
+            : <>Click a category, then an account, to open its lines. Change <b>Pay</b> on a line to move it between up front, deferred and points; lines the Deal tab sets say so and take you there. Up front is what you have to raise; deferred still counts for SAG; points live only in the back end.</>}
         </p>
         {!empty && <p className="help budget-export-help">{BUDGET_EXPORT_HELP} <span role="status">{exportNote}</span></p>}
         <table>

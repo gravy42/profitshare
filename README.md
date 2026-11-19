@@ -12,7 +12,7 @@ The top sheet, the SAG-AFTRA tier check, the schedule and the points schedule al
 
 Written by a director budgeting her first feature, because none of the tools would let her model the deal she was actually making.
 
-**Use it now: https://profitshare.alonegirlmovie.com/** (nothing to install, no account). Press *Load the sample* to look around an invented film, *Salt Flat*.
+**Use it now: https://profitshare.alonegirlmovie.com/** (nothing to install, no account). Press *Load the sample* to look around an invented film, *Salt Flat*. *Take the tour* walks you through the sample in a few steps, and the glossary on the About page explains the money words (waterfall, recoupment, deferred, points) in plain English.
 
 ![The Deal tab with the sample film loaded. One sentence at the top says what the film costs to raise, which SAG-AFTRA tier it fits and how much is on the back end; under it a table prices the film at every tier under four pay models.](docs/screenshots/deal.png)
 
@@ -28,11 +28,11 @@ Written by a director budgeting her first feature, because none of the tools wou
 
 ## Privacy
 
-Your projects live in your browser and in the `.json` file you save. There are no accounts, there is no server, and nothing is uploaded. Clearing your browser's site data removes any project you never saved to a file, so press *Save* for anything you want to keep.
+Your projects live in your browser and in the `.json` file you save. There are no accounts, there is no server, and nothing is uploaded. Clearing your browser's site data removes any project you never saved to a file, so press *Save* for anything you want to keep. ProfitShare reminds you when a project has changes that are not in a file yet, and *Download all my projects* on the start screen puts every project in this browser into one `.zip`.
 
 Two things contact the network, and only when you ask:
 
-- **AI assist (optional).** It is off until you paste your own Anthropic API key, which is kept in this browser and never in the project file. Each AI button says what it sends before it sends it, and the request goes from your browser straight to Anthropic. *Draft* on the Pitch tab sends a short brief of your pitch and figures, plus any PDFs you added for it to read. *AI breakdown* on the Stripboard sends the scene text, the cast list and the tag names in use. Nothing is applied until you accept it.
+- **AI assist (optional).** It is off until you paste your own Anthropic API key, which is kept in this browser and never in the project file. The key is not encrypted; use one with a spending limit. Each AI button says what it sends before it sends it, and the request goes from your browser straight to Anthropic. *Draft* on the Pitch tab sends a short brief of your pitch and figures, plus any PDFs you added for it to read. *AI breakdown* on the Stripboard sends the scene text, the cast list and the tag names in use. Nothing is applied until you accept it.
 - **The Google Fonts picker (optional).** It asks first. If you agree, font previews and the font you pick are fetched from Google, which sees your computer's address and which fonts you look at, and nothing about your project. The picked font is saved into the project, so a deck you send never needs Google.
 
 The app page carries a Content-Security-Policy that lets it talk only to itself, `api.anthropic.com` and the two Google Fonts hosts.
@@ -48,7 +48,7 @@ The start screen has four ways in:
 - **Import a budget.** A Shamel Studio `.xlsx` export, a Movie Magic Budgeting Excel or CSV export, or any spreadsheet with Account, Description, Amount, Units, X, Rate and Total columns. A Movie Magic Scheduling `.sex` board can be dropped too.
 - **Open or explore.** Open a saved `.json`, or load the sample: *Salt Flat*, an invented 12-day, 26-scene SAG feature with a 154-line budget. Every name and number in it is made up.
 
-Every project is autosaved in the browser; *Save* downloads it as one `.json` file to keep or hand to a collaborator.
+Every project is autosaved in the browser; *Save* downloads it as one `.json` file to keep or hand to a collaborator. *Download all my projects* saves every project in this browser as one `.zip`, and a reminder appears when a project has changes you have not saved to a file.
 
 ### Set the deal
 
@@ -64,9 +64,10 @@ The Deal tab holds every term in one place, as a layer over the budget. The budg
 ### Budget
 
 - A top sheet (the one-page summary of a budget by category) over a chart of accounts you can edit.
-- Each line is amount × rate, with fringes on top, and a pay type you can change in place.
+- Each line is amount × rate, with fringes on top, and a pay type you can change in place. Where the Deal tab sets the pay (producer fees, the script purchase, star allowances), the line says so and links to the control that sets it.
 - Up front, deferred and points totals sit side by side. Lines the deal sets are marked.
 - Print the top sheet or the full budget.
+- Export for someone who does not use ProfitShare: an Excel workbook (the top sheet, every line, the points schedule and the deal terms), a CSV of the budget lines for other budgeting software, or a PDF of the top sheet and full budget.
 
 ### Schedule
 
@@ -121,11 +122,11 @@ Credits and perks are switches. They do not change what the film spends; they re
 
 ## Screenshots
 
-![The start screen: four panels titled From a script, From scratch, Import a budget, and Open or explore.](docs/screenshots/start.png)
+![The start screen: an invitation to take the tour, then four panels titled From a script, From scratch, Import a budget, and Open or explore.](docs/screenshots/start.png)
 
 *The start screen, with its four ways in.*
 
-![The top sheet: budget to raise, deferred and points totals across the top, and the producers account opened to show two fee lines marked as set by the deal and paid in points.](docs/screenshots/top-sheet.png)
+![The top sheet: budget to raise, deferred and points totals across the top, the print and export buttons, and the producers account opened to show two fee lines marked as set by the deal and paid in points, each with a button to the Deal tab.](docs/screenshots/top-sheet.png)
 
 *The top sheet. The two producer fees are marked "deal" because the Deal tab moved them to points.*
 
@@ -207,7 +208,6 @@ These numbers move. None of this is legal, tax or financial advice. Check the nu
 
 Not built yet:
 
-- Export of the top sheet and points schedule to Excel or CSV (today they print, and print can save a PDF)
 - A participation-agreement exhibit generated from the points schedule
 - Movie Magic Budgeting native `.mbd` files (needs a sample; the Excel and CSV exports already import)
 - Reading notes for a sent deck ("who opened it"), planned as a collector you host yourself
