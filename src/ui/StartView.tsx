@@ -2,6 +2,8 @@ import { useState } from 'react';
 import type { ProjectMeta } from '../store';
 import { money } from './format';
 import { StarterForm, type StarterSettings } from './StarterForm';
+
+const FOLDED_KEY = 'profitshare.startFolded';
 export type { StarterSettings } from './StarterForm';
 
 export interface StartActions {
@@ -33,11 +35,15 @@ export function StartView({ onBlank, onImportBudget, onOpen, onSample, onScript,
   const [days, setDays] = useState(20);
   const [coa, setCoa] = useState<'standard' | 'empty'>('standard');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);   // the row whose × was pressed once
+  // Folded or not is this browser's habit, not part of any project.
+  const [folded, setFolded] = useState(() => { try { return localStorage.getItem(FOLDED_KEY) === '1'; } catch { return false; } });
+  const fold = (now: boolean) => { setFolded(now); try { if (now) localStorage.setItem(FOLDED_KEY, '1'); else localStorage.removeItem(FOLDED_KEY); } catch { /* it still folds for this visit */ } };
+  const current = projects.find(m => m.id === activeId);
   return (
     <div>
       {projects.length > 0 && (
-        <div className="panel projects">
-          <h2>Projects in this browser</h2>
+        <details className="panel fold projects" open={!folded} onToggle={e => fold(!(e.target as HTMLDetailsElement).open)}>
+          <summary><h2>Projects in this browser <span className="hint">{projects.length === 1 ? '1 project' : `${projects.length} projects`}{folded && current ? ` · ${current.name || 'Untitled'} is open` : ''}</span></h2></summary>
           <p className="help">Every project you start or open is kept here, each one autosaved on its own. Open one to switch; the one you leave stays as it was. Each browser tab keeps to the project it opened, so two tabs on two projects don't write over each other. A .json you Save is the copy that leaves this browser.</p>
           <table className="projlist">
             <thead><tr><th className="l">Project</th><th className="l">Version</th><th>Shoot days</th><th>Lines</th><th>Scenes</th><th>Budget to raise</th><th>Saved</th><th /></tr></thead>
@@ -64,7 +70,7 @@ export function StartView({ onBlank, onImportBudget, onOpen, onSample, onScript,
               })}
             </tbody>
           </table>
-        </div>
+        </details>
       )}
       <div className="panel">
         <h2>{projects.length ? 'Start another' : 'Start a budget'}</h2>

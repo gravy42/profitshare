@@ -35,8 +35,8 @@ Day is the website, Substack and anything printed.
 #D8CDB5 line
 
 TYPOGRAPHY:
-Peckham Press · the loud word. Adler · the film's voice. The wordmark, taglines.
-Gravy · the connector. Work Sans · everything that has to be read: paragraphs, bios, captions.
+Bebas Neue · the loud word. Special Elite · the film's voice. The wordmark, taglines.
+Work Sans · everything that has to be read: paragraphs, bios, captions.
 `;
 
 describe('reading a brand system', () => {
@@ -46,8 +46,8 @@ describe('reading a brand system', () => {
     expect(b.night).toMatchObject({ bg: '#092827', ink: '#91A9D9', accent: '#F2B705', accent2: '#D27C0E', muted: '#8C9FC2', line: '#3D697A', inkBright: '#F4EDDC', card: '#F4EDDC' });
     expect(b.day).toMatchObject({ bg: '#F4EDDC', ink: '#092827', accent2: '#A2130B', muted: '#3D697A', line: '#D8CDB5' });
     expect(b.colors.bg).toBe('#092827');                 // the deck takes night
-    expect(b.fonts).toEqual({ title: 'Adler', body: 'Work Sans' });
-    expect(b.faces).toContain('Peckham Press');
+    expect(b.fonts).toEqual({ title: 'Special Elite', body: 'Work Sans' });
+    expect(b.faces).toContain('Bebas Neue');
     expect(b.swatches.length).toBeGreaterThan(15);
   });
   it('labels on the line after the hex and a single-theme document work too; the darkest and lightest stand in for missing roles', () => {
@@ -62,7 +62,7 @@ describe('reading a brand system', () => {
     expect(out.name).toBe('Mine');
     expect(out.colors.bg).toBe('#092827'); expect(out.colors.muted).toBe('#8C9FC2');   // the document names a muted, so it wins
     expect(out.colors.accent2).toBe('#F4EDDC');                                        // ink-bright over signal for the second accent
-    expect(out.fonts.title).toMatch(/^"Adler"/); expect(out.line).toBe('#3D697A');
+    expect(out.fonts.title).toMatch(/^"Special Elite"/); expect(out.line).toBe('#3D697A');
   });
 });
 

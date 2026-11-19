@@ -6,3 +6,6 @@ dist-deck
 scratch/
 browsers-out
 .impeccable/
+
+# Claude Code skills and agents are each person's own setup, not part of the app
+.claude/

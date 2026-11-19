@@ -29,6 +29,9 @@ Two independent reviews of the combined work found more, fixed the same day:
 
 - **ProfitShare gets its own address,** profitshare.alonegirlmovie.com. The built app no longer assumes the folder it is served from, so the same build works there and at the old GitHub address. Projects saved in a browser at the old address stay there: open the old address, press Save on each, and Open them at the new one.
 
+- **Projects in this browser folds away.** Click its heading on the Start tab to fold the list down to one line that says how many projects there are and which is open. The browser remembers how you left it.
+- **Housekeeping.** The `.claude/` folder (a third-party design skill and its helper files, there for building the app, not part of it) is out of the repo. A test that read a sample brand sheet now names open fonts.
+
 Also: help text on the Deal tab and the look book no longer mentions a "Financing" tab or the report deck's layouts. Tests: 997 pass.
 
 ## 2026-11-17
