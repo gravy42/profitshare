@@ -24,6 +24,7 @@ import { CallSheetsView } from './ui/CallSheetsView';
 import { BoardView } from './ui/BoardView';
 import { DealView } from './ui/DealView';
 import { applyDeal, dealControlledIds } from './engine/deal';
+import { focusSoon } from './ui/jump';
 import { readProjectText, repairNote } from './engine/openProject';
 import { StartView, type StarterSettings } from './ui/StartView';
 import { starterProject, applyStarter } from './engine/starter';
@@ -349,7 +350,7 @@ export default function App() {
         {tab === 'deal' && <DealView raw={project} eff={eff} setProject={setProject} fresh={!hadSaved && !msg} />}
         {tab === 'topsheet' && <>
           {controlled.size > 0 && <div className="notice">{controlled.size} line{controlled.size > 1 ? 's are' : ' is'} set by the deal (marked <span className="tag points">deal</span>): rates, hours or pay type come from the Deal tab. Days and descriptions are still yours to edit.</div>}
-          <TopSheetView project={eff} raw={project} controlled={controlled} setProject={setProject} starter={starter} setStarter={setStarter} onStarter={drawStarter} />
+          <TopSheetView project={eff} raw={project} controlled={controlled} setProject={setProject} starter={starter} setStarter={setStarter} onStarter={drawStarter} onDealPay={g => { setTab('deal'); focusSoon(`#deal-pay-${g}`); }} />
         </>}
         {tab === 'board' && backup && backup.board.scenes.length > 0 && (
           <div className="notice row"><span>The board from before <b>{backup.reason.replace(/^before /, '')}</b> ({backup.board.scenes.length} scenes, {backup.board.strips.filter(s => s.type === 'daybreak').length} day breaks, kept {new Date(backup.when).toLocaleString()}) is still here.</span>

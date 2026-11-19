@@ -1,7 +1,8 @@
 import { Fragment, useState, type MouseEvent } from 'react';
 import { StarterForm, type StarterSettings } from './StarterForm';
 import { shootDays } from '../engine/board';
-import type { FringeDef, LineItem, PayType, Project, Section } from '../engine/types';
+import type { FringeDef, LineItem, PayType, PremiumGroup, Project, Section } from '../engine/types';
+import { premiumGroupOf } from '../engine/deal';
 import {
   addAccount, addCategory, addLine, lineFringes, lineSubtotal, removeAccount, removeCategory, removeFringe, removeLine,
   renameAccount, renameCategory, rollupCashTotal, toggleLineFringe, topSheet, updateLine, upsertFringe, type CategoryRollup,
@@ -18,7 +19,10 @@ const SECTION_LABEL: Record<Section, string> = { ATL: 'above the line', PRODUCTI
 
 type Setter = (f: (p: Project) => Project) => void;
 
-export function TopSheetView({ project, raw, controlled, setProject, starter, setStarter, onStarter }: { project: Project; raw?: Project; controlled?: Set<string>; setProject: Setter; starter?: StarterSettings; setStarter?: (s: StarterSettings) => void; onStarter?: () => void }) {
+/** What the Deal tab calls each group of lines whose pay it sets, for the note beside a fixed pay. */
+const DEAL_PAY_WHAT: Record<PremiumGroup, string> = { producers: 'producer fees are', script: 'the script purchase is', allowances: 'star and cast allowances are' };
+
+export function TopSheetView({ project, raw, controlled, setProject, starter, setStarter, onStarter, onDealPay }: { project: Project; raw?: Project; controlled?: Set<string>; setProject: Setter; starter?: StarterSettings; setStarter?: (s: StarterSettings) => void; onStarter?: () => void; onDealPay?: (g: PremiumGroup) => void }) {
   const rawP = raw ?? project;
   const locked = controlled ?? new Set<string>();
   const ts = topSheet(project);
@@ -95,7 +99,7 @@ export function TopSheetView({ project, raw, controlled, setProject, starter, se
               </tr>
               {show && (
                 <tr key={ak + '_lines'}><td colSpan={5} style={{ padding: 0 }}>
-                  <LineTable lines={lines} project={project} locked={locked} patch={patch} setProject={setProject} onAdd={() => onAddLine(ak)} />
+                  <LineTable lines={lines} project={project} locked={locked} patch={patch} setProject={setProject} onAdd={() => onAddLine(ak)} onDealPay={onDealPay} />
                 </td></tr>
               )}
             </>
@@ -202,7 +206,7 @@ function NewAccountRow({ category, project, setProject }: { category: string; pr
   );
 }
 
-function LineTable({ lines, project, locked, patch, setProject, onAdd }: { lines: LineItem[]; project: Project; locked: Set<string>; patch: (id: string, p: Partial<LineItem>) => void; setProject: Setter; onAdd: () => void }) {
+function LineTable({ lines, project, locked, patch, setProject, onAdd, onDealPay }: { lines: LineItem[]; project: Project; locked: Set<string>; patch: (id: string, p: Partial<LineItem>) => void; setProject: Setter; onAdd: () => void; onDealPay?: (g: PremiumGroup) => void }) {
   const [noting, setNoting] = useState<string | null>(null);
   return (
     <table>
@@ -214,6 +218,9 @@ function LineTable({ lines, project, locked, patch, setProject, onAdd }: { lines
           const byDeal = locked.has(l.id);
           const derived = /^(SPLIT:|L_scale_)/.test(l.id);   // a line the deal created; it has no raw line to edit
           const note = l.notes || noting === l.id;
+          // producer fees, the script purchase and star allowances are paid the way the Deal tab says, whatever the
+          // line itself holds: a menu here would flip back the moment it was changed, so the pay is shown as fixed
+          const dealPay = premiumGroupOf(l);
           return (
             <Fragment key={l.id}>
             <tr className={`line${dim ? ' dim' : ''}${note ? ' noted' : ''}`} title={byDeal ? 'Set by the deal (Deal tab)' : undefined}>
@@ -226,7 +233,9 @@ function LineTable({ lines, project, locked, patch, setProject, onAdd }: { lines
               <td className="muted">{fr ? money(fr, 2) : ''}</td>
               <td><b>{money(sub + fr, 2)}</b></td>
               <td>{derived ? <span className="muted small">{l.fringes.length ? `${l.fringes.length} fr.` : 'none'}</span> : <FringePicker line={l} fringes={project.fringes} onToggle={id => setProject(p => toggleLineFringe(p, l.id, id))} />}</td>
-              <td>{byDeal ? <span className={`tag ${l.payType}`}>{PAY_LABEL[l.payType]}</span> : <select value={l.payType} onChange={e => patch(l.id, { payType: e.target.value as PayType })} className={`tag ${l.payType}`}>{PAY.map(p => <option key={p} value={p}>{PAY_LABEL[p]}</option>)}</select>}</td>
+              <td>{dealPay ? <span className="dealpay"><span className={`tag ${l.payType}`}>{PAY_LABEL[l.payType]}</span>{' '}
+                {onDealPay ? <button type="button" className="btn small" title={`The Deal tab sets how ${DEAL_PAY_WHAT[dealPay]} paid. Change it there.`} onClick={() => onDealPay(dealPay)}>Set on the Deal tab</button> : <span className="muted small">Set on the Deal tab</span>}</span>
+                : byDeal ? <span className={`tag ${l.payType}`}>{PAY_LABEL[l.payType]}</span> : <select value={l.payType} onChange={e => patch(l.id, { payType: e.target.value as PayType })} className={`tag ${l.payType}`}>{PAY.map(p => <option key={p} value={p}>{PAY_LABEL[p]}</option>)}</select>}</td>
               <td style={{ whiteSpace: 'nowrap' }}>{!derived && !note && <button className="btn small" title="Add a note to this line" onClick={() => setNoting(l.id)}>✎</button>}{!derived && <button className="btn small danger" title="Remove line" onClick={() => setProject(p => removeLine(p, l.id))}>×</button>}</td>
             </tr>
             {note && <tr className="linenote"><td colSpan={11}><textarea className="note" rows={Math.min(6, Math.ceil((l.notes?.length ?? 0) / 110) || 1)} value={l.notes ?? ''} placeholder="note: what this line covers, a list, a reminder" autoFocus={noting === l.id} onChange={e => patch(l.id, { notes: e.target.value || undefined })} onBlur={() => setNoting(null)} /></td></tr>}

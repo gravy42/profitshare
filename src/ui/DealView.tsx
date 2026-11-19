@@ -189,7 +189,7 @@ export function DealView({ raw, eff, setProject, fresh, today }: { raw: Project;
             {groupTotals.map(({ g, count, total }) => (
               <tr key={g}>
                 <td className="l">{PRESET_GROUPS[g].label}</td><td>{count}</td><td>{money(total)}</td>
-                <td className="l"><select value={d.pay.premiums[g]} onChange={e => {
+                <td className="l"><select id={`deal-pay-${g}`} value={d.pay.premiums[g]} onChange={e => {
                   const c = e.target.value as PremiumChoice;
                   if (c === 'delete' && !window.confirm(`Take ${count} line${count === 1 ? '' : 's'} worth ${money(total)} off the budget? (${PRESET_GROUPS[g].label}. The lines stay in the file; pick another choice here to bring them back.)`)) return;
                   setPay({ premiums: { ...d.pay.premiums, [g]: c } });

@@ -15,6 +15,11 @@ export const PRESET_GROUPS: Record<PremiumGroup, { label: string; match: (l: Lin
 };
 export type PresetGroup = PremiumGroup;
 export const PROFIT_SHARE_PRESET_MATCH = (l: LineItem) => Object.values(PRESET_GROUPS).some(g => g.match(l));
+/** The Deal tab group that sets how this line is paid (producer fees, script purchase, star and cast allowances), or
+ *  null when the line's own pay choice stands. The budget tab shows such a line's pay as fixed and points at the
+ *  Deal tab, because a pay menu here would be overridden straight away (step 4 of applyDeal). */
+export const premiumGroupOf = (l: LineItem): PremiumGroup | null =>
+  (Object.keys(PRESET_GROUPS) as PremiumGroup[]).find(g => PRESET_GROUPS[g].match(l)) ?? null;
 
 export function defaultDeal(p: { shootDays: number; sag: { targetTier: SagTierId } }): Deal {
   return {
