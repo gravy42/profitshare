@@ -255,14 +255,14 @@ try {
         trail.push(`${say(found)}[${cs.display} ${Math.round(r.left)}..${Math.round(r.right)} sw${found.scrollWidth} ox:${cs.overflowX}]`); node = found;
       }
       out.unshift([d.scrollWidth - vw, `CULPRIT ${trail.join(' > ') || 'none found by hiding'} "${(node.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 30)}"`]);
-      return `html ${d.scrollWidth}/${d.clientWidth} body ${b.scrollWidth}/${b.clientWidth}: ` + (out.slice(0, 4).map(([n, t]) => `${t} +${n}`).join(' | ') || 'no element past the edge');
+      return `html ${d.scrollWidth}/${d.clientWidth} body ${b.scrollWidth}/${b.clientWidth}: ` + (out.slice(0, 9).map(([n, t]) => `${t} +${n}`).join(' | ') || 'no element past the edge');
     };
     await step('at phone width no tab scrolls the page sideways', async () => {
       const wide = [];
       for (const label of TABS) {
         await phone.getByRole('button', { name: label, exact: true }).click(); await phone.waitForTimeout(400);
         const over = await phone.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
-        if (over > 1) wide.push(`${label} +${over}px (${await phone.evaluate(widest)})`);
+        if (over > 1) { wide.push(`${label} +${over}px`); console.log(`     ${label} is ${over}px too wide: ${await phone.evaluate(widest)}`); }
       }
       need(wide.length === 0, wide.join(', ')); return `${TABS.length} tabs`;
     });
