@@ -4,6 +4,21 @@ ProfitShare is built in the open by Cris Graves, with Claude doing the typing, w
 
 The app is local-first: your project lives in your browser and in the `.profitshare.json` files you download. Nothing here changes a saved file without saying so.
 
+## 2026-11-19
+
+Work done overnight from the audit's "soon after launch" list.
+
+- **Tables on a phone.** A table too wide for the screen now scrolls sideways inside its own box, on every tab. Numbers, money and short words are never broken across lines. The browser walk fails if a money value in any table wraps at phone width.
+- **Easier to read.** Text that was too faint in Day or Night now meets the AA contrast standard, with the palette kept: the sienna on Day is a shade deeper, the red on Night a shade lighter.
+- **Keyboard.** The focus ring shows on Day's paper. Budget categories and accounts open with Enter. Pop-outs take focus and hand it back when closed. Still mouse-only: adding a calendar event by clicking a day, and dragging strips, days and cast rows.
+- **AI assist picks its own model.** If you have not chosen a model, the app uses the newest mid-priced one your key offers, and a model you chose is never changed. If your choice is no longer offered, the app says so beside the picker.
+- **A plain note beside the key.** The key is kept in this browser, not encrypted, and goes only to Anthropic when you press an AI button.
+- **About tab.** What ProfitShare is and is not, plus links to report a problem and read the code.
+- **Rates that say when they are stale.** From 1 July 2027 the SAG tier and Deal tabs say the SAG-AFTRA rates were due to rise.
+- **The repo has the files a public project needs.** CONTRIBUTING.md says how to run the checks and the rules a change must keep. SECURITY.md says how to report a problem privately through GitHub. There is a short code of conduct, forms for bugs and ideas (the bug form asks for steps on the sample film and warns against attaching a real budget), and a pull request checklist.
+- **The project file has a written rule for change.** `docs/file-format.md` says what the app does with a newer file or an unreadable part, and when the format number must rise. `docs/rates.md` lists every rate and dated rule in the code, with what to check each year and who publishes it.
+- **A link to the app now shows a preview, and the tab has an icon.** The page carries a description, link preview tags, a theme colour and icons, all the app's own files.
+
 ## 2026-11-18
 
 Eight things fixed before telling anyone the app exists. They came out of a full audit of the repo.
