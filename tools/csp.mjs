@@ -6,6 +6,8 @@
 // here, and nothing leaves for anywhere but the three hosts the app really talks to.
 //
 // The pitch decks the app exports carry their own, stricter policy (src/deck-runtime/exportHtml.ts). Not this one.
+import { readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 
 /** Every host besides its own that the app asks for anything. Each is named in the code that asks:
@@ -76,8 +78,20 @@ export function cspPlugin(options = {}) {
     apply: 'build',
     enforce: 'post',
     generateBundle(_options, bundle) {
+      if (options.oneFile) return;   // its scripts are not in the page yet: see writeBundle
       for (const file of Object.values(bundle)) {
         if (file.type === 'asset' && file.fileName.endsWith('.html')) file.source = withCsp(typeof file.source === 'string' ? file.source : Buffer.from(file.source).toString('utf8'), options);
+      }
+    },
+    // The one-file build puts the whole app into the page as an inline script after every plugin's generateBundle
+    // has run, so a policy written there would not know that script's hash and the page would refuse its own code.
+    // Here the page is on disk and finished: hash what is really in it.
+    writeBundle(out, bundle) {
+      if (!options.oneFile) return;
+      for (const file of Object.values(bundle)) {
+        if (file.type !== 'asset' || !file.fileName.endsWith('.html')) continue;
+        const at = join(out.dir ?? 'dist', file.fileName);
+        writeFileSync(at, withCsp(readFileSync(at, 'utf8'), options));
       }
     },
   };

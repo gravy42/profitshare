@@ -30,6 +30,10 @@ Two independent reviews of the night's work found these, fixed the same morning:
 - **An edit made just before switching project is kept.** Autosave waits a third of a second; opening a file, the sample or another project inside that moment left the last edit behind. The open project is now written first.
 - **A full browser store is said plainly.** Opening a file or a .zip with no room left used to claim the projects had opened. It now says there is no room, and writes no record of a project it did not keep.
 - **Smaller things.** A model list in an unexpected shape no longer breaks the key panel. The first edit to a sample that had sat untouched for days no longer brings the save reminder at once. The export help says what does not come back from a CSV. A failed export no longer asks for your project file in public. Four glossary definitions corrected where they said more than the app does.
+- **PDF reading updated.** The part of the app that reads PDFs (scripts, brand books, look-book pages) is now the current version. Scenes, eighths and cast from a script PDF are read exactly as before. The decoders for JPEG 2000 and scanned black-and-white pictures are now two small files of the app's own, fetched only when a PDF has such a picture.
+- **Typefaces in a sent deck.** The Latin font file is now chosen by what its rule says it covers, not by the order the rules are in.
+- **The one-file build opens again.** Its security policy was written before the app's code was put into the page, so the page refused its own script. The policy is now worked out from the finished file.
+- Tests run on the current jsdom (31).
 
 ## 2026-11-18
 
