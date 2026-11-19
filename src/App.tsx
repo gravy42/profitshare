@@ -28,6 +28,7 @@ import { readProjectText, repairNote } from './engine/openProject';
 import { StartView, type StarterSettings } from './ui/StartView';
 import { starterProject, applyStarter } from './engine/starter';
 import { money } from './ui/format';
+import { TIP_URL } from './ui/support';
 
 type Tab = 'start' | 'deal' | 'topsheet' | 'board' | 'calendar' | 'callsheets' | 'breakdowns' | 'points' | 'sag' | 'incentives' | 'pitch' | 'about';
 
@@ -326,6 +327,7 @@ export default function App() {
         {tab === 'about' && <About onStart={() => setTab('start')} />}
         <footer>
           <span>ProfitShare · open source, MIT · every project is autosaved in this browser (Projects on the Start tab); Save downloads a .json to keep or share · not legal, tax or financial advice</span>
+          <span className="tip">ProfitShare is free. <a href={TIP_URL} target="_blank" rel="noreferrer">Leave a tip</a> to help with its upkeep and with getting ALONE GIRL made.</span>
           <span className="signoff">from the world of <a href="https://www.blissfulspinster.com" target="_blank" rel="noreferrer">ALONE GIRL</a></span>
         </footer>
       </main>
@@ -360,6 +362,7 @@ function About({ onStart }: { onStart: () => void }) {
         <p><b>Local-first.</b> Nothing leaves your browser unless you ask. AI assist, with your own Anthropic key, sends only what its button says it sends. The Google Fonts picker fetches fonts from Google after you say yes. Autosave keeps your work in this browser; press Save to download a .json you can open anywhere or share with a collaborator, and Open to load one.</p>
         <p><b>Imports.</b> Budgets from Shamel Studio (.xlsx) and Movie Magic Budgeting (Excel or CSV export), or any spreadsheet with account, description, amount, rate and total columns. Boards from Movie Magic Scheduling (.sex, which Shamel also exports). Scripts from Final Draft (.fdx), Highland, Celtx, WriterDuet or any app that saves Fountain or plain text, and any screenplay PDF with real text in it (not a scan): scenes, eighths and speaking cast are read straight off the page.</p>
         <p><b>Rates.</b> SAG-AFTRA low-budget scale effective 7/1/2026, California payroll fringes as of 2026. Check them before you rely on them.</p>
+        <p><b>Free, with a tip jar.</b> ProfitShare is free and open source, and stays that way. If it helped your film, <a href={TIP_URL} target="_blank" rel="noreferrer">the tip jar</a> helps keep it going. Tips are gifts: they buy nothing, and they are not tax-deductible.</p>
       </div>
       <div className="row" style={{ marginTop: 12 }}>
         <button className="btn" onClick={onStart}>Start a new budget, import one, or load the sample</button>

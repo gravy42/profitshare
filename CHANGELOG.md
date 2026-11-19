@@ -32,6 +32,8 @@ Two independent reviews of the combined work found more, fixed the same day:
 - **Projects in this browser folds away.** Click its heading on the Start tab to fold the list down to one line that says how many projects there are and which is open. The browser remembers how you left it.
 - **Housekeeping.** The `.claude/` folder (a third-party design skill and its helper files, there for building the app, not part of it) is out of the repo. A test that read a sample brand sheet now names open fonts.
 
+- **A tip jar.** ProfitShare is free and stays free. There is now a link to a tip jar in the footer, on the About tab, in the README, and as the Sponsor button on GitHub. It is a plain link to a Stripe page where you choose the amount; the app itself fetches nothing from Stripe.
+
 Also: help text on the Deal tab and the look book no longer mentions a "Financing" tab or the report deck's layouts. Tests: 997 pass.
 
 ## 2026-11-17

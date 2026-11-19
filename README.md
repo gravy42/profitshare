@@ -220,6 +220,10 @@ Not built yet:
 [CHANGELOG.md](CHANGELOG.md) is kept by day, newest first, so you can see what changed and why before you start. Issues and pull requests are welcome. Engine changes need a test; the sample budget must still total $805,312.06 and round-trip through the importers.
 
 
+## Support
+
+ProfitShare is free and open source. If it helped your film, [the tip jar](https://buy.stripe.com/00wbJ00wP1KC1ich08asg01) helps with its upkeep and with getting *ALONE GIRL*, the film it was built for, made. Tips are gifts and are not tax-deductible; your statement will show BLISSFULSPINSTER.COM.
+
 ## License
 
 MIT © 2026 Cris Graves
