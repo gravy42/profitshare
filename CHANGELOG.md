@@ -34,6 +34,8 @@ Two independent reviews of the combined work found more, fixed the same day:
 
 - **A tip jar.** ProfitShare is free and stays free. There is now a link to a tip jar in the footer, on the About tab, in the README, and as the Sponsor button on GitHub. It is a plain link to a Stripe page where you choose the amount; the app itself fetches nothing from Stripe.
 
+- **Why ProfitShare exists.** The About tab now opens with Cris's own account of why she built it, and why it is free.
+
 Also: help text on the Deal tab and the look book no longer mentions a "Financing" tab or the report deck's layouts. Tests: 997 pass.
 
 ## 2026-11-17
