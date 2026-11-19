@@ -499,6 +499,8 @@ details.howto[open] > summary { margin-bottom: 4px; }
   /* the start screen's settings: a long choice wraps inside its box instead of pushing the card wider */
   .starterform .ctl, .starterform label { min-width: 0; max-width: 100%; }
   .starterform select, .starterform input { max-width: 100%; }
+  .starterform .ctl:has(select) { flex: 1 1 100%; }
+  .starterform .ctl select { width: 100%; }
 }
 .scrollx { overflow-x: auto; max-width: 100%; }
 

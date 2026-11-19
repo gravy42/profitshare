@@ -226,12 +226,23 @@ try {
     const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
     const phone = await ctx.newPage();
     await phone.goto(origin); await phone.getByRole('button', { name: 'Load the sample' }).click(); await phone.waitForTimeout(600);
+    // which elements stick out past the screen without a scrolling box around them, widest first: says what to fix
+    const widest = () => {
+      const vw = document.documentElement.clientWidth, out = [];
+      for (const el of document.querySelectorAll('body *')) {
+        const r = el.getBoundingClientRect(); if (!r.width || r.right <= vw + 1) continue;
+        let p = el.parentElement, boxed = false;
+        while (p && p !== document.body) { if (/(auto|scroll|hidden)/.test(getComputedStyle(p).overflowX)) { boxed = true; break; } p = p.parentElement; }
+        if (!boxed) out.push([Math.round(r.right - vw), `${el.tagName.toLowerCase()}${el.id ? '#' + el.id : ''}.${String(el.className).split(' ').slice(0, 2).join('.')} in ${String(el.parentElement?.className).split(' ').slice(0, 2).join('.')}`]);
+      }
+      return out.sort((a, b) => b[0] - a[0]).slice(0, 4).map(([n, s]) => `${s} +${n}`).join(' | ');
+    };
     await step('at phone width no tab scrolls the page sideways', async () => {
       const wide = [];
       for (const label of TABS) {
         await phone.getByRole('button', { name: label, exact: true }).click(); await phone.waitForTimeout(400);
         const over = await phone.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
-        if (over > 1) wide.push(`${label} +${over}px`);
+        if (over > 1) wide.push(`${label} +${over}px (${await phone.evaluate(widest)})`);
       }
       need(wide.length === 0, wide.join(', ')); return `${TABS.length} tabs`;
     });
