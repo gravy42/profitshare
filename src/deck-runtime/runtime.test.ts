@@ -18,6 +18,11 @@ import { CENTRE_UNDER, shouldCentre, cleanFontFaces, cleanPaths, cleanRecipients
 import type { DeckHandle } from './runtime';
 import { scrimLight, veilBoxes, shadeNeeded, readColor, VEILED, VEIL_LABEL, VEIL_NEAR, VEIL_PAD, VEIL_SNAP, SHADE_SPARE, TURN_FROM, TURN_GAIN } from './runtime';
 
+// The clock a web page has: every timer a deck can set, and not Node's setImmediate, which no browser has and the
+// deck never calls. jsdom (from version 26 on) uses setImmediate for its own housekeeping: one is queued for each
+// <style> put in the page, to say the sheet has loaded. Faking it too would count jsdom's timers as the deck's.
+const PAGE_TIMERS = ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date'] as const;
+
 // Only the invented sample film, dressed with invented content so that every layout appears.
 const pic = (id: string): LookImage => ({ id, dataUrl: `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" id="${id}"/>`, caption: `Picture ${id}`, section: 'tone' });
 
@@ -283,8 +288,11 @@ describe('the numbers slide', () => {
       // the stacked bar: switched-on sources and investors as shares of the budget
       const segs = [...numbers.querySelectorAll<HTMLElement>('.psd-seg')];
       expect(segs.length).toBe(data.paths.sources.length + 1);
-      data.paths.sources.forEach((s, i) => expect(parseFloat(segs[i].style.flexBasis)).toBeCloseTo(sw[s.key] ? (s.amount / data.paths.cashBudget) * 100 : 0, 6));
-      expect(parseFloat(segs[segs.length - 1].style.flexBasis)).toBeCloseTo((want.investors / data.paths.cashBudget) * 100, 6);
+      // a width read back from a style is as the page keeps it, not as it was written: jsdom keeps four decimal places of
+      // a per cent and Chrome six figures, so 22.848285669532874% comes back as 22.8483%. Three places is asked here,
+      // which on a bar 2,000px wide is a hundredth of a pixel: a wrong share would be out by whole per cents
+      data.paths.sources.forEach((s, i) => expect(parseFloat(segs[i].style.flexBasis)).toBeCloseTo(sw[s.key] ? (s.amount / data.paths.cashBudget) * 100 : 0, 3));
+      expect(parseFloat(segs[segs.length - 1].style.flexBasis)).toBeCloseTo((want.investors / data.paths.cashBudget) * 100, 3);
     }
   });
 
@@ -1172,7 +1180,7 @@ describe('lifecycle', () => {
   });
   it('leaves no listener, observer or timer behind', () => {
     window.location.hash = '#dana-invented';   // before the clock is faked: jsdom announces the change on a timer of its own
-    vi.useFakeTimers();
+    vi.useFakeTimers({ toFake: [...PAGE_TIMERS] });
     const liveListeners = new Set<string>();
     const targets: [string, EventTarget][] = [['window', window], ['document', document]];
     const watch = (name: string, t: EventTarget) => {

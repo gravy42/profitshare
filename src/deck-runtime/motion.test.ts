@@ -29,6 +29,10 @@ const cards = (motion?: unknown) => ({ id: 'gap', layout: 'cards', eyebrow: 'The
 const stats = (motion?: unknown) => ({ id: 'aud', layout: 'stats', eyebrow: 'The audience', lead: { value: '7 in 10', text: 'invented buyers', source: 'Invented Survey, 2030' }, stats: [{ id: 's1', value: '41%', label: 'an invented share', source: 'Invented Survey, 2030' }, { id: 's2', value: '$1,250', label: 'an invented spend', source: 'Invented Survey, 2030' }], motion });
 const numbers = (motion?: unknown) => ({ id: 'num', layout: 'numbers', eyebrow: 'The numbers', body: '', caseNote: 'Fees come off the top.', motion });
 
+// The clock a web page has: every timer a deck can set, and not Node's setImmediate, which no browser has and the
+// deck never calls. jsdom (from version 26 on) uses setImmediate for its own housekeeping: one is queued for each
+// <style> put in the page, to say the sheet has loaded. Faking it too would count jsdom's timers as the deck's.
+const PAGE_TIMERS = ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date'] as const;
 const mounted: DeckHandle[] = [];
 function mount(data: DeckData, opts: Parameters<typeof mountDeck>[2] = {}) {
   const host = document.createElement('div');
@@ -266,7 +270,7 @@ describe('movement in the deck', () => {
       expect(root.querySelector('[data-part="legal"]')!.textContent).toBe('Illustrative only.');
     });
     it('a deck that is destroyed mid-count leaves no frame waiting and no timer', () => {
-      vi.useFakeTimers();
+      vi.useFakeTimers({ toFake: [...PAGE_TIMERS] });
       const f = frames();
       const { handle } = mount(deck([stats({ count: true })]), { motion: false });
       handle.play(0); f.run(0);
