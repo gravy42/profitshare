@@ -58,6 +58,11 @@ In the evening, the last two things that needed a mouse:
 - Dropping a strip back where it started no longer shows a message.
 - The browser walk does all of this with the keys alone in three new steps (68 steps).
 
+In the evening, the budget PDF:
+
+- **The budget PDF prints names in other alphabets.** Greek and Cyrillic letters, and Latin ones outside Western Europe (Vietnamese, Polish, Czech, Turkish), used to print as question marks or lose their accents. When a budget has such letters the PDF is now set in Noto Sans, which the app carries (SIL Open Font License 1.1, licence beside the files), and the PDF holds only the letters it uses. A budget in plain English still comes out in Helvetica, exactly as before, and fetches nothing. Chinese, Japanese, Korean, Arabic and Hebrew still print as question marks: Noto Sans does not have them, and the PDF library cannot lay out right-to-left lines.
+- The browser walk exports a PDF with Greek, Cyrillic and Vietnamese letters and reads them back (69 steps).
+
 ## 2026-11-18
 
 Eight things fixed before telling anyone the app exists. They came out of a full audit of the repo.

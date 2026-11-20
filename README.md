@@ -68,7 +68,7 @@ The Deal tab holds every term in one place, as a layer over the budget. The budg
 - Each line is amount × rate, with fringes on top, and a pay type you can change in place. Where the Deal tab sets the pay (producer fees, the script purchase, star allowances), the line says so and links to the control that sets it.
 - Up front, deferred and points totals sit side by side. Lines the deal sets are marked.
 - Print the top sheet or the full budget.
-- Export for someone who does not use ProfitShare: an Excel workbook (the top sheet, every line, the points schedule and the deal terms), a CSV of the budget lines for other budgeting software, or a PDF of the top sheet and full budget.
+- Export for someone who does not use ProfitShare: an Excel workbook (the top sheet, every line, the points schedule and the deal terms), a CSV of the budget lines for other budgeting software, or a PDF of the top sheet and full budget. The PDF prints Latin, Greek and Cyrillic letters; Chinese, Japanese, Korean, Arabic and Hebrew still come out as question marks.
 
 ### Schedule
 
@@ -228,3 +228,5 @@ ProfitShare is free and open source. If it helped your film, [the tip jar](https
 ## License
 
 MIT © 2026 Cris Graves
+
+Noto Sans, in `src/assets/fonts/noto-sans/` and used in budget PDFs, is under the SIL Open Font License 1.1. Its licence is beside the font files.

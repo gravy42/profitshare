@@ -507,31 +507,64 @@ const INK = rgb(0.1, 0.1, 0.1),
   RULE = rgb(0.75, 0.75, 0.75),
   BAND = rgb(0.93, 0.93, 0.93);
 
+/** A regular and a bold font file (TrueType or OpenType) for the letters Helvetica lacks. The app passes Noto Sans
+ *  (src/assets/fonts/noto-sans/, SIL Open Font License 1.1). */
+export type PdfFaces = { regular: Uint8Array; bold: Uint8Array };
+
 /** The budget as a PDF: the top sheet first, then the full budget (every account and line with money on it, as
- *  "Print full budget" lists them), on as many pages as it takes. The two standard faces every PDF reader carries
- *  (Helvetica and its bold) are used, so nothing is fetched and nothing is embedded that needs a licence. */
-export async function budgetPdf(p: Project, opts: { date?: Date } = {}): Promise<Uint8Array> {
+ *  "Print full budget" lists them), on as many pages as it takes. It is set in the two standard faces every PDF
+ *  reader carries (Helvetica and its bold), so nothing is fetched or embedded. When a name or a line has a letter
+ *  those faces lack (Greek, Cyrillic, Vietnamese, Polish...) and `wideFaces` is given, the PDF is made again in the
+ *  faces it returns, embedded with only the letters used. */
+export async function budgetPdf(
+  p: Project,
+  opts: { date?: Date; wideFaces?: () => Promise<PdfFaces> } = {},
+): Promise<Uint8Array> {
   const date = opts.date ?? new Date();
+  const first = await drawBudgetPdf(p, date, null);
+  if (!first.missed || !opts.wideFaces) return first.bytes;
+  return (await drawBudgetPdf(p, date, await opts.wideFaces())).bytes;
+}
+
+async function drawBudgetPdf(
+  p: Project,
+  date: Date,
+  wide: PdfFaces | null,
+): Promise<{ bytes: Uint8Array; missed: boolean }> {
   const ts = topSheet(p);
   const pdf = await PDFDocument.create();
-  const regular = await pdf.embedFont(StandardFonts.Helvetica),
+  let regular: PDFFont, strong: PDFFont;
+  if (wide) {
+    pdf.registerFontkit((await import('@pdf-lib/fontkit')).default);
+    regular = await pdf.embedFont(wide.regular, { subset: true });
+    strong = await pdf.embedFont(wide.bold, { subset: true });
+  } else {
+    regular = await pdf.embedFont(StandardFonts.Helvetica);
     strong = await pdf.embedFont(StandardFonts.HelveticaBold);
+  }
   pdf.setTitle(`${p.name} ${p.version} budget`);
   pdf.setProducer('ProfitShare');
   pdf.setCreator('ProfitShare');
   pdf.setCreationDate(date);
   pdf.setModificationDate(date);
 
-  // The standard faces only have the letters of Western European languages. Anything else is written without its
-  // accent where that is possible and as a question mark where it is not, so a name in another script cannot stop the file.
-  const known = new Set(regular.getCharacterSet());
+  // A letter the faces do not have is written without its accent where that is possible and as a question mark where
+  // it is not, so a name in another script cannot stop the file. `missed` says it happened, so the PDF can be made
+  // again in wider faces. (The standard faces have the letters of Western European languages; Noto Sans adds the
+  // rest of Latin, Greek and Cyrillic. Neither has Chinese, Japanese, Korean, Arabic or Hebrew.)
+  const boldHas = new Set(strong.getCharacterSet());
+  const known = new Set(regular.getCharacterSet().filter(c => boldHas.has(c)));
+  let missed = false;
   const plain = (s: string): string => {
     let out = '';
-    for (const ch of String(s ?? '').replace(/\s+/g, ' ')) {
+    for (const ch of String(s ?? '')
+      .normalize('NFC')
+      .replace(/\s+/g, ' ')) {
       if (known.has(ch.codePointAt(0)!)) {
         out += ch;
         continue;
       }
+      missed = true;
       const base = ch.normalize('NFKD').replace(/[̀-ͯ]/g, '');
       out += base && [...base].every(b => known.has(b.codePointAt(0)!)) ? base : '?';
     }
@@ -787,5 +820,5 @@ export async function budgetPdf(p: Project, opts: { date?: Date } = {}): Promise
     });
     pg.drawText('ProfitShare', { x: PAGE.margin, y: 24, size: 8, font: regular, color: MUTED });
   });
-  return pdf.save();
+  return { bytes: await pdf.save(), missed };
 }

@@ -202,6 +202,40 @@ try {
     await page.waitForTimeout(500);
     return said.join(', ');
   });
+  // Letters Helvetica lacks: the PDF is made in the app's own Noto Sans, fetched from the app under its policy
+  await step('export: a PDF with Greek, Cyrillic and Vietnamese letters prints them', async () => {
+    await page.getByRole('button', { name: 'Top sheet & budget', exact: true }).click();
+    const title = page.getByLabel('Project title');
+    const was = await title.inputValue();
+    const wide = 'Соль Ελλάδα Nguyễn Łódź';
+    await title.fill(wide);
+    try {
+      const d = await download(
+        () =>
+          page
+            .getByRole('group', { name: 'Export the budget' })
+            .getByRole('button', { name: /as a PDF/ })
+            .click(),
+        'budget-wide.pdf',
+      );
+      const bytes = readFileSync(d.path);
+      const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
+      const doc = await pdfjs.getDocument({ data: new Uint8Array(bytes), useSystemFonts: false, disableFontFace: true })
+        .promise;
+      const words = (await (await doc.getPage(1)).getTextContent()).items.map(it => it.str ?? '').join(' ');
+      need(words.includes(wide), `page 1 does not carry "${wide}": ${words.slice(0, 80)}`);
+      const fonts = (await PDFDocument.load(bytes)).context
+        .enumerateIndirectObjects()
+        .map(([, o]) => String(o))
+        .join(' ');
+      need(/NotoSans-Regular/.test(fonts) && /NotoSans-Bold/.test(fonts), 'the PDF does not carry Noto Sans');
+      return `${d.name} ${(bytes.length / 1000).toFixed(0)} kB`;
+    } finally {
+      await title.fill(was);
+      await page.getByRole('button', { name: 'Pitch', exact: true }).click(); // where the steps after this one start
+      await page.waitForTimeout(500);
+    }
+  });
   await step('the pitch deck preview draws 14 slides', async () => {
     await page.locator('#pitch-deck').scrollIntoViewIfNeeded();
     await page.waitForFunction(
