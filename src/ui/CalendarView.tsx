@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CalEventKind, Project } from '../engine/types';
 import { shootDays, eighthsToText } from '../engine/board';
 import { BreakdownReport, PrintPortal } from './print';
@@ -6,6 +6,7 @@ import { storyDayOf } from '../engine/breakdowns';
 import { pressKey, useModalFocus } from './modalFocus';
 import {
   EVENT_KINDS,
+  addDays,
   daysInMonth,
   dow,
   eventsOn,
@@ -18,6 +19,7 @@ import {
   stampBoardDates,
   toIcs,
   withCalendar,
+  parseYmd,
   ymd,
 } from '../engine/calendar';
 
@@ -133,7 +135,90 @@ export function CalendarView({ project, setProject }: { project: Project; setPro
         ? monthName(shown[0])
         : `${monthName(shown[0])} → ${monthName(shown[shown.length - 1])}`;
 
+  // The keyboard's place on the calendar: one Tab stop for every month on screen, the arrow keys move between days
+  // (the way a date picker does), Enter or Space opens the day. Clicking a day moves it there too.
+  const [cursor, setCursor] = useState<string | null>(null);
+  const root = useRef<HTMLDivElement>(null);
+  const focusNext = useRef<string | null>(null);
+  const onScreen = (d: string) => shown.includes(d.slice(0, 7));
+  const here =
+    cursor && onScreen(cursor)
+      ? cursor
+      : ([today, first, ...[...dates.values()].sort(), shown[0] ? `${shown[0]}-01` : ''].find(d => d && onScreen(d)) ??
+        null);
+  useEffect(() => {
+    const d = focusNext.current;
+    if (!d) return;
+    const el = root.current?.querySelector<HTMLButtonElement>(`button.daynum[data-date="${d}"]`);
+    if (el) {
+      focusNext.current = null;
+      el.focus();
+    }
+  });
+  const goTo = (d: string) => {
+    const ym = d.slice(0, 7);
+    if (!months.includes(ym)) return;
+    if (!onScreen(d)) {
+      const at = months.indexOf(ym);
+      setPage(at < start ? at : at - span + 1);
+    }
+    setCursor(d);
+    focusNext.current = d;
+  };
+  const dayKeys = (d: string) => (e: React.KeyboardEvent) => {
+    const step: Record<string, () => string> = {
+      ArrowLeft: () => addDays(d, -1),
+      ArrowRight: () => addDays(d, 1),
+      ArrowUp: () => addDays(d, -7),
+      ArrowDown: () => addDays(d, 7),
+      Home: () => addDays(d, -dow(d)),
+      End: () => addDays(d, 6 - dow(d)),
+      PageUp: () => {
+        const t = parseYmd(d.slice(0, 7) + '-01');
+        t.setMonth(t.getMonth() - 1);
+        const ym = ymd(t).slice(0, 7);
+        return `${ym}-${String(Math.min(+d.slice(8), daysInMonth(ym))).padStart(2, '0')}`;
+      },
+      PageDown: () => {
+        const t = parseYmd(d.slice(0, 7) + '-01');
+        t.setMonth(t.getMonth() + 1);
+        const ym = ymd(t).slice(0, 7);
+        return `${ym}-${String(Math.min(+d.slice(8), daysInMonth(ym))).padStart(2, '0')}`;
+      },
+    };
+    if (e.key === 'Escape' && editing === d) {
+      e.preventDefault();
+      close(d);
+      return;
+    }
+    const to = step[e.key]?.();
+    if (!to) return;
+    e.preventDefault();
+    goTo(to);
+  };
+  /** What a screen reader says for a day: the date in words, then what is on it. */
+  const dayName = (d: string, shoot?: number, hol?: string, evs: { label: string }[] = []) =>
+    [
+      parseYmd(d).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }),
+      shoot ? `Shoot Day ${shoot}` : '',
+      hol ?? '',
+      ...evs.map(e => e.label),
+    ]
+      .filter(Boolean)
+      .join(', ');
+  // opening a day puts the keyboard in its first menu, unless a field there already took it
+  useEffect(() => {
+    if (!editing) return;
+    const el = root.current?.querySelector<HTMLElement>('.cal .adder');
+    if (el && !el.contains(document.activeElement)) el.querySelector('select')?.focus();
+  }, [editing]);
+  const close = (date: string) => {
+    setEditing(null);
+    focusNext.current = date;
+  };
+
   const open = (date: string) => {
+    setCursor(date);
     setEditing(date);
     const next = unplaced[0] ?? 0;
     setDraft(x => ({ ...x, end: '', dayIndex: next, label: x.kind === 'shoot' ? '' : x.label }));
@@ -155,7 +240,7 @@ export function CalendarView({ project, setProject }: { project: Project; setPro
       }));
     }
     setDraft(x => ({ ...x, label: '', end: '' }));
-    setEditing(null);
+    close(date);
   };
   const remove = (id: string) => set(c => ({ ...c, events: c.events.filter(e => e.id !== id) }));
   const unpin = (dayIndex: number) =>
@@ -170,7 +255,7 @@ export function CalendarView({ project, setProject }: { project: Project; setPro
   };
 
   return (
-    <div>
+    <div ref={root}>
       <div className="panel">
         <h2>Production calendar</h2>
         <div className="row" style={{ alignItems: 'flex-end' }}>
@@ -305,9 +390,9 @@ export function CalendarView({ project, setProject }: { project: Project; setPro
         <p className="help small" style={{ marginTop: 8 }}>
           {days.length} shoot days on the board, {placed} placed
           {first && lastDate ? ` (${shortDate(first)} → ${shortDate(lastDate)})` : ''}
-          {unplaced.length ? `; next up: Day ${unplaced[0]}` : ''}. Click a date, pick "Shoot day" and which day it is,
-          or add prep, a test shoot, wrap, travel, a hold, a day off or a note. Dates typed on the stripboard's day
-          breaks count as placed.
+          {unplaced.length ? `; next up: Day ${unplaced[0]}` : ''}. Click a date (or Tab into the calendar, move with
+          the arrow keys and press Enter), pick "Shoot day" and which day it is, or add prep, a test shoot, wrap,
+          travel, a hold, a day off or a note. Dates typed on the stripboard's day breaks count as placed.
         </p>
       </div>
 
@@ -361,7 +446,18 @@ export function CalendarView({ project, setProject }: { project: Project; setPro
                       }}
                     >
                       <div className="num">
-                        {+d.slice(8)}
+                        <button
+                          type="button"
+                          className="daynum"
+                          data-date={d}
+                          tabIndex={d === here ? 0 : -1}
+                          aria-label={dayName(d, day?.index, hol, evs)}
+                          aria-expanded={editing === d}
+                          onFocus={() => setCursor(d)}
+                          onKeyDown={dayKeys(d)}
+                        >
+                          {+d.slice(8)}
+                        </button>
                         {hol && (
                           <span className="hol" title={hol}>
                             {hol}
@@ -428,7 +524,16 @@ export function CalendarView({ project, setProject }: { project: Project; setPro
                         );
                       })}
                       {editing === d && (
-                        <div className="adder" onClick={e => e.stopPropagation()}>
+                        <div
+                          className="adder"
+                          onClick={e => e.stopPropagation()}
+                          onKeyDown={e => {
+                            if (e.key === 'Escape') {
+                              e.stopPropagation();
+                              close(d);
+                            }
+                          }}
+                        >
                           <select
                             value={draft.kind}
                             onChange={e => setDraft({ ...draft, kind: e.target.value as CalEventKind })}
@@ -464,7 +569,7 @@ export function CalendarView({ project, setProject }: { project: Project; setPro
                                 onChange={e => setDraft({ ...draft, label: e.target.value })}
                                 onKeyDown={e => {
                                   if (e.key === 'Enter') add(d);
-                                  if (e.key === 'Escape') setEditing(null);
+                                  if (e.key === 'Escape') close(d);
                                 }}
                               />
                               <input
@@ -484,7 +589,7 @@ export function CalendarView({ project, setProject }: { project: Project; setPro
                             >
                               Add
                             </button>
-                            <button className="btn small" onClick={() => setEditing(null)}>
+                            <button className="btn small" onClick={() => close(d)}>
                               Cancel
                             </button>
                           </span>

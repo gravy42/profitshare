@@ -50,6 +50,14 @@ Four fixes in the afternoon:
 - **The model list can be refreshed.** The list of models your key can use was fetched once, at *Test the key*, and kept from then on, so models Anthropic added later never showed. The key panel now says how old the list is and has a *Refresh the list* button. If the refresh fails, the list you had is kept.
 - **The footer link** under *from the world of ALONE GIRL* now goes to alonegirlmovie.com.
 
+In the evening, the last two things that needed a mouse:
+
+- **The calendar works from the keyboard.** Tab goes to one day of the calendar, and the arrow keys move a day or a week from there. Home and End go to the start and end of the week, Page Up and Page Down a month. Enter or Space opens the day the way a click does; Escape closes it and the keyboard goes back to the day. A screen reader hears each day as its date and what is on it.
+- **Strips, days and cast rows move from the keyboard.** The ⋮⋮ grip on a strip, the ⋮⋮ day grip on a day bar, a row of the Days table and a row of the popped-out day out of days each take focus, and the up and down arrow keys move it one place, with any picked strips going along. Each move says what it did to the budget and can be undone, the same as a drag. Enter on a grip says how it works.
+- **Moving the last day keeps parked scenes parked.** Moving the last day of the schedule earlier carried the scenes handed to VFX, 2nd unit or omitted into the middle of the board. They now stay at the end.
+- Dropping a strip back where it started no longer shows a message.
+- The browser walk does all of this with the keys alone in three new steps (68 steps).
+
 ## 2026-11-18
 
 Eight things fixed before telling anyone the app exists. They came out of a full audit of the repo.

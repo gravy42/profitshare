@@ -1568,6 +1568,15 @@ describe('moving several strips, and whole days', () => {
     expect(moveDay(b, 0, 2)).toBe(b);
     expect(moveDay(b, 1, 4)).toBe(b);
   });
+  it('leaves the scenes parked off the first unit in the tail when the last day moves', () => {
+    const parked: Board = {
+      ...base(),
+      scenes: [{ ...sampleProject().board.scenes[0], id: 'p', unit: 'vfx' }],
+      strips: [...base().strips, S('p')],
+    };
+    expect(ids(moveDay(parked, 3, 1))).toBe('e f |d2 a b |d1 c d p');
+    expect(ids(moveDay(parked, 1, 3))).toBe('c d |d2 e f |d1 a b p');
+  });
 });
 
 import { usHolidays, shootDates, newEvent, stampBoardDates, toIcs, monthRange } from './calendar';

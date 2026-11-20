@@ -166,9 +166,11 @@ export function dayBlocks(board: Board): Strip[][] {
 }
 
 /** Lift a whole day (its strips and its day break) and drop it so it becomes day `toDay`; 1-based, like the board.
- *  The last day never carries a day break, so one is added or dropped as the blocks shuffle. */
+ *  The last day never carries a day break, so one is added or dropped as the blocks shuffle. Scenes parked off the
+ *  first unit stay in the tail, whichever day moves. */
 export function moveDay(board: Board, fromDay: number, toDay: number): Board {
-  const blocks = dayBlocks(board);
+  const { head, tail } = splitParked(board);
+  const blocks = dayBlocks(head);
   const n = blocks.length;
   if (fromDay === toDay || fromDay < 1 || fromDay > n || toDay < 1 || toDay > n) return board;
   const order = blocks.slice();
@@ -181,7 +183,7 @@ export function moveDay(board: Board, fromDay: number, toDay: number): Board {
     strips.push(...block.filter(s => s.type !== 'daybreak'));
     if (!last) strips.push(block.find(s => s.type === 'daybreak') ?? spare ?? { type: 'daybreak', id: newId('db') });
   });
-  return { ...board, strips };
+  return { ...board, strips: [...strips, ...tail] };
 }
 
 /** Which day (1-based) a strip index belongs to. */

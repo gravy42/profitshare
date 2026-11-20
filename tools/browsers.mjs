@@ -613,6 +613,169 @@ try {
     await page.getByRole('button', { name: 'Close the tour' }).click();
     return `${after} SALT FLAT, before and after`;
   });
+  // ---- the keyboard alone: the two things that needed a mouse -------------------------------------------------------
+  const focused = () =>
+    page.evaluate(() => {
+      const el = document.activeElement;
+      return {
+        tag: el?.tagName ?? '',
+        grip: el?.dataset?.grip ?? '',
+        date: el?.dataset?.date ?? '',
+        label: el?.getAttribute('aria-label') ?? el?.textContent?.trim() ?? '',
+        expanded: el?.getAttribute('aria-expanded') ?? '',
+      };
+    });
+  const press = async key => {
+    await page.keyboard.press(key);
+    await page.waitForTimeout(150);
+    return focused();
+  };
+  await step('keyboard: a calendar day opens, takes a shoot day and closes, from the keys alone', async () => {
+    await startScreen();
+    await page.getByRole('button', { name: 'Load the sample' }).click();
+    await page.getByRole('button', { name: 'Calendar', exact: true }).click();
+    const y = String(new Date().getFullYear());
+    const from = page.locator('.ctl').nth(0).locator('select');
+    const to = page.locator('.ctl').nth(1).locator('select');
+    await from.nth(0).selectOption('03');
+    await from.nth(1).selectOption(y);
+    await to.nth(0).selectOption('04');
+    await to.nth(1).selectOption(y);
+    await page.getByRole('button', { name: /^(Show|Update) calendar$/ }).click();
+    await page.locator('.cal button.daynum').first().waitFor({ timeout: 5000 });
+    const stops = await page.locator('.cal button.daynum[tabindex="0"]').count();
+    need(stops === 1, `${stops} days are Tab stops; the calendar should be one`);
+    // Tab from the fold above the calendar lands on its one day
+    await page.locator('summary', { hasText: 'auto-place the shoot days' }).focus();
+    let f = await press('Tab');
+    need(f.date === `${y}-03-01`, `Tab into the calendar landed on "${f.date || f.label}"`);
+    const walk = [
+      ['ArrowRight', '03-02'],
+      ['ArrowDown', '03-09'],
+      ['ArrowUp', '03-02'],
+      ['End', '03-07'],
+      ['Home', '03-01'],
+      ['PageDown', '04-01'],
+      ['PageUp', '03-01'],
+      ['ArrowRight', '03-02'],
+    ];
+    for (const [key, want] of walk) {
+      f = await press(key);
+      need(f.date === `${y}-${want}`, `${key} went to ${f.date}, not ${y}-${want}`);
+    }
+    f = await press('Enter');
+    need(f.tag === 'SELECT', `Enter on the day put focus on ${f.tag} "${f.label}", not the day's first menu`);
+    need(
+      (await page.locator(`.cal button.daynum[data-date="${y}-03-02"]`).getAttribute('aria-expanded')) === 'true',
+      'the day does not say it is open',
+    );
+    f = await press('Tab');
+    need(f.tag === 'SELECT', `Tab from the kind menu went to ${f.tag} "${f.label}"`);
+    await page.locator('.cal .adder select').nth(1).selectOption('1');
+    f = await press('Tab');
+    need(f.label === 'Add', `Tab from the day menu went to "${f.label}"`);
+    f = await press('Enter');
+    need(f.date === `${y}-03-02`, `after Add, focus went to "${f.date || f.label}", not back to the day`);
+    need(/Shoot Day 1/.test(f.label), `the day's name does not say Shoot Day 1: "${f.label}"`);
+    need(f.expanded === 'false', 'the day still says it is open');
+    f = await press('Enter');
+    need(f.tag === 'SELECT', 'Enter did not open the day a second time');
+    f = await press('Escape');
+    need(f.date === `${y}-03-02` && f.expanded === 'false', `Escape left focus on "${f.date || f.label}"`);
+    need((await page.locator('.cal .adder').count()) === 0, 'Escape did not close the day');
+    await shot('09a-calendar-keyboard');
+    return `one Tab stop; arrows, Home, End, Page Up and Down; Shoot Day 1 placed on ${y}-03-02 and Escape closes`;
+  });
+  // the stripboard as the walk reads it: each scene strip as "day:scene", in board order
+  const order = () =>
+    page.evaluate(() => {
+      let day = 1;
+      const out = [];
+      for (const el of document.querySelectorAll('.strips [data-grip^="s"], .strips [data-grip^="d"]')) {
+        if (el.dataset.grip.startsWith('d')) day++;
+        else out.push(`${day}:${el.closest('[draggable]').querySelector('.num').firstChild.textContent.trim()}`);
+      }
+      return out;
+    });
+  const sceneOf = x => x.split(':')[1];
+  const onDay = (o, d) =>
+    o
+      .filter(x => x.startsWith(`${d}:`))
+      .map(sceneOf)
+      .join(',');
+  await step('keyboard: strips, picked strips and whole days move with the arrow keys', async () => {
+    await page.getByRole('button', { name: 'Stripboard', exact: true }).click();
+    await page.waitForTimeout(400);
+    const start = await order();
+    need(start.length > 3, `the board has ${start.length} strips`);
+    const same = async () => (await order()).join(' ') === start.join(' ');
+    // one strip down a place and back
+    await page.locator('[data-grip="s0"]').focus();
+    let f = await press('ArrowDown');
+    let now = await order();
+    need(f.grip === 's1', `after ↓ focus is on "${f.grip}", not the strip that moved`);
+    need(sceneOf(now[1]) === sceneOf(start[0]), `scene ${sceneOf(start[0])} did not move down: ${now.slice(0, 3)}`);
+    f = await press('ArrowUp');
+    need(f.grip === 's0' && (await same()), 'after ↑ the board is not back as it was');
+    // Enter on a grip says how it works
+    await press('Enter');
+    await page.getByText('The up and down arrow keys move scene').first().waitFor({ timeout: 3000 });
+    // two strips picked with Space move as one block
+    for (const k of [0, 1]) {
+      await page.locator('.strips input.pick').nth(k).focus();
+      await press('Space');
+    }
+    await page.getByText('2 picked').waitFor({ timeout: 3000 });
+    await page.locator('[data-grip="s1"]').focus();
+    f = await press('ArrowDown');
+    now = await order();
+    need(
+      [now[0], now[1], now[2]].map(sceneOf).join(',') === [start[2], start[0], start[1]].map(sceneOf).join(','),
+      `the picked block did not move down together: ${now.slice(0, 3)}`,
+    );
+    need(f.grip === 's2', `after ↓ focus is on "${f.grip}"`);
+    need((await page.getByText('2 picked').count()) === 1, 'the two strips are no longer picked after the move');
+    f = await press('ArrowUp');
+    need(await same(), 'the picked block did not come back up');
+    await page.getByRole('button', { name: 'clear', exact: true }).focus();
+    await press('Enter');
+    // a whole day, from its day bar
+    await page.locator('[data-grip="d1"]').focus();
+    f = await press('ArrowDown');
+    now = await order();
+    need(onDay(now, 2) === onDay(start, 1), `Day 1 (${onDay(start, 1)}) is not Day 2 now (${onDay(now, 2)})`);
+    need(f.grip === 'd2', `after ↓ focus is on "${f.grip}", not Day 2's bar`);
+    f = await press('ArrowUp');
+    need(f.grip === 'd1' && (await same()), 'Day 1 did not come back');
+    // a whole day, from the Days table
+    await page.locator('[data-grip="r2"]').focus();
+    f = await press('ArrowUp');
+    now = await order();
+    need(onDay(now, 1) === onDay(start, 2), `Day 2 (${onDay(start, 2)}) is not Day 1 now (${onDay(now, 1)})`);
+    need(f.grip === 'r1', `after ↑ focus is on "${f.grip}", not the Days table's first row`);
+    f = await press('ArrowDown');
+    need(f.grip === 'r2' && (await same()), 'Day 2 did not go back');
+    await shot('09b-stripboard-keyboard');
+    return `${start.length} strips; one strip, two picked, a day from its bar and from the Days table, each there and back`;
+  });
+  await step('keyboard: the popped-out day out of days renumbers with the arrow keys', async () => {
+    await page.getByRole('button', { name: '⤢ pop out' }).focus();
+    await press('Enter');
+    const dlg = page.getByRole('dialog', { name: 'Day out of days' });
+    await dlg.waitFor({ timeout: 5000 });
+    const first = (await dlg.locator('[data-grip="c0"]').getAttribute('aria-label')) ?? '';
+    const who = /^Move (.+), number 1 /.exec(first)?.[1];
+    need(who, `the first row's grip is called "${first}"`);
+    await dlg.locator('[data-grip="c0"]').focus();
+    let f = await press('ArrowDown');
+    need(f.grip === 'c1' && f.label.startsWith(`Move ${who}, number 2 `), `after ↓ focus is on "${f.label}"`);
+    f = await press('ArrowUp');
+    need(f.grip === 'c0' && f.label.startsWith(`Move ${who}, number 1 `), `after ↑ focus is on "${f.label}"`);
+    f = await press('Escape');
+    need((await dlg.count()) === 0, 'Escape did not close the day out of days');
+    need(f.label === '⤢ pop out', `focus went back to "${f.label}", not the pop out button`);
+    return `${who} to number 2 and back`;
+  });
   await step('the policy refused nothing the app does', async () => {
     need(refused.length === 0, `${refused.length} refused: ${[...new Set(refused)].slice(0, 4).join(' | ')}`);
   });

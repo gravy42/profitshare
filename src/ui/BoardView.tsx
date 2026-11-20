@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { PrintPortal, ScheduleReport } from './print';
 import { shootDates, shortDate, withCalendar } from '../engine/calendar';
 import { applyDeal, withDeal } from '../engine/deal';
@@ -147,7 +147,7 @@ export function BoardView({
     return topSheet(applyDeal(syncCastDaysFromBoard(adoptBoardDays({ ...withDeal(base), board: b })))).cashBudget;
   };
   /** Apply a whole-board change and say what it did, in dollars, with the way back. */
-  const reschedule = (what: string, f: (b: Board) => Board) => {
+  const reschedule = (what: string, f: (b: Board) => Board): Board => {
     const next = f(board);
     const before = priceOf(board),
       after = priceOf(next);
@@ -167,32 +167,39 @@ export function BoardView({
         `${what}: ${breaks}cast days recounted; Budget to raise ${delta === 0 ? 'unchanged' : `${delta > 0 ? '+' : '−'}${money(Math.abs(delta))}`}. Undo (⌘Z) brings the old board back.`,
         true,
       );
+    return next;
   };
-  /** Drop a strip (or the selection it belongs to) so it lands where strip `to` is; `to` = strips.length appends. */
+  /** Move strips `block` so they land where strip `to` is (the parked tail rules apply), as a drop does. Returns
+   *  what to say and the change, or nothing when the board would come out the same. */
+  const stripMove = (block: number[], to: number) => {
+    const scenesIn = block
+      .map(i => board.strips[i])
+      .filter((x): x is Extract<Strip, { type: 'scene' }> => x.type === 'scene')
+      .map(x => byId.get(x.sceneId)!)
+      .filter(Boolean);
+    const names = scenesIn.map(x => x.number);
+    // the parked tail stays a tail: a first-unit strip never lands after it, and a parked scene dropped into the schedule comes back to the first unit
+    const intoSchedule = to <= cut;
+    const returning = intoSchedule ? scenesIn.filter(x => x.unit) : [];
+    const dest = intoSchedule ? to : scenesIn.every(x => x.unit) ? to : cut;
+    const what =
+      block.length > 1
+        ? `Moved ${block.length} strips (sc ${names.join(', ')})${returning.length ? ', back on the first unit' : ''}`
+        : `Moved scene ${names[0] ?? ''}${returning.length ? ' back on the first unit' : ''}`;
+    const f = (b: Board) => {
+      let n = moveStrips(b, block, dest);
+      for (const sc of returning)
+        n = { ...n, scenes: n.scenes.map(x => (x.id === sc.id ? (({ unit: _u, ...rest }) => rest)(x) : x)) };
+      return n;
+    };
+    const after = f(board);
+    const same = after.scenes === board.scenes && after.strips.every((x, k) => x === board.strips[k]);
+    return same ? null : { what, f };
+  };
   const onDrop = (to: number) => {
     if (drag !== null) {
-      const block = selected.has(drag) ? [...selected] : [drag];
-      const scenesIn = block
-        .map(i => board.strips[i])
-        .filter((x): x is Extract<Strip, { type: 'scene' }> => x.type === 'scene')
-        .map(x => byId.get(x.sceneId)!)
-        .filter(Boolean);
-      const names = scenesIn.map(x => x.number);
-      // the parked tail stays a tail: a first-unit strip never lands after it, and a parked scene dropped into the schedule comes back to the first unit
-      const intoSchedule = to <= cut;
-      const returning = intoSchedule ? scenesIn.filter(x => x.unit) : [];
-      const dest = intoSchedule ? to : scenesIn.every(x => x.unit) ? to : cut;
-      reschedule(
-        block.length > 1
-          ? `Moved ${block.length} strips (sc ${names.join(', ')})${returning.length ? ', back on the first unit' : ''}`
-          : `Moved scene ${names[0] ?? ''}${returning.length ? ' back on the first unit' : ''}`,
-        b => {
-          let n = moveStrips(b, block, dest);
-          for (const sc of returning)
-            n = { ...n, scenes: n.scenes.map(x => (x.id === sc.id ? (({ unit: _u, ...rest }) => rest)(x) : x)) };
-          return n;
-        },
-      );
+      const move = stripMove(selected.has(drag) ? [...selected] : [drag], to);
+      if (move) reschedule(move.what, move.f);
       clearSel();
     }
     setDrag(null);
@@ -213,6 +220,57 @@ export function BoardView({
     }
     setDragDay(null);
     setOver(null);
+  };
+  // The keyboard's way to do what dragging does: a strip's ⋮⋮ grip, a day bar's "⋮⋮ day" grip and a row on the Days
+  // table each take focus, and the up and down arrow keys move that strip (or the picked strips with it), or that
+  // day, one place. Focus follows what moved, so the arrows can keep going.
+  const focusNext = useRef<{ strip: Strip } | { day: number; where: 'bar' | 'row' } | null>(null);
+  useEffect(() => {
+    const want = focusNext.current;
+    if (!want) return;
+    focusNext.current = null;
+    let sel: string;
+    if ('strip' in want) sel = `[data-grip="s${board.strips.indexOf(want.strip)}"]`;
+    else if (want.where === 'row') sel = `[data-grip="r${want.day}"]`;
+    else {
+      // the last day has no day bar of its own: its first strip's grip stands in
+      const bar = board.strips.findIndex((x, k) => x.type === 'daybreak' && dayOfStrip[k] === want.day);
+      sel =
+        bar >= 0
+          ? `[data-grip="d${want.day}"]`
+          : `[data-grip="s${board.strips.findIndex((x, k) => x.type === 'scene' && dayOfStrip[k] === want.day)}"]`;
+    }
+    document.querySelector<HTMLElement>(sel)?.focus();
+  });
+  const stepStrip = (i: number, dir: -1 | 1) => {
+    const block = (selected.has(i) ? [...selected] : [i]).sort((a, b) => a - b);
+    const to = dir < 0 ? block[0] - 1 : block[block.length - 1] + 2;
+    if (to < 0 || to > board.strips.length) return;
+    const move = stripMove(block, to);
+    if (!move) return;
+    const lifted = block.map(k => board.strips[k]);
+    const next = reschedule(move.what, move.f);
+    if (selected.has(i)) setSelected(new Set(lifted.map(x => next.strips.indexOf(x))));
+    setLastPick(null);
+    focusNext.current = { strip: board.strips[i] };
+  };
+  const stepDay = (d: number, dir: -1 | 1, where: 'bar' | 'row') => {
+    const to = d + dir;
+    if (to < 1 || to > days.length) return;
+    reschedule(`Moved Day ${d} to Day ${to}`, b => moveDay(b, d, to));
+    clearSel();
+    focusNext.current = { day: to, where };
+  };
+  /** Up and down arrows on a grip move it; Enter or Space says how, since a grip has nothing else to press. */
+  const gripKeys = (move: (dir: -1 | 1) => void, how: string) => (e: React.KeyboardEvent) => {
+    if (e.target !== e.currentTarget) return;
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      move(e.key === 'ArrowUp' ? -1 : 1);
+    } else if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      notify?.(how, false);
+    }
   };
   const pick = (i: number, shift: boolean) => {
     setSelected((prev: Set<number>) => {
@@ -359,15 +417,16 @@ export function BoardView({
           <summary className="help small">How the board works</summary>
           <p className="help">
             Drag strips to reorder; tick the boxes (shift-click for a run) to pick several and drag them as one block;
-            grab ⋮⋮ day on a day bar to lift the whole day and drop it before a strip or after another day bar. Open a
-            strip's ⌄ to read the scene and tag it: select any words in the script and pick a category, the way Final
-            Draft's tagger works. Drop a day break with the ⏎ button on any strip (it goes in above it). ½ splits a
-            strip so one scene shoots over two days: drag the second part below a day break, set each part's pages, and
-            the cast and tags count on both days. The ◎ unit button hands a scene to VFX, a second unit or the omitted
-            pile: it drops below the schedule, off the day count, the DOOD and the breakdowns (the schedule print lists
-            them at the end); drag it back into a day to put it on the first unit again. Auto day breaks keeps your
-            scene order and splits at the target; Fit to {project.shootDays} days keeps the order and balances the pages
-            across the schedule; {eighthsToText(total)} pages over {project.shootDays} days is{' '}
+            grab ⋮⋮ day on a day bar to lift the whole day and drop it before a strip or after another day bar. On the
+            keyboard, Tab to a strip's ⋮⋮ (or a day's) and the up and down arrow keys move it one place. Open a strip's
+            ⌄ to read the scene and tag it: select any words in the script and pick a category, the way Final Draft's
+            tagger works. Drop a day break with the ⏎ button on any strip (it goes in above it). ½ splits a strip so one
+            scene shoots over two days: drag the second part below a day break, set each part's pages, and the cast and
+            tags count on both days. The ◎ unit button hands a scene to VFX, a second unit or the omitted pile: it drops
+            below the schedule, off the day count, the DOOD and the breakdowns (the schedule print lists them at the
+            end); drag it back into a day to put it on the first unit again. Auto day breaks keeps your scene order and
+            splits at the target; Fit to {project.shootDays} days keeps the order and balances the pages across the
+            schedule; {eighthsToText(total)} pages over {project.shootDays} days is{' '}
             {(total / 8 / project.shootDays).toFixed(1)} pages a day.
           </p>
         </details>
@@ -414,6 +473,15 @@ export function BoardView({
                   <span>
                     <span
                       className="handle daygrip"
+                      role="button"
+                      tabIndex={0}
+                      data-grip={`d${dayOfStrip[i]}`}
+                      aria-label={`Move Day ${dayOfStrip[i]} (up and down arrow keys)`}
+                      aria-keyshortcuts="ArrowUp ArrowDown"
+                      onKeyDown={gripKeys(
+                        dir => stepDay(dayOfStrip[i], dir, 'bar'),
+                        `The up and down arrow keys move all of Day ${dayOfStrip[i]} one day earlier or later.`,
+                      )}
                       draggable
                       title={`Drag to move all of Day ${dayOfStrip[i]} (drop on a strip to go before that day, on a day bar to go after it)`}
                       onDragStart={e => {
@@ -554,7 +622,24 @@ export function BoardView({
                       }}
                       onMouseDown={e => e.stopPropagation()}
                     />
-                    ⋮⋮
+                    <span
+                      className="grip"
+                      role="button"
+                      tabIndex={0}
+                      data-grip={`s${i}`}
+                      aria-label={
+                        selected.size > 1 && selected.has(i)
+                          ? `Move the ${selected.size} picked strips, scene ${s.number} among them (up and down arrow keys)`
+                          : `Move scene ${s.number} (up and down arrow keys)`
+                      }
+                      aria-keyshortcuts="ArrowUp ArrowDown"
+                      onKeyDown={gripKeys(
+                        dir => stepStrip(i, dir),
+                        `The up and down arrow keys move scene ${s.number} one place${selected.size > 1 && selected.has(i) ? `, and the other picked strips with it` : ''}.`,
+                      )}
+                    >
+                      ⋮⋮
+                    </span>
                   </span>
                   <span className="num">
                     {s.number}
@@ -730,7 +815,20 @@ export function BoardView({
                     }}
                   >
                     <td>
-                      <span className="handle">⋮⋮ </span>
+                      <span
+                        className="handle"
+                        role="button"
+                        tabIndex={0}
+                        data-grip={`r${d.index}`}
+                        aria-label={`Move Day ${d.index} (up and down arrow keys)`}
+                        aria-keyshortcuts="ArrowUp ArrowDown"
+                        onKeyDown={gripKeys(
+                          dir => stepDay(d.index, dir, 'row'),
+                          `The up and down arrow keys move all of Day ${d.index} one day earlier or later.`,
+                        )}
+                      >
+                        ⋮⋮
+                      </span>{' '}
                       {d.index}
                       {d.label ? ` · ${d.label}` : ''}
                     </td>
@@ -768,7 +866,9 @@ export function BoardView({
           onClose={() => setAiFor(null)}
         />
       )}
-      {doodOpen && <DoodPopout project={project} setProject={setProject} onClose={() => setDoodOpen(false)} />}
+      {doodOpen && (
+        <DoodPopout project={project} setProject={setProject} notify={notify} onClose={() => setDoodOpen(false)} />
+      )}
       {printSched && (
         <PrintPortal title={`${project.name} · Shooting schedule`} landscape onDone={() => setPrintSched(false)}>
           <ScheduleReport p={project} />
@@ -785,17 +885,36 @@ function DoodTable({
   compact,
   onReorder,
   onRemove,
+  say,
 }: {
   board: Board;
   days: ReturnType<typeof shootDays>;
   compact?: boolean;
   onReorder?: (order: number[]) => void;
   onRemove?: (castId: number) => void;
+  say?: (m: string, sticky?: boolean) => void;
 }) {
   const rows = dood(board);
   const counts = castSceneCounts(board);
   const [drag, setDrag] = useState<number | null>(null);
   const [over, setOver] = useState<number | null>(null);
+  // from the keyboard: a row's ⋮⋮ grip takes focus and the up and down arrows move it one place; focus goes with it
+  const table = useRef<HTMLTableElement>(null);
+  const focusNext = useRef<number | null>(null);
+  useEffect(() => {
+    if (focusNext.current === null) return;
+    table.current?.querySelector<HTMLElement>(`[data-grip="c${focusNext.current}"]`)?.focus();
+    focusNext.current = null;
+  });
+  const step = (from: number, dir: -1 | 1) => {
+    const to = from + dir;
+    const ids = board.castList.map(c => c.id);
+    if (!onReorder || to < 0 || to >= ids.length) return;
+    const [id] = ids.splice(from, 1);
+    ids.splice(to, 0, id);
+    onReorder(ids);
+    focusNext.current = to;
+  };
   const drop = (to: number) => {
     if (drag === null || !onReorder) return;
     const ids = board.castList.map(c => c.id);
@@ -809,7 +928,7 @@ function DoodTable({
     setOver(null);
   };
   return (
-    <table className={compact ? '' : 'full'}>
+    <table className={compact ? '' : 'full'} ref={table}>
       <thead>
         <tr>
           <th className="l">Cast</th>
@@ -845,7 +964,29 @@ function DoodTable({
               }}
             >
               <td className="l">
-                {onReorder && <span className="handle">⋮⋮ </span>}
+                {onReorder && (
+                  <>
+                    <span
+                      className="handle"
+                      role="button"
+                      tabIndex={0}
+                      data-grip={`c${i}`}
+                      aria-label={`Move ${r.name}, number ${r.castId} (up and down arrow keys renumber)`}
+                      aria-keyshortcuts="ArrowUp ArrowDown"
+                      onKeyDown={e => {
+                        if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                          e.preventDefault();
+                          step(i, e.key === 'ArrowUp' ? -1 : 1);
+                        } else if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          say?.(`The up and down arrow keys move ${r.name} one place and renumber the cast.`, false);
+                        }
+                      }}
+                    >
+                      ⋮⋮
+                    </span>{' '}
+                  </>
+                )}
                 {r.castId} {r.name}
                 {onRemove && (
                   <button
@@ -894,10 +1035,12 @@ function DoodTable({
 function DoodPopout({
   project,
   setProject,
+  notify,
   onClose,
 }: {
   project: Project;
   setProject: SetProject;
+  notify?: (m: string, sticky?: boolean) => void;
   onClose: () => void;
 }) {
   const board = project.board;
@@ -954,9 +1097,9 @@ function DoodPopout({
           </div>
         </div>
         <p className="help small">
-          Drag a row to renumber by hand; scene tags and the points schedule follow the new numbers. × drops a character
-          from the cast list (and untags their scenes). W = work day, H = hold day between work days (paid on SAG weekly
-          deals).
+          Drag a row to renumber by hand (or Tab to its ⋮⋮ and use the up and down arrow keys); scene tags and the
+          points schedule follow the new numbers. × drops a character from the cast list (and untags their scenes). W =
+          work day, H = hold day between work days (paid on SAG weekly deals).
         </p>
         <div className="dood dood-full">
           <DoodTable
@@ -964,6 +1107,7 @@ function DoodPopout({
             days={days}
             onReorder={order => setProject(p => renumberCast(p, order))}
             onRemove={id => setProject(p => dropCastMember(p, id))}
+            say={notify}
           />
         </div>
       </div>
