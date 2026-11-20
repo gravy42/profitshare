@@ -1,4 +1,5 @@
 import { parseDelimited } from './delimited';
+import { isMovieMagicBudget, MOVIE_MAGIC_FILE, movieMagicMessage } from './movieMagic';
 import { LIMITS, newBudget, SpreadsheetError, tooBig, type Cell, type Workbook } from './sheetLimits';
 import { readXlsx } from './xlsxReader';
 
@@ -52,6 +53,10 @@ function decode(bytes: Uint8Array): string {
 export function readSpreadsheet(buf: ArrayBuffer | Uint8Array, filename = ''): Workbook {
   const bytes = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
   if (bytes.length > LIMITS.fileBytes) throw tooBig.file(bytes.length);
+  // Movie Magic Budgeting's own file, by its name or by its first bytes (a renamed .mbd used to get "does not look
+  // like a spreadsheet", which never said what it was or what to do)
+  if (MOVIE_MAGIC_FILE.test(filename) || isMovieMagicBudget(bytes))
+    throw new SpreadsheetError(movieMagicMessage(filename));
   if (startsWith(bytes, ZIP) || startsWith(bytes, ZIP_EMPTY)) return readXlsx(bytes);
   if (startsWith(bytes, OLE))
     throw new SpreadsheetError(contains(bytes, utf16('EncryptedPackage')) ? PASSWORD_MESSAGE : OLD_EXCEL_MESSAGE);

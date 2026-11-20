@@ -28,6 +28,8 @@ import { CallSheetsView } from './ui/CallSheetsView';
 import { BoardView } from './ui/BoardView';
 import { DealView } from './ui/DealView';
 import { applyDeal, dealControlledIds } from './engine/deal';
+import { kindFromStart, type FileKind as Kind } from './engine/importers/fileKind';
+import { movieMagicMessage } from './engine/importers/movieMagic';
 import { focusSoon } from './ui/jump';
 import { readProjectText, repairNote } from './engine/openProject';
 import { StartView, type StarterSettings } from './ui/StartView';
@@ -145,24 +147,9 @@ export default function App() {
   }, [canUndo, undo]);
 
   // ---- file intake: one path for the buttons and for drag-and-drop ----
-  type Kind = 'project' | 'zip' | 'budget' | 'board' | 'script' | 'mbd' | 'unknown';
-  const kindOf = (name: string): Kind =>
-    /\.json$/i.test(name)
-      ? 'project'
-      : /\.zip$/i.test(name)
-        ? 'zip'
-        : /\.(xlsx|xls|csv|tsv)$/i.test(name)
-          ? 'budget'
-          : /\.sex$/i.test(name)
-            ? 'board'
-            : /\.(fdx|pdf|fountain|txt|text)$/i.test(name)
-              ? 'script'
-              : /\.mbd$/i.test(name)
-                ? 'mbd'
-                : 'unknown';
   // a .txt is a script if it has scene headings, otherwise a tab-separated budget export
   const sniff = async (f: File): Promise<Kind> => {
-    const k = kindOf(f.name);
+    const k = kindFromStart(f.name, new Uint8Array(await f.slice(0, 16).arrayBuffer()));
     if (k !== 'script' || !/\.(txt|text)$/i.test(f.name)) return k;
     return /^\s*(\d+[A-Z]?\s+)?(INT|EXT|I\/E)[.\s]/m.test(await f.text()) ? 'script' : 'budget';
   };
@@ -438,10 +425,7 @@ export default function App() {
         else if (k === 'board') out.push(await loadBoardFile(f));
         else if (k === 'script')
           out.push(fresh && files.length === 1 ? await startFromScript(f) : await loadScriptFile(f));
-        else if (k === 'mbd')
-          out.push(
-            `${f.name}: Movie Magic's native .mbd is a closed format. In Movie Magic Budgeting use File → Export to Excel or CSV and drop that instead.`,
-          );
+        else if (k === 'mbd') out.push(`${f.name}: ${movieMagicMessage(f.name)}`);
         else
           out.push(
             `${f.name}: not a file type I know. Budgets: .xlsx .csv (Shamel, Movie Magic export, any sheet). Boards: .sex (Movie Magic Scheduling). Scripts: .fdx .pdf .fountain .txt. Projects: .json.`,
@@ -461,8 +445,9 @@ export default function App() {
     const files = await pickFiles('.json,.zip');
     if (files.length) await intake(files);
   };
-  // .xls stays pickable so an old workbook gets the "save it as .xlsx" sentence instead of being greyed out.
-  const importBudget = () => pick('.xlsx,.xls,.csv,.txt,.tsv');
+  // .xls stays pickable so an old workbook gets the "save it as .xlsx" sentence instead of being greyed out, and
+  // Movie Magic's own .mbd and .mmbx likewise get the sentence that says how to export one.
+  const importBudget = () => pick('.xlsx,.xls,.csv,.txt,.tsv,.mbd,.mmbx');
   const importBoard = () => pick('.sex,.fdx,.pdf,.fountain,.txt');
 
   // drag-and-drop anywhere on the page

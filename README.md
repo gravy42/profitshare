@@ -187,8 +187,8 @@ The deck preview in the app and the web deck you send are the same renderer, bun
 <details>
 <summary>Importer notes</summary>
 
-- **Budgets.** The spreadsheet importer (`src/engine/importers/genericBudget.ts`) matches columns by header name and treats rows with a number and a name but no money as account or category headers, which is the shape Movie Magic Budgeting exports. Weekly crew wage lines come in as days (five to the week, same money). Rows that carry no money are folded into a note on the line they belong to.
-- **Boards.** The `.sex` reader was reverse-engineered from a Shamel Studio export (there is no public spec). It keeps strip order and breakdown tags. Movie Magic's native `.mbd` is a closed format and is not read; export to Excel or CSV first.
+- **Budgets.** The spreadsheet importer (`src/engine/importers/genericBudget.ts`) matches columns by header name and treats rows with a number and a name but no money as account or category headers, which is the shape Movie Magic Budgeting exports. Weekly crew wage lines come in as days (five to the week, same money). Rows that carry no money are folded into a note on the line they belong to. Movie Magic Budgeting's own files are not read: a version 7 `.mbd` is enciphered, and a version 10 `.mmbx` is not a format ProfitShare knows. Either one is named for what it is when it comes in, even renamed, with the way out: open it in Movie Magic Budgeting 10, choose File, Export, Tab Delimited, and bring that in.
+- **Boards.** The `.sex` reader was reverse-engineered from a Shamel Studio export (there is no public spec). It keeps strip order and breakdown tags.
 - **Scripts.** One parser (`src/engine/importers/screenplay.ts`) reads Fountain, plain text and the positioned lines pdf.js pulls out of a PDF. A Final Draft `.fdx` keeps its scene numbers and any tags made in Final Draft's tagger. A scanned PDF has no text to read, so export the PDF from the writing app instead.
 - **Merging.** Drop a script on a project that already has a board and ProfitShare offers to merge it: scenes match by number, and your day breaks, strip order and tags stay. Replacing the board asks first and keeps the old one for Undo.
 - `tools/fixtures/` holds the test files, all invented.
@@ -210,7 +210,6 @@ These numbers move. None of this is legal, tax or financial advice. Check the nu
 Not built yet:
 
 - A participation-agreement exhibit generated from the points schedule
-- Movie Magic Budgeting native `.mbd` files (needs a sample; the Excel and CSV exports already import)
 - Reading notes for a sent deck ("who opened it"), planned as a collector you host yourself
 - An installable version that works offline
 

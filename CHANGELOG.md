@@ -63,6 +63,11 @@ In the evening, the budget PDF:
 - **The budget PDF prints names in other alphabets.** Greek and Cyrillic letters, and Latin ones outside Western Europe (Vietnamese, Polish, Czech, Turkish), used to print as question marks or lose their accents. When a budget has such letters the PDF is now set in Noto Sans, which the app carries (SIL Open Font License 1.1, licence beside the files), and the PDF holds only the letters it uses. A budget in plain English still comes out in Helvetica, exactly as before, and fetches nothing. Chinese, Japanese, Korean, Arabic and Hebrew still print as question marks: Noto Sans does not have them, and the PDF library cannot lay out right-to-left lines.
 - The browser walk exports a PDF with Greek, Cyrillic and Vietnamese letters and reads them back (69 steps).
 
+Later in the evening, Movie Magic Budgeting files:
+
+- **A Movie Magic budget file says what it is.** Tried against a real Movie Magic Budgeting 7 file, kept off the repo: a version 7 `.mbd` is enciphered, so there is nothing in it ProfitShare could read. What came in wrong was the way it was turned away. Picked with *Import .xlsx / .csv* it could not be chosen at all, renamed `.csv` or `.txt` it was called "not a spreadsheet", and the sentence it did get gave a menu (File → Export to Excel or CSV) that is not the one Movie Magic Budgeting 10's help describes. A version 10 `.mmbx` was "not a file type I know". Now an `.mbd` or `.mmbx` can be picked, an `.mbd` is known by its first bytes whatever it is called, and both get one sentence: open it in Movie Magic Budgeting 10 (which opens version 7 files), choose File, Export, Tab Delimited, and drop that file in. The tests use an invented file shaped like an `.mbd`.
+- The browser walk picks an invented `.mbd` from the start screen and reads the sentence (70 steps).
+
 ## 2026-11-18
 
 Eight things fixed before telling anyone the app exists. They came out of a full audit of the repo.

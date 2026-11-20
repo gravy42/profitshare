@@ -555,6 +555,14 @@ try {
     );
     return says('budget lines from mmb-export', 'after the pick');
   });
+  await step('start: a Movie Magic .mbd picked as a budget says how to export it', async () => {
+    // invented: the six bytes a Movie Magic Budgeting 7 file starts with, then filler; it holds no budget
+    const mbd = `${out}/Salt Flat.mbd`;
+    writeFileSync(mbd, Buffer.concat([Buffer.from('EPCCJ\0', 'latin1'), Buffer.alloc(512, 0x5a)]));
+    await startScreen();
+    await choose(page.getByRole('button', { name: 'Import .xlsx / .csv', exact: true }), mbd);
+    return says('Movie Magic Budgeting file .*File, Export, Tab Delimited', 'after the pick');
+  });
   await step('start: a saved project (.json) opens, and several at once', async () => {
     await startScreen();
     await page.getByRole('button', { name: 'Load the sample' }).click();

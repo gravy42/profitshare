@@ -298,7 +298,8 @@ export function StartView({
             </div>
             <p className="small muted" style={{ marginTop: 8 }}>
               A .sex board, a script (.fdx, .pdf, .fountain or .txt) or a saved .json can be dropped too, together or
-              one at a time. Movie Magic's native .mbd is a closed format; export first.
+              one at a time. Movie Magic Budgeting's own .mbd and .mmbx files cannot be read: export the budget as Tab
+              Delimited first.
             </p>
           </div>
           <div className="card">

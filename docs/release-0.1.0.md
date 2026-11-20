@@ -79,7 +79,7 @@ Use it at https://profitshare.alonegirlmovie.com/. Press *Load the sample* to lo
 - **US dollars and California rules only.** Fringes default to a California set, and the state incentive is California's.
 - **SAG-AFTRA low-budget theatrical tiers only.** No other union agreements are modelled.
 - **No participation-agreement exhibit** from the points schedule.
-- **No Movie Magic Budgeting native `.mbd` files.** Export to Excel or CSV first. Old-format `.xls` files are not read either: save them as `.xlsx`.
+- **No Movie Magic Budgeting native files (`.mbd`, `.mmbx`).** A version 7 `.mbd` is enciphered. Open it in Movie Magic Budgeting 10 and use File, Export, Tab Delimited; the app says so when one comes in. Old-format `.xls` files are not read either: save them as `.xlsx`.
 - **No scanned PDFs.** A script PDF needs real text in it.
 - **No reading notes for a sent deck.** The app cannot tell you who opened one.
 - **No installable, offline version.**
