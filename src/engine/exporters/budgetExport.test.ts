@@ -1,5 +1,6 @@
 // The budget taken out of the app three ways, each held to the app's own figures. The sample film (SALT FLAT) is the
 // fixture: its budget to raise is $805,312.06, the figure the README and the other tests quote.
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import * as XLSX from 'xlsx';
 import { PDFDocument } from 'pdf-lib';
@@ -484,6 +485,54 @@ describe('the PDF', () => {
     const pages = await pagesText(bytes);
     expect(pages[0]).toContain('???? ? Flat “quoted” — Žofka · v2 ?'); // Cyrillic and Japanese have no stand-in; the rest is in the face
     expect(pages.join(' ')).toContain('$805,312.06');
+  }, 30000);
+
+  const noto = async () => ({
+    regular: new Uint8Array(readFileSync('src/assets/fonts/noto-sans/NotoSans-Regular.ttf')),
+    bold: new Uint8Array(readFileSync('src/assets/fonts/noto-sans/NotoSans-Bold.ttf')),
+  });
+
+  it('prints Greek, Cyrillic, Vietnamese and Polish letters in Noto Sans when they are there', async () => {
+    const p = sampleProject();
+    const wide = applyDeal({
+      ...p,
+      name: 'Соль Flat Ελλάδα',
+      version: 'Nguyễn Łukasz',
+      lines: p.lines.map((l, i) => (i === 0 ? { ...l, description: 'Żaneta Đặng Ярослава 塩 שלום' } : l)),
+    });
+    let asked = 0;
+    const faces = async () => {
+      asked++;
+      return noto();
+    };
+    const bytes = await budgetPdf(wide, { date: DATE, wideFaces: faces });
+    expect(asked).toBe(1);
+    const pages = await pagesText(bytes);
+    expect(pages[0]).toContain('Соль Flat Ελλάδα · Nguyễn Łukasz');
+    // Japanese and Hebrew are in neither face: they still print as question marks, and nothing else is lost
+    expect(pages.join(' ')).toContain('Żaneta Đặng Ярослава ? ????');
+    expect(pages[0]).toContain('Budget to raise (up front) | $805,312.06');
+    // only the letters used go into the file: far smaller than the two font files
+    expect(bytes.length).toBeLessThan(400_000);
+    const names = (await PDFDocument.load(bytes)).context
+      .enumerateIndirectObjects()
+      .map(([, o]) => String(o))
+      .join(' ');
+    expect(names).toMatch(/NotoSans-Bold/);
+    expect(names).not.toMatch(/Helvetica/);
+  }, 30000);
+
+  it('keeps Helvetica, and fetches no font, when every letter is in it', async () => {
+    let asked = 0;
+    const bytes = await budgetPdf(sample, {
+      date: DATE,
+      wideFaces: async () => {
+        asked++;
+        return noto();
+      },
+    });
+    expect(asked).toBe(0);
+    expect(bytes).toEqual(await budgetPdf(sample, { date: DATE }));
   }, 30000);
 
   it('an empty project gives a PDF too', async () => {

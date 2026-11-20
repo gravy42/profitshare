@@ -39,7 +39,7 @@ export function BudgetExport({ project, onNote }: { project: Project; onNote: (n
         kind === 'xlsx'
           ? x.budgetXlsx(project, { date })
           : kind === 'pdf'
-            ? await x.budgetPdf(project, { date })
+            ? await x.budgetPdf(project, { date, wideFaces: async () => (await import('./pdfFaces')).notoSans() })
             : x.budgetCsv(project);
       const name = x.budgetFileName(project, kind);
       // a copy of exactly the file's bytes: a Blob made from a view keeps the whole buffer under it

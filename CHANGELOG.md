@@ -50,6 +50,11 @@ Four fixes in the afternoon:
 - **The model list can be refreshed.** The list of models your key can use was fetched once, at *Test the key*, and kept from then on, so models Anthropic added later never showed. The key panel now says how old the list is and has a *Refresh the list* button. If the refresh fails, the list you had is kept.
 - **The footer link** under *from the world of ALONE GIRL* now goes to alonegirlmovie.com.
 
+In the evening, the budget PDF:
+
+- **The budget PDF prints names in other alphabets.** Greek and Cyrillic letters, and Latin ones outside Western Europe (Vietnamese, Polish, Czech, Turkish), used to print as question marks or lose their accents. When a budget has such letters the PDF is now set in Noto Sans, which the app carries (SIL Open Font License 1.1, licence beside the files), and the PDF holds only the letters it uses. A budget in plain English still comes out in Helvetica, exactly as before, and fetches nothing. Chinese, Japanese, Korean, Arabic and Hebrew still print as question marks: Noto Sans does not have them, and the PDF library cannot lay out right-to-left lines.
+- The browser walk exports a PDF with Greek, Cyrillic and Vietnamese letters and reads them back (66 steps).
+
 ## 2026-11-18
 
 Eight things fixed before telling anyone the app exists. They came out of a full audit of the repo.
