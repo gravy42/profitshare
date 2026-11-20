@@ -671,10 +671,9 @@ try {
     );
     f = await press('Tab');
     need(f.tag === 'SELECT', `Tab from the kind menu went to ${f.tag} "${f.label}"`);
-    const which = page.locator('.cal .adder select').nth(1);
-    await which.selectOption('1');
-    await which.focus(); // Safari's engine on a Mac lets go of a menu chosen from a script; a person's keys stay on it
-    f = await press('Tab');
+    await page.locator('.cal .adder select').nth(1).selectOption('1');
+    // Safari on a Mac skips plain buttons on Tab unless "Press Tab to highlight each item" is on; Option-Tab reaches them
+    f = await press(name === 'webkit' && process.platform === 'darwin' ? 'Alt+Tab' : 'Tab');
     need(f.label === 'Add', `Tab from the day menu went to "${f.label}"`);
     f = await press('Enter');
     need(f.date === `${y}-03-02`, `after Add, focus went to "${f.date || f.label}", not back to the day`);
